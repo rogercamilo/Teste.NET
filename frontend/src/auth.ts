@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
+import { authenticate, findByEmail } from "@/lib/users-store";
 
 const providers: NextAuthConfig["providers"] = [
   Credentials({
@@ -13,54 +14,23 @@ const providers: NextAuthConfig["providers"] = [
     async authorize(credentials) {
       if (!credentials?.email || !credentials?.password) return null;
 
-      // TODO: substituir por consulta ao banco de dados PostgreSQL
-      // Exemplo:
-      //   const user = await db.user.findUnique({ where: { email: credentials.email } })
-      //   const valid = await bcrypt.compare(credentials.password as string, user.passwordHash)
-      //   if (!valid) return null
-
-      const mockUsers = [
-        {
-          id: "u1",
-          name: "Ana Costa",
-          email: "ana.costa@dombosco.org",
-          role: "administrador",
-          moradaId: undefined,
-        },
-        {
-          id: "u2",
-          name: "Carlos Mendes",
-          email: "carlos.mendes@dombosco.org",
-          role: "formador_comunitario",
-          moradaId: "m1",
-        },
-        {
-          id: "u3",
-          name: "Maria Silva",
-          email: "maria.silva@dombosco.org",
-          role: "formador_comunitario",
-          moradaId: "m2",
-        },
-      ];
-
-      const user = mockUsers.find((u) => u.email === credentials.email);
+      const user = authenticate(
+        credentials.email as string,
+        credentials.password as string
+      );
       if (!user) return null;
-
-      // Em produção: verificar hash bcrypt da senha
-      if (credentials.password !== "senha123") return null;
 
       return {
         id: user.id,
-        name: user.name,
+        name: user.nome,
         email: user.email,
-        role: user.role,
-        moradaId: user.moradaId,
+        role: user.perfil,
+        moradaId: user.moradaId ?? null,
       };
     },
   }),
 ];
 
-// Incluir Google OAuth apenas se as credenciais estiverem configuradas
 if (
   process.env.GOOGLE_CLIENT_ID &&
   process.env.GOOGLE_CLIENT_ID !== "cole_aqui_o_client_id" &&
@@ -83,14 +53,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 horas
+    maxAge: 8 * 60 * 60,
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as { role?: string }).role ?? "formador_comunitario";
-        token.moradaId = (user as { moradaId?: string }).moradaId ?? null;
+        if (account?.provider === "google") {
+          // Map Google user to our local user record by email
+          const dbUser = findByEmail(user.email!);
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.role = dbUser.perfil;
+            token.moradaId = dbUser.moradaId ?? null;
+          } else {
+            // Google user not yet registered — allow with default role
+            token.id = user.id ?? `g_${Date.now()}`;
+            token.role = "formador_comunitario";
+            token.moradaId = null;
+          }
+        } else {
+          token.id = user.id;
+          token.role = (user as { role?: string }).role ?? "formador_comunitario";
+          token.moradaId = (user as { moradaId?: string | null }).moradaId ?? null;
+        }
       }
       return token;
     },

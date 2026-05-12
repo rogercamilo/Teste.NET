@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, LogOut, ShieldCheck, UserCog } from "lucide-react";
@@ -33,6 +34,14 @@ interface AppSidebarProps {
 
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
+  const [logo, setLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLogo(localStorage.getItem("appForm:logo"));
+    const handler = () => setLogo(localStorage.getItem("appForm:logo"));
+    window.addEventListener("appform:logo-changed", handler);
+    return () => window.removeEventListener("appform:logo-changed", handler);
+  }, []);
 
   const isAdmin = user.role === "administrador";
   const roleLabel = isAdmin ? "Formador Geral" : "Formador Comunitário";
@@ -64,9 +73,17 @@ export function AppSidebar({ user }: AppSidebarProps) {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2.5 px-2 py-1">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-            <span className="text-xs font-bold text-primary-foreground leading-none">AFC</span>
-          </div>
+          {logo ? (
+            <img
+              src={logo}
+              alt="Logo"
+              className="h-8 w-8 shrink-0 rounded-lg object-contain bg-muted"
+            />
+          ) : (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+              <span className="text-xs font-bold text-primary-foreground leading-none">AFC</span>
+            </div>
+          )}
           <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold text-foreground leading-tight truncate">
               Formação Comunitária

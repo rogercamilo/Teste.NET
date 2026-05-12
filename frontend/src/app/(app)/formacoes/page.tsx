@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { mockFormacoes, mockUsuarios } from "@/lib/mock-data";
+import { mockFormacoes } from "@/lib/mock-data";
+import { db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -106,7 +107,7 @@ const EMPTY_FORM: FormState = {
   materialApoio: "",
 };
 
-const formadores = mockUsuarios.filter((u) => u.ativo);
+const formadores = db.usuarios.load().filter((u) => u.ativo);
 
 export default function FormacoesPage() {
   const [formacoes, setFormacoes] = useState<Formacao[]>(mockFormacoes);

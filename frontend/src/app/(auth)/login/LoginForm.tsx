@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,25 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const [logo, setLogo] = useState<string | null>(null);
+  const [communityName, setCommunityName] = useState("Comunidade Missionária Dom Bosco");
+  const [communityDesc, setCommunityDesc] = useState(
+    "Plataforma pedagógica para gestão e acompanhamento da jornada formativa comunitária."
+  );
+
+  useEffect(() => {
+    setLogo(localStorage.getItem("appForm:logo"));
+    try {
+      const raw = localStorage.getItem("appForm:comunidade");
+      if (raw) {
+        const cfg = JSON.parse(raw) as { nome?: string; descricao?: string; missao?: string };
+        if (cfg.nome) setCommunityName(cfg.nome);
+        if (cfg.missao || cfg.descricao)
+          setCommunityDesc(cfg.missao ?? cfg.descricao ?? communityDesc);
+      }
+    } catch {}
+  }, []);
 
   const errorMessages: Record<string, string> = {
     CredentialsSignin: "E-mail ou senha inválidos.",
@@ -60,33 +79,28 @@ export default function LoginForm() {
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left panel — brand */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary to-blue-800 opacity-90" />
-        <div className="relative z-10 text-center text-primary-foreground">
-          <div className="h-16 w-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6">
-            <span className="text-xl font-bold">AFC</span>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80 opacity-90" />
+        <div className="relative z-10 flex flex-col items-center text-center text-primary-foreground max-w-sm">
+          {/* Logo */}
+          <div className="mb-8">
+            {logo ? (
+              <div className="h-20 w-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden p-1.5 mx-auto">
+                <img src={logo} alt="Logo" className="h-full w-full object-contain" />
+              </div>
+            ) : (
+              <div className="h-20 w-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto">
+                <span className="text-2xl font-bold">AFC</span>
+              </div>
+            )}
           </div>
-          <h1 className="text-2xl font-bold mb-1 leading-tight">
+
+          <h1 className="text-3xl font-bold leading-tight mb-3">
             Aplicativo para<br />Formação Comunitária
           </h1>
-          <p className="text-sm text-white/80 mb-2">Comunidade Missionária Dom Bosco</p>
-          <p className="text-xs text-white/60 max-w-xs mx-auto leading-relaxed mt-3">
-            Plataforma pedagógica para gestão e acompanhamento da jornada formativa comunitária.
-          </p>
-
-          <div className="mt-12 grid grid-cols-2 gap-4 max-w-xs mx-auto">
-            {[
-              { label: "Formandos", value: "42" },
-              { label: "Formações", value: "18" },
-              { label: "Planos", value: "3" },
-              { label: "Realização", value: "90%" },
-            ].map((s) => (
-              <div key={s.label} className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                <p className="text-xl font-bold text-white">{s.value}</p>
-                <p className="text-xs text-white/70 mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
+          <p className="text-base text-white/90 font-medium mb-4">{communityName}</p>
+          <p className="text-sm text-white/60 leading-relaxed">{communityDesc}</p>
         </div>
+
         <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-white/5 -translate-y-1/3 translate-x-1/3" />
         <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-white/5 translate-y-1/3 -translate-x-1/3" />
       </div>
@@ -96,12 +110,18 @@ export default function LoginForm() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center justify-center mb-8 lg:hidden">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center mr-2.5">
-              <span className="text-xs font-bold text-primary-foreground">AFC</span>
-            </div>
+            {logo ? (
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mr-2.5 overflow-hidden p-1">
+                <img src={logo} alt="Logo" className="h-full w-full object-contain" />
+              </div>
+            ) : (
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center mr-2.5">
+                <span className="text-xs font-bold text-primary-foreground">AFC</span>
+              </div>
+            )}
             <div>
               <p className="font-semibold text-foreground text-sm leading-tight">Formação Comunitária</p>
-              <p className="text-xs text-muted-foreground">Dom Bosco</p>
+              <p className="text-xs text-muted-foreground truncate max-w-[180px]">{communityName}</p>
             </div>
           </div>
 
@@ -211,7 +231,7 @@ export default function LoginForm() {
         </div>
 
         <p className="text-xs text-muted-foreground mt-8 text-center">
-          © {new Date().getFullYear()} Comunidade Missionária Dom Bosco
+          © {new Date().getFullYear()} {communityName}
         </p>
       </div>
     </div>

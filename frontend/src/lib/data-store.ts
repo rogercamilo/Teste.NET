@@ -11,6 +11,8 @@ import type {
   Formando,
   ComentarioFormando,
   PresencaFormacao,
+  Usuario,
+  ComunidadeConfig,
 } from "@/types";
 import {
   mockPlanos,
@@ -19,7 +21,16 @@ import {
   mockFormandos,
   mockComentarios,
   mockPresencas,
+  mockUsuarios,
 } from "./mock-data";
+
+const DEFAULT_COMUNIDADE: ComunidadeConfig = {
+  nome: "Comunidade Missionária Dom Bosco",
+  descricao: "Comunidade de vida consagrada dedicada à formação cristã integral.",
+  endereco: "Fortaleza, Ceará — Brasil",
+  missao: "Evangelizar e formar discípulos de Cristo segundo o espírito salesiano de Dom Bosco.",
+  anoFundacao: "2000",
+};
 
 // Bump this version whenever the entity schema changes to force a fresh load from mock data.
 const SCHEMA_VERSION = "3";
@@ -84,7 +95,32 @@ export const db = {
     load: (): PresencaFormacao[] => read("presencas", mockPresencas),
     save: (d: PresencaFormacao[]) => write("presencas", d),
   },
+  usuarios: {
+    load: (): Usuario[] => read("usuarios", mockUsuarios),
+    save: (d: Usuario[]) => write("usuarios", d),
+  },
 };
+
+function loadComunidade(): ComunidadeConfig {
+  if (typeof window === "undefined") return DEFAULT_COMUNIDADE;
+  ensureFreshSchema();
+  try {
+    const raw = localStorage.getItem("appForm:comunidade");
+    if (!raw) return DEFAULT_COMUNIDADE;
+    return { ...DEFAULT_COMUNIDADE, ...JSON.parse(raw) } as ComunidadeConfig;
+  } catch {
+    return DEFAULT_COMUNIDADE;
+  }
+}
+
+function saveComunidade(d: ComunidadeConfig): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("appForm:comunidade", JSON.stringify(d));
+  } catch {
+    // quota exceeded — silently skip
+  }
+}
 
 type Setter<T> = (updater: T[] | ((prev: T[]) => T[])) => void;
 
@@ -121,4 +157,12 @@ export function useComentarios(): [ComentarioFormando[], Setter<ComentarioForman
 export function usePresencas(): [PresencaFormacao[], Setter<PresencaFormacao>] {
   const [s, ss] = useState<PresencaFormacao[]>(() => db.presencas.load());
   return [s, makeSetter("presencas", ss)];
+}
+export function useUsuarios(): [Usuario[], Setter<Usuario>] {
+  const [s, ss] = useState<Usuario[]>(() => db.usuarios.load());
+  return [s, makeSetter("usuarios", ss)];
+}
+export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => void] {
+  const [s, ss] = useState<ComunidadeConfig>(() => loadComunidade());
+  return [s, (c) => { saveComunidade(c); ss(c); }];
 }

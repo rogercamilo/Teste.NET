@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { mockUsuarios } from "@/lib/mock-data";
 import { useMoradas, db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
@@ -71,7 +70,7 @@ const EMPTY_FORM: FormState = {
   gradeId: "",
 };
 
-const formadores = mockUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
+const formadores = db.usuarios.load().filter((u) => u.perfil === "formador_comunitario" && u.ativo);
 
 export default function MoradasClient() {
   const [moradas, setMoradas] = useMoradas();
@@ -205,7 +204,7 @@ export default function MoradasClient() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {filtered.map((morada) => {
-          const formador = mockUsuarios.find((u) => u.id === morada.formadorId);
+          const formador = db.usuarios.load().find((u) => u.id === morada.formadorId);
           const plano = allPlanos.find((p) => p.id === morada.planoId);
           const grade = allGrades.find((g) => g.id === morada.gradeId);
           const totalFormandos = allFormandos.filter((f) => f.moradaId === morada.id).length;

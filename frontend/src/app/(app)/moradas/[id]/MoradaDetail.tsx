@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  mockUsuarios,
   mockAgendamentos,
 } from "@/lib/mock-data";
 import { usePresencas, useComentarios, db } from "@/lib/data-store";
@@ -115,7 +114,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     );
   }
 
-  const formador = mockUsuarios.find((u) => u.id === morada.formadorId);
+  const formador = db.usuarios.load().find((u) => u.id === morada.formadorId);
   const plano = allPlanos.find((p) => p.id === morada.planoId);
   const grade = allGrades.find((g) => g.id === morada.gradeId);
   const formandosDaMorada = allFormandos.filter((f) => f.moradaId === morada.id);

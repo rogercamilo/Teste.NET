@@ -260,3 +260,11 @@ export const NIVEL_CORES: Record<NivelFormativo, string> = {
   "primeiras-promessas": "bg-emerald-100 text-emerald-700",
   "formacao-permanente": "bg-amber-100 text-amber-700",
 };
+
+export interface ComunidadeConfig {
+  nome: string;
+  descricao: string;
+  endereco: string;
+  missao: string;
+  anoFundacao: string;
+}

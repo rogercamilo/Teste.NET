@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { mockUsuarios } from "@/lib/mock-data";
 import { useComentarios, db } from "@/lib/data-store";
 import {
   NIVEL_CORES,
@@ -66,7 +65,7 @@ export default function ComentariosPage() {
 
     const formadorId =
       allFormandos.find((f) => f.id === novoFormandoId)
-        ? (mockUsuarios.find((u) => u.perfil === "formador_comunitario" && u.ativo)?.id ?? "u2")
+        ? (db.usuarios.load().find((u) => u.perfil === "formador_comunitario" && u.ativo)?.id ?? "u2")
         : "u2";
 
     const novo: ComentarioFormando = {
