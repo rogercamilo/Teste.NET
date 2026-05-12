@@ -1,0 +1,16 @@
+# Claude Code local settings
+.claude/settings.local.json
+
+# Node
+node_modules/
+
+# Next.js
+frontend/.next/
+frontend/out/
+
+# Env
+.env*
+
+# OS
+.DS_Store
+Thumbs.db
