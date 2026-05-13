@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useComunidade, db } from "@/lib/data-store";
 import type { UserPublic } from "@/lib/users-store";
 import {
@@ -52,6 +53,7 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
+  Clipboard,
   Database,
   Download,
   Eye,
@@ -59,6 +61,7 @@ import {
   Home,
   ImageIcon,
   Info,
+  KeyRound,
   MoreHorizontal,
   Palette,
   Pencil,
@@ -67,6 +70,7 @@ import {
   Save,
   Server,
   ShieldCheck,
+  Shuffle,
   Trash2,
   Upload,
   User,
@@ -160,7 +164,17 @@ function PerfilTab({
   userName: string;
   userEmail: string;
 }) {
+  const router = useRouter();
   const [usuario, setUsuario] = useState<UserPublic | null>(null);
+
+  // Troca de senha
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     fetch("/api/users")
@@ -168,6 +182,38 @@ function PerfilTab({
       .then((users: UserPublic[]) => setUsuario(users.find((u) => u.id === userId) ?? null))
       .catch(() => {});
   }, [userId]);
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      toast.error("A nova senha deve ter ao menos 6 caracteres."); return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não conferem."); return;
+    }
+    setSavingPassword(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        toast.error(err.error ?? "Erro ao alterar senha."); return;
+      }
+      toast.success("Senha alterada com sucesso!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      router.refresh();
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  const perfilLabel =
+    usuario?.perfil === "administrador" ? "Administrador" : "Formador Comunitário";
 
   return (
     <div className="max-w-lg space-y-4">
@@ -185,10 +231,7 @@ function PerfilTab({
               <div className="flex items-center gap-2 mt-2">
                 <Badge className="bg-primary/10 text-primary border-primary/20 text-xs gap-1.5">
                   <ShieldCheck className="h-3 w-3" />
-                  Formador Geral
-                </Badge>
-                <Badge variant="outline" className="text-xs">
-                  Administrador
+                  {perfilLabel}
                 </Badge>
               </div>
             </div>
@@ -207,7 +250,7 @@ function PerfilTab({
           </div>
           <div className="flex justify-between items-center py-2 border-b border-border/60">
             <span className="text-sm text-muted-foreground">Perfil de acesso</span>
-            <span className="text-sm font-medium text-foreground">Administrador</span>
+            <span className="text-sm font-medium text-foreground">{perfilLabel}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-border/60">
             <span className="text-sm text-muted-foreground">Status</span>
@@ -226,13 +269,88 @@ function PerfilTab({
         </CardContent>
       </Card>
 
-      <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-        <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-        <p className="text-xs text-blue-700">
-          Para alterar nome, e-mail ou senha, edite seu usuário na aba{" "}
-          <strong>Usuários</strong> ou entre em contato com o responsável pelo sistema.
-        </p>
-      </div>
+      {/* Troca de senha */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-muted-foreground" />
+            Alterar senha
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pb-5">
+          <form onSubmit={handleChangePassword} className="grid gap-3">
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Senha atual</Label>
+              <div className="relative">
+                <Input
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Senha atual"
+                  className="h-9 text-sm pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showCurrent ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Nova senha</Label>
+              <div className="relative">
+                <Input
+                  type={showNew ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="h-9 text-sm pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showNew ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Confirmar nova senha</Label>
+              <div className="relative">
+                <Input
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repita a nova senha"
+                  className="h-9 text-sm pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showConfirm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={savingPassword}
+              className="gap-1.5 w-fit"
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              {savingPassword ? "Salvando..." : "Alterar senha"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -247,6 +365,7 @@ type UsuarioForm = {
   ativo: boolean;
   password: string;
   confirmPassword: string;
+  gerarSenhaAuto: boolean;
 };
 
 const EMPTY_USUARIO_FORM: UsuarioForm = {
@@ -257,6 +376,7 @@ const EMPTY_USUARIO_FORM: UsuarioForm = {
   ativo: true,
   password: "",
   confirmPassword: "",
+  gerarSenhaAuto: true,
 };
 
 function UsuariosTab({ currentUserId }: { currentUserId: string }) {
@@ -266,6 +386,11 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [tempPasswordDialog, setTempPasswordDialog] = useState<{
+    nome: string;
+    email: string;
+    password: string;
+  } | null>(null);
   const [editing, setEditing] = useState<UserPublic | null>(null);
   const [form, setForm] = useState<UsuarioForm>(EMPTY_USUARIO_FORM);
   const [showPassword, setShowPassword] = useState(false);
@@ -311,6 +436,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
       ativo: u.ativo,
       password: "",
       confirmPassword: "",
+      gerarSenhaAuto: false,
     });
     setShowPassword(false);
     setShowConfirm(false);
@@ -337,8 +463,13 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
   async function handleSave() {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório."); return; }
     if (!form.email.trim()) { toast.error("E-mail é obrigatório."); return; }
-    if (!editing && !form.password) { toast.error("Senha é obrigatória para novos usuários."); return; }
-    if (form.password && form.password !== form.confirmPassword) {
+    if (!editing && !form.gerarSenhaAuto && !form.password) {
+      toast.error("Informe uma senha ou ative a geração automática."); return;
+    }
+    if (!form.gerarSenhaAuto && form.password && form.password !== form.confirmPassword) {
+      toast.error("As senhas não conferem."); return;
+    }
+    if (editing && form.password && form.password !== form.confirmPassword) {
       toast.error("As senhas não conferem."); return;
     }
     if (form.perfil === "formador_comunitario" && !form.moradaId) {
@@ -368,6 +499,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
         const updated: UserPublic = await res.json();
         setUsuarios((prev) => prev.map((u) => (u.id === editing.id ? updated : u)));
         toast.success("Usuário atualizado com sucesso!");
+        setDialogOpen(false);
       } else {
         const res = await fetch("/api/users", {
           method: "POST",
@@ -375,7 +507,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
           body: JSON.stringify({
             nome: form.nome.trim(),
             email: form.email.trim(),
-            password: form.password,
+            password: form.gerarSenhaAuto ? undefined : form.password,
             perfil: form.perfil,
             moradaId: form.perfil === "formador_comunitario" ? form.moradaId || undefined : undefined,
             ativo: form.ativo,
@@ -385,11 +517,19 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
           const err = await res.json() as { error?: string };
           toast.error(err.error ?? "Falha ao criar usuário."); return;
         }
-        const created: UserPublic = await res.json();
+        const created = await res.json() as UserPublic & { tempPassword?: string };
         setUsuarios((prev) => [...prev, created]);
-        toast.success("Usuário criado com sucesso!");
+        setDialogOpen(false);
+        if (created.tempPassword) {
+          setTempPasswordDialog({
+            nome: created.nome,
+            email: created.email,
+            password: created.tempPassword,
+          });
+        } else {
+          toast.success("Usuário criado com sucesso!");
+        }
       }
-      setDialogOpen(false);
     } finally {
       setSaving(false);
     }
@@ -607,56 +747,137 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                 placeholder="usuario@dombosco.org"
               />
             </div>
-            <div className="grid gap-1.5">
-              <Label>
-                Senha{" "}
-                {editing ? (
-                  <span className="text-muted-foreground font-normal">(deixe em branco para manter)</span>
-                ) : (
-                  <span className="text-destructive">*</span>
-                )}
-              </Label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={form.password}
-                  onChange={(e) => set("password")(e.target.value)}
-                  placeholder={editing ? "Nova senha (opcional)" : "Mínimo 6 caracteres"}
-                  className="pr-9"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-            {(form.password || !editing) && (
-              <div className="grid gap-1.5">
-                <Label>
-                  Confirmar senha{!editing && <span className="text-destructive"> *</span>}
-                </Label>
-                <div className="relative">
-                  <Input
-                    type={showConfirm ? "text" : "password"}
-                    value={form.confirmPassword}
-                    onChange={(e) => set("confirmPassword")(e.target.value)}
-                    placeholder="Repita a senha"
-                    className="pr-9"
-                  />
+
+            {/* Senha — criação */}
+            {!editing && (
+              <>
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Shuffle className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Gerar senha automática</p>
+                      <p className="text-xs text-muted-foreground">
+                        O usuário deverá definir sua própria senha no primeiro acesso
+                      </p>
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setShowConfirm((v) => !v)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    tabIndex={-1}
+                    role="switch"
+                    aria-checked={form.gerarSenhaAuto}
+                    onClick={() => set("gerarSenhaAuto")(!form.gerarSenhaAuto)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      form.gerarSenhaAuto ? "bg-primary" : "bg-input"
+                    }`}
                   >
-                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
+                        form.gerarSenhaAuto ? "translate-x-4" : "translate-x-0"
+                      }`}
+                    />
                   </button>
                 </div>
-              </div>
+
+                {!form.gerarSenhaAuto && (
+                  <>
+                    <div className="grid gap-1.5">
+                      <Label>
+                        Senha <span className="text-destructive">*</span>
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={form.password}
+                          onChange={(e) => set("password")(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          className="pr-9"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label>
+                        Confirmar senha <span className="text-destructive">*</span>
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type={showConfirm ? "text" : "password"}
+                          value={form.confirmPassword}
+                          onChange={(e) => set("confirmPassword")(e.target.value)}
+                          placeholder="Repita a senha"
+                          className="pr-9"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirm((v) => !v)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          tabIndex={-1}
+                        >
+                          {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Senha — edição */}
+            {editing && (
+              <>
+                <div className="grid gap-1.5">
+                  <Label>
+                    Senha{" "}
+                    <span className="text-muted-foreground font-normal">(deixe em branco para manter)</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => set("password")(e.target.value)}
+                      placeholder="Nova senha (opcional)"
+                      className="pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                {form.password && (
+                  <div className="grid gap-1.5">
+                    <Label>Confirmar senha</Label>
+                    <div className="relative">
+                      <Input
+                        type={showConfirm ? "text" : "password"}
+                        value={form.confirmPassword}
+                        onChange={(e) => set("confirmPassword")(e.target.value)}
+                        placeholder="Repita a nova senha"
+                        className="pr-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm((v) => !v)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
             <div className="grid gap-1.5">
               <Label>Perfil de acesso</Label>
@@ -758,6 +979,63 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
             <Button variant="destructive" onClick={handleDelete}>
               Excluir
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Senha Temporária Dialog */}
+      <Dialog
+        open={!!tempPasswordDialog}
+        onOpenChange={(open) => { if (!open) setTempPasswordDialog(null); }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" />
+              Usuário criado com sucesso
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              O usuário{" "}
+              <span className="font-medium text-foreground">{tempPasswordDialog?.nome}</span>{" "}
+              foi criado. Compartilhe a senha temporária abaixo para que ele possa fazer o
+              primeiro acesso.
+            </p>
+            <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+              <p className="text-xs text-muted-foreground mb-1">E-mail de acesso</p>
+              <p className="text-sm font-medium text-foreground">{tempPasswordDialog?.email}</p>
+            </div>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+              <p className="text-xs text-primary/70 mb-1">Senha temporária de primeiro acesso</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-base font-mono font-bold text-primary tracking-widest">
+                  {tempPasswordDialog?.password}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (tempPasswordDialog?.password) {
+                      navigator.clipboard.writeText(tempPasswordDialog.password);
+                      toast.success("Senha copiada!");
+                    }
+                  }}
+                  className="shrink-0 rounded-md p-1.5 text-primary/70 hover:text-primary hover:bg-primary/10 transition-colors"
+                  title="Copiar senha"
+                >
+                  <Clipboard className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <Info className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-700">
+                Esta senha só é exibida uma vez. O usuário deverá alterá-la no primeiro login.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setTempPasswordDialog(null)}>Entendi</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

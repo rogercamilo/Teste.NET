@@ -16,12 +16,19 @@ export interface UserAuth {
   moradaId?: string;
   ativo: boolean;
   criadoEm: string;
+  primeiroAcesso?: boolean;
 }
 
 export type UserPublic = Omit<UserAuth, "passwordHash">;
 
 const DATA_DIR = join(process.cwd(), "data");
 const FILE = join(DATA_DIR, "users-auth.json");
+
+export function generateRandomPassword(): string {
+  const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = randomBytes(12);
+  return Array.from(bytes).map((b) => chars[b % chars.length]).join("");
+}
 
 export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -45,12 +52,13 @@ function ensureFile(): UserAuth[] {
     const initial: UserAuth[] = [
       {
         id: "u1",
-        nome: "Ana Costa",
-        email: "ana.costa@dombosco.org",
+        nome: "Roger",
+        email: "rogercmdb@gmail.com",
         passwordHash: hashPassword("senha123"),
         perfil: "administrador",
         ativo: true,
         criadoEm: "2024-01-10",
+        primeiroAcesso: false,
       },
       {
         id: "u2",
@@ -61,6 +69,7 @@ function ensureFile(): UserAuth[] {
         moradaId: "m1",
         ativo: true,
         criadoEm: "2024-02-15",
+        primeiroAcesso: false,
       },
       {
         id: "u3",
@@ -71,6 +80,7 @@ function ensureFile(): UserAuth[] {
         moradaId: "m2",
         ativo: true,
         criadoEm: "2024-03-01",
+        primeiroAcesso: false,
       },
     ];
     writeFileSync(FILE, JSON.stringify(initial, null, 2), "utf-8");
@@ -103,22 +113,25 @@ export function authenticate(email: string, password: string): UserAuth | null {
 }
 
 export function createUser(
-  data: Omit<UserAuth, "id" | "criadoEm" | "passwordHash"> & { password: string }
-): UserAuth {
+  data: Omit<UserAuth, "id" | "criadoEm" | "passwordHash"> & { password?: string }
+): { user: UserAuth; tempPassword?: string } {
   const users = listUsers();
+  const tempPassword = !data.password ? generateRandomPassword() : undefined;
+  const password = data.password ?? tempPassword!;
   const newUser: UserAuth = {
     id: `u${Date.now()}`,
     nome: data.nome,
     email: data.email,
-    passwordHash: hashPassword(data.password),
+    passwordHash: hashPassword(password),
     perfil: data.perfil,
     moradaId: data.moradaId || undefined,
     ativo: data.ativo,
     criadoEm: new Date().toISOString().split("T")[0],
+    primeiroAcesso: tempPassword !== undefined ? true : (data.primeiroAcesso ?? false),
   };
   users.push(newUser);
   persist(users);
-  return newUser;
+  return { user: newUser, tempPassword };
 }
 
 export function updateUser(

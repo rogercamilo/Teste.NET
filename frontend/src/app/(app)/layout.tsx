@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
 import { ThemeApplier } from "@/components/layout/ThemeApplier";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import PrimeiroAcessoModal from "@/components/PrimeiroAcessoModal";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -12,8 +13,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const sessionUser = session.user as {
     name?: string | null;
     email?: string | null;
+    id?: string;
     role?: string;
     moradaId?: string | null;
+    primeiroAcesso?: boolean;
   };
 
   const user = {
@@ -23,9 +26,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     moradaId: sessionUser.moradaId ?? null,
   };
 
+  const primeiroAcesso = sessionUser.primeiroAcesso ?? false;
+
   return (
     <SidebarProvider>
       <ThemeApplier />
+      <PrimeiroAcessoModal primeiroAcesso={primeiroAcesso} />
       <AppSidebar user={user} />
       <SidebarInset>
         <AppTopbar />

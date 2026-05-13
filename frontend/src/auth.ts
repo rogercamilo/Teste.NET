@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
-import { authenticate, findByEmail } from "@/lib/users-store";
+import { authenticate, findByEmail, findById } from "@/lib/users-store";
 
 const providers: NextAuthConfig["providers"] = [
   Credentials({
@@ -26,6 +26,7 @@ const providers: NextAuthConfig["providers"] = [
         email: user.email,
         role: user.perfil,
         moradaId: user.moradaId ?? null,
+        primeiroAcesso: user.primeiroAcesso ?? false,
       };
     },
   }),
@@ -59,23 +60,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, account }) {
       if (user) {
         if (account?.provider === "google") {
-          // Map Google user to our local user record by email
           const dbUser = findByEmail(user.email!);
           if (dbUser) {
             token.id = dbUser.id;
             token.role = dbUser.perfil;
             token.moradaId = dbUser.moradaId ?? null;
+            token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
           } else {
-            // Google user not yet registered — allow with default role
             token.id = user.id ?? `g_${Date.now()}`;
             token.role = "formador_comunitario";
             token.moradaId = null;
+            token.primeiroAcesso = false;
           }
         } else {
           token.id = user.id;
           token.role = (user as { role?: string }).role ?? "formador_comunitario";
           token.moradaId = (user as { moradaId?: string | null }).moradaId ?? null;
+          token.primeiroAcesso =
+            (user as { primeiroAcesso?: boolean }).primeiroAcesso ?? false;
         }
+      } else if (token.id) {
+        // Re-lê primeiroAcesso da DB a cada validação do token
+        const dbUser = findById(token.id as string);
+        if (dbUser) token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
       }
       return token;
     },
@@ -85,6 +92,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as { role?: string }).role = token.role as string;
         (session.user as { moradaId?: string | null }).moradaId =
           token.moradaId as string | null;
+        (session.user as { primeiroAcesso?: boolean }).primeiroAcesso =
+          token.primeiroAcesso as boolean;
       }
       return session;
     },

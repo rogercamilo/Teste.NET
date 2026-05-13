@@ -95,7 +95,7 @@ export default function LoginForm() {
           </div>
 
           <h1 className="text-3xl font-bold leading-tight mb-3">
-            Aplicativo para<br />Formação Comunitária
+            Aplicativo de gestão para<br />Formação Comunitária
           </h1>
           <p className="text-base text-white/90 font-medium mb-4">{communityName}</p>
           <p className="text-sm text-white/60 leading-relaxed">{communityDesc}</p>

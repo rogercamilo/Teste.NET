@@ -21,9 +21,9 @@ export async function POST(request: Request) {
     };
     const { nome, email, password, perfil, moradaId, ativo } = body;
 
-    if (!nome || !email || !password) {
+    if (!nome || !email) {
       return NextResponse.json(
-        { error: "Nome, e-mail e senha são obrigatórios" },
+        { error: "Nome e e-mail são obrigatórios" },
         { status: 400 }
       );
     }
@@ -31,15 +31,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });
     }
 
-    const user = createUser({
+    const { user, tempPassword } = createUser({
       nome,
       email,
-      password,
+      password: password || undefined,
       perfil: (perfil as "administrador" | "formador_comunitario") ?? "formador_comunitario",
       moradaId,
       ativo: ativo ?? true,
     });
-    return NextResponse.json(toPublic(user), { status: 201 });
+    return NextResponse.json({ ...toPublic(user), tempPassword }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Falha ao criar usuário" }, { status: 500 });
   }

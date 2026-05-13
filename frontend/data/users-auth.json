@@ -1,0 +1,34 @@
+[
+  {
+    "id": "u1",
+    "nome": "Roger",
+    "email": "rogercmdb@gmail.com",
+    "passwordHash": "23b34261eaf3c220897cece1f41bf409:91f12deb04216a5fbebffdf167a30a6cca8ca7c60b26956ce967c4075ab417dfe9d0e7e308da5d517d92f3a6d8d48b2287fd27ba29d9ec57cabdc82391fef47c",
+    "perfil": "administrador",
+    "ativo": true,
+    "criadoEm": "2024-01-10",
+    "primeiroAcesso": false
+  },
+  {
+    "id": "u2",
+    "nome": "Carlos Mendes",
+    "email": "carlos.mendes@dombosco.org",
+    "passwordHash": "8304a95cd3794ba87bb6fe13c2ce2d39:ad88e0c1e782f98ef548d117f2eaf84937b537cf44ac459c6bfe14ce819a3ebb730241edbdf3c8a23954c5ab90944d45d2e3b095cc174cc67023b46dfa34d9d7",
+    "perfil": "formador_comunitario",
+    "moradaId": "m1",
+    "ativo": true,
+    "criadoEm": "2024-02-15",
+    "primeiroAcesso": false
+  },
+  {
+    "id": "u3",
+    "nome": "Maria Silva",
+    "email": "maria.silva@dombosco.org",
+    "passwordHash": "8c6f30adbc2a79812e1cd2d126d671f1:4e6d1cb9c4298b0a72d71f6e93fad4a1367f05ae7013a717e60638e081d2a6a57eb204af8232cf33e6b3abf87e616549af76c01015d1ff4df715fc1834daad0f",
+    "perfil": "formador_comunitario",
+    "moradaId": "m2",
+    "ativo": true,
+    "criadoEm": "2024-03-01",
+    "primeiroAcesso": false
+  }
+]
