@@ -12,7 +12,7 @@ export type StatusFormacao =
   | "cancelada"
   | "reagendada";
 export type Modalidade = "presencial" | "online" | "hibrida";
-export type PerfilUsuario = "administrador" | "formador_comunitario";
+export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comunitario";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
 export type TipoCompromisso = "individual" | "geral";
 
@@ -62,7 +62,7 @@ export interface PlanoFormativo {
   nome: string;
   objetivos: string;
   fundamentacao: string;
-  eixos: string[];
+  eixos: EixoPlano[];
   nivelFormativo: NivelFormativo;
   vigenciaInicio: string;
   vigenciaFim: string;
@@ -79,6 +79,15 @@ export interface Eixo {
   gradeId: string;
   ordem: number;
   cor?: string;
+}
+
+export interface EixoPlano {
+  id: string;
+  nome: string;
+  objetivo: string;
+  intervaloEncontros: string;
+  cargaHoraria: number;
+  areaFormacao: string;
 }
 
 export interface Etapa {
@@ -124,6 +133,11 @@ export interface Formacao {
   cargaHoraria: number;
   modalidade: Modalidade;
   materialApoio?: string;
+  documentoAnexo?: string;
+  /** ID da grade formativa que originou esta formação (se criada via grade) */
+  gradeId?: string;
+  /** Nome da grade formativa (para exibição) */
+  gradeNome?: string;
   vezesUtilizada: number;
   criadoEm: string;
 }
@@ -149,7 +163,7 @@ export interface Agendamento {
 export interface HistoricoFormando {
   id: string;
   formandoId: string;
-  agendamentoId: string;
+  agendamentoId?: string;
   formacaoTema: string;
   data: string;
   status: StatusFormacao;
@@ -174,6 +188,7 @@ export interface ComentarioFormando {
   formandoId: string;
   formandoNome: string;
   formadorId: string;
+  formadorNome?: string;
   texto: string;
   tipo: TipoComentario;
   criadoEm: string;
@@ -236,9 +251,23 @@ export const MODALIDADE_LABELS: Record<Modalidade, string> = {
 };
 
 export const PERFIL_USUARIO_LABELS: Record<PerfilUsuario, string> = {
-  administrador: "Formador Geral",
+  formador_geral: "Formador Geral",
+  administrador: "Administrador",
   formador_comunitario: "Formador Comunitário",
 };
+
+/** Retorna true se `role` tem ao menos o mesmo nível que `required`. */
+export function temPermissao(
+  role: string | undefined,
+  required: PerfilUsuario
+): boolean {
+  const nivel: Record<PerfilUsuario, number> = {
+    formador_comunitario: 1,
+    administrador: 2,
+    formador_geral: 3,
+  };
+  return (nivel[role as PerfilUsuario] ?? 0) >= nivel[required];
+}
 
 export const TIPO_COMENTARIO_LABELS: Record<TipoComentario, string> = {
   adesao: "Adesão",
@@ -267,4 +296,10 @@ export interface ComunidadeConfig {
   endereco: string;
   missao: string;
   anoFundacao: string;
+  /** Termo personalizado para "Morada" (ex.: Grupo, Célula, Casa) */
+  termoMorada?: string;
+  /** Termo personalizado para "Formando" (ex.: Membro, Participante) */
+  termoFormando?: string;
+  /** Termo personalizado para "Formador Comunitário" (ex.: Líder, Coordenador) */
+  termoFormador?: string;
 }

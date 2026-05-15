@@ -6,6 +6,7 @@ import type {
   Formacao,
   Formando,
   GradeFormativa,
+  HistoricoFormando,
   Morada,
   PlanoFormativo,
   PresencaFormacao,
@@ -39,11 +40,19 @@ export const mockMoradas: Morada[] = [
 export const mockUsuarios: Usuario[] = [
   {
     id: "u1",
+    nome: "Roger",
+    email: "rogercmdb@gmail.com",
+    perfil: "formador_geral",
+    ativo: true,
+    criadoEm: "2024-01-10",
+  },
+  {
+    id: "u0",
     nome: "Ana Costa",
     email: "ana.costa@dombosco.org",
     perfil: "administrador",
     ativo: true,
-    criadoEm: "2024-01-10",
+    criadoEm: "2024-01-12",
   },
   {
     id: "u2",
@@ -158,6 +167,49 @@ export const mockFormandos: Formando[] = [
   },
 ];
 
+export const mockHistorico: HistoricoFormando[] = [
+  {
+    id: "h1",
+    formandoId: "f1",
+    agendamentoId: "ag5",
+    formacaoTema: "Quem Sou Eu? — Identidade em Cristo",
+    data: "2026-04-25",
+    status: "realizada",
+    presente: true,
+    observacao: "Participou ativamente, demonstrou interesse e envolvimento com o grupo. Contribuiu com reflexões pessoais durante a partilha.",
+  },
+  {
+    id: "h2",
+    formandoId: "f4",
+    agendamentoId: "ag5",
+    formacaoTema: "Quem Sou Eu? — Identidade em Cristo",
+    data: "2026-04-25",
+    status: "realizada",
+    presente: false,
+    observacao: "Ausente sem justificativa prévia. Necessário acompanhar na próxima semana.",
+  },
+  {
+    id: "h3",
+    formandoId: "f3",
+    agendamentoId: "ag4",
+    formacaoTema: "Discernimento Vocacional",
+    data: "2026-05-08",
+    status: "realizada",
+    presente: true,
+    observacao: "Excelente participação, trouxe reflexões pessoais muito valiosas para o grupo.",
+  },
+  {
+    id: "h4",
+    formandoId: "f2",
+    agendamentoId: "ag5",
+    formacaoTema: "Quem Sou Eu? — Identidade em Cristo",
+    data: "2026-04-25",
+    status: "realizada",
+    presente: true,
+    observacao: "Boa participação e disposição. Demonstra adesão consistente ao plano formativo.",
+  },
+];
+
 export const mockPlanos: PlanoFormativo[] = [
   {
     id: "p1",
@@ -166,7 +218,12 @@ export const mockPlanos: PlanoFormativo[] = [
       "Introduzir o formando aos princípios fundamentais da vida comunitária e espiritual.",
     fundamentacao:
       "Baseado nos documentos fundacionais da Comunidade Dom Bosco e nos evangelhos.",
-    eixos: ["Identidade", "Oração", "Comunidade", "Missão"],
+    eixos: [
+      { id: "ep1-1", nome: "Identidade", objetivo: "Ajudar o formando a descobrir sua identidade como filho de Deus e membro da comunidade.", intervaloEncontros: "Encontros 1 a 3", cargaHoraria: 6, areaFormacao: "Espiritual" },
+      { id: "ep1-2", nome: "Oração", objetivo: "Ensinar os fundamentos da vida de oração pessoal e comunitária.", intervaloEncontros: "Encontros 4 a 6", cargaHoraria: 6, areaFormacao: "Espiritual" },
+      { id: "ep1-3", nome: "Comunidade", objetivo: "Formar para a vivência comunitária autêntica e o sentido de pertencimento.", intervaloEncontros: "Encontros 7 a 9", cargaHoraria: 6, areaFormacao: "Humana" },
+      { id: "ep1-4", nome: "Missão", objetivo: "Despertar a consciência missionária e o compromisso apostólico.", intervaloEncontros: "Encontros 10 a 12", cargaHoraria: 6, areaFormacao: "Apostólica" },
+    ],
     nivelFormativo: "pre-discipulado",
     vigenciaInicio: "2024-01-01",
     vigenciaFim: "2024-12-31",
@@ -179,7 +236,12 @@ export const mockPlanos: PlanoFormativo[] = [
     nome: "Plano Formativo 2024 — Discipulado",
     objetivos: "Aprofundar a vida de fé e o comprometimento comunitário.",
     fundamentacao: "Documentos do Discipulado Comunitário Dom Bosco.",
-    eixos: ["Fé", "Serviço", "Palavra", "Sacramentos"],
+    eixos: [
+      { id: "ep2-1", nome: "Fé", objetivo: "Aprofundar o conhecimento e a vivência da fé católica no contexto comunitário.", intervaloEncontros: "Encontros 1 a 4", cargaHoraria: 8, areaFormacao: "Espiritual" },
+      { id: "ep2-2", nome: "Serviço", objetivo: "Desenvolver a espiritualidade do serviço e da doação ao próximo.", intervaloEncontros: "Encontros 5 a 8", cargaHoraria: 8, areaFormacao: "Apostólica" },
+      { id: "ep2-3", nome: "Palavra", objetivo: "Aprofundar a relação com a Sagrada Escritura e a Tradição da Igreja.", intervaloEncontros: "Encontros 9 a 12", cargaHoraria: 8, areaFormacao: "Espiritual" },
+      { id: "ep2-4", nome: "Sacramentos", objetivo: "Vivenciar os sacramentos como encontro pessoal com Cristo e a Igreja.", intervaloEncontros: "Encontros 13 a 16", cargaHoraria: 8, areaFormacao: "Espiritual" },
+    ],
     nivelFormativo: "discipulado",
     vigenciaInicio: "2024-01-01",
     vigenciaFim: "2024-12-31",
@@ -192,7 +254,12 @@ export const mockPlanos: PlanoFormativo[] = [
     nome: "Plano Formativo 2025 — Primeiras Promessas",
     objetivos: "Aprofundar o comprometimento definitivo com a vida comunitária e apostólica.",
     fundamentacao: "Revisão e atualização dos planos anteriores.",
-    eixos: ["Espiritualidade", "Formação Humana", "Missão", "Comunhão"],
+    eixos: [
+      { id: "ep3-1", nome: "Espiritualidade", objetivo: "Aprofundar a vida espiritual para o comprometimento definitivo com a comunidade.", intervaloEncontros: "Encontros 1 a 3", cargaHoraria: 9, areaFormacao: "Espiritual" },
+      { id: "ep3-2", nome: "Formação Humana", objetivo: "Trabalhar a maturidade humana e afetiva necessária ao comprometimento definitivo.", intervaloEncontros: "Encontros 4 a 6", cargaHoraria: 9, areaFormacao: "Humana" },
+      { id: "ep3-3", nome: "Missão", objetivo: "Preparar o formando para o compromisso missionário definitivo e público.", intervaloEncontros: "Encontros 7 a 9", cargaHoraria: 9, areaFormacao: "Apostólica" },
+      { id: "ep3-4", nome: "Comunhão", objetivo: "Aprofundar os vínculos de comunhão, unidade e corresponsabilidade comunitária.", intervaloEncontros: "Encontros 10 a 12", cargaHoraria: 9, areaFormacao: "Comunitária" },
+    ],
     nivelFormativo: "primeiras-promessas",
     vigenciaInicio: "2025-01-01",
     vigenciaFim: "2025-12-31",

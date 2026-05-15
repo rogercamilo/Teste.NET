@@ -39,7 +39,7 @@ export default function ViewerClient({ id, nome, origem }: ViewerClientProps) {
     dataUrl.includes("application/pdf") || nome.toLowerCase().endsWith(".pdf");
 
   useEffect(() => {
-    const stored = sessionStorage.getItem(`doc_${id}`);
+    const stored = localStorage.getItem(`doc_${id}`);
     if (!stored) {
       setNotFound(true);
       return;

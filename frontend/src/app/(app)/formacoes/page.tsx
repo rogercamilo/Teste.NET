@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { mockFormacoes } from "@/lib/mock-data";
-import { db } from "@/lib/data-store";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useFormacoes, useGrades } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -15,8 +16,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -42,8 +41,12 @@ import { ImportModal, type ImportResult } from "@/components/import/ImportModal"
 import {
   BookOpen,
   Clock,
+  Eye,
+  FileText,
   Filter,
+  GitBranch,
   MoreHorizontal,
+  Paperclip,
   Pencil,
   Plus,
   Search,
@@ -83,122 +86,47 @@ async function importarFormacoes(data: Record<string, string>[]): Promise<Import
   return { success: data.length - errors.length, errors };
 }
 
-type FormState = {
-  tema: string;
-  objetivo: string;
-  descricao: string;
-  nivelFormativo: NivelFormativo;
-  formadorId: string;
-  cargaHoraria: string;
-  modalidade: Modalidade;
-  eixoNome: string;
-  materialApoio: string;
-};
-
-const EMPTY_FORM: FormState = {
-  tema: "",
-  objetivo: "",
-  descricao: "",
-  nivelFormativo: "pre-discipulado",
-  formadorId: "",
-  cargaHoraria: "2",
-  modalidade: "presencial",
-  eixoNome: "",
-  materialApoio: "",
-};
-
-const formadores = db.usuarios.load().filter((u) => u.ativo);
-
 export default function FormacoesPage() {
-  const [formacoes, setFormacoes] = useState<Formacao[]>(mockFormacoes);
+  const router = useRouter();
+  const { data: session } = useSession();
+  const userRole = (session?.user as { role?: string })?.role ?? "formador_comunitario";
+  const canEdit = userRole === "formador_geral" || userRole === "administrador";
+
+  const [formacoes, setFormacoes] = useFormacoes();
+  const [grades] = useGrades();
   const [search, setSearch] = useState("");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
+  const [gradeFilter, setGradeFilter] = useState<string>("todas");
   const [importOpen, setImportOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [editing, setEditing] = useState<Formacao | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-
-  const set = (field: keyof FormState) => (value: string) =>
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const [toDelete, setToDelete] = useState<Formacao | null>(null);
 
   const filtered = formacoes.filter((f) => {
     const matchSearch =
       f.tema.toLowerCase().includes(search.toLowerCase()) ||
       f.formadorNome.toLowerCase().includes(search.toLowerCase());
     const matchNivel = nivelFilter === "todos" || f.nivelFormativo === nivelFilter;
-    return matchSearch && matchNivel;
+    const matchGrade =
+      gradeFilter === "todas"
+        ? true
+        : gradeFilter === "sem-grade"
+        ? !f.gradeId
+        : f.gradeId === gradeFilter;
+    return matchSearch && matchNivel && matchGrade;
   });
-
-  function openCreate() {
-    setEditing(null);
-    setForm(EMPTY_FORM);
-    setDialogOpen(true);
-  }
-
-  function openEdit(f: Formacao, e: React.MouseEvent) {
-    e.stopPropagation();
-    setEditing(f);
-    setForm({
-      tema: f.tema,
-      objetivo: f.objetivo,
-      descricao: f.descricao,
-      nivelFormativo: f.nivelFormativo,
-      formadorId: f.formadorId,
-      cargaHoraria: String(f.cargaHoraria),
-      modalidade: f.modalidade,
-      eixoNome: f.eixoNome ?? "",
-      materialApoio: f.materialApoio ?? "",
-    });
-    setDialogOpen(true);
-  }
 
   function openDelete(f: Formacao, e: React.MouseEvent) {
     e.stopPropagation();
-    setEditing(f);
+    setToDelete(f);
     setDeleteOpen(true);
   }
 
-  function handleSave() {
-    if (!form.tema.trim()) return toast.error("Tema é obrigatório.");
-    if (!form.formadorId) return toast.error("Selecione um formador.");
-    const horas = Number(form.cargaHoraria);
-    if (!horas || horas <= 0) return toast.error("Carga horária inválida.");
-
-    const formador = formadores.find((u) => u.id === form.formadorId);
-    const today = new Date().toISOString().split("T")[0];
-
-    const payload: Formacao = {
-      id: editing?.id ?? `fm${Date.now()}`,
-      tema: form.tema.trim(),
-      objetivo: form.objetivo.trim(),
-      descricao: form.descricao.trim(),
-      nivelFormativo: form.nivelFormativo,
-      formadorId: form.formadorId,
-      formadorNome: formador?.nome ?? "",
-      cargaHoraria: horas,
-      modalidade: form.modalidade,
-      eixoNome: form.eixoNome.trim() || undefined,
-      materialApoio: form.materialApoio.trim() || undefined,
-      vezesUtilizada: editing?.vezesUtilizada ?? 0,
-      criadoEm: editing?.criadoEm ?? today,
-    };
-
-    if (editing) {
-      setFormacoes((prev) => prev.map((f) => (f.id === editing.id ? payload : f)));
-      toast.success("Formação atualizada com sucesso!");
-    } else {
-      setFormacoes((prev) => [...prev, payload]);
-      toast.success("Formação criada com sucesso!");
-    }
-    setDialogOpen(false);
-  }
-
   function handleDelete() {
-    if (!editing) return;
-    setFormacoes((prev) => prev.filter((f) => f.id !== editing.id));
+    if (!toDelete) return;
+    localStorage.removeItem(`doc_${toDelete.id}`);
+    setFormacoes((prev) => prev.filter((f) => f.id !== toDelete.id));
     setDeleteOpen(false);
-    setEditing(null);
+    setToDelete(null);
     toast.success("Formação excluída.");
   }
 
@@ -212,16 +140,18 @@ export default function FormacoesPage() {
             {formacoes.length} formações cadastradas · {formacoes.reduce((a, f) => a + f.cargaHoraria, 0)}h de conteúdo
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-            <Upload className="h-4 w-4 mr-1.5" />
-            Importar XLS
-          </Button>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Nova Formação
-          </Button>
-        </div>
+        {canEdit && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-1.5" />
+              Importar XLS
+            </Button>
+            <Button size="sm" onClick={() => router.push("/formacoes/novo")}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Nova Formação
+            </Button>
+          </div>
+        )}
         <ImportModal
           open={importOpen}
           onOpenChange={setImportOpen}
@@ -279,6 +209,21 @@ export default function FormacoesPage() {
             <SelectItem value="formacao-permanente">Formação Permanente</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={gradeFilter} onValueChange={(v) => v && setGradeFilter(v)}>
+          <SelectTrigger className="h-9 w-full sm:w-56 text-sm">
+            <GitBranch className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue placeholder="Grade formativa" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as grades</SelectItem>
+            <SelectItem value="sem-grade">Sem grade vinculada</SelectItem>
+            {grades.map((g) => (
+              <SelectItem key={g.id} value={g.id}>
+                {g.nome}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {filtered.length === 0 && (
@@ -288,9 +233,13 @@ export default function FormacoesPage() {
         </div>
       )}
 
+      {/* Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {filtered.map((formacao) => (
-          <Card key={formacao.id} className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group">
+          <Card
+            key={formacao.id}
+            className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group"
+          >
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-base">
@@ -298,9 +247,13 @@ export default function FormacoesPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
+                    <button
+                      className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0 text-left hover:text-primary transition-colors focus-visible:outline-none focus-visible:underline"
+                      onClick={() => router.push(`/formacoes/${formacao.id}`)}
+                    >
                       {formacao.tema}
-                    </h3>
+                    </button>
+
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted shrink-0"
@@ -309,28 +262,69 @@ export default function FormacoesPage() {
                         <MoreHorizontal className="h-4 w-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => openEdit(formacao, e)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Editar
+                        <DropdownMenuItem onClick={() => router.push(`/formacoes/${formacao.id}`)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Visualizar
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem variant="destructive" onClick={(e) => openDelete(formacao, e)}>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {formacao.documentoAnexo && (
+                          <DropdownMenuItem onClick={() => router.push(`/viewer?id=${formacao.id}&nome=${encodeURIComponent(formacao.documentoAnexo!)}&origem=/formacoes`)}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Ver documento
+                          </DropdownMenuItem>
+                        )}
+                        {canEdit && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => router.push(`/formacoes/${formacao.id}/editar`)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={(e) => openDelete(formacao, e)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
 
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{formacao.objetivo}</p>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {formacao.objetivo}
+                  </p>
 
                   <div className="flex flex-wrap gap-1.5 mt-2.5">
-                    <Badge variant="outline" className={`text-xs ${NIVEL_CORES[formacao.nivelFormativo]}`}>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${NIVEL_CORES[formacao.nivelFormativo]}`}
+                    >
                       {NIVEL_FORMATIVO_LABELS[formacao.nivelFormativo]}
                     </Badge>
                     {formacao.eixoNome && (
-                      <Badge variant="outline" className="text-xs bg-accent text-accent-foreground border-0">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-accent text-accent-foreground border-0"
+                      >
                         {formacao.eixoNome}
+                      </Badge>
+                    )}
+                    {formacao.gradeNome && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-violet-50 text-violet-700 border-violet-200 gap-1"
+                      >
+                        <GitBranch className="h-2.5 w-2.5" />
+                        {formacao.gradeNome}
+                      </Badge>
+                    )}
+                    {formacao.documentoAnexo && (
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                        <Paperclip className="h-2.5 w-2.5 mr-1" />
+                        PDF
                       </Badge>
                     )}
                   </div>
@@ -357,92 +351,15 @@ export default function FormacoesPage() {
         ))}
       </div>
 
-      {/* Form Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar Formação" : "Nova Formação"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>Tema <span className="text-destructive">*</span></Label>
-              <Input value={form.tema} onChange={(e) => set("tema")(e.target.value)} placeholder="Quem Sou Eu? — Identidade em Cristo" />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Objetivo <span className="text-destructive">*</span></Label>
-              <Textarea value={form.objetivo} onChange={(e) => set("objetivo")(e.target.value)} placeholder="Descreva o objetivo desta formação..." className="min-h-16 resize-none" />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Descrição</Label>
-              <Textarea value={form.descricao} onChange={(e) => set("descricao")(e.target.value)} placeholder="Detalhes adicionais sobre o conteúdo..." className="min-h-16 resize-none" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Etapa Formativa <span className="text-destructive">*</span></Label>
-                <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((n) => (
-                      <SelectItem key={n} value={n}>{NIVEL_FORMATIVO_LABELS[n]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Modalidade</Label>
-                <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="presencial">Presencial</SelectItem>
-                    <SelectItem value="online">Online</SelectItem>
-                    <SelectItem value="hibrida">Híbrida</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Formador <span className="text-destructive">*</span></Label>
-                <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {formadores.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Carga horária (h) <span className="text-destructive">*</span></Label>
-                <Input type="number" min="1" value={form.cargaHoraria} onChange={(e) => set("cargaHoraria")(e.target.value)} placeholder="2" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Eixo</Label>
-                <Input value={form.eixoNome} onChange={(e) => set("eixoNome")(e.target.value)} placeholder="Ex.: Identidade" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Material de apoio</Label>
-                <Input value={form.materialApoio} onChange={(e) => set("materialApoio")(e.target.value)} placeholder="Link ou referência" />
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>{editing ? "Salvar alterações" : "Criar formação"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirm */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Excluir formação</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Tem certeza que deseja excluir <span className="font-medium text-foreground">{editing?.tema}</span>? Esta ação não pode ser desfeita.
+            Tem certeza que deseja excluir{" "}
+            <span className="font-medium text-foreground">{toDelete?.tema}</span>? Esta ação não
+            pode ser desfeita.
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>

@@ -1,12 +1,15 @@
 /**
  * localStorage-based persistence layer.
  * All entity data survives page navigation and browser refresh.
- * Document binaries (PDFs) stay in sessionStorage because of size limits.
+ * Document binaries (PDFs) are stored in localStorage under the key `doc_<id>`.
  */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type {
+  Agendamento,
+  Formacao,
   PlanoFormativo,
   GradeFormativa,
+  HistoricoFormando,
   Morada,
   Formando,
   ComentarioFormando,
@@ -15,8 +18,11 @@ import type {
   ComunidadeConfig,
 } from "@/types";
 import {
+  mockAgendamentos,
+  mockFormacoes,
   mockPlanos,
   mockGrades,
+  mockHistorico,
   mockMoradas,
   mockFormandos,
   mockComentarios,
@@ -33,7 +39,7 @@ const DEFAULT_COMUNIDADE: ComunidadeConfig = {
 };
 
 // Bump this version whenever the entity schema changes to force a fresh load from mock data.
-const SCHEMA_VERSION = "3";
+const SCHEMA_VERSION = "4";
 const VERSION_KEY = "appForm:_version";
 
 const KEY = (entity: string) => `appForm:${entity}`;
@@ -71,6 +77,14 @@ function write<T>(entity: string, data: T[]): void {
 
 // Direct access (for non-reactive reads, e.g. initialising derived data)
 export const db = {
+  agendamentos: {
+    load: (): Agendamento[] => read("agendamentos", mockAgendamentos),
+    save: (d: Agendamento[]) => write("agendamentos", d),
+  },
+  formacoes: {
+    load: (): Formacao[] => read("formacoes", mockFormacoes),
+    save: (d: Formacao[]) => write("formacoes", d),
+  },
   planos: {
     load: (): PlanoFormativo[] => read("planos", mockPlanos),
     save: (d: PlanoFormativo[]) => write("planos", d),
@@ -86,6 +100,10 @@ export const db = {
   formandos: {
     load: (): Formando[] => read("formandos", mockFormandos),
     save: (d: Formando[]) => write("formandos", d),
+  },
+  historico: {
+    load: (): HistoricoFormando[] => read("historico", mockHistorico),
+    save: (d: HistoricoFormando[]) => write("historico", d),
   },
   comentarios: {
     load: (): ComentarioFormando[] => read("comentarios", mockComentarios),
@@ -134,35 +152,65 @@ function makeSetter<T>(entity: keyof typeof db, setState: React.Dispatch<React.S
   };
 }
 
+function usePersistedEntity<T>(
+  entity: keyof typeof db,
+  mockFallback: T[]
+): [T[], Setter<T>] {
+  // Start with mock data so server and client initial renders match (no hydration mismatch).
+  // useEffect then replaces with the actual localStorage data after hydration.
+  const [s, ss] = useState<T[]>(mockFallback);
+  useEffect(() => {
+    ss((db[entity] as unknown as { load: () => T[] }).load());
+  }, [entity]);
+  return [s, makeSetter(entity, ss)];
+}
+
+export function useAgendamentos(): [Agendamento[], Setter<Agendamento>] {
+  return usePersistedEntity("agendamentos", mockAgendamentos);
+}
+export function useFormacoes(): [Formacao[], Setter<Formacao>] {
+  return usePersistedEntity("formacoes", mockFormacoes);
+}
 export function usePlanos(): [PlanoFormativo[], Setter<PlanoFormativo>] {
-  const [s, ss] = useState<PlanoFormativo[]>(() => db.planos.load());
-  return [s, makeSetter("planos", ss)];
+  return usePersistedEntity("planos", mockPlanos);
 }
 export function useGrades(): [GradeFormativa[], Setter<GradeFormativa>] {
-  const [s, ss] = useState<GradeFormativa[]>(() => db.grades.load());
-  return [s, makeSetter("grades", ss)];
+  return usePersistedEntity("grades", mockGrades);
 }
 export function useMoradas(): [Morada[], Setter<Morada>] {
-  const [s, ss] = useState<Morada[]>(() => db.moradas.load());
-  return [s, makeSetter("moradas", ss)];
+  return usePersistedEntity("moradas", mockMoradas);
 }
 export function useFormandos(): [Formando[], Setter<Formando>] {
-  const [s, ss] = useState<Formando[]>(() => db.formandos.load());
-  return [s, makeSetter("formandos", ss)];
+  return usePersistedEntity("formandos", mockFormandos);
+}
+export function useHistorico(): [HistoricoFormando[], Setter<HistoricoFormando>] {
+  return usePersistedEntity("historico", mockHistorico);
 }
 export function useComentarios(): [ComentarioFormando[], Setter<ComentarioFormando>] {
-  const [s, ss] = useState<ComentarioFormando[]>(() => db.comentarios.load());
-  return [s, makeSetter("comentarios", ss)];
+  return usePersistedEntity("comentarios", mockComentarios);
 }
 export function usePresencas(): [PresencaFormacao[], Setter<PresencaFormacao>] {
-  const [s, ss] = useState<PresencaFormacao[]>(() => db.presencas.load());
-  return [s, makeSetter("presencas", ss)];
+  return usePersistedEntity("presencas", mockPresencas);
 }
 export function useUsuarios(): [Usuario[], Setter<Usuario>] {
-  const [s, ss] = useState<Usuario[]>(() => db.usuarios.load());
-  return [s, makeSetter("usuarios", ss)];
+  return usePersistedEntity("usuarios", mockUsuarios);
 }
 export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => void] {
   const [s, ss] = useState<ComunidadeConfig>(() => loadComunidade());
   return [s, (c) => { saveComunidade(c); ss(c); }];
+}
+
+export interface Termos {
+  morada: string;
+  formando: string;
+  formador: string;
+}
+
+export function useTermos(): Termos {
+  const [comunidade] = useComunidade();
+  return {
+    morada: comunidade.termoMorada?.trim() || "Morada",
+    formando: comunidade.termoFormando?.trim() || "Formando",
+    formador: comunidade.termoFormador?.trim() || "Formador Comunitário",
+  };
 }
