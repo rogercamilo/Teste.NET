@@ -3,6 +3,7 @@ import type {
   ComentarioFormando,
   Compromisso,
   DashboardStats,
+  EventoFormando,
   Formacao,
   Formando,
   GradeFormativa,
@@ -662,6 +663,8 @@ export const mockCompromissos: Compromisso[] = [
     criadoEm: "2026-05-09",
   },
 ];
+
+export const mockEventosFormando: EventoFormando[] = [];
 
 export const mockDashboard: DashboardStats = {
   totalAgendadas: 3,

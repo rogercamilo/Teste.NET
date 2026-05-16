@@ -7,6 +7,7 @@ import {
   useAgendamentos,
   useHistorico,
   useComentarios,
+  useEventosFormando,
   useComunidade,
 } from "@/lib/data-store";
 import {
@@ -18,6 +19,10 @@ import {
   STATUS_FORMACAO_LABELS,
   REQUISITOS_ETAPAS,
   SEQUENCIA_ETAPAS,
+  TIPO_EVENTO_LABELS,
+  TIPO_EVENTO_CORES,
+  NOTA_ADESAO_LABELS,
+  NOTA_ADESAO_CORES,
   getProximaEtapa,
   podeAvancarEtapa,
   totalRequerido,
@@ -26,6 +31,9 @@ import {
   type HistoricoFormando,
   type ComentarioFormando,
   type Agendamento,
+  type EventoFormando,
+  type NotaAdesao,
+  type TipoDesligamento,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,8 +65,11 @@ import {
   BookOpen,
   Calendar,
   CheckCircle2,
+  ClipboardList,
   Clock,
+  FileText,
   Lock,
+  LogOut,
   Mail,
   MapPin,
   MessageSquare,
@@ -66,6 +77,7 @@ import {
   Plus,
   User,
   UserCheck,
+  UserMinus,
   UserX,
   XCircle,
 } from "lucide-react";
@@ -100,6 +112,7 @@ export default function FormandoDetailPage({
   const [agendamentos] = useAgendamentos();
   const [historico, setHistorico] = useHistorico();
   const [comentarios, setComentarios] = useComentarios();
+  const [eventos, setEventos] = useEventosFormando();
   const [comunidade] = useComunidade();
 
   const userId = (session?.user as { id?: string })?.id ?? "u0";
@@ -119,6 +132,31 @@ export default function FormandoDetailPage({
   });
 
   const [avancarOpen, setAvancarOpen] = useState(false);
+
+  const [avaliacaoOpen, setAvaliacaoOpen] = useState(false);
+  const [avaliacaoForm, setAvaliacaoForm] = useState<{
+    periodoInicio: string;
+    periodoFim: string;
+    notaAdesao: NotaAdesao;
+    textoAvaliacao: string;
+  }>({ periodoInicio: "", periodoFim: "", notaAdesao: "boa", textoAvaliacao: "" });
+
+  const [solicitacaoOpen, setSolicitacaoOpen] = useState(false);
+  const [solicitacaoForm, setSolicitacaoForm] = useState({ motivo: "" });
+
+  const [desligamentoOpen, setDesligamentoOpen] = useState(false);
+  const [desligamentoForm, setDesligamentoForm] = useState<{
+    tipoDesligamento: TipoDesligamento;
+    motivo: string;
+    dataEfetiva: string;
+  }>({ tipoDesligamento: "voluntario", motivo: "", dataEfetiva: "" });
+
+  const [licencaOpen, setLicencaOpen] = useState(false);
+  const [licencaForm, setLicencaForm] = useState({
+    motivo: "",
+    dataInicioLicenca: "",
+    dataFimLicenca: "",
+  });
 
   const formando = allFormandos.find((f) => f.id === id);
 
@@ -244,6 +282,98 @@ export default function FormandoDetailPage({
     toast.success("Comentário salvo.");
   }
 
+  const formandoEventos = eventos
+    .filter((e) => e.formandoId === id)
+    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+
+  function handleSaveAvaliacao() {
+    if (!avaliacaoForm.periodoInicio || !avaliacaoForm.periodoFim)
+      return toast.error("Informe o período da avaliação.");
+    if (!avaliacaoForm.textoAvaliacao.trim())
+      return toast.error("O texto da avaliação é obrigatório.");
+    const novo: EventoFormando = {
+      id: `ev${Date.now()}`,
+      formandoId: id,
+      formadorId: userId,
+      tipo: "avaliacao-adesao",
+      criadoEm: new Date().toISOString(),
+      periodoInicio: avaliacaoForm.periodoInicio,
+      periodoFim: avaliacaoForm.periodoFim,
+      notaAdesao: avaliacaoForm.notaAdesao,
+      textoAvaliacao: avaliacaoForm.textoAvaliacao.trim(),
+    };
+    setEventos((prev) => [...prev, novo]);
+    setAvaliacaoOpen(false);
+    setAvaliacaoForm({ periodoInicio: "", periodoFim: "", notaAdesao: "boa", textoAvaliacao: "" });
+    toast.success("Avaliação de adesão registrada.");
+  }
+
+  function handleSaveSolicitacao() {
+    if (!solicitacaoForm.motivo.trim()) return toast.error("O motivo é obrigatório.");
+    const novo: EventoFormando = {
+      id: `ev${Date.now()}`,
+      formandoId: id,
+      formadorId: userId,
+      tipo: "solicitacao-desligamento",
+      criadoEm: new Date().toISOString(),
+      motivo: solicitacaoForm.motivo.trim(),
+    };
+    setEventos((prev) => [...prev, novo]);
+    setSolicitacaoOpen(false);
+    setSolicitacaoForm({ motivo: "" });
+    toast.success("Solicitação de desligamento registrada.");
+  }
+
+  function handleSaveDesligamento() {
+    if (!desligamentoForm.motivo.trim()) return toast.error("O motivo é obrigatório.");
+    if (!desligamentoForm.dataEfetiva) return toast.error("A data efetiva é obrigatória.");
+    const motivoInatividade =
+      desligamentoForm.tipoDesligamento === "voluntario"
+        ? "desligamento-voluntario"
+        : "desligamento-compulsorio";
+    const novo: EventoFormando = {
+      id: `ev${Date.now()}`,
+      formandoId: id,
+      formadorId: userId,
+      tipo: "desligamento",
+      criadoEm: new Date().toISOString(),
+      tipoDesligamento: desligamentoForm.tipoDesligamento,
+      motivo: desligamentoForm.motivo.trim(),
+      dataEfetiva: desligamentoForm.dataEfetiva,
+    };
+    setEventos((prev) => [...prev, novo]);
+    setFormandos((prev) =>
+      prev.map((f) =>
+        f.id === id ? { ...f, ativo: false, motivoInatividade: motivoInatividade } : f
+      )
+    );
+    setDesligamentoOpen(false);
+    setDesligamentoForm({ tipoDesligamento: "voluntario", motivo: "", dataEfetiva: "" });
+    toast.success("Desligamento registrado.");
+  }
+
+  function handleSaveLicenca() {
+    if (!licencaForm.motivo.trim()) return toast.error("O motivo é obrigatório.");
+    if (!licencaForm.dataInicioLicenca) return toast.error("A data de início é obrigatória.");
+    const novo: EventoFormando = {
+      id: `ev${Date.now()}`,
+      formandoId: id,
+      formadorId: userId,
+      tipo: "licenca",
+      criadoEm: new Date().toISOString(),
+      motivo: licencaForm.motivo.trim(),
+      dataInicioLicenca: licencaForm.dataInicioLicenca,
+      dataFimLicenca: licencaForm.dataFimLicenca || undefined,
+    };
+    setEventos((prev) => [...prev, novo]);
+    setFormandos((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, ativo: false, motivoInatividade: "licenca" } : f))
+    );
+    setLicencaOpen(false);
+    setLicencaForm({ motivo: "", dataInicioLicenca: "", dataFimLicenca: "" });
+    toast.success("Licença registrada.");
+  }
+
   function handleAvancarEtapa() {
     if (!proximaEtapa) return;
     const agora = new Date().toISOString();
@@ -305,14 +435,25 @@ export default function FormandoDetailPage({
               <Badge variant="outline" className={NIVEL_CORES[formando.nivelFormativo]}>
                 {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
               </Badge>
-              <Badge
-                variant="outline"
-                className={
-                  formando.ativo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""
-                }
-              >
-                {formando.ativo ? "Ativo" : "Inativo"}
-              </Badge>
+              {formando.ativo ? (
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                  Ativo
+                </Badge>
+              ) : formando.motivoInatividade === "licenca" ? (
+                <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200">
+                  Em Licença
+                </Badge>
+              ) : formando.motivoInatividade === "desligamento-voluntario" ? (
+                <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">
+                  Desligado
+                </Badge>
+              ) : formando.motivoInatividade === "desligamento-compulsorio" ? (
+                <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200">
+                  Demitido
+                </Badge>
+              ) : (
+                <Badge variant="outline">Inativo</Badge>
+              )}
             </div>
             <div className="flex flex-wrap gap-4 mt-2">
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -370,6 +511,9 @@ export default function FormandoDetailPage({
           </TabsTrigger>
           <TabsTrigger value="dados" className="text-xs h-7">
             Dados Pessoais
+          </TabsTrigger>
+          <TabsTrigger value="registros" className="text-xs h-7">
+            Registros
           </TabsTrigger>
         </TabsList>
 
@@ -801,6 +945,131 @@ export default function FormandoDetailPage({
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Registros */}
+        <TabsContent value="registros" className="mt-4">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Registros da Jornada</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Avaliações, solicitações de desligamento, desligamentos e licenças
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2 mb-5">
+                <Button size="sm" variant="outline" onClick={() => setAvaliacaoOpen(true)}>
+                  <FileText className="h-3.5 w-3.5 mr-1.5" />
+                  Avaliação de Adesão
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setSolicitacaoOpen(true)}>
+                  <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+                  Solicitação de Desligamento
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setDesligamentoOpen(true)}>
+                  <UserMinus className="h-3.5 w-3.5 mr-1.5" />
+                  Registrar Desligamento
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setLicencaOpen(true)}>
+                  <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                  Registrar Licença
+                </Button>
+              </div>
+
+              {formandoEventos.length === 0 ? (
+                <div className="flex flex-col items-center py-10 text-center">
+                  <ClipboardList className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="font-medium text-foreground text-sm">Nenhum registro encontrado</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use os botões acima para registrar marcos na jornada formativa.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {formandoEventos.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="rounded-xl border border-border/50 bg-card p-4 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${TIPO_EVENTO_CORES[ev.tipo]}`}
+                        >
+                          {TIPO_EVENTO_LABELS[ev.tipo]}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(ev.criadoEm), "d 'de' MMM 'de' yyyy", { locale: ptBR })}
+                        </span>
+                      </div>
+
+                      {ev.tipo === "avaliacao-adesao" && (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Nota:</span>
+                            {ev.notaAdesao && (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${NOTA_ADESAO_CORES[ev.notaAdesao]}`}
+                              >
+                                {NOTA_ADESAO_LABELS[ev.notaAdesao]}
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              · Período:{" "}
+                              {ev.periodoInicio &&
+                                format(parseISO(ev.periodoInicio), "dd/MM/yyyy")}{" "}
+                              —{" "}
+                              {ev.periodoFim && format(parseISO(ev.periodoFim), "dd/MM/yyyy")}
+                            </span>
+                          </div>
+                          {ev.textoAvaliacao && (
+                            <p className="text-sm text-foreground leading-relaxed">
+                              {ev.textoAvaliacao}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {ev.tipo === "solicitacao-desligamento" && ev.motivo && (
+                        <p className="text-sm text-foreground leading-relaxed">{ev.motivo}</p>
+                      )}
+
+                      {ev.tipo === "desligamento" && (
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">
+                            Tipo:{" "}
+                            {ev.tipoDesligamento === "voluntario" ? "Voluntário" : "Compulsório"}
+                            {ev.dataEfetiva &&
+                              ` · Data efetiva: ${format(parseISO(ev.dataEfetiva), "dd/MM/yyyy")}`}
+                          </span>
+                          {ev.motivo && (
+                            <p className="text-sm text-foreground leading-relaxed">{ev.motivo}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {ev.tipo === "licenca" && (
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">
+                            Início:{" "}
+                            {ev.dataInicioLicenca &&
+                              format(parseISO(ev.dataInicioLicenca), "dd/MM/yyyy")}
+                            {ev.dataFimLicenca &&
+                              ` · Prev. retorno: ${format(parseISO(ev.dataFimLicenca), "dd/MM/yyyy")}`}
+                          </span>
+                          {ev.motivo && (
+                            <p className="text-sm text-foreground leading-relaxed">{ev.motivo}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Dialog: Registrar Participação */}
@@ -916,6 +1185,243 @@ export default function FormandoDetailPage({
               Cancelar
             </Button>
             <Button onClick={handleSaveComentario}>Salvar comentário</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Avaliação de Adesão */}
+      <Dialog open={avaliacaoOpen} onOpenChange={setAvaliacaoOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Avaliação de Adesão</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>
+                  Período — início <span className="text-destructive">*</span>
+                </Label>
+                <input
+                  type="date"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={avaliacaoForm.periodoInicio}
+                  onChange={(e) =>
+                    setAvaliacaoForm((p) => ({ ...p, periodoInicio: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>
+                  Período — fim <span className="text-destructive">*</span>
+                </Label>
+                <input
+                  type="date"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={avaliacaoForm.periodoFim}
+                  onChange={(e) =>
+                    setAvaliacaoForm((p) => ({ ...p, periodoFim: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Nota de adesão</Label>
+              <Select
+                value={avaliacaoForm.notaAdesao}
+                onValueChange={(v) =>
+                  v && setAvaliacaoForm((p) => ({ ...p, notaAdesao: v as NotaAdesao }))
+                }
+                items={NOTA_ADESAO_LABELS}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="otima">Ótima</SelectItem>
+                  <SelectItem value="boa">Boa</SelectItem>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="insuficiente">Insuficiente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>
+                Texto da avaliação <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                placeholder="Descreva a adesão do formando ao plano formativo no período avaliado..."
+                value={avaliacaoForm.textoAvaliacao}
+                onChange={(e) =>
+                  setAvaliacaoForm((p) => ({ ...p, textoAvaliacao: e.target.value }))
+                }
+                rows={5}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAvaliacaoOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveAvaliacao}>Salvar avaliação</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Solicitação de Desligamento */}
+      <Dialog open={solicitacaoOpen} onOpenChange={setSolicitacaoOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solicitação de Desligamento</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
+              <p className="text-xs text-amber-700">
+                Registra a solicitação formal de desligamento do formando. Para efetivar o
+                desligamento, utilize &quot;Registrar Desligamento&quot;.
+              </p>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>
+                Motivo da solicitação <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                placeholder="Descreva o motivo da solicitação de desligamento..."
+                value={solicitacaoForm.motivo}
+                onChange={(e) => setSolicitacaoForm({ motivo: e.target.value })}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setSolicitacaoOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveSolicitacao}>Registrar solicitação</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Desligamento */}
+      <Dialog open={desligamentoOpen} onOpenChange={setDesligamentoOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Desligamento</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+              <p className="text-xs text-red-700">
+                Esta ação marcará o formando como inativo. O registro ficará disponível para
+                relatórios anuais e sob demanda.
+              </p>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Tipo de desligamento</Label>
+              <Select
+                value={desligamentoForm.tipoDesligamento}
+                onValueChange={(v) =>
+                  v &&
+                  setDesligamentoForm((p) => ({
+                    ...p,
+                    tipoDesligamento: v as TipoDesligamento,
+                  }))
+                }
+                items={{ voluntario: "Voluntário", compulsorio: "Compulsório (Demissão)" }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="voluntario">Voluntário</SelectItem>
+                  <SelectItem value="compulsorio">Compulsório (Demissão)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>
+                Data efetiva <span className="text-destructive">*</span>
+              </Label>
+              <input
+                type="date"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={desligamentoForm.dataEfetiva}
+                onChange={(e) =>
+                  setDesligamentoForm((p) => ({ ...p, dataEfetiva: e.target.value }))
+                }
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>
+                Motivo <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                placeholder="Descreva o motivo do desligamento..."
+                value={desligamentoForm.motivo}
+                onChange={(e) => setDesligamentoForm((p) => ({ ...p, motivo: e.target.value }))}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDesligamentoOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleSaveDesligamento}>
+              Confirmar desligamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Licença */}
+      <Dialog open={licencaOpen} onOpenChange={setLicencaOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Licença</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>
+                  Data de início <span className="text-destructive">*</span>
+                </Label>
+                <input
+                  type="date"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={licencaForm.dataInicioLicenca}
+                  onChange={(e) =>
+                    setLicencaForm((p) => ({ ...p, dataInicioLicenca: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Prev. retorno</Label>
+                <input
+                  type="date"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={licencaForm.dataFimLicenca}
+                  onChange={(e) =>
+                    setLicencaForm((p) => ({ ...p, dataFimLicenca: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>
+                Motivo <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                placeholder="Descreva o motivo da licença..."
+                value={licencaForm.motivo}
+                onChange={(e) => setLicencaForm((p) => ({ ...p, motivo: e.target.value }))}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setLicencaOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveLicenca}>Registrar licença</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

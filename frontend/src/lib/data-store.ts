@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from "react";
 import type {
   Agendamento,
+  EventoFormando,
   Formacao,
   PlanoFormativo,
   GradeFormativa,
@@ -19,6 +20,7 @@ import type {
 } from "@/types";
 import {
   mockAgendamentos,
+  mockEventosFormando,
   mockFormacoes,
   mockPlanos,
   mockGrades,
@@ -39,7 +41,7 @@ const DEFAULT_COMUNIDADE: ComunidadeConfig = {
 };
 
 // Bump this version whenever the entity schema changes to force a fresh load from mock data.
-const SCHEMA_VERSION = "5";
+const SCHEMA_VERSION = "6";
 const VERSION_KEY = "appForm:_version";
 
 const KEY = (entity: string) => `appForm:${entity}`;
@@ -116,6 +118,10 @@ export const db = {
   usuarios: {
     load: (): Usuario[] => read("usuarios", mockUsuarios),
     save: (d: Usuario[]) => write("usuarios", d),
+  },
+  eventosFormando: {
+    load: (): EventoFormando[] => read("eventosFormando", mockEventosFormando),
+    save: (d: EventoFormando[]) => write("eventosFormando", d),
   },
 };
 
@@ -194,6 +200,9 @@ export function usePresencas(): [PresencaFormacao[], Setter<PresencaFormacao>] {
 }
 export function useUsuarios(): [Usuario[], Setter<Usuario>] {
   return usePersistedEntity("usuarios", mockUsuarios);
+}
+export function useEventosFormando(): [EventoFormando[], Setter<EventoFormando>] {
+  return usePersistedEntity("eventosFormando", mockEventosFormando);
 }
 export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => void] {
   const [s, ss] = useState<ComunidadeConfig>(() => loadComunidade());

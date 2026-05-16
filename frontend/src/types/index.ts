@@ -70,6 +70,7 @@ export interface Formando {
   telefone: string;
   email: string;
   ativo: boolean;
+  motivoInatividade?: "desligamento-voluntario" | "desligamento-compulsorio" | "licenca";
   foto?: string;
   turmaId?: string;
   moradaId?: string;
@@ -217,6 +218,37 @@ export interface ComentarioFormando {
   criadoEm: string;
 }
 
+export type TipoEventoFormando =
+  | "avaliacao-adesao"
+  | "solicitacao-desligamento"
+  | "desligamento"
+  | "licenca";
+
+export type NotaAdesao = "otima" | "boa" | "regular" | "insuficiente";
+
+export type TipoDesligamento = "voluntario" | "compulsorio";
+
+export interface EventoFormando {
+  id: string;
+  formandoId: string;
+  formadorId: string;
+  tipo: TipoEventoFormando;
+  criadoEm: string;
+  /** avaliacao-adesao */
+  periodoInicio?: string;
+  periodoFim?: string;
+  notaAdesao?: NotaAdesao;
+  textoAvaliacao?: string;
+  /** solicitacao-desligamento / desligamento / licenca */
+  motivo?: string;
+  /** desligamento */
+  tipoDesligamento?: TipoDesligamento;
+  dataEfetiva?: string;
+  /** licenca */
+  dataInicioLicenca?: string;
+  dataFimLicenca?: string;
+}
+
 export interface Compromisso {
   id: string;
   formadorId: string;
@@ -348,6 +380,34 @@ export const REQUISITOS_ETAPAS: Record<NivelFormativo, RequisitosEtapa> = {
     retirosPessoais: 4,
     duracaoAnos: 1,
   },
+};
+
+export const TIPO_EVENTO_LABELS: Record<TipoEventoFormando, string> = {
+  "avaliacao-adesao": "Avaliação de Adesão",
+  "solicitacao-desligamento": "Solicitação de Desligamento",
+  desligamento: "Desligamento",
+  licenca: "Licença",
+};
+
+export const TIPO_EVENTO_CORES: Record<TipoEventoFormando, string> = {
+  "avaliacao-adesao": "bg-blue-100 text-blue-700",
+  "solicitacao-desligamento": "bg-amber-100 text-amber-700",
+  desligamento: "bg-red-100 text-red-700",
+  licenca: "bg-violet-100 text-violet-700",
+};
+
+export const NOTA_ADESAO_LABELS: Record<NotaAdesao, string> = {
+  otima: "Ótima",
+  boa: "Boa",
+  regular: "Regular",
+  insuficiente: "Insuficiente",
+};
+
+export const NOTA_ADESAO_CORES: Record<NotaAdesao, string> = {
+  otima: "bg-emerald-100 text-emerald-700",
+  boa: "bg-blue-100 text-blue-700",
+  regular: "bg-amber-100 text-amber-700",
+  insuficiente: "bg-red-100 text-red-700",
 };
 
 export const SEQUENCIA_ETAPAS: NivelFormativo[] = [

@@ -344,7 +344,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     if (!formandoForm.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
     if (!formandoForm.dataIngresso) return toast.error("Data de ingresso é obrigatória.");
 
-    const nivelFormativo = morada.nivelFormativo;
+    const nivelFormativo = morada!.nivelFormativo;
     const progressoEtapas: ProgressoEtapa[] = editingFormando?.progressoEtapas ?? [
       {
         nivel: nivelFormativo,
@@ -366,7 +366,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
       telefone: formandoForm.telefone.trim(),
       email: formandoForm.email.trim(),
       ativo: editingFormando?.ativo ?? true,
-      moradaId: morada.id,
+      moradaId: morada!.id,
       totalFormacoes: editingFormando?.totalFormacoes ?? totalRequerido(nivelFormativo),
       formacoesRealizadas: editingFormando?.formacoesRealizadas ?? 0,
       progressoEtapas,
