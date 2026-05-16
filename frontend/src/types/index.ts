@@ -383,10 +383,10 @@ export const REQUISITOS_ETAPAS: Record<NivelFormativo, RequisitosEtapa> = {
 };
 
 export const TIPO_EVENTO_LABELS: Record<TipoEventoFormando, string> = {
-  "avaliacao-adesao": "Avaliação de Adesão",
+  "avaliacao-adesao": "Parecer do Formador",
   "solicitacao-desligamento": "Solicitação de Desligamento",
-  desligamento: "Desligamento",
-  licenca: "Licença",
+  desligamento: "Desligamento Compulsório",
+  licenca: "Registro de Licença",
 };
 
 export const TIPO_EVENTO_CORES: Record<TipoEventoFormando, string> = {

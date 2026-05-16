@@ -950,7 +950,7 @@ export default function FormandoDetailPage({
         <TabsContent value="registros" className="mt-4">
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Registros da Jornada</CardTitle>
+              <CardTitle className="text-sm font-semibold">Marcos da caminhada formativa</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Avaliações, solicitações de desligamento, desligamentos e licenças
               </p>
@@ -959,7 +959,7 @@ export default function FormandoDetailPage({
               <div className="flex flex-wrap gap-2 mb-5">
                 <Button size="sm" variant="outline" onClick={() => setAvaliacaoOpen(true)}>
                   <FileText className="h-3.5 w-3.5 mr-1.5" />
-                  Avaliação de Adesão
+                  Parecer do formador
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setSolicitacaoOpen(true)}>
                   <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
@@ -967,11 +967,11 @@ export default function FormandoDetailPage({
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setDesligamentoOpen(true)}>
                   <UserMinus className="h-3.5 w-3.5 mr-1.5" />
-                  Registrar Desligamento
+                  Desligamento compulsório
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setLicencaOpen(true)}>
                   <LogOut className="h-3.5 w-3.5 mr-1.5" />
-                  Registrar Licença
+                  Registro de licença
                 </Button>
               </div>
 
@@ -1193,7 +1193,7 @@ export default function FormandoDetailPage({
       <Dialog open={avaliacaoOpen} onOpenChange={setAvaliacaoOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Avaliação de Adesão</DialogTitle>
+            <DialogTitle>Parecer do formador</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-3">
@@ -1305,7 +1305,7 @@ export default function FormandoDetailPage({
       <Dialog open={desligamentoOpen} onOpenChange={setDesligamentoOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Registrar Desligamento</DialogTitle>
+            <DialogTitle>Desligamento compulsório</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="rounded-lg bg-red-50 border border-red-200 p-3">
@@ -1376,7 +1376,7 @@ export default function FormandoDetailPage({
       <Dialog open={licencaOpen} onOpenChange={setLicencaOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Registrar Licença</DialogTitle>
+            <DialogTitle>Registro de licença</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-3">
