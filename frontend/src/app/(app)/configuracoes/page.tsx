@@ -11,15 +11,14 @@ export default async function ConfiguracoesPage() {
     role?: string;
   };
 
-  if (sessionUser?.role !== "administrador") {
-    redirect("/dashboard");
-  }
+  if (!sessionUser) redirect("/dashboard");
 
   return (
     <ConfiguracoesClient
       userId={sessionUser.id ?? ""}
       userName={sessionUser.name ?? "Usuário"}
       userEmail={sessionUser.email ?? ""}
+      userRole={sessionUser.role ?? "formador_comunitario"}
     />
   );
 }

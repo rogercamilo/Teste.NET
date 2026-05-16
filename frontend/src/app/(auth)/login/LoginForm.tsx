@@ -89,13 +89,13 @@ export default function LoginForm() {
               </div>
             ) : (
               <div className="h-20 w-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto">
-                <span className="text-2xl font-bold">AFC</span>
+                <span className="text-2xl font-bold"></span>
               </div>
             )}
           </div>
 
           <h1 className="text-3xl font-bold leading-tight mb-3">
-            Aplicativo de gestão para<br />Formação Comunitária
+            Plataforma de gestão <br />para Formação Comunitária
           </h1>
           <p className="text-base text-white/90 font-medium mb-4">{communityName}</p>
           <p className="text-sm text-white/60 leading-relaxed">{communityDesc}</p>
@@ -116,7 +116,7 @@ export default function LoginForm() {
               </div>
             ) : (
               <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center mr-2.5">
-                <span className="text-xs font-bold text-primary-foreground">AFC</span>
+                <span className="text-xs font-bold text-primary-foreground"> </span>
               </div>
             )}
             <div>

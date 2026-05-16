@@ -515,7 +515,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground mb-1.5">Selecionar Formação</p>
-                  <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)}>
+                  <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)} items={Object.fromEntries(realizadas.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`]))}>
                     <SelectTrigger className="w-full sm:w-96">
                       <SelectValue placeholder="Escolha uma formação..." />
                     </SelectTrigger>
@@ -713,7 +713,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>Formando</Label>
-              <Select value={novoFormandoId} onValueChange={(v) => setNovoFormandoId(v ?? "")}>
+              <Select value={novoFormandoId} onValueChange={(v) => setNovoFormandoId(v ?? "")} items={Object.fromEntries(formandosDaMorada.filter((f) => f.ativo).map((f) => [f.id, f.nome]))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o formando..." />
                 </SelectTrigger>
@@ -726,7 +726,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             </div>
             <div className="space-y-1.5">
               <Label>Tipo</Label>
-              <Select value={novoTipo} onValueChange={(v) => v && setNovoTipo(v as TipoComentario)}>
+              <Select value={novoTipo} onValueChange={(v) => v && setNovoTipo(v as TipoComentario)} items={TIPO_COMENTARIO_LABELS}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(["adesao", "dificuldade", "progresso", "observacao"] as TipoComentario[]).map((t) => (

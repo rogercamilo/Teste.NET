@@ -3,10 +3,20 @@
     "id": "u1",
     "nome": "Roger",
     "email": "rogercmdb@gmail.com",
-    "passwordHash": "23b34261eaf3c220897cece1f41bf409:91f12deb04216a5fbebffdf167a30a6cca8ca7c60b26956ce967c4075ab417dfe9d0e7e308da5d517d92f3a6d8d48b2287fd27ba29d9ec57cabdc82391fef47c",
-    "perfil": "administrador",
+    "passwordHash": "7d343eb7d542d68a3b9e90a95db2b3df:60cf67c343e56f8a221a0f47471c079a475c2928e1e7251f5f46398653896b88aad558a0cb43a33b769807295ffa23ac4992a6b87f18773a41e84d6c2bb299b0",
+    "perfil": "formador_geral",
     "ativo": true,
     "criadoEm": "2024-01-10",
+    "primeiroAcesso": false
+  },
+  {
+    "id": "u0",
+    "nome": "Ana Costa",
+    "email": "ana.costa@dombosco.org",
+    "passwordHash": "8304a95cd3794ba87bb6fe13c2ce2d39:ad88e0c1e782f98ef548d117f2eaf84937b537cf44ac459c6bfe14ce819a3ebb730241edbdf3c8a23954c5ab90944d45d2e3b095cc174cc67023b46dfa34d9d7",
+    "perfil": "administrador",
+    "ativo": true,
+    "criadoEm": "2024-01-12",
     "primeiroAcesso": false
   },
   {
@@ -21,14 +31,14 @@
     "primeiroAcesso": false
   },
   {
-    "id": "u3",
-    "nome": "Maria Silva",
-    "email": "maria.silva@dombosco.org",
-    "passwordHash": "8c6f30adbc2a79812e1cd2d126d671f1:4e6d1cb9c4298b0a72d71f6e93fad4a1367f05ae7013a717e60638e081d2a6a57eb204af8232cf33e6b3abf87e616549af76c01015d1ff4df715fc1834daad0f",
+    "id": "u1778709513435",
+    "nome": "Iranilza Camilo",
+    "email": "iranilzalimacmdb@gmail.com",
+    "passwordHash": "5aa6ad13e1e2145130edf1d10a76e61e:76d030027bc010888d63826297531879a0b1e5f5557de1c78a93eb1bfb67d8c5a7f366cb4a6e5475adbfde731774882d9e1025666aa90e785faad89d95502eb5",
     "perfil": "formador_comunitario",
-    "moradaId": "m2",
     "ativo": true,
-    "criadoEm": "2024-03-01",
-    "primeiroAcesso": false
+    "criadoEm": "2026-05-13",
+    "primeiroAcesso": true,
+    "moradaId": "m1778709513490"
   }
 ]

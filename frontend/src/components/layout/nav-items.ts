@@ -5,7 +5,6 @@ import {
   Home,
   LayoutDashboard,
   Library,
-  MessageSquare,
   Settings,
   type LucideIcon,
   Users,
@@ -23,7 +22,8 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-export const navGroupsAdmin: NavGroup[] = [
+/** Formador Geral e Administrador — acesso completo à plataforma */
+export const navGroupsGestao: NavGroup[] = [
   {
     label: "Principal",
     items: [
@@ -54,6 +54,7 @@ export const navGroupsAdmin: NavGroup[] = [
   },
 ];
 
+/** Formador Comunitário — acesso restrito à sua morada */
 export const navGroupsFormador: NavGroup[] = [
   {
     label: "Principal",
@@ -75,7 +76,15 @@ export const navGroupsFormador: NavGroup[] = [
     items: [
       { title: "Formandos", href: "/formandos", icon: Users },
       { title: "Gestão de Presença", href: "/presenca", icon: ClipboardList },
-      { title: "Comentários", href: "/comentarios", icon: MessageSquare },
+    ],
+  },
+  {
+    label: "Sistema",
+    items: [
+      { title: "Configurações", href: "/configuracoes", icon: Settings },
     ],
   },
 ];
+
+/** @deprecated Use navGroupsGestao */
+export const navGroupsAdmin = navGroupsGestao;

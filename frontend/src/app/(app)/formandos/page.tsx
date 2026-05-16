@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useFormandos, db } from "@/lib/data-store";
+import { useSession } from "next-auth/react";
+import { useFormandos, useComunidade, db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -105,7 +106,15 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function FormandosPage() {
+  const { data: session } = useSession();
+  const userRole = (session?.user as { role?: string })?.role ?? "formador_comunitario";
+  const userMoradaId = (session?.user as { moradaId?: string | null })?.moradaId ?? null;
+  const isFC = userRole === "formador_comunitario";
+  const canEdit = !isFC || true; // FC pode criar formandos na sua morada
+
   const [formandos, setFormandos] = useFormandos();
+  const [comunidade] = useComunidade();
+  const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const [allMoradas] = useState(() => db.moradas.load());
   const [search, setSearch] = useState("");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
@@ -118,7 +127,12 @@ export default function FormandosPage() {
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const filtered = formandos.filter((f) => {
+  // FC só vê formandos da sua morada
+  const scopedFormandos = isFC && userMoradaId
+    ? formandos.filter((f) => f.moradaId === userMoradaId)
+    : formandos;
+
+  const filtered = scopedFormandos.filter((f) => {
     const matchSearch =
       f.nome.toLowerCase().includes(search.toLowerCase()) ||
       f.email.toLowerCase().includes(search.toLowerCase());
@@ -128,7 +142,7 @@ export default function FormandosPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, moradaId: isFC && userMoradaId ? userMoradaId : "" });
     setDialogOpen(true);
   }
 
@@ -184,10 +198,10 @@ export default function FormandosPage() {
 
     if (editing) {
       setFormandos((prev) => prev.map((f) => (f.id === editing.id ? payload : f)));
-      toast.success("Formando atualizado com sucesso!");
+      toast.success(`${termoFormando} atualizado com sucesso!`);
     } else {
       setFormandos((prev) => [...prev, payload]);
-      toast.success("Formando criado com sucesso!");
+      toast.success(`${termoFormando} criado com sucesso!`);
     }
     setDialogOpen(false);
   }
@@ -197,7 +211,7 @@ export default function FormandosPage() {
     setFormandos((prev) => prev.filter((f) => f.id !== editing.id));
     setDeleteOpen(false);
     setEditing(null);
-    toast.success("Formando excluído.");
+    toast.success(`${termoFormando} excluído.`);
   }
 
   const selectedMorada = allMoradas.find((m) => m.id === form.moradaId);
@@ -206,14 +220,14 @@ export default function FormandosPage() {
     <div className="space-y-5 animate-in-fast">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Formandos</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{termoFormando}s</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {formandos.filter((f) => f.ativo).length} formandos ativos
+            {scopedFormandos.filter((f) => f.ativo).length} {termoFormando.toLowerCase()}s ativos
           </p>
         </div>
         <Button size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4 mr-1.5" />
-          Novo Formando
+          Novo {termoFormando}
         </Button>
       </div>
 
@@ -227,7 +241,7 @@ export default function FormandosPage() {
             className="pl-8 h-9 text-sm"
           />
         </div>
-        <Select value={nivelFilter} onValueChange={(v) => setNivelFilter(v ?? "todos")}>
+        <Select value={nivelFilter} onValueChange={(v) => setNivelFilter(v ?? "todos")} items={{ todos: "Todos os níveis", ...NIVEL_FORMATIVO_LABELS }}>
           <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
             <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue placeholder="Etapa formativa" />
@@ -366,7 +380,7 @@ export default function FormandosPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar Formando" : "Novo Formando"}</DialogTitle>
+            <DialogTitle>{editing ? `Editar ${termoFormando}` : `Novo ${termoFormando}`}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
@@ -380,7 +394,7 @@ export default function FormandosPage() {
               </div>
               <div className="grid gap-1.5">
                 <Label>Estado civil</Label>
-                <Select value={form.estadoCivil} onValueChange={(v) => v && set("estadoCivil")(v)}>
+                <Select value={form.estadoCivil} onValueChange={(v) => v && set("estadoCivil")(v)} items={ESTADO_CIVIL_LABELS}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(ESTADO_CIVIL_LABELS).map(([k, v]) => (
@@ -403,7 +417,7 @@ export default function FormandosPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label>Modalidade</Label>
-                <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)}>
+                <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)} items={MODALIDADE_LABELS}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="presencial">Presencial</SelectItem>
@@ -426,6 +440,7 @@ export default function FormandosPage() {
                   const morada = allMoradas.find((m) => m.id === v);
                   if (morada) set("nivelFormativo")(morada.nivelFormativo);
                 }}
+                items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, `${m.nome} — ${NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}`]))}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione a morada..." /></SelectTrigger>
                 <SelectContent>
@@ -444,6 +459,7 @@ export default function FormandosPage() {
                 value={selectedMorada ? selectedMorada.nivelFormativo : form.nivelFormativo}
                 onValueChange={(v) => !selectedMorada && v && set("nivelFormativo")(v)}
                 disabled={!!selectedMorada}
+                items={NIVEL_FORMATIVO_LABELS}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -472,7 +488,7 @@ export default function FormandosPage() {
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Excluir formando</DialogTitle>
+            <DialogTitle>Excluir {termoFormando.toLowerCase()}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             Tem certeza que deseja excluir{" "}

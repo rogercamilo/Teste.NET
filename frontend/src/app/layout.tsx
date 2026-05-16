@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import Providers from "@/components/Providers";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -22,10 +23,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <TooltipProvider delay={300}>
-          {children}
-          <Toaster richColors position="top-right" />
-        </TooltipProvider>
+        <Providers>
+          <TooltipProvider delay={300}>
+            {children}
+            <Toaster richColors position="top-right" />
+          </TooltipProvider>
+        </Providers>
       </body>
     </html>
   );

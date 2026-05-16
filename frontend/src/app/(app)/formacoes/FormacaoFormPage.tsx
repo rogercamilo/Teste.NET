@@ -184,7 +184,7 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label>Etapa Formativa <span className="text-destructive">*</span></Label>
-              <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)}>
+              <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)} items={NIVEL_FORMATIVO_LABELS}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((n) => (
@@ -195,7 +195,7 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
             </div>
             <div className="grid gap-1.5">
               <Label>Modalidade</Label>
-              <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)}>
+              <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)} items={MODALIDADE_LABELS}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(MODALIDADE_LABELS) as Modalidade[]).map((m) => (
@@ -209,7 +209,7 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label>Formador <span className="text-destructive">*</span></Label>
-              <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)}>
+              <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)} items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}>
                 <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
                   {formadores.map((u) => (

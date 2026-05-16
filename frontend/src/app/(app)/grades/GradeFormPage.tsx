@@ -7,6 +7,7 @@ import { useGrades, useFormacoes, db } from "@/lib/data-store";
 import { extractDocumentFields } from "@/lib/doc-extract";
 import {
   NIVEL_FORMATIVO_LABELS,
+  MODALIDADE_LABELS,
   type NivelFormativo,
   type GradeFormativa,
   type Eixo,
@@ -424,7 +425,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
 
           <div className="grid gap-1.5">
             <Label>Plano Formativo</Label>
-            <Select value={form.planoId} onValueChange={handlePlanoChange}>
+            <Select value={form.planoId} onValueChange={handlePlanoChange} items={Object.fromEntries(allPlanos.map((p) => [p.id, `${p.nome} (${NIVEL_FORMATIVO_LABELS[p.nivelFormativo]})`]))}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o plano..." />
               </SelectTrigger>
@@ -449,6 +450,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
               value={form.nivelFormativo}
               onValueChange={(v) => v && set("nivelFormativo")(v)}
               disabled={!!form.planoId}
+              items={NIVEL_FORMATIVO_LABELS}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -710,6 +712,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
                               onValueChange={(v) =>
                                 v && updateFormacao(eixoIdx, formacao.tempId, "modalidade", v)
                               }
+                              items={MODALIDADE_LABELS}
                             >
                               <SelectTrigger className="h-9 text-sm">
                                 <SelectValue />
@@ -729,6 +732,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
                               onValueChange={(v) =>
                                 v && updateFormacao(eixoIdx, formacao.tempId, "formadorId", v)
                               }
+                              items={Object.fromEntries(allUsuarios.filter((u) => u.ativo).map((u) => [u.id, u.nome]))}
                             >
                               <SelectTrigger className="h-9 text-sm">
                                 <SelectValue placeholder="Selecionar..." />

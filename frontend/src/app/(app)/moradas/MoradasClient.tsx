@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMoradas, db } from "@/lib/data-store";
+import { useMoradas, useComunidade, db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -74,6 +74,8 @@ const formadores = db.usuarios.load().filter((u) => u.perfil === "formador_comun
 
 export default function MoradasClient() {
   const [moradas, setMoradas] = useMoradas();
+  const [comunidade] = useComunidade();
+  const termoMorada = comunidade.termoMorada?.trim() || "Morada";
   const [allFormandos] = useState(() => db.formandos.load());
   const [allPlanos] = useState(() => db.planos.load());
   const [allGrades] = useState(() => db.grades.load());
@@ -137,10 +139,10 @@ export default function MoradasClient() {
 
     if (editing) {
       setMoradas((prev) => prev.map((m) => (m.id === editing.id ? payload : m)));
-      toast.success("Morada atualizada com sucesso!");
+      toast.success(`${termoMorada} atualizada com sucesso!`);
     } else {
       setMoradas((prev) => [...prev, payload]);
-      toast.success("Morada criada com sucesso!");
+      toast.success(`${termoMorada} criada com sucesso!`);
     }
     setDialogOpen(false);
   }
@@ -150,21 +152,21 @@ export default function MoradasClient() {
     setMoradas((prev) => prev.filter((m) => m.id !== editing.id));
     setDeleteOpen(false);
     setEditing(null);
-    toast.success("Morada excluída.");
+    toast.success(`${termoMorada} excluída.`);
   }
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Moradas</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{termoMorada}s</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {moradas.filter((m) => m.ativo).length} moradas ativas
+            {moradas.filter((m) => m.ativo).length} {termoMorada.toLowerCase()}s ativas
           </p>
         </div>
         <Button size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4 mr-1.5" />
-          Nova Morada
+          Nova {termoMorada}
         </Button>
       </div>
 
@@ -296,7 +298,7 @@ export default function MoradasClient() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar Morada" : "Nova Morada"}</DialogTitle>
+            <DialogTitle>{editing ? `Editar ${termoMorada}` : `Nova ${termoMorada}`}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
@@ -328,6 +330,7 @@ export default function MoradasClient() {
                     }));
                   }
                 }}
+                items={NIVEL_FORMATIVO_LABELS}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -339,7 +342,7 @@ export default function MoradasClient() {
             </div>
             <div className="grid gap-1.5">
               <Label>Formador Responsável <span className="text-destructive">*</span></Label>
-              <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)}>
+              <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)} items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}>
                 <SelectTrigger><SelectValue placeholder="Selecione o formador..." /></SelectTrigger>
                 <SelectContent>
                   {formadores.map((u) => (
@@ -356,6 +359,7 @@ export default function MoradasClient() {
                   set("planoId")(v ?? "");
                   set("gradeId")("");
                 }}
+                items={Object.fromEntries(allPlanos.filter((p) => (p.status === "ativo" || p.status === "em-revisao") && p.nivelFormativo === form.nivelFormativo).map((p) => [p.id, p.nome]))}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione o plano..." /></SelectTrigger>
                 <SelectContent>
@@ -373,7 +377,7 @@ export default function MoradasClient() {
             </div>
             <div className="grid gap-1.5">
               <Label>Grade Formativa</Label>
-              <Select value={form.gradeId} onValueChange={(v) => v && set("gradeId")(v)}>
+              <Select value={form.gradeId} onValueChange={(v) => v && set("gradeId")(v)} items={Object.fromEntries(availableGrades.map((g) => [g.id, `${g.nome} v${g.versao}`]))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a grade..." />
                 </SelectTrigger>
@@ -393,7 +397,7 @@ export default function MoradasClient() {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>{editing ? "Salvar alterações" : "Criar morada"}</Button>
+            <Button onClick={handleSave}>{editing ? "Salvar alterações" : `Criar ${termoMorada.toLowerCase()}`}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -401,10 +405,10 @@ export default function MoradasClient() {
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Excluir morada</DialogTitle>
+            <DialogTitle>Excluir {termoMorada.toLowerCase()}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Tem certeza que deseja excluir{" "}
+            Tem certeza que deseja excluir a {termoMorada.toLowerCase()}{" "}
             <span className="font-medium text-foreground">{editing?.nome}</span>? Esta ação não pode ser desfeita.
           </p>
           <DialogFooter className="gap-2">

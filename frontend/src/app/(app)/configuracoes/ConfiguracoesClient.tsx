@@ -8,6 +8,7 @@ import {
   PERFIL_USUARIO_LABELS,
   NIVEL_FORMATIVO_LABELS,
   type PerfilUsuario,
+  type NivelFormativo,
   type ComunidadeConfig,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -58,20 +59,24 @@ import {
   Download,
   Eye,
   EyeOff,
+  FileText,
   Home,
   ImageIcon,
   Info,
   KeyRound,
+  Mail,
   MoreHorizontal,
   Palette,
   Pencil,
   Plus,
   RotateCcw,
   Save,
+  Send,
   Server,
   ShieldCheck,
   Shuffle,
   Trash2,
+  Type,
   Upload,
   User,
   UserCog,
@@ -88,6 +93,7 @@ interface ConfiguracoesClientProps {
   userId: string;
   userName: string;
   userEmail: string;
+  userRole: string;
 }
 
 function getInitials(name: string) {
@@ -103,13 +109,18 @@ export default function ConfiguracoesClient({
   userId,
   userName,
   userEmail,
+  userRole,
 }: ConfiguracoesClientProps) {
+  const isGestao = userRole === "administrador" || userRole === "formador_geral";
+
   return (
     <div className="space-y-5 animate-in-fast">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Configurações</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Gerencie usuários, dados da comunidade e preferências do sistema
+          {isGestao
+            ? "Gerencie usuários, dados da comunidade e preferências do sistema"
+            : "Gerencie seu perfil e preferências"}
         </p>
       </div>
 
@@ -119,14 +130,24 @@ export default function ConfiguracoesClient({
             <User className="h-3.5 w-3.5" />
             Perfil
           </TabsTrigger>
-          <TabsTrigger value="usuarios" className="text-xs h-7 gap-1.5">
-            <Users className="h-3.5 w-3.5" />
-            Usuários
-          </TabsTrigger>
-          <TabsTrigger value="comunidade" className="text-xs h-7 gap-1.5">
-            <Building2 className="h-3.5 w-3.5" />
-            Comunidade
-          </TabsTrigger>
+          {isGestao && (
+            <TabsTrigger value="usuarios" className="text-xs h-7 gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Usuários
+            </TabsTrigger>
+          )}
+          {isGestao && (
+            <TabsTrigger value="comunidade" className="text-xs h-7 gap-1.5">
+              <Building2 className="h-3.5 w-3.5" />
+              Comunidade
+            </TabsTrigger>
+          )}
+          {isGestao && (
+            <TabsTrigger value="email" className="text-xs h-7 gap-1.5">
+              <Mail className="h-3.5 w-3.5" />
+              E-mail
+            </TabsTrigger>
+          )}
           <TabsTrigger value="sistema" className="text-xs h-7 gap-1.5">
             <Server className="h-3.5 w-3.5" />
             Sistema
@@ -137,13 +158,23 @@ export default function ConfiguracoesClient({
           <PerfilTab userId={userId} userName={userName} userEmail={userEmail} />
         </TabsContent>
 
-        <TabsContent value="usuarios" className="mt-4">
-          <UsuariosTab currentUserId={userId} />
-        </TabsContent>
+        {isGestao && (
+          <TabsContent value="usuarios" className="mt-4">
+            <UsuariosTab currentUserId={userId} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="comunidade" className="mt-4">
-          <ComunidadeTab />
-        </TabsContent>
+        {isGestao && (
+          <TabsContent value="comunidade" className="mt-4">
+            <ComunidadeTab />
+          </TabsContent>
+        )}
+
+        {isGestao && (
+          <TabsContent value="email" className="mt-4">
+            <EmailTab />
+          </TabsContent>
+        )}
 
         <TabsContent value="sistema" className="mt-4">
           <SistemaTab />
@@ -362,6 +393,9 @@ type UsuarioForm = {
   email: string;
   perfil: PerfilUsuario;
   moradaId: string;
+  moradaModo: "existente" | "provisoria";
+  nomeProvisorio: string;
+  nivelFormativoProvisorio: NivelFormativo;
   ativo: boolean;
   password: string;
   confirmPassword: string;
@@ -373,6 +407,9 @@ const EMPTY_USUARIO_FORM: UsuarioForm = {
   email: "",
   perfil: "formador_comunitario",
   moradaId: "",
+  moradaModo: "existente",
+  nomeProvisorio: "",
+  nivelFormativoProvisorio: "pre-discipulado",
   ativo: true,
   password: "",
   confirmPassword: "",
@@ -390,6 +427,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
     nome: string;
     email: string;
     password: string;
+    emailSent: boolean;
   } | null>(null);
   const [editing, setEditing] = useState<UserPublic | null>(null);
   const [form, setForm] = useState<UsuarioForm>(EMPTY_USUARIO_FORM);
@@ -433,6 +471,9 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
       email: u.email,
       perfil: u.perfil,
       moradaId: u.moradaId ?? "",
+      moradaModo: "existente",
+      nomeProvisorio: "",
+      nivelFormativoProvisorio: "pre-discipulado",
       ativo: u.ativo,
       password: "",
       confirmPassword: "",
@@ -472,8 +513,13 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
     if (editing && form.password && form.password !== form.confirmPassword) {
       toast.error("As senhas não conferem."); return;
     }
-    if (form.perfil === "formador_comunitario" && !form.moradaId) {
-      toast.error("Formadores comunitários precisam estar vinculados a uma morada."); return;
+    if (form.perfil === "formador_comunitario") {
+      if (form.moradaModo === "existente" && !form.moradaId) {
+        toast.error("Selecione uma morada ou escolha criar com nome provisório."); return;
+      }
+      if (form.moradaModo === "provisoria" && !form.nomeProvisorio.trim()) {
+        toast.error("Informe um nome provisório para a morada."); return;
+      }
     }
 
     setSaving(true);
@@ -501,6 +547,11 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
         toast.success("Usuário atualizado com sucesso!");
         setDialogOpen(false);
       } else {
+        const moradaIdParaEnviar =
+          form.perfil === "formador_comunitario" && form.moradaModo === "existente"
+            ? form.moradaId || undefined
+            : undefined;
+
         const res = await fetch("/api/users", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -509,7 +560,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
             email: form.email.trim(),
             password: form.gerarSenhaAuto ? undefined : form.password,
             perfil: form.perfil,
-            moradaId: form.perfil === "formador_comunitario" ? form.moradaId || undefined : undefined,
+            moradaId: moradaIdParaEnviar,
             ativo: form.ativo,
           }),
         });
@@ -517,7 +568,27 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
           const err = await res.json() as { error?: string };
           toast.error(err.error ?? "Falha ao criar usuário."); return;
         }
-        const created = await res.json() as UserPublic & { tempPassword?: string };
+        const created = await res.json() as UserPublic & { tempPassword?: string; emailSent?: boolean };
+
+        // Criar morada provisória e vincular ao formador
+        if (form.perfil === "formador_comunitario" && form.moradaModo === "provisoria") {
+          const novaMorada = {
+            id: `m${Date.now()}`,
+            nome: form.nomeProvisorio.trim(),
+            nivelFormativo: form.nivelFormativoProvisorio,
+            formadorId: created.id,
+            ativo: true,
+            criadoEm: new Date().toISOString().split("T")[0],
+          };
+          db.moradas.save([...db.moradas.load(), novaMorada]);
+          await fetch(`/api/users/${created.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ moradaId: novaMorada.id }),
+          });
+          created.moradaId = novaMorada.id;
+        }
+
         setUsuarios((prev) => [...prev, created]);
         setDialogOpen(false);
         if (created.tempPassword) {
@@ -525,6 +596,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
             nome: created.nome,
             email: created.email,
             password: created.tempPassword,
+            emailSent: created.emailSent ?? false,
           });
         } else {
           toast.success("Usuário criado com sucesso!");
@@ -881,7 +953,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
             )}
             <div className="grid gap-1.5">
               <Label>Perfil de acesso</Label>
-              <Select value={form.perfil} onValueChange={(v) => v && set("perfil")(v)}>
+              <Select value={form.perfil} onValueChange={(v) => v && set("perfil")(v)} items={{ administrador: PERFIL_USUARIO_LABELS.administrador, formador_comunitario: PERFIL_USUARIO_LABELS.formador_comunitario }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -896,31 +968,98 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
               </Select>
             </div>
             {form.perfil === "formador_comunitario" && (
-              <div className="grid gap-1.5">
-                <Label>
-                  Morada vinculada <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={form.moradaId}
-                  onValueChange={(v) => v && set("moradaId")(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a morada..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allMoradas
-                      .filter((m) => m.ativo)
-                      .map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.nome} — {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {moradaDoFormulario && (
-                  <p className="text-xs text-muted-foreground">
-                    Nível: {NIVEL_FORMATIVO_LABELS[moradaDoFormulario.nivelFormativo]}
-                  </p>
+              <div className="grid gap-3">
+                {!editing && (
+                  <div className="flex rounded-lg border border-border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => set("moradaModo")("existente")}
+                      className={`flex-1 py-2 px-3 text-xs font-medium transition-colors ${
+                        form.moradaModo === "existente"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Selecionar existente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => set("moradaModo")("provisoria")}
+                      className={`flex-1 py-2 px-3 text-xs font-medium transition-colors border-l border-border ${
+                        form.moradaModo === "provisoria"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Criar com nome provisório
+                    </button>
+                  </div>
+                )}
+
+                {form.moradaModo === "existente" ? (
+                  <div className="grid gap-1.5">
+                    <Label>
+                      Morada vinculada <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={form.moradaId}
+                      onValueChange={(v) => v && set("moradaId")(v)}
+                      items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, `${m.nome} — ${NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}`]))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a morada..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allMoradas
+                          .filter((m) => m.ativo)
+                          .map((m) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.nome} — {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {moradaDoFormulario && (
+                      <p className="text-xs text-muted-foreground">
+                        Nível: {NIVEL_FORMATIVO_LABELS[moradaDoFormulario.nivelFormativo]}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    <div className="grid gap-1.5">
+                      <Label>
+                        Nome provisório <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        value={form.nomeProvisorio}
+                        onChange={(e) => set("nomeProvisorio")(e.target.value)}
+                        placeholder="Ex: Morada do João"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Pode ser ajustado depois no CRUD de Moradas.
+                      </p>
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label>
+                        Etapa formativa <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={form.nivelFormativoProvisorio}
+                        onValueChange={(v) => v && set("nivelFormativoProvisorio")(v)}
+                        items={NIVEL_FORMATIVO_LABELS}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((n) => (
+                            <SelectItem key={n} value={n}>
+                              {NIVEL_FORMATIVO_LABELS[n]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -997,17 +1136,37 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              O usuário{" "}
+              O utilizador{" "}
               <span className="font-medium text-foreground">{tempPasswordDialog?.nome}</span>{" "}
-              foi criado. Compartilhe a senha temporária abaixo para que ele possa fazer o
-              primeiro acesso.
+              foi criado com sucesso.
             </p>
+
+            {/* Email sent indicator */}
+            {tempPasswordDialog?.emailSent ? (
+              <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-emerald-700">
+                  E-mail de boas-vindas enviado para{" "}
+                  <span className="font-medium">{tempPasswordDialog.email}</span> com as
+                  credenciais e instruções de acesso.
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-700">
+                  E-mail de boas-vindas não enviado (SMTP não configurado). Partilhe
+                  manualmente as credenciais abaixo.
+                </p>
+              </div>
+            )}
+
             <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
               <p className="text-xs text-muted-foreground mb-1">E-mail de acesso</p>
               <p className="text-sm font-medium text-foreground">{tempPasswordDialog?.email}</p>
             </div>
             <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-              <p className="text-xs text-primary/70 mb-1">Senha temporária de primeiro acesso</p>
+              <p className="text-xs text-primary/70 mb-1">Senha provisória de primeiro acesso</p>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-base font-mono font-bold text-primary tracking-widest">
                   {tempPasswordDialog?.password}
@@ -1030,7 +1189,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
             <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
               <Info className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
               <p className="text-xs text-amber-700">
-                Esta senha só é exibida uma vez. O usuário deverá alterá-la no primeiro login.
+                Esta senha é exibida apenas uma vez. O utilizador deverá alterá-la no primeiro login.
               </p>
             </div>
           </div>
@@ -1190,6 +1349,95 @@ function ComunidadeTab() {
         </CardContent>
       </Card>
 
+      {/* Terminologia */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Type className="h-4 w-4 text-muted-foreground" />
+            Terminologia
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Personalize os nomes exibidos na interface para adaptar a plataforma à sua comunidade.
+            Deixe em branco para usar os termos padrão.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 pb-6">
+
+          <div className="grid gap-2">
+            <Label>
+              Grupo de formação{" "}
+              <span className="font-normal text-muted-foreground text-xs">(padrão: "Morada")</span>
+            </Label>
+            <Input
+              value={form.termoMorada ?? ""}
+              onChange={(e) => handleChange("termoMorada", e.target.value)}
+              placeholder="Morada"
+              className="max-w-xs h-9 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Exibido na navegação, títulos de página e formulários.
+              Ex.: Grupo, Célula, Casa, Comunidade.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>
+              Membro do grupo{" "}
+              <span className="font-normal text-muted-foreground text-xs">(padrão: "Formando")</span>
+            </Label>
+            <Input
+              value={form.termoFormando ?? ""}
+              onChange={(e) => handleChange("termoFormando", e.target.value)}
+              placeholder="Formando"
+              className="max-w-xs h-9 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Ex.: Membro, Participante, Discípulo, Jovem.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>
+              Responsável pelo grupo{" "}
+              <span className="font-normal text-muted-foreground text-xs">(padrão: "Formador Comunitário")</span>
+            </Label>
+            <Input
+              value={form.termoFormador ?? ""}
+              onChange={(e) => handleChange("termoFormador", e.target.value)}
+              placeholder="Formador Comunitário"
+              className="max-w-xs h-9 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Exibido no perfil e na gestão de utilizadores.
+              Ex.: Líder, Coordenador, Responsável.
+            </p>
+          </div>
+
+          {/* Prévia */}
+          <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2.5">
+            <p className="text-xs font-medium text-muted-foreground">Prévia na navegação</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { emoji: "🏠", label: `${form.termoMorada?.trim() || "Morada"}s` },
+                { emoji: "👥", label: `${form.termoFormando?.trim() || "Formando"}s` },
+              ].map(({ emoji, label }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground shadow-sm"
+                >
+                  <span>{emoji}</span>
+                  {label}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O plural é formado adicionando "s" ao termo configurado.
+            </p>
+          </div>
+
+        </CardContent>
+      </Card>
+
       <div className="flex gap-2 justify-end">
         {dirty && (
           <Button variant="outline" size="sm" onClick={handleReset}>
@@ -1332,6 +1580,714 @@ function ComunidadeTab() {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ─── TAB: E-MAIL ───────────────────────────────────────────────── */
+
+const SMTP_PRESETS = [
+  { label: "Gmail", host: "smtp.gmail.com", port: 587, secure: false },
+  { label: "Outlook / Office 365", host: "smtp.office365.com", port: 587, secure: false },
+  { label: "Yahoo Mail", host: "smtp.mail.yahoo.com", port: 465, secure: true },
+] as const;
+
+type SmtpForm = {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  from: string;
+};
+
+type TemplateStep = { titulo: string; descricao: string };
+
+type EmailTemplateForm = {
+  assunto: string;
+  saudacao: string;
+  mensagem1: string;
+  mensagem2: string;
+  passos: TemplateStep[];
+  textoBotao: string;
+  avisoSeguranca: string;
+  rodape: string;
+};
+
+const TEMPLATE_VARS = [
+  { label: "{{primeiroNome}}", hint: "Primeiro nome" },
+  { label: "{{nome}}", hint: "Nome completo" },
+  { label: "{{email}}", hint: "E-mail de acesso" },
+  { label: "{{senha}}", hint: "Senha provisória" },
+  { label: "{{url}}", hint: "URL da plataforma" },
+];
+
+function EmailTab() {
+  const [form, setForm] = useState<SmtpForm>({
+    host: "", port: 587, secure: false, user: "", pass: "", from: "",
+  });
+  const [hasExistingPass, setHasExistingPass] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [configured, setConfigured] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
+  const [testError, setTestError] = useState("");
+
+  // Template editor state
+  const [tmpl, setTmpl] = useState<EmailTemplateForm>({
+    assunto: "", saudacao: "", mensagem1: "", mensagem2: "",
+    passos: [], textoBotao: "", avisoSeguranca: "", rodape: "",
+  });
+  const [tmplLoading, setTmplLoading] = useState(true);
+  const [tmplSaving, setTmplSaving] = useState(false);
+  const [tmplDirty, setTmplDirty] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/config/smtp")
+      .then((r) => r.json())
+      .then((data: SmtpForm & { configured: boolean }) => {
+        const passSet = data.pass === "***";
+        setHasExistingPass(passSet);
+        setForm({
+          host: data.host ?? "",
+          port: data.port ?? 587,
+          secure: data.secure ?? false,
+          user: data.user ?? "",
+          pass: "",
+          from: data.from ?? "",
+        });
+        setTestEmail(data.user ?? "");
+        setConfigured(data.configured ?? false);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/config/email-template")
+      .then((r) => r.json())
+      .then((data: EmailTemplateForm) => {
+        setTmpl({
+          assunto: data.assunto ?? "",
+          saudacao: data.saudacao ?? "",
+          mensagem1: data.mensagem1 ?? "",
+          mensagem2: data.mensagem2 ?? "",
+          passos: data.passos ?? [],
+          textoBotao: data.textoBotao ?? "",
+          avisoSeguranca: data.avisoSeguranca ?? "",
+          rodape: data.rodape ?? "",
+        });
+      })
+      .catch(() => {})
+      .finally(() => setTmplLoading(false));
+  }, []);
+
+  function setField<K extends keyof SmtpForm>(key: K, value: SmtpForm[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function applyPreset(preset: (typeof SMTP_PRESETS)[number]) {
+    setForm((prev) => ({ ...prev, host: preset.host, port: preset.port, secure: preset.secure }));
+  }
+
+  async function handleSave() {
+    if (!form.host.trim()) { toast.error("Informe o servidor SMTP (host)."); return; }
+    if (!form.user.trim()) { toast.error("Informe o utilizador SMTP."); return; }
+    if (!form.pass && !hasExistingPass) { toast.error("Informe a senha SMTP."); return; }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/config/smtp", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          pass: form.pass || "***",
+        }),
+      });
+      const data = await res.json() as { ok?: boolean; configured?: boolean; error?: string };
+      if (!res.ok) { toast.error(data.error ?? "Falha ao salvar."); return; }
+      setConfigured(data.configured ?? false);
+      if (form.pass) setHasExistingPass(true);
+      setForm((prev) => ({ ...prev, pass: "" }));
+      toast.success("Configuração SMTP salva com sucesso!");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTest() {
+    setTesting(true);
+    setTestResult(null);
+    setTestError("");
+    try {
+      const res = await fetch("/api/config/smtp/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testEmail }),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) {
+        setTestResult("error");
+        setTestError(data.error ?? "Erro desconhecido");
+      } else {
+        setTestResult("success");
+      }
+    } catch (err) {
+      setTestResult("error");
+      setTestError(String(err));
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  function setTmplField<K extends keyof EmailTemplateForm>(key: K, value: EmailTemplateForm[K]) {
+    setTmpl((prev) => ({ ...prev, [key]: value }));
+    setTmplDirty(true);
+    setShowPreview(false);
+  }
+
+  function updateStep(index: number, field: keyof TemplateStep, value: string) {
+    setTmpl((prev) => ({
+      ...prev,
+      passos: prev.passos.map((s, i) => i === index ? { ...s, [field]: value } : s),
+    }));
+    setTmplDirty(true);
+    setShowPreview(false);
+  }
+
+  function addStep() {
+    setTmpl((prev) => ({ ...prev, passos: [...prev.passos, { titulo: "", descricao: "" }] }));
+    setTmplDirty(true);
+    setShowPreview(false);
+  }
+
+  function removeStep(index: number) {
+    setTmpl((prev) => ({ ...prev, passos: prev.passos.filter((_, i) => i !== index) }));
+    setTmplDirty(true);
+    setShowPreview(false);
+  }
+
+  async function handleSaveTemplate() {
+    setTmplSaving(true);
+    try {
+      const res = await fetch("/api/config/email-template", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(tmpl),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) { toast.error(data.error ?? "Falha ao salvar."); return; }
+      setTmplDirty(false);
+      toast.success("Texto do e-mail guardado com sucesso!");
+    } finally {
+      setTmplSaving(false);
+    }
+  }
+
+  async function handleResetTemplate() {
+    const res = await fetch("/api/config/email-template", { method: "DELETE" });
+    if (!res.ok) { toast.error("Falha ao repor o texto."); return; }
+    const defaults = await fetch("/api/config/email-template").then((r) => r.json()) as EmailTemplateForm;
+    setTmpl(defaults);
+    setTmplDirty(false);
+    setShowPreview(false);
+    toast.success("Texto reposto para os valores predefinidos.");
+  }
+
+  async function handlePreview() {
+    setPreviewLoading(true);
+    setShowPreview(false);
+    try {
+      const res = await fetch("/api/config/email-template/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ template: tmpl }),
+      });
+      if (!res.ok) { toast.error("Falha ao gerar pré-visualização."); return; }
+      const html = await res.text();
+      setPreviewHtml(html);
+      setShowPreview(true);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="py-12 text-center text-sm text-muted-foreground">
+        A carregar configuração...
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl space-y-4">
+
+      {/* Status */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
+              configured ? "bg-emerald-100" : "bg-amber-100"
+            }`}>
+              {configured
+                ? <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                : <AlertTriangle className="h-5 w-5 text-amber-600" />
+              }
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {configured ? "SMTP configurado" : "SMTP não configurado"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {configured
+                  ? "O envio de e-mails está ativo. Utilize o teste abaixo para verificar a ligação."
+                  : "Preencha os dados abaixo para ativar o envio automático de e-mails."}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Config form */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            Servidor de Saída (SMTP)
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Dados fornecidos pelo seu provedor de e-mail.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-5 space-y-4">
+
+          {/* Presets */}
+          <div className="grid gap-1.5">
+            <Label className="text-xs text-muted-foreground">Provedor comum</Label>
+            <div className="flex flex-wrap gap-2">
+              {SMTP_PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => applyPreset(p)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Preenche automaticamente o servidor, a porta e a segurança.
+            </p>
+          </div>
+
+          {/* Host + Port + Secure */}
+          <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+            <div className="grid gap-1.5">
+              <Label>
+                Servidor (host) <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                value={form.host}
+                onChange={(e) => setField("host", e.target.value)}
+                placeholder="smtp.seuservidor.com"
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Porta</Label>
+              <Input
+                type="number"
+                value={form.port}
+                onChange={(e) => setField("port", Number(e.target.value))}
+                className="h-9 text-sm w-20"
+                min={1}
+                max={65535}
+              />
+            </div>
+          </div>
+
+          {/* Security toggle */}
+          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+            <div>
+              <p className="text-sm font-medium text-foreground">SSL/TLS direto</p>
+              <p className="text-xs text-muted-foreground">
+                {form.secure
+                  ? "Conexão criptografada desde o início (porta 465)"
+                  : "STARTTLS — negocia criptografia após conexão (porta 587)"}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.secure}
+              onClick={() => setField("secure", !form.secure)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                form.secure ? "bg-primary" : "bg-input"
+              }`}
+            >
+              <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
+                form.secure ? "translate-x-4" : "translate-x-0"
+              }`} />
+            </button>
+          </div>
+
+          {/* User */}
+          <div className="grid gap-1.5">
+            <Label>
+              Utilizador <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={form.user}
+              onChange={(e) => setField("user", e.target.value)}
+              placeholder="seuemail@dominio.com"
+              className="h-9 text-sm"
+              autoComplete="off"
+            />
+          </div>
+
+          {/* Password */}
+          <div className="grid gap-1.5">
+            <Label>
+              Senha <span className="text-destructive">*</span>
+            </Label>
+            <div className="relative">
+              <Input
+                type={showPass ? "text" : "password"}
+                value={form.pass}
+                onChange={(e) => setField("pass", e.target.value)}
+                placeholder={hasExistingPass ? "Deixe vazio para manter a senha atual" : "Senha do servidor SMTP"}
+                className="h-9 text-sm pr-9"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+              >
+                {showPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+            {hasExistingPass && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                Senha já configurada — preencha apenas para alterar.
+              </p>
+            )}
+          </div>
+
+          {/* From */}
+          <div className="grid gap-1.5">
+            <Label>Remetente</Label>
+            <Input
+              value={form.from}
+              onChange={(e) => setField("from", e.target.value)}
+              placeholder='Nome Exibido <email@dominio.com>'
+              className="h-9 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Nome e e-mail exibidos no campo "De:" dos e-mails enviados. Se vazio, usa o Utilizador.
+            </p>
+          </div>
+
+          <div className="pt-1">
+            <Button onClick={handleSave} disabled={saving} size="sm" className="gap-1.5">
+              <Save className="h-3.5 w-3.5" />
+              {saving ? "A guardar..." : "Guardar configuração"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Test */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Send className="h-4 w-4 text-muted-foreground" />
+            Testar Conexão
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Envia um e-mail de teste para confirmar que o servidor está funcionando.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-5 space-y-3">
+          <div className="grid gap-1.5">
+            <Label className="text-xs">E-mail de destino</Label>
+            <Input
+              type="email"
+              value={testEmail}
+              onChange={(e) => { setTestEmail(e.target.value); setTestResult(null); }}
+              placeholder="destino@dominio.com"
+              className="h-9 text-sm"
+            />
+          </div>
+
+          <Button
+            onClick={handleTest}
+            disabled={testing || !configured}
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+          >
+            <Send className="h-3.5 w-3.5" />
+            {testing ? "A enviar..." : "Enviar e-mail de teste"}
+          </Button>
+
+          {!configured && (
+            <p className="text-xs text-muted-foreground">
+              Guarde a configuração primeiro para activar o teste.
+            </p>
+          )}
+
+          {testResult === "success" && (
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-emerald-700">
+                E-mail de teste enviado com sucesso! Verifique a caixa de entrada de{" "}
+                <span className="font-medium">{testEmail}</span>.
+              </p>
+            </div>
+          )}
+
+          {testResult === "error" && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+              <XCircle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-destructive">Falha na conexão</p>
+                <p className="text-xs text-destructive/80 mt-0.5 break-all">{testError}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+            <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              Para Gmail, use uma{" "}
+              <span className="font-medium text-foreground">App Password</span>
+              {" "}(Conta Google → Segurança → Senhas de app). A senha normal não funciona com SMTP externo.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Template editor */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            Texto do E-mail de Boas-Vindas
+            {tmplDirty && (
+              <span className="ml-auto text-xs font-normal text-amber-600 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 inline-block" />
+                Alterações não guardadas
+              </span>
+            )}
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Personalize o conteúdo do e-mail enviado ao formador comunitário no momento do cadastro.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-5 space-y-4">
+
+          {tmplLoading ? (
+            <p className="text-xs text-muted-foreground py-4 text-center">A carregar...</p>
+          ) : (
+            <>
+              {/* Variable chips */}
+              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                <p className="text-xs font-medium text-foreground mb-2">Variáveis disponíveis</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {TEMPLATE_VARS.map((v) => (
+                    <span
+                      key={v.label}
+                      title={v.hint}
+                      className="inline-flex items-center rounded border border-border bg-background px-2 py-0.5 font-mono text-xs text-primary cursor-default select-all"
+                    >
+                      {v.label}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Clique numa variável para seleccioná-la e copie-a para qualquer campo de texto abaixo.
+                </p>
+              </div>
+
+              {/* Assunto */}
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Assunto</Label>
+                <Input
+                  value={tmpl.assunto}
+                  onChange={(e) => setTmplField("assunto", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              {/* Saudação */}
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Saudação</Label>
+                <Input
+                  value={tmpl.saudacao}
+                  onChange={(e) => setTmplField("saudacao", e.target.value)}
+                  className="h-9 text-sm"
+                  placeholder="Olá, {{primeiroNome}}!"
+                />
+              </div>
+
+              {/* Mensagem 1 */}
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Primeiro parágrafo</Label>
+                <Textarea
+                  value={tmpl.mensagem1}
+                  onChange={(e) => setTmplField("mensagem1", e.target.value)}
+                  className="text-sm min-h-[80px] resize-y"
+                />
+              </div>
+
+              {/* Mensagem 2 */}
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Segundo parágrafo</Label>
+                <Textarea
+                  value={tmpl.mensagem2}
+                  onChange={(e) => setTmplField("mensagem2", e.target.value)}
+                  className="text-sm min-h-[80px] resize-y"
+                />
+              </div>
+
+              {/* Steps */}
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Passos de instrução</Label>
+                  <button
+                    type="button"
+                    onClick={addStep}
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Adicionar passo
+                  </button>
+                </div>
+                {tmpl.passos.map((step, i) => (
+                  <div key={i} className="grid gap-1.5 rounded-lg border border-border p-3 relative">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-xs font-medium text-muted-foreground">Passo {i + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeStep(i)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        disabled={tmpl.passos.length <= 1}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <Input
+                      value={step.titulo}
+                      onChange={(e) => updateStep(i, "titulo", e.target.value)}
+                      placeholder="Título do passo"
+                      className="h-8 text-sm"
+                    />
+                    <Textarea
+                      value={step.descricao}
+                      onChange={(e) => updateStep(i, "descricao", e.target.value)}
+                      placeholder="Descrição do passo"
+                      className="text-sm min-h-[60px] resize-none"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Button text */}
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Texto do botão</Label>
+                <Input
+                  value={tmpl.textoBotao}
+                  onChange={(e) => setTmplField("textoBotao", e.target.value)}
+                  className="h-9 text-sm"
+                  placeholder="Acessar a Plataforma"
+                />
+              </div>
+
+              {/* Security notice */}
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Aviso de segurança</Label>
+                <Textarea
+                  value={tmpl.avisoSeguranca}
+                  onChange={(e) => setTmplField("avisoSeguranca", e.target.value)}
+                  className="text-sm min-h-[60px] resize-y"
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Rodapé</Label>
+                <Input
+                  value={tmpl.rodape}
+                  onChange={(e) => setTmplField("rodape", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button onClick={handleSaveTemplate} disabled={tmplSaving} size="sm" className="gap-1.5">
+                  <Save className="h-3.5 w-3.5" />
+                  {tmplSaving ? "A guardar..." : "Guardar texto"}
+                </Button>
+                <Button
+                  onClick={handlePreview}
+                  disabled={previewLoading}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  {previewLoading ? "A gerar..." : showPreview ? "Actualizar pré-visualização" : "Pré-visualizar"}
+                </Button>
+                <Button
+                  onClick={handleResetTemplate}
+                  size="sm"
+                  variant="ghost"
+                  className="gap-1.5 text-muted-foreground ml-auto"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Repor predefinições
+                </Button>
+              </div>
+
+              {/* Preview iframe */}
+              {showPreview && previewHtml && (
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="flex items-center justify-between bg-muted/40 px-3 py-2 border-b border-border">
+                    <span className="text-xs font-medium text-foreground">Pré-visualização do e-mail</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPreview(false)}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <iframe
+                    srcDoc={previewHtml}
+                    title="Pré-visualização do e-mail"
+                    className="w-full border-0"
+                    style={{ height: "600px" }}
+                    sandbox="allow-same-origin"
+                  />
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

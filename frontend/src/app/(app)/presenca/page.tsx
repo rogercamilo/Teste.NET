@@ -99,7 +99,7 @@ export default function PresencaPage() {
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground mb-1.5">Selecionar Formação</p>
-              <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)}>
+              <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)} items={Object.fromEntries(realizadas.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`]))}>
                 <SelectTrigger className="w-full sm:w-96">
                   <SelectValue placeholder="Escolha uma formação..." />
                 </SelectTrigger>

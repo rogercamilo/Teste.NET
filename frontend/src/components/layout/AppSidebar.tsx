@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, ShieldCheck, UserCog } from "lucide-react";
+import { Home, LogOut, Shield, ShieldCheck, UserCog } from "lucide-react";
 import { signOut } from "next-auth/react";
 import {
   Sidebar,
@@ -19,7 +19,8 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { navGroupsAdmin, navGroupsFormador, type NavGroup } from "./nav-items";
+import { navGroupsGestao, navGroupsFormador, type NavGroup } from "./nav-items";
+import { useComunidade } from "@/lib/data-store";
 
 export interface AppSidebarUser {
   name: string;
@@ -35,6 +36,7 @@ interface AppSidebarProps {
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
   const [logo, setLogo] = useState<string | null>(null);
+  const [comunidade] = useComunidade();
 
   useEffect(() => {
     setLogo(localStorage.getItem("appForm:logo"));
@@ -43,14 +45,22 @@ export function AppSidebar({ user }: AppSidebarProps) {
     return () => window.removeEventListener("appform:logo-changed", handler);
   }, []);
 
-  const isAdmin = user.role === "administrador";
-  const roleLabel = isAdmin ? "Formador Geral" : "Formador Comunitário";
-  const RoleIcon = isAdmin ? ShieldCheck : UserCog;
+  const morada = comunidade.termoMorada?.trim() || "Morada";
+  const formando = comunidade.termoFormando?.trim() || "Formando";
+  const formador = comunidade.termoFormador?.trim() || "Formador Comunitário";
 
-  const navGroups: NavGroup[] = isAdmin
-    ? navGroupsAdmin
+  const isFormadorGeral = user.role === "formador_geral";
+  const isAdmin = user.role === "administrador";
+  const isGestao = isFormadorGeral || isAdmin;
+
+  const roleLabel = isFormadorGeral ? "Formador Geral" : isAdmin ? "Administrador" : formador;
+  const RoleIcon = isFormadorGeral ? ShieldCheck : isAdmin ? Shield : UserCog;
+
+  // Inject "Visão Geral" for formadores before applying term substitution
+  const baseGroups: NavGroup[] = isGestao
+    ? navGroupsGestao
     : navGroupsFormador.map((g) => {
-        if (g.label === "Minha Morada" && user.moradaId) {
+        if (g.label === "Minha Morada" && user.moradaId && !isGestao) {
           return {
             ...g,
             items: [
@@ -61,6 +71,19 @@ export function AppSidebar({ user }: AppSidebarProps) {
         }
         return g;
       });
+
+  // Apply custom terminology
+  const navGroups: NavGroup[] = baseGroups.map((g) => ({
+    ...g,
+    label: g.label === "Minha Morada" ? `Minha ${morada}` : g.label,
+    items: g.items.map((item) => ({
+      ...item,
+      title:
+        item.title === "Moradas" ? `${morada}s` :
+        item.title === "Formandos" ? `${formando}s` :
+        item.title,
+    })),
+  }));
 
   const initials = user.name
     .split(" ")
@@ -89,7 +112,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               Formação Comunitária
             </span>
             <span className="text-xs text-muted-foreground truncate">
-              Dom Bosco
+              {comunidade.nome || "Formação Comunitária"}
             </span>
           </div>
         </div>

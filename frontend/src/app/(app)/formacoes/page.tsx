@@ -238,7 +238,7 @@ export default function FormacoesPage() {
           />
         </div>
         {!isFormadorComunitario && (
-          <Select value={nivelFilter} onValueChange={(v) => v && setNivelFilter(v)}>
+          <Select value={nivelFilter} onValueChange={(v) => v && setNivelFilter(v)} items={{ todos: "Todos os níveis", ...NIVEL_FORMATIVO_LABELS }}>
             <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
               <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue placeholder="Etapa formativa" />
@@ -252,7 +252,7 @@ export default function FormacoesPage() {
             </SelectContent>
           </Select>
         )}
-        <Select value={gradeFilter} onValueChange={(v) => v && setGradeFilter(v)}>
+        <Select value={gradeFilter} onValueChange={(v) => v && setGradeFilter(v)} items={{ todas: "Todas as grades", "sem-grade": "Sem grade vinculada", ...Object.fromEntries(grades.map((g) => [g.id, g.nome])) }}>
           <SelectTrigger className="h-9 w-full sm:w-56 text-sm">
             <GitBranch className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue placeholder="Grade formativa" />

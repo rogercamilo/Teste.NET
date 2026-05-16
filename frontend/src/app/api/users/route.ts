@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listUsers, createUser, findByEmail, toPublic } from "@/lib/users-store";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function GET() {
   try {
@@ -39,7 +40,14 @@ export async function POST(request: Request) {
       moradaId,
       ativo: ativo ?? true,
     });
-    return NextResponse.json({ ...toPublic(user), tempPassword }, { status: 201 });
+
+    let emailSent = false;
+    if (tempPassword) {
+      const result = await sendWelcomeEmail({ nome, email, tempPassword });
+      emailSent = result.sent;
+    }
+
+    return NextResponse.json({ ...toPublic(user), tempPassword, emailSent }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Falha ao criar usuário" }, { status: 500 });
   }

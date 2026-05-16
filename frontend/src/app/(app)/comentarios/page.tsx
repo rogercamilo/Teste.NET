@@ -111,7 +111,7 @@ export default function ComentariosPage() {
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
-        <Select value={filtroTipo} onValueChange={(v) => v && setFiltroTipo(v)}>
+        <Select value={filtroTipo} onValueChange={(v) => v && setFiltroTipo(v)} items={{ todos: "Todos os tipos", ...TIPO_COMENTARIO_LABELS }}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Filtrar por tipo" />
           </SelectTrigger>
@@ -194,7 +194,7 @@ export default function ComentariosPage() {
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>Formando</Label>
-              <Select value={novoFormandoId} onValueChange={(v) => setNovoFormandoId(v ?? "")}>
+              <Select value={novoFormandoId} onValueChange={(v) => setNovoFormandoId(v ?? "")} items={Object.fromEntries(allFormandos.filter((f) => f.ativo).map((f) => [f.id, f.nome]))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o formando..." />
                 </SelectTrigger>
@@ -214,6 +214,7 @@ export default function ComentariosPage() {
               <Select
                 value={novoTipo}
                 onValueChange={(v) => v && setNovoTipo(v as TipoComentario)}
+                items={TIPO_COMENTARIO_LABELS}
               >
                 <SelectTrigger>
                   <SelectValue />
