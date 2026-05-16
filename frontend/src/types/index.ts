@@ -15,6 +15,24 @@ export type Modalidade = "presencial" | "online" | "hibrida";
 export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comunitario";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
 export type TipoCompromisso = "individual" | "geral";
+export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoal";
+
+export interface ProgressoEtapa {
+  nivel: NivelFormativo;
+  formacoesComunitariasRealizadas: number;
+  retirosComunitariosRealizados: number;
+  retirosPessoaisRealizados: number;
+  iniciouEm?: string;
+  concluiuEm?: string;
+}
+
+export interface RequisitosEtapa {
+  nivel: NivelFormativo;
+  formacoesComunitarias: number;
+  retirosComunitarios: number;
+  retirosPessoais: number;
+  duracaoAnos: number;
+}
 
 export interface Morada {
   id: string;
@@ -55,6 +73,7 @@ export interface Formando {
   moradaId?: string;
   totalFormacoes: number;
   formacoesRealizadas: number;
+  progressoEtapas: ProgressoEtapa[];
 }
 
 export interface PlanoFormativo {
@@ -124,6 +143,7 @@ export interface Formacao {
   objetivo: string;
   descricao: string;
   nivelFormativo: NivelFormativo;
+  tipoFormacao: TipoFormacao;
   eixoId?: string;
   eixoNome?: string;
   etapaId?: string;
@@ -147,6 +167,7 @@ export interface Agendamento {
   formacaoId: string;
   formacaoTema: string;
   nivelFormativo: NivelFormativo;
+  tipoFormacao: TipoFormacao;
   formadorId: string;
   formadorNome: string;
   dataInicio: string;
@@ -289,6 +310,74 @@ export const NIVEL_CORES: Record<NivelFormativo, string> = {
   "primeiras-promessas": "bg-emerald-100 text-emerald-700",
   "formacao-permanente": "bg-amber-100 text-amber-700",
 };
+
+export const TIPO_FORMACAO_LABELS: Record<TipoFormacao, string> = {
+  comunitaria: "Formação Comunitária",
+  "retiro-comunitario": "Retiro Comunitário",
+  "retiro-pessoal": "Retiro Pessoal",
+};
+
+export const REQUISITOS_ETAPAS: Record<NivelFormativo, RequisitosEtapa> = {
+  "pre-discipulado": {
+    nivel: "pre-discipulado",
+    formacoesComunitarias: 104,
+    retirosComunitarios: 2,
+    retirosPessoais: 8,
+    duracaoAnos: 2,
+  },
+  discipulado: {
+    nivel: "discipulado",
+    formacoesComunitarias: 104,
+    retirosComunitarios: 2,
+    retirosPessoais: 8,
+    duracaoAnos: 2,
+  },
+  "primeiras-promessas": {
+    nivel: "primeiras-promessas",
+    formacoesComunitarias: 52,
+    retirosComunitarios: 1,
+    retirosPessoais: 4,
+    duracaoAnos: 1,
+  },
+  "formacao-permanente": {
+    nivel: "formacao-permanente",
+    formacoesComunitarias: 52,
+    retirosComunitarios: 1,
+    retirosPessoais: 4,
+    duracaoAnos: 1,
+  },
+};
+
+export const SEQUENCIA_ETAPAS: NivelFormativo[] = [
+  "pre-discipulado",
+  "discipulado",
+  "primeiras-promessas",
+  "formacao-permanente",
+];
+
+export function totalRequerido(nivel: NivelFormativo): number {
+  const req = REQUISITOS_ETAPAS[nivel];
+  return req.formacoesComunitarias + req.retirosComunitarios + req.retirosPessoais;
+}
+
+export function getProximaEtapa(nivel: NivelFormativo): NivelFormativo | null {
+  const idx = SEQUENCIA_ETAPAS.indexOf(nivel);
+  return idx < SEQUENCIA_ETAPAS.length - 1 ? SEQUENCIA_ETAPAS[idx + 1] : null;
+}
+
+export function podeAvancarEtapa(formando: Formando): boolean {
+  if (formando.nivelFormativo === "formacao-permanente") return false;
+  const req = REQUISITOS_ETAPAS[formando.nivelFormativo];
+  const prog = (formando.progressoEtapas ?? []).find(
+    (p) => p.nivel === formando.nivelFormativo
+  );
+  if (!prog) return false;
+  return (
+    prog.formacoesComunitariasRealizadas >= req.formacoesComunitarias &&
+    prog.retirosComunitariosRealizados >= req.retirosComunitarios &&
+    prog.retirosPessoaisRealizados >= req.retirosPessoais
+  );
+}
 
 export interface ComunidadeConfig {
   nome: string;

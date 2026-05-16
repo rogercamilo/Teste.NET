@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
-  db,
+  useFormandos,
   useAgendamentos,
   useHistorico,
   useComentarios,
@@ -16,6 +16,11 @@ import {
   TIPO_COMENTARIO_LABELS,
   TIPO_COMENTARIO_CORES,
   STATUS_FORMACAO_LABELS,
+  REQUISITOS_ETAPAS,
+  SEQUENCIA_ETAPAS,
+  getProximaEtapa,
+  podeAvancarEtapa,
+  totalRequerido,
   type StatusFormacao,
   type TipoComentario,
   type HistoricoFormando,
@@ -46,11 +51,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertCircle,
   ArrowLeft,
+  ArrowRight,
   BookOpen,
   Calendar,
   CheckCircle2,
   Clock,
+  Lock,
   Mail,
   MapPin,
   MessageSquare,
@@ -88,6 +96,7 @@ export default function FormandoDetailPage({
 }) {
   const { id } = use(params);
   const { data: session } = useSession();
+  const [allFormandos, setFormandos] = useFormandos();
   const [agendamentos] = useAgendamentos();
   const [historico, setHistorico] = useHistorico();
   const [comentarios, setComentarios] = useComentarios();
@@ -99,19 +108,18 @@ export default function FormandoDetailPage({
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const termoFormador = comunidade.termoFormador?.trim() || "Formador Comunitário";
 
-  // State — registrar participação em agendamento
   const [registroOpen, setRegistroOpen] = useState(false);
   const [selectedAg, setSelectedAg] = useState<Agendamento | null>(null);
   const [registroForm, setRegistroForm] = useState({ presente: "true", observacao: "" });
 
-  // State — novo comentário
   const [comentarioOpen, setComentarioOpen] = useState(false);
   const [comentarioForm, setComentarioForm] = useState<{ tipo: TipoComentario; texto: string }>({
     tipo: "adesao",
     texto: "",
   });
 
-  const [allFormandos] = useState(() => db.formandos.load());
+  const [avancarOpen, setAvancarOpen] = useState(false);
+
   const formando = allFormandos.find((f) => f.id === id);
 
   if (!formando) {
@@ -135,62 +143,34 @@ export default function FormandoDetailPage({
     .join("")
     .toUpperCase();
   const idade = differenceInYears(new Date(), parseISO(formando.dataNascimento));
-  const progresso = Math.round(
-    (formando.formacoesRealizadas / formando.totalFormacoes) * 100
-  );
 
-  // Agendamentos do nível formativo do formando, ordenados do mais recente/próximo
+  const progAtual = (formando.progressoEtapas ?? []).find(
+    (p) => p.nivel === formando.nivelFormativo
+  );
+  const totalAtual = totalRequerido(formando.nivelFormativo);
+  const realizadosAtual = progAtual
+    ? progAtual.formacoesComunitariasRealizadas +
+      progAtual.retirosComunitariosRealizados +
+      progAtual.retirosPessoaisRealizados
+    : 0;
+  const progressoPct = totalAtual > 0 ? Math.round((realizadosAtual / totalAtual) * 100) : 0;
+  const proximaEtapa = getProximaEtapa(formando.nivelFormativo);
+  const podeAvancar = podeAvancarEtapa(formando);
+  const etapaAtualIdx = SEQUENCIA_ETAPAS.indexOf(formando.nivelFormativo);
+
   const formandoAgendamentos = agendamentos
     .filter((ag) => ag.nivelFormativo === formando.nivelFormativo)
     .sort((a, b) => b.dataInicio.localeCompare(a.dataInicio));
 
-  // Histórico de participação deste formando
   const formandoHistorico = historico.filter((h) => h.formandoId === id);
 
   function getRegistro(agId: string): HistoricoFormando | undefined {
     return formandoHistorico.find((h) => h.agendamentoId === agId);
   }
 
-  // Comentários do formador sobre este formando
   const formandoComentarios = comentarios
     .filter((c) => c.formandoId === id)
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
-
-  const trilhaEtapas = [
-    { nivel: "pre-discipulado" as const, label: "Pré-Discipulado", total: 8, concluidas: 8 },
-    {
-      nivel: "discipulado" as const,
-      label: "Discipulado",
-      total: 15,
-      concluidas:
-        formando.nivelFormativo === "discipulado"
-          ? formando.formacoesRealizadas
-          : formando.nivelFormativo === "primeiras-promessas" ||
-            formando.nivelFormativo === "formacao-permanente"
-          ? 15
-          : 0,
-    },
-    {
-      nivel: "primeiras-promessas" as const,
-      label: "Primeiras Promessas",
-      total: 24,
-      concluidas:
-        formando.nivelFormativo === "primeiras-promessas"
-          ? formando.formacoesRealizadas
-          : formando.nivelFormativo === "formacao-permanente"
-          ? 24
-          : 0,
-    },
-    {
-      nivel: "formacao-permanente" as const,
-      label: "Formação Permanente",
-      total: 48,
-      concluidas:
-        formando.nivelFormativo === "formacao-permanente"
-          ? formando.formacoesRealizadas
-          : 0,
-    },
-  ];
 
   function openRegistro(ag: Agendamento) {
     setSelectedAg(ag);
@@ -211,17 +191,47 @@ export default function FormandoDetailPage({
       observacao: registroForm.observacao.trim() || undefined,
     };
     setHistorico((prev) => [...prev, novo]);
+
+    if (registroForm.presente === "true") {
+      setFormandos((prev) =>
+        prev.map((f) => {
+          if (f.id !== id) return f;
+          const etapas = [...(f.progressoEtapas ?? [])];
+          const idx = etapas.findIndex((p) => p.nivel === f.nivelFormativo);
+          if (idx >= 0) {
+            const e = { ...etapas[idx] };
+            if (selectedAg.tipoFormacao === "comunitaria") e.formacoesComunitariasRealizadas++;
+            else if (selectedAg.tipoFormacao === "retiro-comunitario") e.retirosComunitariosRealizados++;
+            else if (selectedAg.tipoFormacao === "retiro-pessoal") e.retirosPessoaisRealizados++;
+            etapas[idx] = e;
+          }
+          const prog = etapas.find((p) => p.nivel === f.nivelFormativo);
+          const novoTotal = prog
+            ? prog.formacoesComunitariasRealizadas +
+              prog.retirosComunitariosRealizados +
+              prog.retirosPessoaisRealizados
+            : f.formacoesRealizadas;
+          const req = REQUISITOS_ETAPAS[f.nivelFormativo];
+          return {
+            ...f,
+            progressoEtapas: etapas,
+            formacoesRealizadas: novoTotal,
+            totalFormacoes: req.formacoesComunitarias + req.retirosComunitarios + req.retirosPessoais,
+          };
+        })
+      );
+    }
+
     setRegistroOpen(false);
     toast.success("Participação registrada.");
   }
 
   function handleSaveComentario() {
-    if (!formando) return;
     if (!comentarioForm.texto.trim()) return toast.error("O texto do comentário é obrigatório.");
     const novo: ComentarioFormando = {
       id: `c${Date.now()}`,
       formandoId: id,
-      formandoNome: formando.nome,
+      formandoNome: formando!.nome,
       formadorId: userId,
       formadorNome: userName,
       texto: comentarioForm.texto.trim(),
@@ -232,6 +242,38 @@ export default function FormandoDetailPage({
     setComentarioOpen(false);
     setComentarioForm({ tipo: "adesao", texto: "" });
     toast.success("Comentário salvo.");
+  }
+
+  function handleAvancarEtapa() {
+    if (!proximaEtapa) return;
+    const agora = new Date().toISOString();
+    setFormandos((prev) =>
+      prev.map((f) => {
+        if (f.id !== id) return f;
+        const etapas = [...(f.progressoEtapas ?? [])];
+        const atualIdx = etapas.findIndex((p) => p.nivel === f.nivelFormativo);
+        if (atualIdx >= 0) {
+          etapas[atualIdx] = { ...etapas[atualIdx], concluiuEm: agora };
+        }
+        etapas.push({
+          nivel: proximaEtapa,
+          formacoesComunitariasRealizadas: 0,
+          retirosComunitariosRealizados: 0,
+          retirosPessoaisRealizados: 0,
+          iniciouEm: agora,
+        });
+        const req = REQUISITOS_ETAPAS[proximaEtapa];
+        return {
+          ...f,
+          nivelFormativo: proximaEtapa,
+          totalFormacoes: req.formacoesComunitarias + req.retirosComunitarios + req.retirosPessoais,
+          formacoesRealizadas: 0,
+          progressoEtapas: etapas,
+        };
+      })
+    );
+    setAvancarOpen(false);
+    toast.success(`${formando!.nome} avançou para ${NIVEL_FORMATIVO_LABELS[proximaEtapa]}.`);
   }
 
   return (
@@ -297,19 +339,19 @@ export default function FormandoDetailPage({
       <div className="grid grid-cols-3 gap-4">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{formando.totalFormacoes}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Total de formações</p>
+            <p className="text-2xl font-bold text-foreground">{totalAtual}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Requeridas na etapa</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-emerald-600">{formando.formacoesRealizadas}</p>
+            <p className="text-2xl font-bold text-emerald-600">{realizadosAtual}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Realizadas</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-primary">{progresso}%</p>
+            <p className="text-2xl font-bold text-primary">{progressoPct}%</p>
             <p className="text-xs text-muted-foreground mt-0.5">Progresso</p>
           </CardContent>
         </Card>
@@ -337,71 +379,164 @@ export default function FormandoDetailPage({
             <CardHeader className="pb-4">
               <CardTitle className="text-sm font-semibold">Trilha Formativa</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-5">
-              {trilhaEtapas.map((etapa, idx) => {
-                const isAtual = etapa.nivel === formando.nivelFormativo;
-                const isConcluida = etapa.concluidas === etapa.total;
-                const isPendente = etapa.concluidas === 0;
-                const pct = Math.round((etapa.concluidas / etapa.total) * 100);
+            <CardContent className="space-y-1">
+              {SEQUENCIA_ETAPAS.map((nivel, idx) => {
+                const req = REQUISITOS_ETAPAS[nivel];
+                const prog = (formando.progressoEtapas ?? []).find((p) => p.nivel === nivel);
+                const isAtual = nivel === formando.nivelFormativo;
+                const isConcluida = !!prog?.concluiuEm;
+                const isLocked = idx > etapaAtualIdx;
+                const isLast = idx === SEQUENCIA_ETAPAS.length - 1;
+
+                const comPct = prog
+                  ? Math.min(100, Math.round((prog.formacoesComunitariasRealizadas / req.formacoesComunitarias) * 100))
+                  : 0;
+                const retComPct = prog
+                  ? Math.min(100, Math.round((prog.retirosComunitariosRealizados / req.retirosComunitarios) * 100))
+                  : 0;
+                const retPesPct = prog
+                  ? Math.min(100, Math.round((prog.retirosPessoaisRealizados / req.retirosPessoais) * 100))
+                  : 0;
+
+                const missingItems: string[] = [];
+                if (isAtual && prog) {
+                  const fC = req.formacoesComunitarias - prog.formacoesComunitariasRealizadas;
+                  const fRC = req.retirosComunitarios - prog.retirosComunitariosRealizados;
+                  const fRP = req.retirosPessoais - prog.retirosPessoaisRealizados;
+                  if (fC > 0) missingItems.push(`${fC} formação${fC > 1 ? "ões" : ""} comunitária${fC > 1 ? "s" : ""}`);
+                  if (fRC > 0) missingItems.push(`${fRC} retiro${fRC > 1 ? "s" : ""} comunitário${fRC > 1 ? "s" : ""}`);
+                  if (fRP > 0) missingItems.push(`${fRP} retiro${fRP > 1 ? "s" : ""} pessoal${fRP > 1 ? "is" : ""}`);
+                }
 
                 return (
-                  <div key={etapa.nivel} className="flex gap-4">
-                    <div className="flex flex-col items-center">
+                  <div key={nivel} className="flex gap-4">
+                    {/* Ícone da timeline */}
+                    <div className="flex flex-col items-center shrink-0">
                       <div
-                        className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
-                          isConcluida
-                            ? "bg-emerald-100"
-                            : isAtual
-                            ? "bg-primary/15 ring-2 ring-primary/30"
-                            : "bg-muted"
-                        }`}
+                        className={cn(
+                          "h-9 w-9 rounded-full flex items-center justify-center",
+                          isConcluida && "bg-emerald-100",
+                          isAtual && !isConcluida && "bg-primary/15 ring-2 ring-primary/30",
+                          isLocked && "bg-muted"
+                        )}
                       >
                         {isConcluida ? (
                           <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                        ) : isLocked ? (
+                          <Lock className="h-4 w-4 text-muted-foreground/50" />
                         ) : (
-                          <span
-                            className={`text-sm font-bold ${
-                              isAtual ? "text-primary" : "text-muted-foreground"
-                            }`}
-                          >
-                            {idx + 1}
-                          </span>
+                          <span className="text-sm font-bold text-primary">{idx + 1}</span>
                         )}
                       </div>
-                      {idx < trilhaEtapas.length - 1 && (
+                      {!isLast && (
                         <div
-                          className={`flex-1 w-0.5 mt-1 min-h-[20px] ${
+                          className={cn(
+                            "flex-1 w-0.5 mt-1 min-h-[20px]",
                             isConcluida ? "bg-emerald-200" : "bg-border"
-                          }`}
+                          )}
                         />
                       )}
                     </div>
-                    <div className="flex-1 pb-4">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-sm font-semibold ${
-                              isAtual
-                                ? "text-primary"
-                                : isConcluida
-                                ? "text-foreground"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {etapa.label}
+
+                    {/* Conteúdo */}
+                    <div className="flex-1 pb-5">
+                      {/* Cabeçalho da etapa */}
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span
+                          className={cn(
+                            "text-sm font-semibold",
+                            isAtual && "text-primary",
+                            isConcluida && "text-foreground",
+                            isLocked && "text-muted-foreground"
+                          )}
+                        >
+                          {NIVEL_FORMATIVO_LABELS[nivel]}
+                        </span>
+                        {isAtual && (
+                          <Badge className="text-xs h-4 bg-primary/10 text-primary border-0 px-1.5">
+                            Atual
+                          </Badge>
+                        )}
+                        {isConcluida && prog?.concluiuEm && (
+                          <span className="text-xs text-muted-foreground">
+                            · Concluída em{" "}
+                            {format(parseISO(prog.concluiuEm), "MMM 'de' yyyy", { locale: ptBR })}
                           </span>
+                        )}
+                        {isLocked && (
+                          <span className="text-xs text-muted-foreground/60">· Bloqueada</span>
+                        )}
+                      </div>
+
+                      {/* Requisitos resumidos para etapas bloqueadas */}
+                      {isLocked && (
+                        <p className="text-xs text-muted-foreground/50">
+                          {req.formacoesComunitarias} formações comunitárias
+                          {" · "}{req.retirosComunitarios} retiro{req.retirosComunitarios > 1 ? "s" : ""} comunitário{req.retirosComunitarios > 1 ? "s" : ""}
+                          {" · "}{req.retirosPessoais} retiros pessoais
+                          {" · "}{req.duracaoAnos} ano{req.duracaoAnos > 1 ? "s" : ""}
+                        </p>
+                      )}
+
+                      {/* Barras de progresso para etapas actuais e concluídas */}
+                      {!isLocked && (
+                        <div className="space-y-2">
+                          <div>
+                            <div className="flex justify-between items-center mb-0.5">
+                              <span className="text-xs text-muted-foreground">Formações comunitárias</span>
+                              <span className="text-xs text-muted-foreground">
+                                {prog?.formacoesComunitariasRealizadas ?? 0}/{req.formacoesComunitarias}
+                              </span>
+                            </div>
+                            <Progress value={comPct} className="h-1.5" />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-center mb-0.5">
+                              <span className="text-xs text-muted-foreground">Retiros comunitários</span>
+                              <span className="text-xs text-muted-foreground">
+                                {prog?.retirosComunitariosRealizados ?? 0}/{req.retirosComunitarios}
+                              </span>
+                            </div>
+                            <Progress value={retComPct} className="h-1.5" />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-center mb-0.5">
+                              <span className="text-xs text-muted-foreground">Retiros pessoais</span>
+                              <span className="text-xs text-muted-foreground">
+                                {prog?.retirosPessoaisRealizados ?? 0}/{req.retirosPessoais}
+                              </span>
+                            </div>
+                            <Progress value={retPesPct} className="h-1.5" />
+                          </div>
+
+                          {/* Secção de avanço (apenas para etapa actual) */}
                           {isAtual && (
-                            <Badge className="text-xs h-4 bg-primary/10 text-primary border-0 px-1.5">
-                              Atual
-                            </Badge>
+                            <div className="pt-2">
+                              {podeAvancar && proximaEtapa ? (
+                                <Button
+                                  size="sm"
+                                  className="h-8 text-xs"
+                                  onClick={() => setAvancarOpen(true)}
+                                >
+                                  <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
+                                  Avançar para {NIVEL_FORMATIVO_LABELS[proximaEtapa]}
+                                </Button>
+                              ) : missingItems.length > 0 ? (
+                                <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                  <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+                                  <span>Faltam: {missingItems.join(", ")}</span>
+                                </div>
+                              ) : nivel === "formacao-permanente" ? (
+                                <p className="text-xs text-muted-foreground">
+                                  Etapa em curso — formação contínua.
+                                </p>
+                              ) : null}
+                            </div>
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {etapa.concluidas}/{etapa.total}
-                        </span>
-                      </div>
-                      {!isPendente && <Progress value={pct} className="h-1.5" />}
-                      {isPendente && <div className="h-1.5 bg-muted rounded-full" />}
+                      )}
                     </div>
                   </div>
                 );
@@ -410,7 +545,7 @@ export default function FormandoDetailPage({
           </Card>
         </TabsContent>
 
-        {/* Histórico de evolução — baseado em agendamentos reais */}
+        {/* Histórico de evolução */}
         <TabsContent value="historico" className="mt-4">
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-3">
@@ -460,7 +595,6 @@ export default function FormandoDetailPage({
                         }`}
                       >
                         <div className="flex items-start gap-3">
-                          {/* Ícone de status */}
                           <div
                             className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
                               ag.status === "realizada"
@@ -480,7 +614,6 @@ export default function FormandoDetailPage({
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            {/* Tema + badges */}
                             <div className="flex items-start justify-between gap-2 flex-wrap">
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-foreground leading-tight">
@@ -518,7 +651,6 @@ export default function FormandoDetailPage({
                               </div>
                             </div>
 
-                            {/* Registro de participação */}
                             {registro && (
                               <div className="mt-3 flex items-start gap-2.5 rounded-lg bg-muted/40 p-2.5">
                                 <div
@@ -587,7 +719,7 @@ export default function FormandoDetailPage({
                   <MessageSquare className="h-10 w-10 text-muted-foreground/30 mb-3" />
                   <p className="font-medium text-foreground text-sm">Nenhum comentário registrado</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Clique em "Novo comentário" para registrar seu parecer.
+                    Clique em &quot;Novo comentário&quot; para registrar seu parecer.
                   </p>
                 </div>
               ) : (
@@ -679,7 +811,6 @@ export default function FormandoDetailPage({
           </DialogHeader>
           {selectedAg && (
             <div className="grid gap-4 py-2">
-              {/* Info do agendamento (somente leitura) */}
               <div className="rounded-lg bg-muted/40 p-3 space-y-1">
                 <p className="text-sm font-medium text-foreground">{selectedAg.formacaoTema}</p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -687,8 +818,7 @@ export default function FormandoDetailPage({
                   {format(parseISO(selectedAg.dataInicio), "d 'de' MMMM 'de' yyyy", {
                     locale: ptBR,
                   })}{" "}
-                  ·{" "}
-                  {format(parseISO(selectedAg.dataInicio), "HH:mm")}–
+                  · {format(parseISO(selectedAg.dataInicio), "HH:mm")}–
                   {format(parseISO(selectedAg.dataFim), "HH:mm")}
                 </p>
                 {selectedAg.local && (
@@ -752,8 +882,7 @@ export default function FormandoDetailPage({
               <Select
                 value={comentarioForm.tipo}
                 onValueChange={(v) =>
-                  v &&
-                  setComentarioForm((prev) => ({ ...prev, tipo: v as TipoComentario }))
+                  v && setComentarioForm((prev) => ({ ...prev, tipo: v as TipoComentario }))
                 }
                 items={TIPO_COMENTARIO_LABELS}
               >
@@ -790,6 +919,40 @@ export default function FormandoDetailPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Avançar Etapa */}
+      {proximaEtapa && (
+        <Dialog open={avancarOpen} onOpenChange={setAvancarOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Confirmar avanço de etapa</DialogTitle>
+            </DialogHeader>
+            <div className="py-2 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Você está prestes a avançar{" "}
+                <span className="font-semibold text-foreground">{formando.nome}</span> da etapa{" "}
+                <span className="font-medium">{NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}</span>{" "}
+                para{" "}
+                <span className="font-medium">{NIVEL_FORMATIVO_LABELS[proximaEtapa]}</span>.
+              </p>
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
+                <p className="text-xs text-amber-700">
+                  Esta ação registrará a conclusão da etapa actual e não pode ser desfeita.
+                </p>
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setAvancarOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAvancarEtapa}>
+                <ArrowRight className="h-4 w-4 mr-1.5" />
+                Confirmar avanço
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

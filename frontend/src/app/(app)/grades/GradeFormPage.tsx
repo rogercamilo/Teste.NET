@@ -359,6 +359,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
           formadorNome: allUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
           cargaHoraria: Number(f.cargaHoraria) || 2,
           modalidade: f.modalidade,
+          tipoFormacao: "comunitaria" as const,
           gradeId: entId,
           gradeNome: form.nome.trim(),
           vezesUtilizada: 0,

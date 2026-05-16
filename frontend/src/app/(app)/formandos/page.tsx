@@ -7,9 +7,11 @@ import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   MODALIDADE_LABELS,
+  totalRequerido,
   type Formando,
   type NivelFormativo,
   type Modalidade,
+  type ProgressoEtapa,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -180,6 +182,16 @@ export default function FormandosPage() {
     const morada = allMoradas.find((m) => m.id === form.moradaId);
     const nivelFormativo = morada ? morada.nivelFormativo : form.nivelFormativo;
 
+    const progressoEtapas: ProgressoEtapa[] = editing?.progressoEtapas ?? [
+      {
+        nivel: nivelFormativo,
+        formacoesComunitariasRealizadas: 0,
+        retirosComunitariosRealizados: 0,
+        retirosPessoaisRealizados: 0,
+        iniciouEm: form.dataIngresso,
+      },
+    ];
+
     const payload: Formando = {
       id: editing?.id ?? `f${Date.now()}`,
       nome: form.nome.trim(),
@@ -192,8 +204,9 @@ export default function FormandosPage() {
       email: form.email.trim(),
       ativo: editing?.ativo ?? true,
       moradaId: form.moradaId || undefined,
-      totalFormacoes: editing?.totalFormacoes ?? 0,
+      totalFormacoes: editing?.totalFormacoes ?? totalRequerido(nivelFormativo),
       formacoesRealizadas: editing?.formacoesRealizadas ?? 0,
+      progressoEtapas,
     };
 
     if (editing) {

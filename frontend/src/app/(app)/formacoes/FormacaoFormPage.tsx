@@ -7,9 +7,11 @@ import { extractDocumentFields } from "@/lib/doc-extract";
 import {
   NIVEL_FORMATIVO_LABELS,
   MODALIDADE_LABELS,
+  TIPO_FORMACAO_LABELS,
   type Formacao,
   type NivelFormativo,
   type Modalidade,
+  type TipoFormacao,
 } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,7 @@ type FormState = {
   objetivo: string;
   descricao: string;
   nivelFormativo: NivelFormativo;
+  tipoFormacao: TipoFormacao;
   formadorId: string;
   cargaHoraria: string;
   modalidade: Modalidade;
@@ -46,6 +49,7 @@ const EMPTY_FORM: FormState = {
   objetivo: "",
   descricao: "",
   nivelFormativo: "pre-discipulado",
+  tipoFormacao: "comunitaria",
   formadorId: "",
   cargaHoraria: "2",
   modalidade: "presencial",
@@ -72,6 +76,7 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
       objetivo: f.objetivo,
       descricao: f.descricao,
       nivelFormativo: f.nivelFormativo,
+      tipoFormacao: f.tipoFormacao,
       formadorId: f.formadorId,
       cargaHoraria: String(f.cargaHoraria),
       modalidade: f.modalidade,
@@ -120,6 +125,7 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
       objetivo: form.objetivo.trim(),
       descricao: form.descricao.trim(),
       nivelFormativo: form.nivelFormativo,
+      tipoFormacao: form.tipoFormacao,
       formadorId: form.formadorId,
       formadorNome: formador?.nome ?? "",
       cargaHoraria: horas,
@@ -183,6 +189,17 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
+              <Label>Tipo de Formação <span className="text-destructive">*</span></Label>
+              <Select value={form.tipoFormacao} onValueChange={(v) => v && set("tipoFormacao")(v)} items={TIPO_FORMACAO_LABELS}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(TIPO_FORMACAO_LABELS) as TipoFormacao[]).map((t) => (
+                    <SelectItem key={t} value={t}>{TIPO_FORMACAO_LABELS[t]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
               <Label>Etapa Formativa <span className="text-destructive">*</span></Label>
               <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)} items={NIVEL_FORMATIVO_LABELS}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -193,6 +210,9 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label>Modalidade</Label>
               <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)} items={MODALIDADE_LABELS}>
@@ -204,9 +224,6 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label>Formador <span className="text-destructive">*</span></Label>
               <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)} items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}>
@@ -218,21 +235,22 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
-              <Label>Carga horária (h) <span className="text-destructive">*</span></Label>
-              <Input type="number" min="1" value={form.cargaHoraria} onChange={(e) => set("cargaHoraria")(e.target.value)} placeholder="2" />
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
+              <Label>Carga horária (h) <span className="text-destructive">*</span></Label>
+              <Input type="number" min="1" value={form.cargaHoraria} onChange={(e) => set("cargaHoraria")(e.target.value)} placeholder="2" />
+            </div>
+            <div className="grid gap-1.5">
               <Label>Eixo</Label>
               <Input value={form.eixoNome} onChange={(e) => set("eixoNome")(e.target.value)} placeholder="Ex.: Identidade" />
             </div>
-            <div className="grid gap-1.5">
-              <Label>Material de apoio</Label>
-              <Input value={form.materialApoio} onChange={(e) => set("materialApoio")(e.target.value)} placeholder="Link ou referência" />
-            </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>Material de apoio</Label>
+            <Input value={form.materialApoio} onChange={(e) => set("materialApoio")(e.target.value)} placeholder="Link ou referência" />
           </div>
 
           <div className="grid gap-1.5">
