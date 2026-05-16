@@ -16,6 +16,7 @@ import {
   type Morada,
   type Formando,
   type Modalidade,
+  type NivelFormativo,
   type ProgressoEtapa,
   type PresencaFormacao,
   type ComentarioFormando,
@@ -54,6 +55,7 @@ import {
 import {
   ArrowLeft,
   BookOpen,
+  Calendar,
   CheckCircle2,
   ClipboardList,
   Home,
@@ -66,6 +68,7 @@ import {
   Save,
   Search,
   Trash2,
+  TrendingUp,
   Users,
   XCircle,
 } from "lucide-react";
@@ -103,6 +106,13 @@ const ESTADO_CIVIL_LABELS = {
   viuvo: "Viúvo(a)",
 };
 
+const NIVEL_SEQUENCE: NivelFormativo[] = [
+  "pre-discipulado",
+  "discipulado",
+  "primeiras-promessas",
+  "formacao-permanente",
+];
+
 type FormandoFormState = {
   nome: string;
   dataNascimento: string;
@@ -125,6 +135,7 @@ const EMPTY_FORMANDO_FORM: FormandoFormState = {
 
 export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps) {
   const isAdmin = userRole === "administrador";
+  const isFC = userRole === "formador_comunitario";
 
   const [morada, setMorada] = useState<Morada | undefined>(() =>
     db.moradas.load().find((m) => m.id === id)
@@ -154,6 +165,14 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [deleteFormandoOpen, setDeleteFormandoOpen] = useState(false);
   const [editingFormando, setEditingFormando] = useState<Formando | null>(null);
   const [formandoForm, setFormandoForm] = useState<FormandoFormState>(EMPTY_FORMANDO_FORM);
+
+  // Nova Etapa Formativa state
+  const [novaEtapaOpen, setNovaEtapaOpen] = useState(false);
+  const [novaEtapaForm, setNovaEtapaForm] = useState({
+    nivelFormativo: "" as NivelFormativo | "",
+    vigenciaInicio: "",
+    vigenciaFim: "",
+  });
 
   if (!morada) {
     return (
@@ -190,6 +209,13 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     const matchNivel = formNivelFilter === "todos" || f.nivelFormativo === formNivelFilter;
     return matchSearch && matchNivel;
   });
+
+  // Compute next etapa options (must follow sequence)
+  const currentNivelIdx = NIVEL_SEQUENCE.indexOf(morada.nivelFormativo);
+  const nextEtapaOptions: NivelFormativo[] =
+    currentNivelIdx < NIVEL_SEQUENCE.length - 1
+      ? [NIVEL_SEQUENCE[currentNivelIdx + 1]]
+      : ["formacao-permanente"];
 
   function getPresenca(formandoId: string): boolean {
     return (
@@ -268,7 +294,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         id: `c-${Date.now()}`,
         formandoId: novoFormandoId,
         formandoNome: formando.nome,
-        formadorId: morada.formadorId,
+        formadorId: userId,
         texto: novoTexto.trim(),
         tipo: novoTipo,
         criadoEm: new Date().toISOString().split("T")[0],
@@ -282,6 +308,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     toast.success("Comentário registrado com sucesso!");
   }
 
+  // Formandos CRUD
   function openCreateFormando() {
     setEditingFormando(null);
     setFormandoForm(EMPTY_FORMANDO_FORM);
@@ -363,6 +390,40 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     toast.success(`${termoFormando} excluído.`);
   }
 
+  // Nova Etapa Formativa
+  function openNovaEtapa() {
+    const nextNivel = nextEtapaOptions[0];
+    setNovaEtapaForm({
+      nivelFormativo: nextNivel,
+      vigenciaInicio: "",
+      vigenciaFim: "",
+    });
+    setNovaEtapaOpen(true);
+  }
+
+  function handleSaveNovaEtapa() {
+    if (!novaEtapaForm.nivelFormativo) return toast.error("Selecione a etapa formativa.");
+    if (!novaEtapaForm.vigenciaInicio) return toast.error("Data de início é obrigatória.");
+    if (!novaEtapaForm.vigenciaFim) return toast.error("Data de término é obrigatória.");
+    if (novaEtapaForm.vigenciaFim <= novaEtapaForm.vigenciaInicio)
+      return toast.error("Data de término deve ser posterior à data de início.");
+
+    setMorada((prev) => {
+      if (!prev) return prev;
+      const updated: Morada = {
+        ...prev,
+        nivelFormativo: novaEtapaForm.nivelFormativo as NivelFormativo,
+        vigenciaInicio: novaEtapaForm.vigenciaInicio,
+        vigenciaFim: novaEtapaForm.vigenciaFim,
+      };
+      const all = db.moradas.load().map((m) => (m.id === updated.id ? updated : m));
+      db.moradas.save(all);
+      return updated;
+    });
+    setNovaEtapaOpen(false);
+    toast.success("Nova etapa formativa iniciada!");
+  }
+
   const presentes = formandosDaMorada.filter((f) => getPresenca(f.id)).length;
   const ausentes = formandosDaMorada.length - presentes;
 
@@ -400,13 +461,31 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                 {morada.endereco}
               </p>
             )}
+            {(morada.vigenciaInicio || morada.vigenciaFim) && (
+              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                {morada.vigenciaInicio
+                  ? format(parseISO(morada.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })
+                  : "—"}{" "}
+                até{" "}
+                {morada.vigenciaFim
+                  ? format(parseISO(morada.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })
+                  : "—"}
+              </p>
+            )}
           </div>
-          {isAdmin && (
-            <Button variant="outline" size="sm" onClick={openEdit} className="shrink-0">
-              <Pencil className="h-4 w-4 mr-1.5" />
-              Editar
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={openNovaEtapa} className="gap-1.5">
+              <TrendingUp className="h-4 w-4" />
+              Nova Etapa
             </Button>
-          )}
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={openEdit}>
+                <Pencil className="h-4 w-4 mr-1.5" />
+                Editar
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -460,63 +539,92 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
               </CardHeader>
               <CardContent className="space-y-2">
                 {formador ? (
-                  <>
-                    <div className="flex items-center gap-2.5">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                          {formador.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">{formador.nome}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {formador.email}
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-2.5">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                        {formador.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">{formador.nome}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {formador.email}
+                      </p>
                     </div>
-                  </>
+                  </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Formador não encontrado</p>
+                  <p className="text-sm text-amber-600">Nenhum formador responsável indicado</p>
                 )}
               </CardContent>
             </Card>
 
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Plano & Grade Formativos</CardTitle>
+                <CardTitle className="text-sm font-semibold">Período Formativo</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {plano ? (
-                  <div className="flex items-start gap-2">
-                    <BookOpen className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-medium text-foreground">{plano.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(parseISO(plano.vigenciaInicio), "dd/MM/yyyy")} —{" "}
-                        {format(parseISO(plano.vigenciaFim), "dd/MM/yyyy")}
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{NIVEL_ICONS[morada.nivelFormativo] ?? "🏠"}</span>
+                  <div>
+                    <p className="text-xs font-medium text-foreground">
+                      {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}
+                    </p>
+                    {morada.vigenciaInicio && morada.vigenciaFim ? (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Calendar className="h-3 w-3" />
+                        {format(parseISO(morada.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })}
+                        {" — "}
+                        {format(parseISO(morada.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })}
                       </p>
-                    </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-0.5">Vigência não definida</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Nenhum plano vinculado</p>
-                )}
-                {grade ? (
-                  <div className="flex items-start gap-2 mt-2">
-                    <BookOpen className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-medium text-foreground">{grade.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        v{grade.versao} · {grade.eixos.length} eixos · {grade.totalFormacoes} formações
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground mt-2">Nenhuma grade vinculada</p>
+                </div>
+                {currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
+                  <p className="text-xs text-muted-foreground">
+                    Próxima etapa: <span className="font-medium text-foreground">{NIVEL_FORMATIVO_LABELS[NIVEL_SEQUENCE[currentNivelIdx + 1]]}</span>
+                  </p>
                 )}
               </CardContent>
             </Card>
           </div>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Plano & Grade Formativos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {plano ? (
+                <div className="flex items-start gap-2">
+                  <BookOpen className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-foreground">{plano.nome}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(parseISO(plano.vigenciaInicio), "dd/MM/yyyy")} —{" "}
+                      {format(parseISO(plano.vigenciaFim), "dd/MM/yyyy")}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nenhum plano vinculado</p>
+              )}
+              {grade ? (
+                <div className="flex items-start gap-2 mt-2">
+                  <BookOpen className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-foreground">{grade.nome}</p>
+                    <p className="text-xs text-muted-foreground">
+                      v{grade.versao} · {grade.eixos.length} eixos · {grade.totalFormacoes} formações
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-2">Nenhuma grade vinculada</p>
+              )}
+            </CardContent>
+          </Card>
 
           {grade && grade.eixos.length > 0 && (
             <Card className="border-0 shadow-sm">
@@ -909,6 +1017,65 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button onClick={handleEditSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Nova Etapa Formativa Dialog */}
+      <Dialog open={novaEtapaOpen} onOpenChange={setNovaEtapaOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Iniciar Nova Etapa Formativa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+              Etapa atual:{" "}
+              <span className="font-medium text-foreground">
+                {NIVEL_ICONS[morada.nivelFormativo]} {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}
+              </span>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Nova Etapa <span className="text-destructive">*</span></Label>
+              <Select
+                value={novaEtapaForm.nivelFormativo}
+                onValueChange={(v) => v && setNovaEtapaForm((p) => ({ ...p, nivelFormativo: v as NivelFormativo }))}
+                items={Object.fromEntries(nextEtapaOptions.map((n) => [n, `${NIVEL_ICONS[n]} ${NIVEL_FORMATIVO_LABELS[n]}`]))}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione a etapa..." /></SelectTrigger>
+                <SelectContent>
+                  {nextEtapaOptions.map((n) => (
+                    <SelectItem key={n} value={n}>
+                      {NIVEL_ICONS[n]} {NIVEL_FORMATIVO_LABELS[n]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>Início da Vigência <span className="text-destructive">*</span></Label>
+                <Input
+                  type="date"
+                  value={novaEtapaForm.vigenciaInicio}
+                  onChange={(e) => setNovaEtapaForm((p) => ({ ...p, vigenciaInicio: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Término da Vigência <span className="text-destructive">*</span></Label>
+                <Input
+                  type="date"
+                  value={novaEtapaForm.vigenciaFim}
+                  onChange={(e) => setNovaEtapaForm((p) => ({ ...p, vigenciaFim: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setNovaEtapaOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveNovaEtapa} className="gap-1.5">
+              <TrendingUp className="h-4 w-4" />
+              Iniciar Etapa
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

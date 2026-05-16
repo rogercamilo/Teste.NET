@@ -39,9 +39,11 @@ export interface Morada {
   nome: string;
   endereco?: string;
   nivelFormativo: NivelFormativo;
-  formadorId: string;
+  formadorId?: string;
   planoId?: string;
   gradeId?: string;
+  vigenciaInicio?: string;
+  vigenciaFim?: string;
   ativo: boolean;
   criadoEm: string;
 }

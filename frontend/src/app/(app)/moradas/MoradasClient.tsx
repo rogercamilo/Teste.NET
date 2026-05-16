@@ -35,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Calendar,
   ChevronRight,
   Home,
   MoreHorizontal,
@@ -45,6 +46,8 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
 const NIVEL_ICONS: Record<NivelFormativo, string> = {
@@ -60,6 +63,8 @@ type FormState = {
   formadorId: string;
   planoId: string;
   gradeId: string;
+  vigenciaInicio: string;
+  vigenciaFim: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -68,6 +73,8 @@ const EMPTY_FORM: FormState = {
   formadorId: "",
   planoId: "",
   gradeId: "",
+  vigenciaInicio: "",
+  vigenciaFim: "",
 };
 
 const formadores = db.usuarios.load().filter((u) => u.perfil === "formador_comunitario" && u.ativo);
@@ -104,9 +111,11 @@ export default function MoradasClient() {
     setForm({
       nome: m.nome,
       nivelFormativo: m.nivelFormativo,
-      formadorId: m.formadorId,
+      formadorId: m.formadorId ?? "",
       planoId: m.planoId ?? "",
       gradeId: m.gradeId ?? "",
+      vigenciaInicio: m.vigenciaInicio ?? "",
+      vigenciaFim: m.vigenciaFim ?? "",
     });
     setDialogOpen(true);
   }
@@ -123,17 +132,22 @@ export default function MoradasClient() {
 
   function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório.");
-    if (!form.formadorId) return toast.error("Selecione um formador.");
+    if (form.vigenciaFim && form.vigenciaInicio && form.vigenciaFim <= form.vigenciaInicio)
+      return toast.error("Data de término deve ser posterior à data de início.");
 
     const today = new Date().toISOString().split("T")[0];
+    const hasFormador = !!form.formadorId;
     const payload: Morada = {
       id: editing?.id ?? `m${Date.now()}`,
       nome: form.nome.trim(),
       nivelFormativo: form.nivelFormativo,
-      formadorId: form.formadorId,
+      formadorId: form.formadorId || undefined,
       planoId: form.planoId || undefined,
       gradeId: form.gradeId || undefined,
-      ativo: editing?.ativo ?? true,
+      vigenciaInicio: form.vigenciaInicio || undefined,
+      vigenciaFim: form.vigenciaFim || undefined,
+      // Nova morada sem formador nasce inativa; edição preserva o status atual
+      ativo: editing?.ativo ?? hasFormador,
       criadoEm: editing?.criadoEm ?? today,
     };
 
@@ -142,7 +156,10 @@ export default function MoradasClient() {
       toast.success(`${termoMorada} atualizada com sucesso!`);
     } else {
       setMoradas((prev) => [...prev, payload]);
-      toast.success(`${termoMorada} criada com sucesso!`);
+      const msg = hasFormador
+        ? `${termoMorada} criada com sucesso!`
+        : `${termoMorada} criada como inativa (sem formador responsável).`;
+      toast.success(msg);
     }
     setDialogOpen(false);
   }
@@ -174,7 +191,7 @@ export default function MoradasClient() {
         {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((nivel) => {
           const count = moradas.filter((m) => m.nivelFormativo === nivel).length;
           return (
-            <div key={nivel} className={`p-3 rounded-xl border border-border/60 shadow-sm bg-card flex items-center gap-2.5`}>
+            <div key={nivel} className="p-3 rounded-xl border border-border/60 shadow-sm bg-card flex items-center gap-2.5">
               <span className="text-xl">{NIVEL_ICONS[nivel]}</span>
               <div>
                 <p className="text-lg font-bold text-foreground leading-none">{count}</p>
@@ -258,9 +275,26 @@ export default function MoradasClient() {
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5">
-                  {formador && (
+                  {formador ? (
                     <p className="text-xs text-muted-foreground">
                       <span className="font-medium text-foreground">Formador:</span> {formador.nome}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-amber-600">
+                      Sem formador responsável
+                    </p>
+                  )}
+                  {(morada.vigenciaInicio || morada.vigenciaFim) && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3 shrink-0" />
+                      <span className="font-medium text-foreground">Vigência:</span>{" "}
+                      {morada.vigenciaInicio
+                        ? format(parseISO(morada.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })
+                        : "—"}{" "}
+                      até{" "}
+                      {morada.vigenciaFim
+                        ? format(parseISO(morada.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })
+                        : "—"}
                     </p>
                   )}
                   {plano && (
@@ -295,6 +329,7 @@ export default function MoradasClient() {
         })}
       </div>
 
+      {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -309,6 +344,7 @@ export default function MoradasClient() {
                 placeholder="Morada São João Bosco"
               />
             </div>
+
             <div className="grid gap-1.5">
               <Label>Etapa Formativa <span className="text-destructive">*</span></Label>
               <Select
@@ -340,17 +376,50 @@ export default function MoradasClient() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>Início da Vigência</Label>
+                <Input
+                  type="date"
+                  value={form.vigenciaInicio}
+                  onChange={(e) => set("vigenciaInicio")(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Término da Vigência</Label>
+                <Input
+                  type="date"
+                  value={form.vigenciaFim}
+                  onChange={(e) => set("vigenciaFim")(e.target.value)}
+                />
+              </div>
+            </div>
+
             <div className="grid gap-1.5">
-              <Label>Formador Responsável <span className="text-destructive">*</span></Label>
-              <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)} items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}>
-                <SelectTrigger><SelectValue placeholder="Selecione o formador..." /></SelectTrigger>
+              <Label>Formador Responsável</Label>
+              <Select
+                value={form.formadorId}
+                onValueChange={(v) => set("formadorId")(v ?? "")}
+                items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o formador (opcional)..." />
+                </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
                   {formadores.map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!form.formadorId && !editing && (
+                <p className="text-xs text-amber-600">
+                  Sem formador, a morada será criada como inativa.
+                </p>
+              )}
             </div>
+
             <div className="grid gap-1.5">
               <Label>Plano Formativo</Label>
               <Select
@@ -370,14 +439,19 @@ export default function MoradasClient() {
                       p.nivelFormativo === form.nivelFormativo
                     )
                     .map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                  ))}
+                      <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
+
             <div className="grid gap-1.5">
               <Label>Grade Formativa</Label>
-              <Select value={form.gradeId} onValueChange={(v) => v && set("gradeId")(v)} items={Object.fromEntries(availableGrades.map((g) => [g.id, `${g.nome} v${g.versao}`]))}>
+              <Select
+                value={form.gradeId}
+                onValueChange={(v) => v && set("gradeId")(v)}
+                items={Object.fromEntries(availableGrades.map((g) => [g.id, `${g.nome} v${g.versao}`]))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a grade..." />
                 </SelectTrigger>
@@ -402,6 +476,7 @@ export default function MoradasClient() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
