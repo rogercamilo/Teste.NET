@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   mockAgendamentos,
 } from "@/lib/mock-data";
-import { usePresencas, useComentarios, db } from "@/lib/data-store";
+import { usePresencas, useComentarios, useFormandos, useComunidade, db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -12,7 +12,11 @@ import {
   STATUS_FORMACAO_LABELS,
   TIPO_COMENTARIO_CORES,
   TIPO_COMENTARIO_LABELS,
+  totalRequerido,
   type Morada,
+  type Formando,
+  type Modalidade,
+  type ProgressoEtapa,
   type PresencaFormacao,
   type ComentarioFormando,
   type TipoComentario,
@@ -41,6 +45,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ArrowLeft,
   BookOpen,
   CheckCircle2,
@@ -49,14 +60,18 @@ import {
   Mail,
   MapPin,
   MessageSquare,
+  MoreHorizontal,
   Pencil,
+  Plus,
   Save,
+  Search,
+  Trash2,
   Users,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -81,13 +96,42 @@ const STATUS_FORMACAO_COLORS: Record<string, string> = {
   reagendada: "bg-amber-100 text-amber-700 border-amber-200",
 };
 
+const ESTADO_CIVIL_LABELS = {
+  solteiro: "Solteiro(a)",
+  casado: "Casado(a)",
+  divorciado: "Divorciado(a)",
+  viuvo: "Viúvo(a)",
+};
+
+type FormandoFormState = {
+  nome: string;
+  dataNascimento: string;
+  estadoCivil: "solteiro" | "casado" | "divorciado" | "viuvo";
+  modalidade: Modalidade;
+  dataIngresso: string;
+  telefone: string;
+  email: string;
+};
+
+const EMPTY_FORMANDO_FORM: FormandoFormState = {
+  nome: "",
+  dataNascimento: "",
+  estadoCivil: "solteiro",
+  modalidade: "presencial",
+  dataIngresso: new Date().toISOString().split("T")[0],
+  telefone: "",
+  email: "",
+};
+
 export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps) {
   const isAdmin = userRole === "administrador";
 
   const [morada, setMorada] = useState<Morada | undefined>(() =>
     db.moradas.load().find((m) => m.id === id)
   );
-  const [allFormandos] = useState(() => db.formandos.load());
+  const [allFormandos, setAllFormandos] = useFormandos();
+  const [comunidade] = useComunidade();
+  const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const [allPlanos] = useState(() => db.planos.load());
   const [allGrades] = useState(() => db.grades.load());
 
@@ -102,6 +146,14 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [novoFormandoId, setNovoFormandoId] = useState("");
   const [novoTipo, setNovoTipo] = useState<TipoComentario>("observacao");
   const [novoTexto, setNovoTexto] = useState("");
+
+  // Formandos tab CRUD state
+  const [formSearch, setFormSearch] = useState("");
+  const [formNivelFilter, setFormNivelFilter] = useState("todos");
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [deleteFormandoOpen, setDeleteFormandoOpen] = useState(false);
+  const [editingFormando, setEditingFormando] = useState<Formando | null>(null);
+  const [formandoForm, setFormandoForm] = useState<FormandoFormState>(EMPTY_FORMANDO_FORM);
 
   if (!morada) {
     return (
@@ -129,6 +181,15 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   );
 
   const agendamento = agendamentosDaMorada.find((a) => a.id === agendamentoId);
+
+  const filteredFormandos = formandosDaMorada.filter((f) => {
+    const matchSearch =
+      !formSearch ||
+      f.nome.toLowerCase().includes(formSearch.toLowerCase()) ||
+      f.email.toLowerCase().includes(formSearch.toLowerCase());
+    const matchNivel = formNivelFilter === "todos" || f.nivelFormativo === formNivelFilter;
+    return matchSearch && matchNivel;
+  });
 
   function getPresenca(formandoId: string): boolean {
     return (
@@ -221,6 +282,87 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     toast.success("Comentário registrado com sucesso!");
   }
 
+  function openCreateFormando() {
+    setEditingFormando(null);
+    setFormandoForm(EMPTY_FORMANDO_FORM);
+    setFormDialogOpen(true);
+  }
+
+  function openEditFormando(f: Formando, e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    setEditingFormando(f);
+    setFormandoForm({
+      nome: f.nome,
+      dataNascimento: f.dataNascimento,
+      estadoCivil: f.estadoCivil,
+      modalidade: f.modalidade,
+      dataIngresso: f.dataIngresso,
+      telefone: f.telefone,
+      email: f.email,
+    });
+    setFormDialogOpen(true);
+  }
+
+  function openDeleteFormandoDialog(f: Formando, e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    setEditingFormando(f);
+    setDeleteFormandoOpen(true);
+  }
+
+  function handleSaveFormando() {
+    if (!formandoForm.nome.trim()) return toast.error("Nome é obrigatório.");
+    if (!formandoForm.email.trim()) return toast.error("E-mail é obrigatório.");
+    if (!formandoForm.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
+    if (!formandoForm.dataIngresso) return toast.error("Data de ingresso é obrigatória.");
+
+    const nivelFormativo = morada.nivelFormativo;
+    const progressoEtapas: ProgressoEtapa[] = editingFormando?.progressoEtapas ?? [
+      {
+        nivel: nivelFormativo,
+        formacoesComunitariasRealizadas: 0,
+        retirosComunitariosRealizados: 0,
+        retirosPessoaisRealizados: 0,
+        iniciouEm: formandoForm.dataIngresso,
+      },
+    ];
+
+    const payload: Formando = {
+      id: editingFormando?.id ?? `f${Date.now()}`,
+      nome: formandoForm.nome.trim(),
+      dataNascimento: formandoForm.dataNascimento,
+      estadoCivil: formandoForm.estadoCivil,
+      modalidade: formandoForm.modalidade,
+      nivelFormativo,
+      dataIngresso: formandoForm.dataIngresso,
+      telefone: formandoForm.telefone.trim(),
+      email: formandoForm.email.trim(),
+      ativo: editingFormando?.ativo ?? true,
+      moradaId: morada.id,
+      totalFormacoes: editingFormando?.totalFormacoes ?? totalRequerido(nivelFormativo),
+      formacoesRealizadas: editingFormando?.formacoesRealizadas ?? 0,
+      progressoEtapas,
+    };
+
+    if (editingFormando) {
+      setAllFormandos((prev) => prev.map((f) => (f.id === editingFormando.id ? payload : f)));
+      toast.success(`${termoFormando} atualizado com sucesso!`);
+    } else {
+      setAllFormandos((prev) => [...prev, payload]);
+      toast.success(`${termoFormando} criado com sucesso!`);
+    }
+    setFormDialogOpen(false);
+  }
+
+  function handleDeleteFormando() {
+    if (!editingFormando) return;
+    setAllFormandos((prev) => prev.filter((f) => f.id !== editingFormando.id));
+    setDeleteFormandoOpen(false);
+    setEditingFormando(null);
+    toast.success(`${termoFormando} excluído.`);
+  }
+
   const presentes = formandosDaMorada.filter((f) => getPresenca(f.id)).length;
   const ausentes = formandosDaMorada.length - presentes;
 
@@ -272,7 +414,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{formandosDaMorada.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Formandos</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{termoFormando}s</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
@@ -297,7 +439,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           </TabsTrigger>
           <TabsTrigger value="formandos" className="text-xs h-7 gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            Formandos
+            {termoFormando}s
           </TabsTrigger>
           <TabsTrigger value="presenca" className="text-xs h-7 gap-1.5">
             <ClipboardList className="h-3.5 w-3.5" />
@@ -423,57 +565,124 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         </TabsContent>
 
         {/* TAB FORMANDOS */}
-        <TabsContent value="formandos" className="mt-4">
-          {formandosDaMorada.length === 0 ? (
+        <TabsContent value="formandos" className="mt-4 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder={`Buscar ${termoFormando.toLowerCase()}...`}
+                value={formSearch}
+                onChange={(e) => setFormSearch(e.target.value)}
+                className="pl-8 h-9 text-sm"
+              />
+            </div>
+            <Select
+              value={formNivelFilter}
+              onValueChange={(v) => setFormNivelFilter(v ?? "todos")}
+              items={{ todos: "Todos os níveis", ...NIVEL_FORMATIVO_LABELS }}
+            >
+              <SelectTrigger className="h-9 w-full sm:w-48 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os níveis</SelectItem>
+                <SelectItem value="pre-discipulado">Pré-Discipulado</SelectItem>
+                <SelectItem value="discipulado">Discipulado</SelectItem>
+                <SelectItem value="primeiras-promessas">Primeiras Promessas</SelectItem>
+                <SelectItem value="formacao-permanente">Formação Permanente</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" onClick={openCreateFormando} className="shrink-0 gap-1.5">
+              <Plus className="h-4 w-4" />
+              Novo {termoFormando}
+            </Button>
+          </div>
+
+          {filteredFormandos.length === 0 ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <Users className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">Nenhum formando nesta morada</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {formandosDaMorada.length === 0
+                    ? `Nenhum ${termoFormando.toLowerCase()} nesta morada`
+                    : "Nenhum resultado encontrado"}
+                </p>
+                {formandosDaMorada.length === 0 && (
+                  <Button size="sm" variant="outline" onClick={openCreateFormando} className="mt-3 gap-1.5">
+                    <Plus className="h-3.5 w-3.5" />
+                    Adicionar {termoFormando}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
-              {formandosDaMorada.map((formando) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredFormandos.map((formando) => {
                 const progresso = Math.round((formando.formacoesRealizadas / formando.totalFormacoes) * 100);
                 const { total, presentes: pres, pct } = calcPresencaFormando(formando.id);
                 const initials = formando.nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+                const idade = differenceInYears(new Date(), parseISO(formando.dataNascimento));
 
                 return (
-                  <Card key={formando.id} className="border-0 shadow-sm">
+                  <Card key={formando.id} className="border-0 shadow-sm hover:shadow-md transition-all group">
                     <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-3 mb-3">
                         <Avatar className="h-10 w-10 shrink-0">
                           <AvatarFallback className={`text-sm font-semibold ${NIVEL_CORES[formando.nivelFormativo]}`}>
                             {initials}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-start justify-between gap-2">
                             <Link
                               href={`/formandos/${formando.id}`}
-                              className="text-sm font-semibold hover:text-primary transition-colors"
+                              className="text-sm font-semibold hover:text-primary transition-colors truncate"
                             >
                               {formando.nome}
                             </Link>
-                            <Badge
-                              variant="outline"
-                              className={`text-xs shrink-0 ${formando.ativo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500"}`}
-                            >
-                              {formando.ativo ? "Ativo" : "Inativo"}
-                            </Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted shrink-0">
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => openEditFormando(formando, e)}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem variant="destructive" onClick={(e) => openDeleteFormandoDialog(formando, e)}>
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {MODALIDADE_LABELS[formando.modalidade]}
-                            {total > 0 && ` · ${pres}/${total} presenças (${pct}%)`}
+                            {idade} anos · {MODALIDADE_LABELS[formando.modalidade]}
+                            {total > 0 && ` · ${pres}/${total} presenças`}
                           </p>
-                          <div className="mt-2 space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-muted-foreground">Progresso formativo</span>
-                              <span className="font-medium">{formando.formacoesRealizadas}/{formando.totalFormacoes}</span>
-                            </div>
-                            <Progress value={progresso} className="h-1.5" />
-                          </div>
                         </div>
+                      </div>
+                      <Badge variant="outline" className={`text-xs mb-3 ${NIVEL_CORES[formando.nivelFormativo]}`}>
+                        {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+                      </Badge>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Progresso</span>
+                          <span className="font-medium">{formando.formacoesRealizadas}/{formando.totalFormacoes}</span>
+                        </div>
+                        <Progress value={progresso} className="h-1.5" />
+                      </div>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
+                        <span className="text-xs text-muted-foreground">
+                          Desde {format(parseISO(formando.dataIngresso), "MMM yyyy", { locale: ptBR })}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${formando.ativo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500"}`}
+                        >
+                          {formando.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
                       </div>
                     </CardContent>
                   </Card>
@@ -488,7 +697,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           {formandosDaMorada.length > 0 && realizadas.length > 0 && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Adesão por Formando</CardTitle>
+                <CardTitle className="text-sm font-semibold">Adesão por {termoFormando}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -675,7 +884,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         </TabsContent>
       </Tabs>
 
-      {/* Edit Dialog */}
+      {/* Edit Morada Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -712,10 +921,10 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Formando</Label>
+              <Label>{termoFormando}</Label>
               <Select value={novoFormandoId} onValueChange={(v) => setNovoFormandoId(v ?? "")} items={Object.fromEntries(formandosDaMorada.filter((f) => f.ativo).map((f) => [f.id, f.nome]))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o formando..." />
+                  <SelectValue placeholder={`Selecione o ${termoFormando.toLowerCase()}...`} />
                 </SelectTrigger>
                 <SelectContent>
                   {formandosDaMorada.filter((f) => f.ativo).map((f) => (
@@ -750,6 +959,124 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             <Button onClick={handleSalvarComentario} disabled={!novoFormandoId || !novoTexto.trim()}>
               Salvar
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Formando Dialog */}
+      <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingFormando ? `Editar ${termoFormando}` : `Novo ${termoFormando}`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-1.5">
+              <Label>Nome completo <span className="text-destructive">*</span></Label>
+              <Input
+                value={formandoForm.nome}
+                onChange={(e) => setFormandoForm((p) => ({ ...p, nome: e.target.value }))}
+                placeholder="Nome Sobrenome"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>Data de nascimento <span className="text-destructive">*</span></Label>
+                <Input
+                  type="date"
+                  value={formandoForm.dataNascimento}
+                  onChange={(e) => setFormandoForm((p) => ({ ...p, dataNascimento: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Estado civil</Label>
+                <Select
+                  value={formandoForm.estadoCivil}
+                  onValueChange={(v) => v && setFormandoForm((p) => ({ ...p, estadoCivil: v as typeof p.estadoCivil }))}
+                  items={ESTADO_CIVIL_LABELS}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ESTADO_CIVIL_LABELS).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>E-mail <span className="text-destructive">*</span></Label>
+                <Input
+                  type="email"
+                  value={formandoForm.email}
+                  onChange={(e) => setFormandoForm((p) => ({ ...p, email: e.target.value }))}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Telefone</Label>
+                <Input
+                  value={formandoForm.telefone}
+                  onChange={(e) => setFormandoForm((p) => ({ ...p, telefone: e.target.value }))}
+                  placeholder="(85) 99999-0000"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>Modalidade</Label>
+                <Select
+                  value={formandoForm.modalidade}
+                  onValueChange={(v) => v && setFormandoForm((p) => ({ ...p, modalidade: v as Modalidade }))}
+                  items={MODALIDADE_LABELS}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="presencial">Presencial</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                    <SelectItem value="hibrida">Híbrida</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Data de ingresso <span className="text-destructive">*</span></Label>
+                <Input
+                  type="date"
+                  value={formandoForm.dataIngresso}
+                  onChange={(e) => setFormandoForm((p) => ({ ...p, dataIngresso: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Etapa Formativa</Label>
+              <Input value={NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]} disabled className="bg-muted/50" />
+              <p className="text-xs text-muted-foreground">Definida automaticamente pela morada.</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setFormDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveFormando}>
+              {editingFormando ? "Salvar alterações" : `Criar ${termoFormando.toLowerCase()}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Formando Dialog */}
+      <Dialog open={deleteFormandoOpen} onOpenChange={setDeleteFormandoOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir {termoFormando.toLowerCase()}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Tem certeza que deseja excluir{" "}
+            <span className="font-medium text-foreground">{editingFormando?.nome}</span>? Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteFormandoOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteFormando}>Excluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

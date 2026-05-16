@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useFormandos, useComunidade, db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
@@ -113,7 +114,7 @@ export default function FormandosPage() {
   const userMoradaId = (session?.user as { moradaId?: string | null })?.moradaId ?? null;
   const isFC = userRole === "formador_comunitario";
   const canEdit = !isFC || true; // FC pode criar formandos na sua morada
-
+  const router = useRouter();
   const [formandos, setFormandos] = useFormandos();
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
@@ -125,6 +126,14 @@ export default function FormandosPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editing, setEditing] = useState<Formando | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+
+  useEffect(() => {
+    if (isFC && userMoradaId) {
+      router.replace(`/moradas/${userMoradaId}`);
+    }
+  }, [isFC, userMoradaId, router]);
+
+  if (isFC && userMoradaId) return null;
 
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));

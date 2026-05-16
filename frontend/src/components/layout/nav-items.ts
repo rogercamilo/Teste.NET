@@ -74,7 +74,6 @@ export const navGroupsFormador: NavGroup[] = [
   {
     label: "Minha Morada",
     items: [
-      { title: "Formandos", href: "/formandos", icon: Users },
       { title: "Gestão de Presença", href: "/presenca", icon: ClipboardList },
     ],
   },
