@@ -1,8 +1,26 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { listUsers, createUser, findByEmail, toPublic } from "@/lib/users-store";
 import { sendWelcomeEmail } from "@/lib/email";
+import { logAction, getClientIp } from "@/lib/audit-log";
 
-export async function GET() {
+type SessionUser = { id?: string; role?: string };
+
+function isAdminOrAbove(role: string | undefined): boolean {
+  return role === "administrador" || role === "formador_geral";
+}
+
+export async function GET(request: Request) {
+  const session = await auth();
+  const user = session?.user as SessionUser | undefined;
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+  if (!isAdminOrAbove(user.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
   try {
     return NextResponse.json(listUsers().map(toPublic));
   } catch {
@@ -11,6 +29,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const session = await auth();
+  const actor = session?.user as SessionUser | undefined;
+
+  if (!actor) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+  if (!isAdminOrAbove(actor.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
   try {
     const body = await request.json() as {
       nome?: string;
@@ -32,11 +60,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });
     }
 
+    // Impede criação de formador_geral via API — apenas super admin pode elevar a este nível
+    const perfilSanitizado =
+      perfil === "formador_geral" ? "administrador" : (perfil ?? "formador_comunitario");
+
     const { user, tempPassword } = createUser({
       nome,
       email,
       password: password || undefined,
-      perfil: (perfil as "administrador" | "formador_comunitario") ?? "formador_comunitario",
+      perfil: perfilSanitizado as "administrador" | "formador_comunitario",
       moradaId,
       ativo: ativo ?? true,
     });
@@ -46,6 +78,8 @@ export async function POST(request: Request) {
       const result = await sendWelcomeEmail({ nome, email, tempPassword });
       emailSent = result.sent;
     }
+
+    logAction("user_created", actor.id, getClientIp(request), { targetEmail: email, perfil: perfilSanitizado });
 
     return NextResponse.json({ ...toPublic(user), tempPassword, emailSent }, { status: 201 });
   } catch {

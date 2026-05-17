@@ -1,8 +1,35 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { loadSmtpConfig, isSmtpReady } from "@/lib/smtp-config";
+import { logAction, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import nodemailer from "nodemailer";
 
+type SessionUser = { id?: string; role?: string };
+
+function isAdminOrAbove(role: string | undefined): boolean {
+  return role === "administrador" || role === "formador_geral";
+}
+
 export async function POST(request: Request) {
+  const session = await auth();
+  const user = session?.user as SessionUser | undefined;
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+  if (!isAdminOrAbove(user.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
+  const rl = limiters.smtpTest(user.id ?? "unknown");
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Muitas tentativas. Aguarde antes de testar novamente." },
+      { status: 429 }
+    );
+  }
+
   try {
     const { testEmail } = await request.json() as { testEmail?: string };
     const config = loadSmtpConfig();
@@ -42,6 +69,7 @@ export async function POST(request: Request) {
       `,
     });
 
+    logAction("email_test_sent", user.id, getClientIp(request), { to });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

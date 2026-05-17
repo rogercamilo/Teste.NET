@@ -1,14 +1,41 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { loadEmailTemplate, saveEmailTemplate, DEFAULT_EMAIL_TEMPLATE } from "@/lib/email-template";
+import { logAction, getClientIp } from "@/lib/audit-log";
 
-export async function GET() {
-  const template = loadEmailTemplate();
-  return NextResponse.json(template);
+type SessionUser = { id?: string; role?: string };
+
+function isAdminOrAbove(role: string | undefined): boolean {
+  return role === "administrador" || role === "formador_geral";
 }
 
-export async function PUT(req: Request) {
+export async function GET(request: Request) {
+  const session = await auth();
+  const user = session?.user as SessionUser | undefined;
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+  if (!isAdminOrAbove(user.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
+  return NextResponse.json(loadEmailTemplate());
+}
+
+export async function PUT(request: Request) {
+  const session = await auth();
+  const user = session?.user as SessionUser | undefined;
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+  if (!isAdminOrAbove(user.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
   try {
-    const body = await req.json() as Record<string, unknown>;
+    const body = await request.json() as Record<string, unknown>;
     const current = loadEmailTemplate();
     const updated = {
       assunto: typeof body.assunto === "string" ? body.assunto : current.assunto,
@@ -21,13 +48,25 @@ export async function PUT(req: Request) {
       rodape: typeof body.rodape === "string" ? body.rodape : current.rodape,
     };
     saveEmailTemplate(updated);
+    logAction("email_template_changed", user.id, getClientIp(request));
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const session = await auth();
+  const user = session?.user as SessionUser | undefined;
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+  if (!isAdminOrAbove(user.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
   saveEmailTemplate({ ...DEFAULT_EMAIL_TEMPLATE, passos: [...DEFAULT_EMAIL_TEMPLATE.passos] });
+  logAction("email_template_changed", user.id, getClientIp(request), { action: "reset" });
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,8 @@
 /**
  * Server-side user store backed by a JSON file at <project>/data/users-auth.json.
- * Created automatically on first access, seeded with the three default users.
+ * Created automatically on first access with a single admin account.
+ * Set SEED_ADMIN_PASSWORD env var before first boot; otherwise a random strong
+ * password is generated and printed to stdout once.
  * NEVER import this module in client components — it uses Node.js 'fs'.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
@@ -25,9 +27,22 @@ const DATA_DIR = join(process.cwd(), "data");
 const FILE = join(DATA_DIR, "users-auth.json");
 
 export function generateRandomPassword(): string {
-  const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = randomBytes(12);
-  return Array.from(bytes).map((b) => chars[b % chars.length]).join("");
+  const lower = "abcdefghijkmnpqrstuvwxyz";
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const digits = "23456789";
+  const special = "@#$!%*?&";
+  const all = lower + upper + digits + special;
+
+  const pick = (charset: string) => charset[randomBytes(1)[0] % charset.length];
+  const required = [pick(lower), pick(upper), pick(digits), pick(special)];
+  const rest = Array.from(randomBytes(8), (b) => all[b % all.length]);
+
+  const arr = [...required, ...rest];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = randomBytes(1)[0] % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.join("");
 }
 
 export function hashPassword(password: string): string {
@@ -49,38 +64,21 @@ export function verifyPassword(password: string, stored: string): boolean {
 function ensureFile(): UserAuth[] {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
   if (!existsSync(FILE)) {
+    const seedPassword = process.env.SEED_ADMIN_PASSWORD ?? generateRandomPassword();
+    if (!process.env.SEED_ADMIN_PASSWORD) {
+      // Log only on first boot so the operator can set the initial password.
+      console.warn(`[SEED] Admin password gerada automaticamente: ${seedPassword}`);
+    }
     const initial: UserAuth[] = [
       {
         id: "u1",
         nome: "Roger",
         email: "rogercmdb@gmail.com",
-        passwordHash: hashPassword("senha123"),
+        passwordHash: hashPassword(seedPassword),
         perfil: "administrador",
         ativo: true,
-        criadoEm: "2024-01-10",
-        primeiroAcesso: false,
-      },
-      {
-        id: "u2",
-        nome: "Carlos Mendes",
-        email: "carlos.mendes@dombosco.org",
-        passwordHash: hashPassword("senha123"),
-        perfil: "formador_comunitario",
-        moradaId: "m1",
-        ativo: true,
-        criadoEm: "2024-02-15",
-        primeiroAcesso: false,
-      },
-      {
-        id: "u3",
-        nome: "Maria Silva",
-        email: "maria.silva@dombosco.org",
-        passwordHash: hashPassword("senha123"),
-        perfil: "formador_comunitario",
-        moradaId: "m2",
-        ativo: true,
-        criadoEm: "2024-03-01",
-        primeiroAcesso: false,
+        criadoEm: new Date().toISOString().split("T")[0],
+        primeiroAcesso: true,
       },
     ];
     writeFileSync(FILE, JSON.stringify(initial, null, 2), "utf-8");

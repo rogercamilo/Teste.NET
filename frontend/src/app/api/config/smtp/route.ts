@@ -1,7 +1,25 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { loadSmtpConfig, saveSmtpConfig, isSmtpReady } from "@/lib/smtp-config";
+import { logAction, getClientIp } from "@/lib/audit-log";
 
-export async function GET() {
+type SessionUser = { id?: string; role?: string };
+
+function isAdminOrAbove(role: string | undefined): boolean {
+  return role === "administrador" || role === "formador_geral";
+}
+
+export async function GET(request: Request) {
+  const session = await auth();
+  const user = session?.user as SessionUser | undefined;
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+  if (!isAdminOrAbove(user.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
   try {
     const config = loadSmtpConfig();
     return NextResponse.json({
@@ -19,6 +37,16 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const session = await auth();
+  const user = session?.user as SessionUser | undefined;
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+  if (!isAdminOrAbove(user.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
   try {
     const body = await request.json() as {
       host?: string;
@@ -34,11 +62,12 @@ export async function PUT(request: Request) {
       port: Number(body.port ?? current.port),
       secure: Boolean(body.secure ?? current.secure),
       user: body.user ?? current.user,
-      // "***" is the sentinel meaning "keep existing password"
       pass: body.pass === "***" ? current.pass : (body.pass ?? current.pass),
       from: body.from ?? current.from,
     };
     saveSmtpConfig(updated);
+
+    logAction("smtp_config_changed", user.id, getClientIp(request));
     return NextResponse.json({ ok: true, configured: isSmtpReady(updated) });
   } catch {
     return NextResponse.json({ error: "Falha ao salvar configuração SMTP" }, { status: 500 });

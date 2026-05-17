@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
 import { authenticate, findByEmail, findById } from "@/lib/users-store";
+import { authConfig } from "@/auth.config";
 
 const providers: NextAuthConfig["providers"] = [
   Credentials({
@@ -47,16 +48,10 @@ if (
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers,
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  session: {
-    strategy: "jwt",
-    maxAge: 8 * 60 * 60,
-  },
   callbacks: {
+    ...authConfig.callbacks,
     async jwt({ token, user, account }) {
       if (user) {
         if (account?.provider === "google") {
@@ -80,7 +75,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             (user as { primeiroAcesso?: boolean }).primeiroAcesso ?? false;
         }
       } else if (token.id) {
-        // Re-lê primeiroAcesso da DB a cada validação do token
         const dbUser = findById(token.id as string);
         if (dbUser) token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
       }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { findById, verifyPassword, updateUser } from "@/lib/users-store";
+import { passwordErrorMessage } from "@/lib/password-validation";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -14,11 +15,9 @@ export async function POST(request: Request) {
   };
   const { currentPassword, newPassword } = body;
 
-  if (!newPassword || newPassword.length < 6) {
-    return NextResponse.json(
-      { error: "Nova senha deve ter ao menos 6 caracteres" },
-      { status: 400 }
-    );
+  const pwdError = !newPassword ? "Nova senha é obrigatória" : passwordErrorMessage(newPassword);
+  if (pwdError) {
+    return NextResponse.json({ error: pwdError }, { status: 400 });
   }
 
   const userId = (session.user as { id: string }).id;

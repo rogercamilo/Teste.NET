@@ -1,10 +1,27 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { buildEmailHtml, loadEmailTemplate } from "@/lib/email-template";
 import type { EmailTemplate, TemplateVars } from "@/lib/email-template";
 
-export async function POST(req: Request) {
+type SessionUser = { id?: string; role?: string };
+
+function isAdminOrAbove(role: string | undefined): boolean {
+  return role === "administrador" || role === "formador_geral";
+}
+
+export async function POST(request: Request) {
+  const session = await auth();
+  const user = session?.user as SessionUser | undefined;
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+  if (!isAdminOrAbove(user.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
   try {
-    const body = await req.json() as { template?: Partial<EmailTemplate> };
+    const body = await request.json() as { template?: Partial<EmailTemplate> };
     const base = loadEmailTemplate();
     const template: EmailTemplate = body.template
       ? {

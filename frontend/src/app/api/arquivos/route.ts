@@ -1,5 +1,7 @@
 import { auth } from "@/auth";
 import { saveArquivo } from "@/lib/arquivos-store";
+import { logAction, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import { type NextRequest } from "next/server";
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -19,6 +21,14 @@ export async function POST(request: NextRequest) {
   }
 
   const user = session.user as SessionUser;
+
+  const rl = limiters.upload(user.id ?? "unknown");
+  if (!rl.allowed) {
+    return Response.json(
+      { error: "Limite de uploads atingido. Tente novamente mais tarde." },
+      { status: 429 }
+    );
+  }
 
   let formData: FormData;
   try {
@@ -53,6 +63,7 @@ export async function POST(request: NextRequest) {
     {
       entityType,
       entityId,
+      // Armazena nome original apenas para exibição; o arquivo no disco usa o ID gerado.
       nome: file.name,
       tamanho: file.size,
       tipo: file.type,
@@ -61,6 +72,13 @@ export async function POST(request: NextRequest) {
     },
     buffer
   );
+
+  logAction("file_uploaded", user.id, getClientIp(request), {
+    arquivoId: meta.id,
+    entityType,
+    entityId,
+    tamanho: file.size,
+  });
 
   return Response.json(
     { id: meta.id, nome: meta.nome, tamanho: meta.tamanho, tipo: meta.tipo, criadoEm: meta.criadoEm },
