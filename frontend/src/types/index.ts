@@ -229,10 +229,11 @@ export type NotaAdesao = "otima" | "boa" | "regular" | "insuficiente";
 export type TipoDesligamento = "voluntario" | "compulsorio";
 
 export interface DocumentoAnexo {
+  id: string;       // ID gerado pelo servidor
   nome: string;
   tamanho: number;
   tipo: string;
-  dados: string; // data URL base64
+  criadoEm: string;
 }
 
 export interface EventoFormando {

@@ -125,6 +125,8 @@ export default function FormandoDetailPage({
 
   const userId = (session?.user as { id?: string })?.id ?? "u0";
   const userName = session?.user?.name ?? "Formador";
+  const moradaIdUsuario =
+    (session?.user as { moradaId?: string | null })?.moradaId ?? undefined;
 
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const termoFormador = comunidade.termoFormador?.trim() || "Formador Comunitário";
@@ -218,24 +220,30 @@ export default function FormandoDetailPage({
     setter((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function filesToDocumentos(files: File[]): Promise<DocumentoAnexo[]> {
-    return Promise.all(
-      files.map(
-        (f) =>
-          new Promise<DocumentoAnexo>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () =>
-              resolve({
-                nome: f.name,
-                tamanho: f.size,
-                tipo: f.type,
-                dados: reader.result as string,
-              });
-            reader.onerror = reject;
-            reader.readAsDataURL(f);
-          })
-      )
-    );
+  async function uploadDocumentosParaServidor(
+    files: File[],
+    eventoId: string,
+    formandoId: string,
+    formandoNome: string,
+    tipoEvento: string
+  ): Promise<DocumentoAnexo[]> {
+    const results: DocumentoAnexo[] = [];
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("eventoId", eventoId);
+      fd.append("formandoId", formandoId);
+      fd.append("formandoNome", formandoNome);
+      fd.append("tipoEvento", tipoEvento);
+      if (moradaIdUsuario) fd.append("moradaId", moradaIdUsuario);
+      const res = await fetch("/api/documentos", { method: "POST", body: fd });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(`"${file.name}": ${msg}`);
+      }
+      results.push((await res.json()) as DocumentoAnexo);
+    }
+    return results;
   }
 
   const formando = allFormandos.find((f) => f.id === id);
@@ -439,9 +447,19 @@ export default function FormandoDetailPage({
 
   async function handleSaveSolicitacao() {
     if (!solicitacaoForm.motivo.trim()) return toast.error("O motivo é obrigatório.");
-    const documentos = await filesToDocumentos(solicitacaoFiles);
+    const eventoId = `ev${Date.now()}`;
+    let documentos: DocumentoAnexo[] = [];
+    if (solicitacaoFiles.length > 0) {
+      try {
+        documentos = await uploadDocumentosParaServidor(
+          solicitacaoFiles, eventoId, id, formando?.nome ?? "", "solicitacao-desligamento"
+        );
+      } catch (err) {
+        return toast.error(err instanceof Error ? err.message : "Erro ao enviar documentos.");
+      }
+    }
     const novo: EventoFormando = {
-      id: `ev${Date.now()}`,
+      id: eventoId,
       formandoId: id,
       formadorId: userId,
       tipo: "solicitacao-desligamento",
@@ -471,9 +489,19 @@ export default function FormandoDetailPage({
       desligamentoForm.tipoDesligamento === "voluntario"
         ? "desligamento-voluntario"
         : "desligamento-compulsorio";
-    const documentos = await filesToDocumentos(desligamentoFiles);
+    const eventoId = `ev${Date.now()}`;
+    let documentos: DocumentoAnexo[] = [];
+    if (desligamentoFiles.length > 0) {
+      try {
+        documentos = await uploadDocumentosParaServidor(
+          desligamentoFiles, eventoId, id, formando?.nome ?? "", "desligamento"
+        );
+      } catch (err) {
+        return toast.error(err instanceof Error ? err.message : "Erro ao enviar documentos.");
+      }
+    }
     const novo: EventoFormando = {
-      id: `ev${Date.now()}`,
+      id: eventoId,
       formandoId: id,
       formadorId: userId,
       tipo: "desligamento",
@@ -508,9 +536,19 @@ export default function FormandoDetailPage({
   async function handleSaveLicenca() {
     if (!licencaForm.motivo.trim()) return toast.error("O motivo é obrigatório.");
     if (!licencaForm.dataInicioLicenca) return toast.error("A data de início é obrigatória.");
-    const documentos = await filesToDocumentos(licencaFiles);
+    const eventoId = `ev${Date.now()}`;
+    let documentos: DocumentoAnexo[] = [];
+    if (licencaFiles.length > 0) {
+      try {
+        documentos = await uploadDocumentosParaServidor(
+          licencaFiles, eventoId, id, formando?.nome ?? "", "licenca"
+        );
+      } catch (err) {
+        return toast.error(err instanceof Error ? err.message : "Erro ao enviar documentos.");
+      }
+    }
     const novo: EventoFormando = {
-      id: `ev${Date.now()}`,
+      id: eventoId,
       formandoId: id,
       formadorId: userId,
       tipo: "licenca",
@@ -1866,7 +1904,7 @@ export default function FormandoDetailPage({
                           {ev.documentos.map((doc, i) => (
                             <a
                               key={i}
-                              href={doc.dados}
+                              href={`/api/documentos/${doc.id}`}
                               download={doc.nome}
                               className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-xs hover:bg-muted transition-colors"
                             >

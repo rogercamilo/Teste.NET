@@ -2,6 +2,7 @@ import {
   BookOpen,
   Calendar,
   ClipboardList,
+  FolderOpen,
   Home,
   LayoutDashboard,
   Library,
@@ -44,6 +45,7 @@ export const navGroupsGestao: NavGroup[] = [
     items: [
       { title: "Moradas", href: "/moradas", icon: Home },
       { title: "Formandos", href: "/formandos", icon: Users },
+      { title: "Documentos", href: "/documentos", icon: FolderOpen },
     ],
   },
   {

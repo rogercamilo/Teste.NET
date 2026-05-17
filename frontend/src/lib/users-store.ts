@@ -12,7 +12,7 @@ export interface UserAuth {
   nome: string;
   email: string;
   passwordHash?: string; // undefined for Google-only accounts
-  perfil: "administrador" | "formador_comunitario";
+  perfil: "administrador" | "formador_geral" | "formador_comunitario";
   moradaId?: string;
   ativo: boolean;
   criadoEm: string;
