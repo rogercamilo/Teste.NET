@@ -247,6 +247,7 @@ model GradeFormativa {
   id               String    @id @default(cuid())
   organizacaoId    String?
   isGlobal         Boolean   @default(false)
+  nome             String    @default("")
   planoId          String
   planoNome        String
   nivelFormativo   String    // NivelFormativo

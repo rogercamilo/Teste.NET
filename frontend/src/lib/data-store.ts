@@ -1,9 +1,14 @@
 /**
- * localStorage-based persistence layer.
- * All entity data survives page navigation and browser refresh.
- * Document binaries (PDFs) are stored in localStorage under the key `doc_<id>`.
+ * API-backed persistence layer.
+ * Hooks load from the REST API on mount and sync writes back via CRUD endpoints.
+ * The `db` object provides a synchronous in-memory cache for non-reactive reads
+ * (e.g. `db.moradas.load()` in useState initialisers); it is populated when hooks load.
+ *
+ * Backward compatibility: the `[data, setter]` hook interface is preserved.
+ * The setter applies an optimistic update immediately, then syncs to the API in the
+ * background and refreshes state from the server response.
  */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type {
   Agendamento,
   EventoFormando,
@@ -32,19 +37,17 @@ import {
   mockUsuarios,
 } from "./mock-data";
 
-const DEFAULT_COMUNIDADE: ComunidadeConfig = {
-  nome: "Comunidade Missionária Dom Bosco",
-  descricao: "Comunidade de vida consagrada dedicada à formação cristã integral.",
-  endereco: "Fortaleza, Ceará — Brasil",
-  missao: "Evangelizar e formar discípulos de Cristo segundo o espírito salesiano de Dom Bosco.",
-  anoFundacao: "2000",
-};
+// ---------------------------------------------------------------------------
+// In-memory cache — shared between hooks and db object
+// ---------------------------------------------------------------------------
+const mem: Record<string, unknown[]> = {};
 
-// Bump this version whenever the entity schema changes to force a fresh load from mock data.
+// ---------------------------------------------------------------------------
+// Legacy localStorage helpers (kept for cache warm-up on first render)
+// ---------------------------------------------------------------------------
 const SCHEMA_VERSION = "8";
 const VERSION_KEY = "appForm:_version";
-
-const KEY = (entity: string) => `appForm:${entity}`;
+const KEY = (e: string) => `appForm:${e}`;
 
 function ensureFreshSchema() {
   if (typeof window === "undefined") return;
@@ -56,159 +59,246 @@ function ensureFreshSchema() {
   }
 }
 
-function read<T>(entity: string, fallback: T[]): T[] {
+function lsRead<T>(entity: string, fallback: T[]): T[] {
   if (typeof window === "undefined") return fallback;
   ensureFreshSchema();
   try {
     const raw = localStorage.getItem(KEY(entity));
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T[];
-  } catch {
-    return fallback;
-  }
+    return raw ? (JSON.parse(raw) as T[]) : fallback;
+  } catch { return fallback; }
 }
 
-function write<T>(entity: string, data: T[]): void {
+function lsWrite<T>(entity: string, data: T[]): void {
   if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(KEY(entity), JSON.stringify(data));
-  } catch {
-    // quota exceeded — silently skip
-  }
+  try { localStorage.setItem(KEY(entity), JSON.stringify(data)); } catch { /* quota */ }
 }
 
-// Direct access (for non-reactive reads, e.g. initialising derived data)
-export const db = {
-  agendamentos: {
-    load: (): Agendamento[] => read("agendamentos", mockAgendamentos),
-    save: (d: Agendamento[]) => write("agendamentos", d),
-  },
-  formacoes: {
-    load: (): Formacao[] => read("formacoes", mockFormacoes),
-    save: (d: Formacao[]) => write("formacoes", d),
-  },
-  planos: {
-    load: (): PlanoFormativo[] => read("planos", mockPlanos),
-    save: (d: PlanoFormativo[]) => write("planos", d),
-  },
-  grades: {
-    load: (): GradeFormativa[] => read("grades", mockGrades),
-    save: (d: GradeFormativa[]) => write("grades", d),
-  },
-  moradas: {
-    load: (): Morada[] => read("moradas", mockMoradas),
-    save: (d: Morada[]) => write("moradas", d),
-  },
-  formandos: {
-    load: (): Formando[] => read("formandos", mockFormandos),
-    save: (d: Formando[]) => write("formandos", d),
-  },
-  historico: {
-    load: (): HistoricoFormando[] => read("historico", mockHistorico),
-    save: (d: HistoricoFormando[]) => write("historico", d),
-  },
-  comentarios: {
-    load: (): ComentarioFormando[] => read("comentarios", mockComentarios),
-    save: (d: ComentarioFormando[]) => write("comentarios", d),
-  },
-  presencas: {
-    load: (): PresencaFormacao[] => read("presencas", mockPresencas),
-    save: (d: PresencaFormacao[]) => write("presencas", d),
-  },
-  usuarios: {
-    load: (): Usuario[] => read("usuarios", mockUsuarios),
-    save: (d: Usuario[]) => write("usuarios", d),
-  },
-  eventosFormando: {
-    load: (): EventoFormando[] => read("eventosFormando", mockEventosFormando),
-    save: (d: EventoFormando[]) => write("eventosFormando", d),
-  },
-};
-
-function loadComunidade(): ComunidadeConfig {
-  if (typeof window === "undefined") return DEFAULT_COMUNIDADE;
-  ensureFreshSchema();
-  try {
-    const raw = localStorage.getItem("appForm:comunidade");
-    if (!raw) return DEFAULT_COMUNIDADE;
-    return { ...DEFAULT_COMUNIDADE, ...JSON.parse(raw) } as ComunidadeConfig;
-  } catch {
-    return DEFAULT_COMUNIDADE;
-  }
-}
-
-function saveComunidade(d: ComunidadeConfig): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem("appForm:comunidade", JSON.stringify(d));
-  } catch {
-    // quota exceeded — silently skip
-  }
-}
-
-type Setter<T> = (updater: T[] | ((prev: T[]) => T[])) => void;
-
-function makeSetter<T>(entity: keyof typeof db, setState: React.Dispatch<React.SetStateAction<T[]>>): Setter<T> {
-  return (updater) => {
-    setState((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      (db[entity] as { save: (d: T[]) => void }).save(next);
-      return next;
-    });
+// ---------------------------------------------------------------------------
+// db — synchronous interface (reads from mem cache, falls back to localStorage)
+// ---------------------------------------------------------------------------
+function makeDbEntity<T>(entity: string, fallback: T[]) {
+  return {
+    load: (): T[] => (mem[entity] as T[] | undefined) ?? lsRead(entity, fallback),
+    save: (d: T[]): void => { mem[entity] = d; lsWrite(entity, d); },
   };
 }
 
-function usePersistedEntity<T>(
-  entity: keyof typeof db,
-  mockFallback: T[]
-): [T[], Setter<T>] {
-  // Start with mock data so server and client initial renders match (no hydration mismatch).
-  // useEffect then replaces with the actual localStorage data after hydration.
-  const [s, ss] = useState<T[]>(mockFallback);
-  useEffect(() => {
-    ss((db[entity] as unknown as { load: () => T[] }).load());
-  }, [entity]);
-  return [s, makeSetter(entity, ss)];
+export const db = {
+  agendamentos: makeDbEntity<Agendamento>("agendamentos", mockAgendamentos),
+  formacoes: makeDbEntity<Formacao>("formacoes", mockFormacoes),
+  planos: makeDbEntity<PlanoFormativo>("planos", mockPlanos),
+  grades: makeDbEntity<GradeFormativa>("grades", mockGrades),
+  moradas: makeDbEntity<Morada>("moradas", mockMoradas),
+  formandos: makeDbEntity<Formando>("formandos", mockFormandos),
+  historico: makeDbEntity<HistoricoFormando>("historico", mockHistorico),
+  comentarios: makeDbEntity<ComentarioFormando>("comentarios", mockComentarios),
+  presencas: makeDbEntity<PresencaFormacao>("presencas", mockPresencas),
+  usuarios: makeDbEntity<Usuario>("usuarios", mockUsuarios),
+  eventosFormando: makeDbEntity<EventoFormando>("eventosFormando", mockEventosFormando),
+};
+
+// ---------------------------------------------------------------------------
+// API sync — detects creates / updates / deletes and calls the right endpoints
+// ---------------------------------------------------------------------------
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+async function syncToApi<T extends { id: string }>(
+  endpoint: string,
+  prev: T[],
+  next: T[],
+): Promise<T[] | null> {
+  const prevMap = new Map(prev.map((i) => [i.id, i]));
+  const nextMap = new Map(next.map((i) => [i.id, i]));
+
+  try {
+    // Deletes
+    for (const [id] of prevMap) {
+      if (!nextMap.has(id)) {
+        await fetch(`/api/${endpoint}/${id}`, { method: "DELETE" });
+      }
+    }
+    // Creates
+    for (const [, item] of nextMap) {
+      if (!prevMap.has(item.id)) {
+        await fetch(`/api/${endpoint}`, {
+          method: "POST",
+          headers: JSON_HEADERS,
+          body: JSON.stringify(item),
+        });
+      }
+    }
+    // Updates
+    for (const [id, item] of nextMap) {
+      if (prevMap.has(id)) {
+        const prev = prevMap.get(id)!;
+        if (JSON.stringify(prev) !== JSON.stringify(item)) {
+          await fetch(`/api/${endpoint}/${id}`, {
+            method: "PUT",
+            headers: JSON_HEADERS,
+            body: JSON.stringify(item),
+          });
+        }
+      }
+    }
+    // Refresh from server (canonicalises IDs)
+    const res = await fetch(`/api/${endpoint}`);
+    if (!res.ok) return null;
+    return (await res.json()) as T[];
+  } catch {
+    return null;
+  }
 }
 
+// ---------------------------------------------------------------------------
+// Generic API-backed hook
+// ---------------------------------------------------------------------------
+type Setter<T> = (updater: T[] | ((prev: T[]) => T[])) => void;
+
+function useApiEntity<T extends { id: string }>(
+  endpoint: string,
+  dbEntity: { load: () => T[]; save: (d: T[]) => void },
+): [T[], Setter<T>] {
+  const [items, setItems] = useState<T[]>(() => dbEntity.load());
+  const prevRef = useRef<T[]>(items);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/${endpoint}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: T[] | null) => {
+        if (!cancelled && data) {
+          setItems(data);
+          prevRef.current = data;
+          dbEntity.save(data);
+        }
+      })
+      .catch(() => {/* not authenticated yet or network error — keep cache */});
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint]);
+
+  const setter: Setter<T> = (updater) => {
+    const prev = prevRef.current;
+    const next = typeof updater === "function" ? updater(prev) : updater;
+
+    // Optimistic update
+    setItems(next);
+    prevRef.current = next;
+    dbEntity.save(next);
+
+    // Background API sync + server refresh
+    syncToApi(endpoint, prev, next)
+      .then((fresh) => {
+        if (fresh) {
+          setItems(fresh);
+          prevRef.current = fresh;
+          dbEntity.save(fresh);
+        }
+      })
+      .catch(() => {/* keep optimistic state */});
+  };
+
+  return [items, setter];
+}
+
+// ---------------------------------------------------------------------------
+// Exported hooks (same interface as before)
+// ---------------------------------------------------------------------------
 export function useAgendamentos(): [Agendamento[], Setter<Agendamento>] {
-  return usePersistedEntity("agendamentos", mockAgendamentos);
+  return useApiEntity("agendamentos", db.agendamentos);
 }
 export function useFormacoes(): [Formacao[], Setter<Formacao>] {
-  return usePersistedEntity("formacoes", mockFormacoes);
+  return useApiEntity("formacoes", db.formacoes);
 }
 export function usePlanos(): [PlanoFormativo[], Setter<PlanoFormativo>] {
-  return usePersistedEntity("planos", mockPlanos);
+  return useApiEntity("planos", db.planos);
 }
 export function useGrades(): [GradeFormativa[], Setter<GradeFormativa>] {
-  return usePersistedEntity("grades", mockGrades);
+  return useApiEntity("grades", db.grades);
 }
 export function useMoradas(): [Morada[], Setter<Morada>] {
-  return usePersistedEntity("moradas", mockMoradas);
+  return useApiEntity("moradas", db.moradas);
 }
 export function useFormandos(): [Formando[], Setter<Formando>] {
-  return usePersistedEntity("formandos", mockFormandos);
+  return useApiEntity("formandos", db.formandos);
 }
 export function useHistorico(): [HistoricoFormando[], Setter<HistoricoFormando>] {
-  return usePersistedEntity("historico", mockHistorico);
+  // Histórico (HistoricoFormando) não tem endpoint próprio ainda — mantém localStorage
+  const [s, ss] = useState<HistoricoFormando[]>(() => db.historico.load());
+  useEffect(() => { ss(db.historico.load()); }, []);
+  const setter: Setter<HistoricoFormando> = (updater) => {
+    ss((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      db.historico.save(next);
+      return next;
+    });
+  };
+  return [s, setter];
 }
 export function useComentarios(): [ComentarioFormando[], Setter<ComentarioFormando>] {
-  return usePersistedEntity("comentarios", mockComentarios);
+  return useApiEntity("comentarios", db.comentarios);
 }
 export function usePresencas(): [PresencaFormacao[], Setter<PresencaFormacao>] {
-  return usePersistedEntity("presencas", mockPresencas);
+  return useApiEntity("presencas", db.presencas);
 }
 export function useUsuarios(): [Usuario[], Setter<Usuario>] {
-  return usePersistedEntity("usuarios", mockUsuarios);
+  // Usuários são geridos via /api/users — mantém compatibilidade com hook local
+  const [s, ss] = useState<Usuario[]>(() => db.usuarios.load());
+  useEffect(() => {
+    fetch("/api/users")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: Usuario[] | null) => { if (data) { ss(data); db.usuarios.save(data); } })
+      .catch(() => {});
+  }, []);
+  const setter: Setter<Usuario> = (updater) => {
+    ss((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      db.usuarios.save(next);
+      return next;
+    });
+  };
+  return [s, setter];
 }
 export function useEventosFormando(): [EventoFormando[], Setter<EventoFormando>] {
-  return usePersistedEntity("eventosFormando", mockEventosFormando);
-}
-export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => void] {
-  const [s, ss] = useState<ComunidadeConfig>(() => loadComunidade());
-  return [s, (c) => { saveComunidade(c); ss(c); }];
+  return useApiEntity("eventos", db.eventosFormando);
 }
 
+// ---------------------------------------------------------------------------
+// ComunidadeConfig — backed by /api/organizacao
+// ---------------------------------------------------------------------------
+const DEFAULT_COMUNIDADE: ComunidadeConfig = {
+  nome: "Comunidade Missionária Dom Bosco",
+  descricao: "Comunidade de vida consagrada dedicada à formação cristã integral.",
+  endereco: "Fortaleza, Ceará — Brasil",
+  missao: "Evangelizar e formar discípulos de Cristo segundo o espírito salesiano de Dom Bosco.",
+  anoFundacao: "2000",
+};
+
+export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => void] {
+  const [s, ss] = useState<ComunidadeConfig>(DEFAULT_COMUNIDADE);
+
+  useEffect(() => {
+    fetch("/api/organizacao")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: ComunidadeConfig | null) => { if (data) ss({ ...DEFAULT_COMUNIDADE, ...data }); })
+      .catch(() => {});
+  }, []);
+
+  const save = (c: ComunidadeConfig) => {
+    ss(c);
+    fetch("/api/organizacao", {
+      method: "PUT",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(c),
+    }).catch(() => {});
+  };
+
+  return [s, save];
+}
+
+// ---------------------------------------------------------------------------
+// Termos helper (unchanged)
+// ---------------------------------------------------------------------------
 export interface Termos {
   morada: string;
   formando: string;
