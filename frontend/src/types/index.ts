@@ -244,6 +244,13 @@ export interface EventoFormando {
   /** desligamento */
   tipoDesligamento?: TipoDesligamento;
   dataEfetiva?: string;
+  /** checklist compartilhado: solicitacao-desligamento e desligamento */
+  checklistDevolveuEstatuto?: boolean;
+  checklistDevolveuSacramental?: boolean;
+  /** solicitacao-desligamento */
+  checklistApresentouCarta?: boolean;
+  /** desligamento compulsorio */
+  checklistAcompanhadoModerador?: boolean;
   /** licenca */
   dataInicioLicenca?: string;
   dataFimLicenca?: string;

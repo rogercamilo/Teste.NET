@@ -142,14 +142,29 @@ export default function FormandoDetailPage({
   }>({ periodoInicio: "", periodoFim: "", notaAdesao: "boa", textoAvaliacao: "" });
 
   const [solicitacaoOpen, setSolicitacaoOpen] = useState(false);
-  const [solicitacaoForm, setSolicitacaoForm] = useState({ motivo: "" });
+  const [solicitacaoForm, setSolicitacaoForm] = useState({
+    motivo: "",
+    checklistDevolveuEstatuto: false,
+    checklistDevolveuSacramental: false,
+    checklistApresentouCarta: false,
+  });
 
   const [desligamentoOpen, setDesligamentoOpen] = useState(false);
   const [desligamentoForm, setDesligamentoForm] = useState<{
     tipoDesligamento: TipoDesligamento;
     motivo: string;
     dataEfetiva: string;
-  }>({ tipoDesligamento: "voluntario", motivo: "", dataEfetiva: "" });
+    checklistDevolveuEstatuto: boolean;
+    checklistDevolveuSacramental: boolean;
+    checklistAcompanhadoModerador: boolean;
+  }>({
+    tipoDesligamento: "voluntario",
+    motivo: "",
+    dataEfetiva: "",
+    checklistDevolveuEstatuto: false,
+    checklistDevolveuSacramental: false,
+    checklistAcompanhadoModerador: false,
+  });
 
   const [licencaOpen, setLicencaOpen] = useState(false);
   const [licencaForm, setLicencaForm] = useState({
@@ -317,10 +332,18 @@ export default function FormandoDetailPage({
       tipo: "solicitacao-desligamento",
       criadoEm: new Date().toISOString(),
       motivo: solicitacaoForm.motivo.trim(),
+      checklistDevolveuEstatuto: solicitacaoForm.checklistDevolveuEstatuto,
+      checklistDevolveuSacramental: solicitacaoForm.checklistDevolveuSacramental,
+      checklistApresentouCarta: solicitacaoForm.checklistApresentouCarta,
     };
     setEventos((prev) => [...prev, novo]);
     setSolicitacaoOpen(false);
-    setSolicitacaoForm({ motivo: "" });
+    setSolicitacaoForm({
+      motivo: "",
+      checklistDevolveuEstatuto: false,
+      checklistDevolveuSacramental: false,
+      checklistApresentouCarta: false,
+    });
     toast.success("Solicitação de desligamento registrada.");
   }
 
@@ -340,6 +363,9 @@ export default function FormandoDetailPage({
       tipoDesligamento: desligamentoForm.tipoDesligamento,
       motivo: desligamentoForm.motivo.trim(),
       dataEfetiva: desligamentoForm.dataEfetiva,
+      checklistDevolveuEstatuto: desligamentoForm.checklistDevolveuEstatuto,
+      checklistDevolveuSacramental: desligamentoForm.checklistDevolveuSacramental,
+      checklistAcompanhadoModerador: desligamentoForm.checklistAcompanhadoModerador,
     };
     setEventos((prev) => [...prev, novo]);
     setFormandos((prev) =>
@@ -348,7 +374,14 @@ export default function FormandoDetailPage({
       )
     );
     setDesligamentoOpen(false);
-    setDesligamentoForm({ tipoDesligamento: "voluntario", motivo: "", dataEfetiva: "" });
+    setDesligamentoForm({
+      tipoDesligamento: "voluntario",
+      motivo: "",
+      dataEfetiva: "",
+      checklistDevolveuEstatuto: false,
+      checklistDevolveuSacramental: false,
+      checklistAcompanhadoModerador: false,
+    });
     toast.success("Desligamento registrado.");
   }
 
@@ -1031,12 +1064,42 @@ export default function FormandoDetailPage({
                         </div>
                       )}
 
-                      {ev.tipo === "solicitacao-desligamento" && ev.motivo && (
-                        <p className="text-sm text-foreground leading-relaxed">{ev.motivo}</p>
+                      {ev.tipo === "solicitacao-desligamento" && (
+                        <div className="space-y-1.5">
+                          {ev.motivo && (
+                            <p className="text-sm text-foreground leading-relaxed">{ev.motivo}</p>
+                          )}
+                          <div className="flex flex-col gap-0.5">
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {ev.checklistDevolveuEstatuto ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                              ) : (
+                                <XCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
+                              )}
+                              Devolveu Estatuto
+                            </span>
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {ev.checklistDevolveuSacramental ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                              ) : (
+                                <XCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
+                              )}
+                              Devolveu Sacramental
+                            </span>
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {ev.checklistApresentouCarta ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                              ) : (
+                                <XCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
+                              )}
+                              Apresentou carta de solicitação de desligamento
+                            </span>
+                          </div>
+                        </div>
                       )}
 
                       {ev.tipo === "desligamento" && (
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <span className="text-xs text-muted-foreground">
                             Tipo:{" "}
                             {ev.tipoDesligamento === "voluntario" ? "Voluntário" : "Compulsório"}
@@ -1046,6 +1109,32 @@ export default function FormandoDetailPage({
                           {ev.motivo && (
                             <p className="text-sm text-foreground leading-relaxed">{ev.motivo}</p>
                           )}
+                          <div className="flex flex-col gap-0.5">
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {ev.checklistDevolveuEstatuto ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                              ) : (
+                                <XCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
+                              )}
+                              Devolveu Estatuto
+                            </span>
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {ev.checklistDevolveuSacramental ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                              ) : (
+                                <XCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
+                              )}
+                              Devolveu Sacramental
+                            </span>
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {ev.checklistAcompanhadoModerador ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                              ) : (
+                                <XCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
+                              )}
+                              Foi acompanhado do moderador geral/responsável local
+                            </span>
+                          </div>
                         </div>
                       )}
 
@@ -1287,9 +1376,56 @@ export default function FormandoDetailPage({
               <Textarea
                 placeholder="Descreva o motivo da solicitação de desligamento..."
                 value={solicitacaoForm.motivo}
-                onChange={(e) => setSolicitacaoForm({ motivo: e.target.value })}
+                onChange={(e) => setSolicitacaoForm((p) => ({ ...p, motivo: e.target.value }))}
                 rows={4}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>Checklist</Label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={solicitacaoForm.checklistDevolveuEstatuto}
+                    onChange={(e) =>
+                      setSolicitacaoForm((p) => ({
+                        ...p,
+                        checklistDevolveuEstatuto: e.target.checked,
+                      }))
+                    }
+                  />
+                  Devolveu Estatuto
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={solicitacaoForm.checklistDevolveuSacramental}
+                    onChange={(e) =>
+                      setSolicitacaoForm((p) => ({
+                        ...p,
+                        checklistDevolveuSacramental: e.target.checked,
+                      }))
+                    }
+                  />
+                  Devolveu Sacramental
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={solicitacaoForm.checklistApresentouCarta}
+                    onChange={(e) =>
+                      setSolicitacaoForm((p) => ({
+                        ...p,
+                        checklistApresentouCarta: e.target.checked,
+                      }))
+                    }
+                  />
+                  Apresentou carta de solicitação de desligamento
+                </label>
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2">
@@ -1359,6 +1495,53 @@ export default function FormandoDetailPage({
                 onChange={(e) => setDesligamentoForm((p) => ({ ...p, motivo: e.target.value }))}
                 rows={4}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>Checklist</Label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={desligamentoForm.checklistDevolveuEstatuto}
+                    onChange={(e) =>
+                      setDesligamentoForm((p) => ({
+                        ...p,
+                        checklistDevolveuEstatuto: e.target.checked,
+                      }))
+                    }
+                  />
+                  Devolveu Estatuto
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={desligamentoForm.checklistDevolveuSacramental}
+                    onChange={(e) =>
+                      setDesligamentoForm((p) => ({
+                        ...p,
+                        checklistDevolveuSacramental: e.target.checked,
+                      }))
+                    }
+                  />
+                  Devolveu Sacramental
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={desligamentoForm.checklistAcompanhadoModerador}
+                    onChange={(e) =>
+                      setDesligamentoForm((p) => ({
+                        ...p,
+                        checklistAcompanhadoModerador: e.target.checked,
+                      }))
+                    }
+                  />
+                  Foi acompanhado do moderador geral/responsável local
+                </label>
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2">
