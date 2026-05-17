@@ -1,19 +1,20 @@
 /**
- * Server-side user store backed by a JSON file at <project>/data/users-auth.json.
- * Created automatically on first access with a single admin account.
- * Set SEED_ADMIN_PASSWORD env var before first boot; otherwise a random strong
- * password is generated and printed to stdout once.
- * NEVER import this module in client components — it uses Node.js 'fs'.
+ * Server-side user store backed by PostgreSQL via Prisma.
+ * Drop-in replacement for the previous JSON-file implementation.
+ * NEVER import this module in client components.
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
+
+import { prisma } from "@/lib/prisma";
+import { DEFAULT_ORG_ID } from "@/lib/tenant-context";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
+import type { PerfilUsuario } from "@prisma/client";
 
 export interface UserAuth {
   id: string;
+  organizacaoId: string;
   nome: string;
   email: string;
-  passwordHash?: string; // undefined for Google-only accounts
+  passwordHash?: string;
   perfil: "administrador" | "formador_geral" | "formador_comunitario";
   moradaId?: string;
   ativo: boolean;
@@ -23,8 +24,9 @@ export interface UserAuth {
 
 export type UserPublic = Omit<UserAuth, "passwordHash">;
 
-const DATA_DIR = join(process.cwd(), "data");
-const FILE = join(DATA_DIR, "users-auth.json");
+// ----------------------------------------------------------------
+// Helpers de senha (mantidos idênticos à implementação anterior)
+// ----------------------------------------------------------------
 
 export function generateRandomPassword(): string {
   const lower = "abcdefghijkmnpqrstuvwxyz";
@@ -61,100 +63,143 @@ export function verifyPassword(password: string, stored: string): boolean {
   }
 }
 
-function ensureFile(): UserAuth[] {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  if (!existsSync(FILE)) {
-    const seedPassword = process.env.SEED_ADMIN_PASSWORD ?? generateRandomPassword();
-    if (!process.env.SEED_ADMIN_PASSWORD) {
-      // Log only on first boot so the operator can set the initial password.
-      console.warn(`[SEED] Admin password gerada automaticamente: ${seedPassword}`);
-    }
-    const initial: UserAuth[] = [
-      {
-        id: "u1",
-        nome: "Roger",
-        email: "rogercmdb@gmail.com",
-        passwordHash: hashPassword(seedPassword),
-        perfil: "administrador",
-        ativo: true,
-        criadoEm: new Date().toISOString().split("T")[0],
-        primeiroAcesso: true,
-      },
-    ];
-    writeFileSync(FILE, JSON.stringify(initial, null, 2), "utf-8");
-    return initial;
-  }
-  return JSON.parse(readFileSync(FILE, "utf-8")) as UserAuth[];
+// ----------------------------------------------------------------
+// Conversão Prisma → UserAuth
+// ----------------------------------------------------------------
+
+function toUserAuth(u: {
+  id: string;
+  organizacaoId: string;
+  nome: string;
+  email: string;
+  passwordHash: string | null;
+  perfil: PerfilUsuario;
+  moradaId: string | null;
+  ativo: boolean;
+  criadoEm: Date;
+  primeiroAcesso: boolean;
+}): UserAuth {
+  return {
+    id: u.id,
+    organizacaoId: u.organizacaoId,
+    nome: u.nome,
+    email: u.email,
+    passwordHash: u.passwordHash ?? undefined,
+    perfil: u.perfil as UserAuth["perfil"],
+    moradaId: u.moradaId ?? undefined,
+    ativo: u.ativo,
+    criadoEm: u.criadoEm.toISOString().split("T")[0],
+    primeiroAcesso: u.primeiroAcesso,
+  };
 }
 
-function persist(users: UserAuth[]): void {
-  writeFileSync(FILE, JSON.stringify(users, null, 2), "utf-8");
+// ----------------------------------------------------------------
+// Leitura
+// ----------------------------------------------------------------
+
+export async function listUsers(
+  organizacaoId: string = DEFAULT_ORG_ID
+): Promise<UserAuth[]> {
+  const users = await prisma.usuario.findMany({ where: { organizacaoId } });
+  return users.map(toUserAuth);
 }
 
-export function listUsers(): UserAuth[] {
-  return ensureFile();
+export async function findByEmail(
+  email: string,
+  organizacaoId: string = DEFAULT_ORG_ID
+): Promise<UserAuth | undefined> {
+  const user = await prisma.usuario.findFirst({
+    where: { email: { equals: email, mode: "insensitive" }, organizacaoId },
+  });
+  return user ? toUserAuth(user) : undefined;
 }
 
-export function findByEmail(email: string): UserAuth | undefined {
-  return listUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
+export async function findById(
+  id: string,
+  organizacaoId: string = DEFAULT_ORG_ID
+): Promise<UserAuth | undefined> {
+  const user = await prisma.usuario.findFirst({
+    where: { id, organizacaoId },
+  });
+  return user ? toUserAuth(user) : undefined;
 }
 
-export function findById(id: string): UserAuth | undefined {
-  return listUsers().find((u) => u.id === id);
-}
-
-export function authenticate(email: string, password: string): UserAuth | null {
-  const user = findByEmail(email);
+export async function authenticate(
+  email: string,
+  password: string,
+  organizacaoId: string = DEFAULT_ORG_ID
+): Promise<UserAuth | null> {
+  const user = await findByEmail(email, organizacaoId);
   if (!user || !user.ativo || !user.passwordHash) return null;
   if (!verifyPassword(password, user.passwordHash)) return null;
   return user;
 }
 
-export function createUser(
-  data: Omit<UserAuth, "id" | "criadoEm" | "passwordHash"> & { password?: string }
-): { user: UserAuth; tempPassword?: string } {
-  const users = listUsers();
+// ----------------------------------------------------------------
+// Escrita
+// ----------------------------------------------------------------
+
+export async function createUser(
+  data: Omit<UserAuth, "id" | "criadoEm" | "passwordHash" | "organizacaoId"> & {
+    password?: string;
+    organizacaoId?: string;
+  }
+): Promise<{ user: UserAuth; tempPassword?: string }> {
+  const orgId = data.organizacaoId ?? DEFAULT_ORG_ID;
   const tempPassword = !data.password ? generateRandomPassword() : undefined;
   const password = data.password ?? tempPassword!;
-  const newUser: UserAuth = {
-    id: `u${Date.now()}`,
-    nome: data.nome,
-    email: data.email,
-    passwordHash: hashPassword(password),
-    perfil: data.perfil,
-    moradaId: data.moradaId || undefined,
-    ativo: data.ativo,
-    criadoEm: new Date().toISOString().split("T")[0],
-    primeiroAcesso: tempPassword !== undefined ? true : (data.primeiroAcesso ?? false),
-  };
-  users.push(newUser);
-  persist(users);
-  return { user: newUser, tempPassword };
+
+  const created = await prisma.usuario.create({
+    data: {
+      organizacaoId: orgId,
+      nome: data.nome,
+      email: data.email,
+      passwordHash: hashPassword(password),
+      perfil: data.perfil as PerfilUsuario,
+      moradaId: data.moradaId ?? null,
+      ativo: data.ativo,
+      primeiroAcesso: tempPassword !== undefined ? true : (data.primeiroAcesso ?? false),
+    },
+  });
+
+  return { user: toUserAuth(created), tempPassword };
 }
 
-export function updateUser(
+export async function updateUser(
   id: string,
-  data: Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">> & { password?: string }
-): UserAuth | null {
-  const users = listUsers();
-  const idx = users.findIndex((u) => u.id === id);
-  if (idx === -1) return null;
-  const { password, ...rest } = data;
-  const updated: UserAuth = {
-    ...users[idx],
-    ...rest,
-    ...(password ? { passwordHash: hashPassword(password) } : {}),
-  };
-  users[idx] = updated;
-  persist(users);
-  return updated;
+  data: Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">> & {
+    password?: string;
+    organizacaoId?: string;
+  }
+): Promise<UserAuth | null> {
+  const orgId = data.organizacaoId ?? DEFAULT_ORG_ID;
+  const exists = await prisma.usuario.findFirst({ where: { id, organizacaoId: orgId } });
+  if (!exists) return null;
+
+  const { password, organizacaoId: _org, ...rest } = data;
+
+  const updated = await prisma.usuario.update({
+    where: { id },
+    data: {
+      ...(rest.nome !== undefined && { nome: rest.nome }),
+      ...(rest.email !== undefined && { email: rest.email }),
+      ...(rest.perfil !== undefined && { perfil: rest.perfil as PerfilUsuario }),
+      ...(rest.moradaId !== undefined && { moradaId: rest.moradaId ?? null }),
+      ...(rest.ativo !== undefined && { ativo: rest.ativo }),
+      ...(rest.primeiroAcesso !== undefined && { primeiroAcesso: rest.primeiroAcesso }),
+      ...(password ? { passwordHash: hashPassword(password) } : {}),
+    },
+  });
+  return toUserAuth(updated);
 }
 
-export function deleteUser(id: string): boolean {
-  const users = listUsers();
-  const filtered = users.filter((u) => u.id !== id);
-  if (filtered.length === users.length) return false;
-  persist(filtered);
+export async function deleteUser(
+  id: string,
+  organizacaoId: string = DEFAULT_ORG_ID
+): Promise<boolean> {
+  const exists = await prisma.usuario.findFirst({ where: { id, organizacaoId } });
+  if (!exists) return false;
+  await prisma.usuario.delete({ where: { id } });
   return true;
 }
 

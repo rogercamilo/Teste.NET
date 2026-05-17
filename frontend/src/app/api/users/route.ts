@@ -4,7 +4,7 @@ import { listUsers, createUser, findByEmail, toPublic } from "@/lib/users-store"
 import { sendWelcomeEmail } from "@/lib/email";
 import { logAction, getClientIp } from "@/lib/audit-log";
 
-type SessionUser = { id?: string; role?: string };
+type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
 function isAdminOrAbove(role: string | undefined): boolean {
   return role === "administrador" || role === "formador_geral";
@@ -22,7 +22,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    return NextResponse.json(listUsers().map(toPublic));
+    const users = await listUsers(user.organizacaoId);
+    return NextResponse.json(users.map(toPublic));
   } catch {
     return NextResponse.json({ error: "Falha ao carregar usuários" }, { status: 500 });
   }
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    if (findByEmail(email)) {
+    if (await findByEmail(email, actor.organizacaoId)) {
       return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });
     }
 
@@ -64,13 +65,14 @@ export async function POST(request: Request) {
     const perfilSanitizado =
       perfil === "formador_geral" ? "administrador" : (perfil ?? "formador_comunitario");
 
-    const { user, tempPassword } = createUser({
+    const { user, tempPassword } = await createUser({
       nome,
       email,
       password: password || undefined,
       perfil: perfilSanitizado as "administrador" | "formador_comunitario",
       moradaId,
       ativo: ativo ?? true,
+      organizacaoId: actor.organizacaoId,
     });
 
     let emailSent = false;
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
       emailSent = result.sent;
     }
 
-    logAction("user_created", actor.id, getClientIp(request), { targetEmail: email, perfil: perfilSanitizado });
+    logAction("user_created", actor.id, getClientIp(request), { targetEmail: email, perfil: perfilSanitizado }, actor.organizacaoId);
 
     return NextResponse.json({ ...toPublic(user), tempPassword, emailSent }, { status: 201 });
   } catch {

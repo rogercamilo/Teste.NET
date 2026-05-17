@@ -21,12 +21,11 @@ export async function POST(request: Request) {
   }
 
   const userId = (session.user as { id: string }).id;
-  const user = findById(userId);
+  const user = await findById(userId);
   if (!user) {
     return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
   }
 
-  // Usuários que NÃO estão em primeiro acesso precisam confirmar a senha atual
   if (!user.primeiroAcesso && user.passwordHash) {
     if (!currentPassword) {
       return NextResponse.json({ error: "Senha atual é obrigatória" }, { status: 400 });
@@ -36,6 +35,6 @@ export async function POST(request: Request) {
     }
   }
 
-  updateUser(userId, { password: newPassword, primeiroAcesso: false });
+  await updateUser(userId, { password: newPassword, primeiroAcesso: false });
   return NextResponse.json({ ok: true });
 }

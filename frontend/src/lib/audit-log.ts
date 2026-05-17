@@ -3,7 +3,7 @@
  * IPv4: last octet replaced by xxx  (192.168.1.150 → 192.168.1.xxx)
  * IPv6: truncated to first 4 groups (2001:db8:85a3::8a2e → 2001:db8:85a3:xxxx:…)
  *
- * Logs are written to stdout as JSON. Phase 2 will persist them in AuditLog table.
+ * Logs are written to stdout as JSON AND persisted in the AuditLog table (D2.8).
  */
 
 export type AuditAction =
@@ -27,6 +27,7 @@ export interface AuditEntry {
   timestamp: string;
   action: AuditAction;
   userId: string;
+  organizacaoId?: string;
   ipAnon: string;
   details?: Record<string, unknown>;
 }
@@ -60,14 +61,39 @@ export function logAction(
   action: AuditAction,
   userId: string | undefined,
   ip: string | undefined,
-  details?: Record<string, unknown>
+  details?: Record<string, unknown>,
+  organizacaoId?: string
 ): void {
   const entry: AuditEntry = {
     timestamp: new Date().toISOString(),
     action,
     userId: userId ?? "anonymous",
+    ...(organizacaoId ? { organizacaoId } : {}),
     ipAnon: anonymizeIp(ip),
     ...(details ? { details } : {}),
   };
   console.log(JSON.stringify(entry));
+
+  // Persistência assíncrona no banco (D2.8) — não bloqueia a resposta
+  persistAuditLog(entry, organizacaoId).catch(() => {});
+}
+
+async function persistAuditLog(
+  entry: AuditEntry,
+  organizacaoId?: string
+): Promise<void> {
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    await prisma.auditLog.create({
+      data: {
+        acao: entry.action,
+        usuarioId: entry.userId !== "anonymous" ? entry.userId : null,
+        organizacaoId: organizacaoId ?? null,
+        ip: entry.ipAnon,
+        detalhes: (entry.details as object) ?? null,
+      },
+    });
+  } catch {
+    // Falha silenciosa — o log em stdout já foi gravado
+  }
 }
