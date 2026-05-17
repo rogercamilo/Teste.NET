@@ -228,6 +228,13 @@ export type NotaAdesao = "otima" | "boa" | "regular" | "insuficiente";
 
 export type TipoDesligamento = "voluntario" | "compulsorio";
 
+export interface DocumentoAnexo {
+  nome: string;
+  tamanho: number;
+  tipo: string;
+  dados: string; // data URL base64
+}
+
 export interface EventoFormando {
   id: string;
   formandoId: string;
@@ -254,6 +261,8 @@ export interface EventoFormando {
   /** licenca */
   dataInicioLicenca?: string;
   dataFimLicenca?: string;
+  /** documentos anexados */
+  documentos?: DocumentoAnexo[];
 }
 
 export interface Compromisso {

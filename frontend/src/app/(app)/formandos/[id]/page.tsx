@@ -32,6 +32,7 @@ import {
   type ComentarioFormando,
   type Agendamento,
   type EventoFormando,
+  type DocumentoAnexo,
   type NotaAdesao,
   type TipoDesligamento,
 } from "@/types";
@@ -70,15 +71,18 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock,
+  Download,
   FileText,
   Lock,
   LogOut,
   Mail,
   MapPin,
   MessageSquare,
+  Paperclip,
   Phone,
   Plus,
   TrendingUp,
+  Upload,
   User,
   UserCheck,
   UserMinus,
@@ -176,6 +180,63 @@ export default function FormandoDetailPage({
     dataInicioLicenca: "",
     dataFimLicenca: "",
   });
+
+  const [solicitacaoFiles, setSolicitacaoFiles] = useState<File[]>([]);
+  const [desligamentoFiles, setDesligamentoFiles] = useState<File[]>([]);
+  const [licencaFiles, setLicencaFiles] = useState<File[]>([]);
+
+  const ACCEPTED_TYPES = [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ];
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+  function handleFileSelect(
+    files: FileList | null,
+    setter: React.Dispatch<React.SetStateAction<File[]>>
+  ) {
+    if (!files) return;
+    const valid: File[] = [];
+    for (const f of Array.from(files)) {
+      if (!ACCEPTED_TYPES.includes(f.type)) {
+        toast.error(`"${f.name}": apenas PDF e DOCX são aceitos.`);
+        continue;
+      }
+      if (f.size > MAX_FILE_SIZE) {
+        toast.error(`"${f.name}": tamanho máximo é 5 MB.`);
+        continue;
+      }
+      valid.push(f);
+    }
+    setter((prev) => [...prev, ...valid]);
+  }
+
+  function removeFile(
+    index: number,
+    setter: React.Dispatch<React.SetStateAction<File[]>>
+  ) {
+    setter((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function filesToDocumentos(files: File[]): Promise<DocumentoAnexo[]> {
+    return Promise.all(
+      files.map(
+        (f) =>
+          new Promise<DocumentoAnexo>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve({
+                nome: f.name,
+                tamanho: f.size,
+                tipo: f.type,
+                dados: reader.result as string,
+              });
+            reader.onerror = reject;
+            reader.readAsDataURL(f);
+          })
+      )
+    );
+  }
 
   const formando = allFormandos.find((f) => f.id === id);
 
@@ -376,8 +437,9 @@ export default function FormandoDetailPage({
     toast.success("Avaliação de adesão registrada.");
   }
 
-  function handleSaveSolicitacao() {
+  async function handleSaveSolicitacao() {
     if (!solicitacaoForm.motivo.trim()) return toast.error("O motivo é obrigatório.");
+    const documentos = await filesToDocumentos(solicitacaoFiles);
     const novo: EventoFormando = {
       id: `ev${Date.now()}`,
       formandoId: id,
@@ -388,6 +450,7 @@ export default function FormandoDetailPage({
       checklistDevolveuEstatuto: solicitacaoForm.checklistDevolveuEstatuto,
       checklistDevolveuSacramental: solicitacaoForm.checklistDevolveuSacramental,
       checklistApresentouCarta: solicitacaoForm.checklistApresentouCarta,
+      documentos: documentos.length > 0 ? documentos : undefined,
     };
     setEventos((prev) => [...prev, novo]);
     setSolicitacaoOpen(false);
@@ -397,16 +460,18 @@ export default function FormandoDetailPage({
       checklistDevolveuSacramental: false,
       checklistApresentouCarta: false,
     });
+    setSolicitacaoFiles([]);
     toast.success("Solicitação de desligamento registrada.");
   }
 
-  function handleSaveDesligamento() {
+  async function handleSaveDesligamento() {
     if (!desligamentoForm.motivo.trim()) return toast.error("O motivo é obrigatório.");
     if (!desligamentoForm.dataEfetiva) return toast.error("A data efetiva é obrigatória.");
     const motivoInatividade =
       desligamentoForm.tipoDesligamento === "voluntario"
         ? "desligamento-voluntario"
         : "desligamento-compulsorio";
+    const documentos = await filesToDocumentos(desligamentoFiles);
     const novo: EventoFormando = {
       id: `ev${Date.now()}`,
       formandoId: id,
@@ -419,6 +484,7 @@ export default function FormandoDetailPage({
       checklistDevolveuEstatuto: desligamentoForm.checklistDevolveuEstatuto,
       checklistDevolveuSacramental: desligamentoForm.checklistDevolveuSacramental,
       checklistAcompanhadoModerador: desligamentoForm.checklistAcompanhadoModerador,
+      documentos: documentos.length > 0 ? documentos : undefined,
     };
     setEventos((prev) => [...prev, novo]);
     setFormandos((prev) =>
@@ -435,12 +501,14 @@ export default function FormandoDetailPage({
       checklistDevolveuSacramental: false,
       checklistAcompanhadoModerador: false,
     });
+    setDesligamentoFiles([]);
     toast.success("Desligamento registrado.");
   }
 
-  function handleSaveLicenca() {
+  async function handleSaveLicenca() {
     if (!licencaForm.motivo.trim()) return toast.error("O motivo é obrigatório.");
     if (!licencaForm.dataInicioLicenca) return toast.error("A data de início é obrigatória.");
+    const documentos = await filesToDocumentos(licencaFiles);
     const novo: EventoFormando = {
       id: `ev${Date.now()}`,
       formandoId: id,
@@ -450,6 +518,7 @@ export default function FormandoDetailPage({
       motivo: licencaForm.motivo.trim(),
       dataInicioLicenca: licencaForm.dataInicioLicenca,
       dataFimLicenca: licencaForm.dataFimLicenca || undefined,
+      documentos: documentos.length > 0 ? documentos : undefined,
     };
     setEventos((prev) => [...prev, novo]);
     setFormandos((prev) =>
@@ -457,6 +526,7 @@ export default function FormandoDetailPage({
     );
     setLicencaOpen(false);
     setLicencaForm({ motivo: "", dataInicioLicenca: "", dataFimLicenca: "" });
+    setLicencaFiles([]);
     toast.success("Licença registrada.");
   }
 
@@ -1784,6 +1854,32 @@ export default function FormandoDetailPage({
                           )}
                         </div>
                       )}
+
+                      {ev.documentos && ev.documentos.length > 0 && (
+                        <div className="space-y-1 pt-1">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Paperclip className="h-3 w-3" />
+                            {ev.documentos.length} documento
+                            {ev.documentos.length !== 1 ? "s" : ""} anexado
+                            {ev.documentos.length !== 1 ? "s" : ""}
+                          </p>
+                          {ev.documentos.map((doc, i) => (
+                            <a
+                              key={i}
+                              href={doc.dados}
+                              download={doc.nome}
+                              className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-xs hover:bg-muted transition-colors"
+                            >
+                              <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <span className="flex-1 min-w-0 truncate">{doc.nome}</span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {(doc.tamanho / 1024).toFixed(0)} KB
+                              </span>
+                              <Download className="h-3 w-3 text-muted-foreground shrink-0" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2059,9 +2155,55 @@ export default function FormandoDetailPage({
                 </label>
               </div>
             </div>
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />
+                Documentos anexados
+              </Label>
+              <label className="flex flex-col items-center gap-1.5 rounded-lg border-2 border-dashed border-border p-4 cursor-pointer hover:bg-muted/40 transition-colors">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground text-center">
+                  Clique para selecionar ou arraste arquivos
+                  <br />
+                  <span className="text-[10px] text-muted-foreground/70">
+                    PDF ou DOCX · máx. 5 MB por arquivo
+                  </span>
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  multiple
+                  onChange={(e) => handleFileSelect(e.target.files, setSolicitacaoFiles)}
+                />
+              </label>
+              {solicitacaoFiles.length > 0 && (
+                <div className="space-y-1">
+                  {solicitacaoFiles.map((f, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs flex-1 min-w-0 truncate">{f.name}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {(f.size / 1024).toFixed(0)} KB
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i, setSolicitacaoFiles)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setSolicitacaoOpen(false)}>
+            <Button variant="outline" onClick={() => { setSolicitacaoOpen(false); setSolicitacaoFiles([]); }}>
               Cancelar
             </Button>
             <Button onClick={handleSaveSolicitacao}>Registrar solicitação</Button>
@@ -2175,9 +2317,55 @@ export default function FormandoDetailPage({
                 </label>
               </div>
             </div>
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />
+                Documentos anexados
+              </Label>
+              <label className="flex flex-col items-center gap-1.5 rounded-lg border-2 border-dashed border-border p-4 cursor-pointer hover:bg-muted/40 transition-colors">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground text-center">
+                  Clique para selecionar ou arraste arquivos
+                  <br />
+                  <span className="text-[10px] text-muted-foreground/70">
+                    PDF ou DOCX · máx. 5 MB por arquivo
+                  </span>
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  multiple
+                  onChange={(e) => handleFileSelect(e.target.files, setDesligamentoFiles)}
+                />
+              </label>
+              {desligamentoFiles.length > 0 && (
+                <div className="space-y-1">
+                  {desligamentoFiles.map((f, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs flex-1 min-w-0 truncate">{f.name}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {(f.size / 1024).toFixed(0)} KB
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i, setDesligamentoFiles)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDesligamentoOpen(false)}>
+            <Button variant="outline" onClick={() => { setDesligamentoOpen(false); setDesligamentoFiles([]); }}>
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleSaveDesligamento}>
@@ -2231,9 +2419,55 @@ export default function FormandoDetailPage({
                 rows={4}
               />
             </div>
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />
+                Documentos anexados
+              </Label>
+              <label className="flex flex-col items-center gap-1.5 rounded-lg border-2 border-dashed border-border p-4 cursor-pointer hover:bg-muted/40 transition-colors">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground text-center">
+                  Clique para selecionar ou arraste arquivos
+                  <br />
+                  <span className="text-[10px] text-muted-foreground/70">
+                    PDF ou DOCX · máx. 5 MB por arquivo
+                  </span>
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  multiple
+                  onChange={(e) => handleFileSelect(e.target.files, setLicencaFiles)}
+                />
+              </label>
+              {licencaFiles.length > 0 && (
+                <div className="space-y-1">
+                  {licencaFiles.map((f, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs flex-1 min-w-0 truncate">{f.name}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {(f.size / 1024).toFixed(0)} KB
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i, setLicencaFiles)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setLicencaOpen(false)}>
+            <Button variant="outline" onClick={() => { setLicencaOpen(false); setLicencaFiles([]); }}>
               Cancelar
             </Button>
             <Button onClick={handleSaveLicenca}>Registrar licença</Button>
