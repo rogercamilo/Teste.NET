@@ -59,9 +59,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Activity,
   AlertCircle,
   ArrowLeft,
   ArrowRight,
+  Award,
+  BarChart3,
   BookOpen,
   Calendar,
   CheckCircle2,
@@ -75,6 +78,7 @@ import {
   MessageSquare,
   Phone,
   Plus,
+  TrendingUp,
   User,
   UserCheck,
   UserMinus,
@@ -82,7 +86,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { format, parseISO, differenceInYears } from "date-fns";
+import { format, parseISO, differenceInYears, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -211,6 +215,20 @@ export default function FormandoDetailPage({
   const podeAvancar = podeAvancarEtapa(formando);
   const etapaAtualIdx = SEQUENCIA_ETAPAS.indexOf(formando.nivelFormativo);
 
+  const reqAtual = REQUISITOS_ETAPAS[formando.nivelFormativo];
+  const comPctAtual = progAtual
+    ? Math.min(100, Math.round((progAtual.formacoesComunitariasRealizadas / reqAtual.formacoesComunitarias) * 100))
+    : 0;
+  const retComPctAtual = progAtual
+    ? Math.min(100, Math.round((progAtual.retirosComunitariosRealizados / reqAtual.retirosComunitarios) * 100))
+    : 0;
+  const retPesPctAtual = progAtual
+    ? Math.min(100, Math.round((progAtual.retirosPessoaisRealizados / reqAtual.retirosPessoais) * 100))
+    : 0;
+  const diasNaEtapa = progAtual?.iniciouEm
+    ? differenceInDays(new Date(), parseISO(progAtual.iniciouEm))
+    : null;
+
   const formandoAgendamentos = agendamentos
     .filter((ag) => ag.nivelFormativo === formando.nivelFormativo)
     .sort((a, b) => b.dataInicio.localeCompare(a.dataInicio));
@@ -300,6 +318,41 @@ export default function FormandoDetailPage({
   const formandoEventos = eventos
     .filter((e) => e.formandoId === id)
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+
+  const avaliacoesRealizadas = formandoEventos.filter((e) => e.tipo === "avaliacao-adesao");
+  const ultimaAvaliacao = avaliacoesRealizadas[0];
+
+  const historicoComNivel = formandoHistorico.map((h) => ({
+    ...h,
+    nivelFormativo: agendamentos.find((a) => a.id === h.agendamentoId)?.nivelFormativo,
+  }));
+  const presencaPorEtapa = (nivel: string) => {
+    const regs = historicoComNivel.filter((h) => h.nivelFormativo === nivel);
+    return { total: regs.length, presentes: regs.filter((h) => h.presente).length };
+  };
+  const presencaAtual = presencaPorEtapa(formando.nivelFormativo);
+  const taxaPresencaAtual =
+    presencaAtual.total > 0
+      ? Math.round((presencaAtual.presentes / presencaAtual.total) * 100)
+      : null;
+  const taxaPresencaGeral =
+    formandoHistorico.length > 0
+      ? Math.round(
+          (formandoHistorico.filter((h) => h.presente).length / formandoHistorico.length) * 100
+        )
+      : null;
+  const totalFormacoesGeral = (formando.progressoEtapas ?? []).reduce(
+    (sum, p) =>
+      sum +
+      p.formacoesComunitariasRealizadas +
+      p.retirosComunitariosRealizados +
+      p.retirosPessoaisRealizados,
+    0
+  );
+  const etapasConcluidas = (formando.progressoEtapas ?? []).filter((p) => !!p.concluiuEm).length;
+  const inicioJornada = [...(formando.progressoEtapas ?? [])]
+    .sort((a, b) => (a.iniciouEm ?? "").localeCompare(b.iniciouEm ?? ""))
+    .find((p) => p.iniciouEm)?.iniciouEm;
 
   function handleSaveAvaliacao() {
     if (!avaliacaoForm.periodoInicio || !avaliacaoForm.periodoFim)
@@ -509,32 +562,148 @@ export default function FormandoDetailPage({
         </div>
       </div>
 
-      {/* Estatísticas rápidas */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{totalAtual}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Requeridas na etapa</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-emerald-600">{realizadosAtual}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Realizadas</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-primary">{progressoPct}%</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Progresso</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Bloco da etapa atual */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-4 space-y-4">
+          {/* Cabeçalho: nome da etapa + tempo */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">
+                {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+              </span>
+              <Badge className="text-xs h-5 bg-primary/10 text-primary border-0 px-1.5">
+                Etapa atual
+              </Badge>
+            </div>
+            {diasNaEtapa !== null && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {diasNaEtapa < 30
+                  ? `${diasNaEtapa} dia${diasNaEtapa !== 1 ? "s" : ""}`
+                  : diasNaEtapa < 365
+                  ? `${Math.round(diasNaEtapa / 30)} meses`
+                  : `${Math.floor(diasNaEtapa / 365)} ano${Math.floor(diasNaEtapa / 365) !== 1 ? "s" : ""}`}{" "}
+                na etapa
+              </span>
+            )}
+          </div>
+
+          {/* Métricas principais */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-foreground">{realizadosAtual}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">de {totalAtual} formações</p>
+            </div>
+            <div className="text-center">
+              <p
+                className={cn(
+                  "text-2xl font-bold",
+                  progressoPct >= 100
+                    ? "text-emerald-600"
+                    : progressoPct >= 60
+                    ? "text-primary"
+                    : "text-amber-600"
+                )}
+              >
+                {progressoPct}%
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">progresso</p>
+            </div>
+            <div className="text-center">
+              {taxaPresencaAtual !== null ? (
+                <>
+                  <p
+                    className={cn(
+                      "text-2xl font-bold",
+                      taxaPresencaAtual >= 80
+                        ? "text-emerald-600"
+                        : taxaPresencaAtual >= 60
+                        ? "text-amber-600"
+                        : "text-red-600"
+                    )}
+                  >
+                    {taxaPresencaAtual}%
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">frequência</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-muted-foreground/40">—</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">frequência</p>
+                </>
+              )}
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-foreground">{avaliacoesRealizadas.length}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">pareceres</p>
+            </div>
+          </div>
+
+          {/* Barras de progresso por tipo */}
+          <div className="space-y-1.5">
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-0.5">
+                <span>Formações comunitárias</span>
+                <span>
+                  {progAtual?.formacoesComunitariasRealizadas ?? 0}/{reqAtual.formacoesComunitarias}
+                </span>
+              </div>
+              <Progress value={comPctAtual} className="h-1.5" />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-0.5">
+                <span>Retiros comunitários</span>
+                <span>
+                  {progAtual?.retirosComunitariosRealizados ?? 0}/{reqAtual.retirosComunitarios}
+                </span>
+              </div>
+              <Progress value={retComPctAtual} className="h-1.5" />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-0.5">
+                <span>Retiros pessoais</span>
+                <span>
+                  {progAtual?.retirosPessoaisRealizados ?? 0}/{reqAtual.retirosPessoais}
+                </span>
+              </div>
+              <Progress value={retPesPctAtual} className="h-1.5" />
+            </div>
+          </div>
+
+          {/* Rodapé: indicador de prontidão ou último parecer */}
+          {podeAvancar && proximaEtapa ? (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Pronto para avançar para {NIVEL_FORMATIVO_LABELS[proximaEtapa]}
+            </div>
+          ) : ultimaAvaliacao?.notaAdesao ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <FileText className="h-3 w-3" />
+              Último parecer:
+              <Badge
+                variant="outline"
+                className={cn("text-[10px] h-4 px-1.5", NOTA_ADESAO_CORES[ultimaAvaliacao.notaAdesao])}
+              >
+                {NOTA_ADESAO_LABELS[ultimaAvaliacao.notaAdesao]}
+              </Badge>
+              <span>
+                em{" "}
+                {format(parseISO(ultimaAvaliacao.criadoEm), "d 'de' MMM 'de' yyyy", {
+                  locale: ptBR,
+                })}
+              </span>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="jornada">
         <TabsList className="bg-muted/50 h-9">
           <TabsTrigger value="jornada" className="text-xs h-7">
             Jornada Formativa
+          </TabsTrigger>
+          <TabsTrigger value="visao-geral" className="text-xs h-7">
+            Visão geral
           </TabsTrigger>
           <TabsTrigger value="historico" className="text-xs h-7">
             Histórico de evolução
@@ -720,6 +889,469 @@ export default function FormandoDetailPage({
               })}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Visão geral da jornada formativa */}
+        <TabsContent value="visao-geral" className="mt-4 space-y-4">
+          {/* Painel de indicadores globais */}
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-7 w-7 rounded-lg bg-violet-100 flex items-center justify-center">
+                    <Calendar className="h-3.5 w-3.5 text-violet-600" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Início da jornada</span>
+                </div>
+                <p className="text-sm font-semibold">
+                  {inicioJornada
+                    ? format(parseISO(inicioJornada), "MMM 'de' yyyy", { locale: ptBR })
+                    : "—"}
+                </p>
+                {inicioJornada && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    há {differenceInDays(new Date(), parseISO(inicioJornada))} dias
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-7 w-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <Award className="h-3.5 w-3.5 text-emerald-600" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Etapas concluídas</span>
+                </div>
+                <p className="text-sm font-semibold">
+                  {etapasConcluidas} de {SEQUENCIA_ETAPAS.length}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Em curso: {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-7 w-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <BarChart3 className="h-3.5 w-3.5 text-blue-600" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Total de formações</span>
+                </div>
+                <p className="text-sm font-semibold">{totalFormacoesGeral} realizadas</p>
+                <p className="text-xs text-muted-foreground mt-0.5">em todas as etapas</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-7 w-7 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <Activity className="h-3.5 w-3.5 text-amber-600" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Frequência geral</span>
+                </div>
+                {taxaPresencaGeral !== null ? (
+                  <>
+                    <p
+                      className={cn(
+                        "text-sm font-semibold",
+                        taxaPresencaGeral >= 80
+                          ? "text-emerald-600"
+                          : taxaPresencaGeral >= 60
+                          ? "text-amber-600"
+                          : "text-red-600"
+                      )}
+                    >
+                      {taxaPresencaGeral}%
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {formandoHistorico.filter((h) => h.presente).length} de{" "}
+                      {formandoHistorico.length} presenças
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm font-semibold text-muted-foreground/50">—</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-7 w-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <FileText className="h-3.5 w-3.5 text-blue-600" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Pareceres do formador</span>
+                </div>
+                <p className="text-sm font-semibold">{avaliacoesRealizadas.length}</p>
+                {ultimaAvaliacao?.notaAdesao && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="text-xs text-muted-foreground">Último:</span>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[10px] h-4 px-1",
+                        NOTA_ADESAO_CORES[ultimaAvaliacao.notaAdesao]
+                      )}
+                    >
+                      {NOTA_ADESAO_LABELS[ultimaAvaliacao.notaAdesao]}
+                    </Badge>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-7 w-7 rounded-lg bg-slate-100 flex items-center justify-center">
+                    <TrendingUp className="h-3.5 w-3.5 text-slate-600" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Eventos registrados</span>
+                </div>
+                <p className="text-sm font-semibold">{formandoEventos.length}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formandoEventos.filter((e) => e.tipo !== "avaliacao-adesao").length} marcos ·{" "}
+                  {avaliacoesRealizadas.length} pareceres
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Linha do tempo das etapas */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">
+                Histórico de etapas formativas
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Progresso e frequência por etapa ao longo da jornada
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {SEQUENCIA_ETAPAS.map((nivel) => {
+                const prog = (formando.progressoEtapas ?? []).find((p) => p.nivel === nivel);
+                const req = REQUISITOS_ETAPAS[nivel];
+                const isAtual = nivel === formando.nivelFormativo;
+                const isConcluida = !!prog?.concluiuEm;
+                const naoIniciada = !prog?.iniciouEm && !isAtual;
+
+                const fcPct = prog
+                  ? Math.min(
+                      100,
+                      Math.round(
+                        (prog.formacoesComunitariasRealizadas / req.formacoesComunitarias) * 100
+                      )
+                    )
+                  : 0;
+                const rcPct = prog
+                  ? Math.min(
+                      100,
+                      Math.round(
+                        (prog.retirosComunitariosRealizados / req.retirosComunitarios) * 100
+                      )
+                    )
+                  : 0;
+                const rpPct = prog
+                  ? Math.min(
+                      100,
+                      Math.round((prog.retirosPessoaisRealizados / req.retirosPessoais) * 100)
+                    )
+                  : 0;
+
+                const pe = presencaPorEtapa(nivel);
+                const taxaEtapa =
+                  pe.total > 0 ? Math.round((pe.presentes / pe.total) * 100) : null;
+
+                return (
+                  <div
+                    key={nivel}
+                    className={cn(
+                      "rounded-lg border p-4 space-y-3",
+                      isAtual && "border-primary/30 bg-primary/5",
+                      isConcluida && "border-emerald-200 bg-emerald-50/50",
+                      naoIniciada && "border-border/40 bg-muted/20 opacity-60"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">
+                          {NIVEL_FORMATIVO_LABELS[nivel]}
+                        </span>
+                        {isConcluida && (
+                          <Badge className="text-[10px] h-4 px-1.5 bg-emerald-100 text-emerald-700 border-0">
+                            Concluída
+                          </Badge>
+                        )}
+                        {isAtual && !isConcluida && (
+                          <Badge className="text-[10px] h-4 px-1.5 bg-primary/10 text-primary border-0">
+                            Em curso
+                          </Badge>
+                        )}
+                        {naoIniciada && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                            Não iniciada
+                          </Badge>
+                        )}
+                      </div>
+                      {prog?.iniciouEm && (
+                        <span className="text-xs text-muted-foreground">
+                          {format(parseISO(prog.iniciouEm), "MMM yyyy", { locale: ptBR })}
+                          {prog.concluiuEm
+                            ? ` → ${format(parseISO(prog.concluiuEm), "MMM yyyy", { locale: ptBR })}`
+                            : " → em curso"}
+                        </span>
+                      )}
+                    </div>
+
+                    {!naoIniciada && (
+                      <>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            {
+                              label: "FC",
+                              desc: "Formações comunitárias",
+                              valor: prog?.formacoesComunitariasRealizadas ?? 0,
+                              total: req.formacoesComunitarias,
+                              pct: fcPct,
+                            },
+                            {
+                              label: "RC",
+                              desc: "Retiros comunitários",
+                              valor: prog?.retirosComunitariosRealizados ?? 0,
+                              total: req.retirosComunitarios,
+                              pct: rcPct,
+                            },
+                            {
+                              label: "RP",
+                              desc: "Retiros pessoais",
+                              valor: prog?.retirosPessoaisRealizados ?? 0,
+                              total: req.retirosPessoais,
+                              pct: rpPct,
+                            },
+                          ].map(({ label, desc, valor, total, pct }) => (
+                            <div
+                              key={label}
+                              className="rounded-lg bg-background/70 p-2.5 space-y-1"
+                            >
+                              <div className="flex items-end justify-between">
+                                <span className="text-base font-bold">{valor}</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  de {total} {label}
+                                </span>
+                              </div>
+                              <Progress value={pct} className="h-1" />
+                              <p className="text-[10px] text-muted-foreground">{desc}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {taxaEtapa !== null && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Activity className="h-3.5 w-3.5 shrink-0" />
+                            <span>Frequência:</span>
+                            <span
+                              className={cn(
+                                "font-semibold",
+                                taxaEtapa >= 80
+                                  ? "text-emerald-600"
+                                  : taxaEtapa >= 60
+                                  ? "text-amber-600"
+                                  : "text-red-600"
+                              )}
+                            >
+                              {taxaEtapa}%
+                            </span>
+                            <span>
+                              ({pe.presentes} de {pe.total} registros)
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Histórico de pareceres */}
+          {avaliacoesRealizadas.length > 0 && (
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold">
+                  Histórico de pareceres do formador
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {avaliacoesRealizadas.length} parecer
+                  {avaliacoesRealizadas.length !== 1 ? "es" : ""} registrado
+                  {avaliacoesRealizadas.length !== 1 ? "s" : ""} em ordem cronológica
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[...avaliacoesRealizadas].reverse().map((ev) => (
+                  <div
+                    key={ev.id}
+                    className="rounded-lg border border-border/50 bg-card p-3 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        {ev.notaAdesao && (
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", NOTA_ADESAO_CORES[ev.notaAdesao])}
+                          >
+                            {NOTA_ADESAO_LABELS[ev.notaAdesao]}
+                          </Badge>
+                        )}
+                        {ev.periodoInicio && ev.periodoFim && (
+                          <span className="text-xs text-muted-foreground">
+                            {format(parseISO(ev.periodoInicio), "MMM yyyy", { locale: ptBR })} —{" "}
+                            {format(parseISO(ev.periodoFim), "MMM yyyy", { locale: ptBR })}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {format(parseISO(ev.criadoEm), "d/MM/yyyy")}
+                      </span>
+                    </div>
+                    {ev.textoAvaliacao && (
+                      <p className="text-xs text-foreground leading-relaxed line-clamp-3">
+                        {ev.textoAvaliacao}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Eventos e marcos */}
+          {formandoEventos.filter((e) => e.tipo !== "avaliacao-adesao").length > 0 && (
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold">Eventos e marcos</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Registros significativos ao longo da jornada formativa
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[...formandoEventos]
+                  .filter((e) => e.tipo !== "avaliacao-adesao")
+                  .reverse()
+                  .map((ev) => (
+                    <div key={ev.id} className="flex items-start gap-3">
+                      <div
+                        className={cn(
+                          "h-2 w-2 rounded-full mt-1.5 shrink-0",
+                          ev.tipo === "licenca"
+                            ? "bg-violet-500"
+                            : ev.tipo === "solicitacao-desligamento"
+                            ? "bg-amber-500"
+                            : "bg-red-500"
+                        )}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", TIPO_EVENTO_CORES[ev.tipo])}
+                          >
+                            {TIPO_EVENTO_LABELS[ev.tipo]}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {format(parseISO(ev.criadoEm), "d 'de' MMM 'de' yyyy", {
+                              locale: ptBR,
+                            })}
+                          </span>
+                        </div>
+                        {ev.motivo && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            {ev.motivo}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Comentários do formador */}
+          {formandoComentarios.length > 0 && (
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold">Comentários do formador</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formandoComentarios.length} comentário
+                  {formandoComentarios.length !== 1 ? "s" : ""} registrado
+                  {formandoComentarios.length !== 1 ? "s" : ""}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    ["adesao", "progresso", "dificuldade", "observacao"] as TipoComentario[]
+                  ).map((tipo) => {
+                    const count = formandoComentarios.filter((c) => c.tipo === tipo).length;
+                    if (count === 0) return null;
+                    return (
+                      <div
+                        key={tipo}
+                        className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
+                      >
+                        <span className="text-xs text-muted-foreground">
+                          {TIPO_COMENTARIO_LABELS[tipo]}
+                        </span>
+                        <span className="text-sm font-semibold">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="space-y-2.5">
+                  {formandoComentarios.slice(0, 5).map((c) => (
+                    <div key={c.id} className="border-l-2 border-border pl-3">
+                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] h-4 px-1",
+                            TIPO_COMENTARIO_CORES[c.tipo]
+                          )}
+                        >
+                          {TIPO_COMENTARIO_LABELS[c.tipo]}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(parseISO(c.criadoEm), "d/MM/yyyy")}
+                        </span>
+                      </div>
+                      <p className="text-xs text-foreground line-clamp-2">{c.texto}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Estado vazio */}
+          {formandoEventos.length === 0 &&
+            formandoComentarios.length === 0 &&
+            formandoHistorico.length === 0 && (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="flex flex-col items-center py-12 text-center">
+                  <BarChart3 className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="font-medium text-foreground text-sm">Histórico ainda vazio</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Registre avaliações, frequências e comentários para acompanhar a jornada
+                    formativa.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
         </TabsContent>
 
         {/* Histórico de evolução */}
