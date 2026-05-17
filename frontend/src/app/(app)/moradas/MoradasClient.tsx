@@ -10,7 +10,7 @@ import {
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -185,10 +185,10 @@ export default function MoradasClient() {
             {moradas.filter((m) => m.ativo).length} {termoMorada.toLowerCase()}s ativas
           </p>
         </div>
-        <Button size="sm" onClick={openCreate}>
+        <Link href="/moradas/nova" className={buttonVariants({ size: "sm" })}>
           <Plus className="h-4 w-4 mr-1.5" />
           Nova {termoMorada}
-        </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
