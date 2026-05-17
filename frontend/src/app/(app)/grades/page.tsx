@@ -61,7 +61,7 @@ export default function GradesPage() {
   const canEdit = userRole !== "formador_comunitario";
 
   const [grades, setGrades] = useGrades();
-  const [moradas] = useMoradas();
+  const [moradas, setMoradas] = useMoradas();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<GradeFormativa | null>(null);
 
@@ -82,8 +82,13 @@ export default function GradesPage() {
 
   function handleDelete() {
     if (!toDelete) return;
-    localStorage.removeItem(`doc_${toDelete.id}`);
+    if (toDelete.documentoAnexoId) {
+      fetch(`/api/arquivos/${toDelete.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+    }
     setGrades((prev) => prev.filter((g) => g.id !== toDelete.id));
+    setMoradas((prev) =>
+      prev.map((m) => (m.gradeId === toDelete.id ? { ...m, gradeId: undefined } : m))
+    );
     setDeleteOpen(false);
     setToDelete(null);
     toast.success("Grade excluída.");

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { usePlanos } from "@/lib/data-store";
+import { usePlanos, useGrades } from "@/lib/data-store";
 import {
   STATUS_PLANO_LABELS,
   NIVEL_FORMATIVO_LABELS,
@@ -56,6 +56,7 @@ export default function PlanoDetalhePage() {
   const isAdmin = role === "formador_geral" || role === "administrador";
 
   const [planos, setPlanos] = usePlanos();
+  const [, setGrades] = useGrades();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const plano = planos.find((p) => p.id === id);
@@ -80,6 +81,9 @@ export default function PlanoDetalhePage() {
       fetch(`/api/arquivos/${plano.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
     }
     setPlanos((prev) => prev.filter((p) => p.id !== id));
+    setGrades((prev) =>
+      prev.map((g) => (g.planoId === id ? { ...g, planoId: "", planoNome: "" } : g))
+    );
     toast.success("Plano excluído.");
     router.push("/planos");
   }

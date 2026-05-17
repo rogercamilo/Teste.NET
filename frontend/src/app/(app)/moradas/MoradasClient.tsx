@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMoradas, useComunidade, db } from "@/lib/data-store";
+import { useMoradas, useFormandos, useComunidade, db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -81,6 +81,7 @@ const formadores = db.usuarios.load().filter((u) => u.perfil === "formador_comun
 
 export default function MoradasClient() {
   const [moradas, setMoradas] = useMoradas();
+  const [, setFormandos] = useFormandos();
   const [comunidade] = useComunidade();
   const termoMorada = comunidade.termoMorada?.trim() || "Morada";
   const [allFormandos] = useState(() => db.formandos.load());
@@ -167,6 +168,9 @@ export default function MoradasClient() {
   function handleDelete() {
     if (!editing) return;
     setMoradas((prev) => prev.filter((m) => m.id !== editing.id));
+    setFormandos((prev) =>
+      prev.map((f) => (f.moradaId === editing.id ? { ...f, moradaId: undefined } : f))
+    );
     setDeleteOpen(false);
     setEditing(null);
     toast.success(`${termoMorada} excluída.`);

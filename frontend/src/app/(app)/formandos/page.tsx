@@ -113,7 +113,6 @@ export default function FormandosPage() {
   const userRole = (session?.user as { role?: string })?.role ?? "formador_comunitario";
   const userMoradaId = (session?.user as { moradaId?: string | null })?.moradaId ?? null;
   const isFC = userRole === "formador_comunitario";
-  const canEdit = !isFC || true; // FC pode criar formandos na sua morada
   const router = useRouter();
   const [formandos, setFormandos] = useFormandos();
   const [comunidade] = useComunidade();

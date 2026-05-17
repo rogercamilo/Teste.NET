@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { mockAgendamentos, mockFormandos, mockPresencas } from "@/lib/mock-data";
+import { useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { useAgendamentos, useFormandos, useMoradas, usePresencas } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   NIVEL_FORMATIVO_LABELS,
@@ -24,17 +25,50 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const realizadas = mockAgendamentos.filter(
-  (a) => a.status === "realizada" || a.status === "confirmada"
-);
+type SessionUser = { role?: string; moradaId?: string | null };
 
 export default function PresencaPage() {
-  const [agendamentoId, setAgendamentoId] = useState<string>(realizadas[0]?.id ?? "");
-  const [presencas, setPresencas] = useState<PresencaFormacao[]>(mockPresencas);
+  const { data: session } = useSession();
+  const user = session?.user as SessionUser | undefined;
+  const userRole = user?.role ?? "formador_comunitario";
+  const userMoradaId = user?.moradaId ?? null;
 
-  const agendamento = mockAgendamentos.find((a) => a.id === agendamentoId);
+  const [agendamentos] = useAgendamentos();
+  const [todosFormandos] = useFormandos();
+  const [moradas] = useMoradas();
+  const [presencas, setPresencas] = usePresencas();
 
-  const formandosDaFormacao = mockFormandos.filter((f) => f.ativo);
+  const minhaMorada = userMoradaId ? moradas.find((m) => m.id === userMoradaId) : null;
+  const nivelRestrito = userRole === "formador_comunitario" ? minhaMorada?.nivelFormativo : undefined;
+
+  const realizadas = useMemo(
+    () =>
+      agendamentos
+        .filter((a) => {
+          const statusOk = a.status === "realizada" || a.status === "confirmada";
+          if (!statusOk) return false;
+          if (nivelRestrito) return a.nivelFormativo === nivelRestrito;
+          return true;
+        })
+        .sort((a, b) => b.dataInicio.localeCompare(a.dataInicio)),
+    [agendamentos, nivelRestrito]
+  );
+
+  const [agendamentoId, setAgendamentoId] = useState<string>(() => realizadas[0]?.id ?? "");
+
+  const agendamento = agendamentos.find((a) => a.id === agendamentoId);
+
+  const formandosDaFormacao = useMemo(() => {
+    if (!agendamento) return [];
+    return todosFormandos.filter((f) => {
+      if (!f.ativo) return false;
+      if (f.nivelFormativo !== agendamento.nivelFormativo) return false;
+      if (userRole === "formador_comunitario" && userMoradaId) {
+        return f.moradaId === userMoradaId;
+      }
+      return true;
+    });
+  }, [agendamento, todosFormandos, userRole, userMoradaId]);
 
   const getPresenca = (formandoId: string): boolean => {
     const registro = presencas.find(
@@ -44,6 +78,7 @@ export default function PresencaPage() {
   };
 
   const togglePresenca = (formandoId: string, formandoNome: string) => {
+    const formando = todosFormandos.find((f) => f.id === formandoId);
     setPresencas((prev) => {
       const existente = prev.find(
         (p) => p.agendamentoId === agendamentoId && p.formandoId === formandoId
@@ -55,20 +90,17 @@ export default function PresencaPage() {
             : p
         );
       }
-      const formando = mockFormandos.find((f) => f.id === formandoId);
-      return [
-        ...prev,
-        {
-          id: `pr-${Date.now()}`,
-          agendamentoId,
-          formacaoTema: agendamento?.formacaoTema ?? "",
-          data: agendamento?.dataInicio.split("T")[0] ?? "",
-          formandoId,
-          formandoNome: formandoNome,
-          nivelFormativo: formando?.nivelFormativo ?? "pre-discipulado",
-          presente: true,
-        },
-      ];
+      const nova: PresencaFormacao = {
+        id: `pr-${Date.now()}`,
+        agendamentoId,
+        formacaoTema: agendamento?.formacaoTema ?? "",
+        data: agendamento?.dataInicio.split("T")[0] ?? "",
+        formandoId,
+        formandoNome,
+        nivelFormativo: formando?.nivelFormativo ?? "pre-discipulado",
+        presente: true,
+      };
+      return [...prev, nova];
     });
   };
 
@@ -99,21 +131,36 @@ export default function PresencaPage() {
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground mb-1.5">Selecionar Formação</p>
-              <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)} items={Object.fromEntries(realizadas.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`]))}>
-                <SelectTrigger className="w-full sm:w-96">
-                  <SelectValue placeholder="Escolha uma formação..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {realizadas.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      <span className="truncate">
-                        {a.formacaoTema} —{" "}
-                        {format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {realizadas.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma formação realizada ou confirmada disponível.
+                </p>
+              ) : (
+                <Select
+                  value={agendamentoId}
+                  onValueChange={(v) => v && setAgendamentoId(v)}
+                  items={Object.fromEntries(
+                    realizadas.map((a) => [
+                      a.id,
+                      `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`,
+                    ])
+                  )}
+                >
+                  <SelectTrigger className="w-full sm:w-96">
+                    <SelectValue placeholder="Escolha uma formação..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {realizadas.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span className="truncate">
+                          {a.formacaoTema} —{" "}
+                          {format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             {agendamento && (
               <div className="flex gap-3 text-sm">
@@ -140,7 +187,9 @@ export default function PresencaPage() {
               <div>
                 <CardTitle className="text-base">{agendamento.formacaoTema}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {format(parseISO(agendamento.dataInicio), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  {format(parseISO(agendamento.dataInicio), "EEEE, dd 'de' MMMM 'de' yyyy", {
+                    locale: ptBR,
+                  })}
                   {agendamento.local && ` · ${agendamento.local}`}
                 </p>
               </div>
@@ -150,54 +199,73 @@ export default function PresencaPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span>{formandosDaFormacao.length} formandos</span>
-            </div>
-            <div className="space-y-2">
-              {formandosDaFormacao.map((formando) => {
-                const presente = getPresenca(formando.id);
-                return (
-                  <div
-                    key={formando.id}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer select-none",
-                      presente
-                        ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30"
-                        : "border-border bg-card hover:bg-muted/40"
-                    )}
-                    onClick={() => togglePresenca(formando.id, formando.nome)}
-                  >
-                    <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
-                        {formando.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{formando.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
+            {formandosDaFormacao.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground gap-2">
+                <Users className="h-8 w-8 opacity-30" />
+                <p className="text-sm">
+                  Nenhum formando ativo encontrado para o nível{" "}
+                  <span className="font-medium">
+                    {NIVEL_FORMATIVO_LABELS[agendamento.nivelFormativo]}
+                  </span>
+                  {userRole === "formador_comunitario" && " nesta morada"}.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  <span>{formandosDaFormacao.length} formandos</span>
+                </div>
+                <div className="space-y-2">
+                  {formandosDaFormacao.map((formando) => {
+                    const presente = getPresenca(formando.id);
+                    return (
+                      <div
+                        key={formando.id}
                         className={cn(
-                          "text-xs font-medium",
-                          presente ? "text-emerald-600" : "text-muted-foreground"
+                          "flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer select-none",
+                          presente
+                            ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30"
+                            : "border-border bg-card hover:bg-muted/40"
                         )}
+                        onClick={() => togglePresenca(formando.id, formando.nome)}
                       >
-                        {presente ? "Presente" : "Ausente"}
-                      </span>
-                      {presente ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-muted-foreground/50 shrink-0" />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        <Avatar className="h-8 w-8 shrink-0">
+                          <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+                            {formando.nome
+                              .split(" ")
+                              .map((n) => n[0])
+                              .slice(0, 2)
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{formando.nome}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "text-xs font-medium",
+                              presente ? "text-emerald-600" : "text-muted-foreground"
+                            )}
+                          >
+                            {presente ? "Presente" : "Ausente"}
+                          </span>
+                          {presente ? (
+                            <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                          ) : (
+                            <XCircle className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (
