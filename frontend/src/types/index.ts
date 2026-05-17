@@ -90,6 +90,7 @@ export interface PlanoFormativo {
   vigenciaFim: string;
   status: StatusPlano;
   documentoAnexo?: string;
+  documentoAnexoId?: string;
   criadoEm: string;
   atualizadoEm: string;
 }
@@ -136,6 +137,7 @@ export interface GradeFormativa {
   objetivos?: string;
   fundamentacao?: string;
   documentoAnexo?: string;
+  documentoAnexoId?: string;
   ativo: boolean;
   criadoEm: string;
 }
@@ -157,6 +159,7 @@ export interface Formacao {
   modalidade: Modalidade;
   materialApoio?: string;
   documentoAnexo?: string;
+  documentoAnexoId?: string;
   /** ID da grade formativa que originou esta formação (se criada via grade) */
   gradeId?: string;
   /** Nome da grade formativa (para exibição) */

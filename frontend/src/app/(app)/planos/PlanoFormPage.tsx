@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Paperclip, Plus, Upload, X } from "lucide-react";
+import { ArrowLeft, Loader2, Paperclip, Plus, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 type FormState = {
@@ -35,7 +35,7 @@ type FormState = {
   status: StatusPlano;
   eixos: EixoPlano[];
   documentoNome: string;
-  documentoUrl: string;
+  documentoId: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -48,7 +48,7 @@ const EMPTY_FORM: FormState = {
   status: "rascunho",
   eixos: [],
   documentoNome: "",
-  documentoUrl: "",
+  documentoId: "",
 };
 
 const NIVEIS: NivelFormativo[] = [
@@ -62,7 +62,9 @@ export default function PlanoFormPage({ id }: { id?: string }) {
   const router = useRouter();
   const [planos, setPlanos] = usePlanos();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const initialized = useRef(false);
   const isEditing = !!id;
 
@@ -80,7 +82,7 @@ export default function PlanoFormPage({ id }: { id?: string }) {
       status: p.status,
       eixos: p.eixos,
       documentoNome: p.documentoAnexo ?? "",
-      documentoUrl: localStorage.getItem(`doc_${id}`) ?? "",
+      documentoId: p.documentoAnexoId ?? "",
     });
     initialized.current = true;
   }, [id, planos]);
@@ -118,61 +120,86 @@ export default function PlanoFormPage({ id }: { id?: string }) {
     if (!file) return;
     setExtracting(true);
     try {
-      const { objetivos, fundamentacao, dataUrl } = await extractDocumentFields(file);
+      const { objetivos, fundamentacao } = await extractDocumentFields(file);
+      setDocumentoFile(file);
       setForm((prev) => {
-        const next = { ...prev, documentoNome: file.name, documentoUrl: dataUrl };
+        const next = { ...prev, documentoNome: file.name, documentoId: "" };
         if (objetivos && !prev.objetivos.trim()) next.objetivos = objetivos;
         if (fundamentacao && !prev.fundamentacao.trim()) next.fundamentacao = fundamentacao;
         return next;
       });
-      toast.success("Documento anexado com sucesso.");
+      toast.success("Documento selecionado. Será salvo ao confirmar.");
     } finally {
       setExtracting(false);
     }
   }
 
   function removerDocumento() {
-    setForm((prev) => ({ ...prev, documentoNome: "", documentoUrl: "" }));
+    setDocumentoFile(null);
+    setForm((prev) => ({ ...prev, documentoNome: "", documentoId: "" }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório.");
     if (!form.vigenciaInicio || !form.vigenciaFim)
       return toast.error("Datas de vigência são obrigatórias.");
 
-    const today = new Date().toISOString().split("T")[0];
-    const payload = {
-      nome: form.nome.trim(),
-      objetivos: form.objetivos.trim(),
-      fundamentacao: form.fundamentacao.trim(),
-      nivelFormativo: form.nivelFormativo,
-      vigenciaInicio: form.vigenciaInicio,
-      vigenciaFim: form.vigenciaFim,
-      status: form.status,
-      eixos: form.eixos,
-      documentoAnexo: form.documentoNome || undefined,
-    };
+    setSaving(true);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const entId = id ?? `p${Date.now()}`;
+      const original = isEditing ? planos.find((p) => p.id === id) : undefined;
 
-    if (isEditing && id) {
-      setPlanos((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...payload, atualizadoEm: today } : p))
-      );
-      if (form.documentoUrl) {
-        localStorage.setItem(`doc_${id}`, form.documentoUrl);
-      } else if (!form.documentoNome) {
-        localStorage.removeItem(`doc_${id}`);
+      let documentoAnexo = form.documentoNome || undefined;
+      let documentoAnexoId = form.documentoId || undefined;
+
+      if (documentoFile) {
+        const fd = new FormData();
+        fd.append("file", documentoFile);
+        fd.append("entityType", "plano");
+        fd.append("entityId", entId);
+        const res = await fetch("/api/arquivos", { method: "POST", body: fd });
+        if (!res.ok) {
+          const msg = await res.text();
+          toast.error(`Erro ao enviar documento: ${msg}`);
+          return;
+        }
+        const uploaded = await res.json() as { id: string; nome: string };
+        if (original?.documentoAnexoId) {
+          fetch(`/api/arquivos/${original.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+        }
+        documentoAnexo = uploaded.nome;
+        documentoAnexoId = uploaded.id;
+      } else if (!form.documentoNome && original?.documentoAnexoId) {
+        fetch(`/api/arquivos/${original.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+        documentoAnexo = undefined;
+        documentoAnexoId = undefined;
       }
-      toast.success("Plano atualizado com sucesso!");
-      router.push(`/planos/${id}`);
-    } else {
-      const newId = `p${Date.now()}`;
-      setPlanos((prev) => [
-        ...prev,
-        { id: newId, ...payload, criadoEm: today, atualizadoEm: today },
-      ]);
-      if (form.documentoUrl) localStorage.setItem(`doc_${newId}`, form.documentoUrl);
-      toast.success("Plano criado com sucesso!");
-      router.push("/planos");
+
+      const payload = {
+        nome: form.nome.trim(),
+        objetivos: form.objetivos.trim(),
+        fundamentacao: form.fundamentacao.trim(),
+        nivelFormativo: form.nivelFormativo,
+        vigenciaInicio: form.vigenciaInicio,
+        vigenciaFim: form.vigenciaFim,
+        status: form.status,
+        eixos: form.eixos,
+        documentoAnexo,
+        documentoAnexoId,
+      };
+
+      if (isEditing && id) {
+        setPlanos((prev) => prev.map((p) => (p.id === id ? { ...p, ...payload, atualizadoEm: today } : p)));
+        toast.success("Plano atualizado com sucesso!");
+        router.push(`/planos/${id}`);
+      } else {
+        setPlanos((prev) => [...prev, { id: entId, ...payload, criadoEm: today, atualizadoEm: today }]);
+        toast.success("Plano criado com sucesso!");
+        router.push("/planos");
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -311,6 +338,9 @@ export default function PlanoFormPage({ id }: { id?: string }) {
               <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/40">
                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="text-sm truncate flex-1">{form.documentoNome}</span>
+                {documentoFile && (
+                  <span className="text-xs text-amber-600 shrink-0">pendente de salvar</span>
+                )}
                 <button type="button" onClick={removerDocumento} className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -326,11 +356,11 @@ export default function PlanoFormPage({ id }: { id?: string }) {
         </div>
 
         <div className="flex items-center justify-end gap-2 mt-6 pt-4 border-t border-border/60">
-          <Button variant="outline" onClick={() => router.push(isEditing ? `/planos/${id}` : "/planos")}>
+          <Button variant="outline" onClick={() => router.push(isEditing ? `/planos/${id}` : "/planos")} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>
-            {isEditing ? "Salvar alterações" : "Criar plano"}
+          <Button onClick={handleSave} disabled={saving || extracting}>
+            {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando…</> : isEditing ? "Salvar alterações" : "Criar plano"}
           </Button>
         </div>
       </div>

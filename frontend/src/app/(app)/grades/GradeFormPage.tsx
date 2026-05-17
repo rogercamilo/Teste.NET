@@ -30,6 +30,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronRight,
+  Loader2,
   Paperclip,
   Plus,
   Trash2,
@@ -51,7 +52,7 @@ type FormState = {
   objetivos: string;
   fundamentacao: string;
   documentoNome: string;
-  documentoUrl: string;
+  documentoId: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -65,7 +66,7 @@ const EMPTY_FORM: FormState = {
   objetivos: "",
   fundamentacao: "",
   documentoNome: "",
-  documentoUrl: "",
+  documentoId: "",
 };
 
 type FormacaoInput = {
@@ -123,7 +124,9 @@ export default function GradeFormPage({ id }: { id?: string }) {
   const [allUsuarios] = useState(() => db.usuarios.load());
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [eixosComFormacoes, setEixosComFormacoes] = useState<EixoComFormacoes[]>([]);
+  const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const initialized = useRef(false);
   const isEditing = !!id;
 
@@ -142,7 +145,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
       objetivos: g.objetivos ?? "",
       fundamentacao: g.fundamentacao ?? "",
       documentoNome: g.documentoAnexo ?? "",
-      documentoUrl: localStorage.getItem(`doc_${id}`) ?? "",
+      documentoId: g.documentoAnexoId ?? "",
     });
 
     if (isFormadorGeral) {
@@ -245,9 +248,10 @@ export default function GradeFormPage({ id }: { id?: string }) {
     if (!file) return;
     setExtracting(true);
     try {
-      const { objetivos, fundamentacao, dataUrl } = await extractDocumentFields(file);
+      const { objetivos, fundamentacao } = await extractDocumentFields(file);
+      setDocumentoFile(file);
       setForm((prev) => {
-        const next = { ...prev, documentoNome: file.name, documentoUrl: dataUrl };
+        const next = { ...prev, documentoNome: file.name, documentoId: "" };
         const willFillObjetivos = !!objetivos && !prev.objetivos.trim();
         const willFillFundamentacao = !!fundamentacao && !prev.fundamentacao.trim();
         if (willFillObjetivos) next.objetivos = objetivos;
@@ -275,7 +279,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
             },
           });
         } else {
-          toast.info("Documento anexado. Conteúdo não identificado automaticamente.");
+          toast.info("Documento selecionado. Será salvo ao confirmar.");
         }
         return next;
       });
@@ -285,10 +289,11 @@ export default function GradeFormPage({ id }: { id?: string }) {
   }
 
   function removerDocumento() {
-    setForm((prev) => ({ ...prev, documentoNome: "", documentoUrl: "" }));
+    setDocumentoFile(null);
+    setForm((prev) => ({ ...prev, documentoNome: "", documentoId: "" }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório.");
     if (!form.vigenciaInicio || !form.vigenciaFim)
       return toast.error("Datas de vigência são obrigatórias.");
@@ -303,89 +308,114 @@ export default function GradeFormPage({ id }: { id?: string }) {
       }
     }
 
-    const plano = allPlanos.find((p) => p.id === form.planoId);
-    const entId = id ?? `g${Date.now()}`;
-    const today = new Date().toISOString().split("T")[0];
-    const nivelFormativo = plano?.nivelFormativo ?? form.nivelFormativo;
-    const existing = isEditing ? grades.find((g) => g.id === id) : undefined;
+    setSaving(true);
+    try {
+      const plano = allPlanos.find((p) => p.id === form.planoId);
+      const entId = id ?? `g${Date.now()}`;
+      const today = new Date().toISOString().split("T")[0];
+      const nivelFormativo = plano?.nivelFormativo ?? form.nivelFormativo;
+      const existing = isEditing ? grades.find((g) => g.id === id) : undefined;
 
-    const eixos: Eixo[] =
-      eixosComFormacoes.length > 0
-        ? eixosComFormacoes.map((ec, idx) => ({
-            id: `e${entId}-${idx}`,
-            nome: ec.eixoPlano.nome,
-            descricao: ec.eixoPlano.objetivo,
-            gradeId: entId,
-            ordem: idx + 1,
-            cor: EIXO_HEX[idx % EIXO_HEX.length],
-          }))
-        : parseEixos(form.eixos, entId);
+      let documentoAnexo = form.documentoNome || undefined;
+      let documentoAnexoId = form.documentoId || undefined;
 
-    const totalFormacoes = eixosComFormacoes.reduce(
-      (sum, ec) => sum + ec.formacoes.length,
-      0
-    );
-
-    const payload: GradeFormativa = {
-      id: entId,
-      nome: form.nome.trim(),
-      planoId: form.planoId,
-      planoNome: plano?.nome ?? "",
-      nivelFormativo,
-      vigenciaInicio: form.vigenciaInicio,
-      vigenciaFim: form.vigenciaFim,
-      versao: form.versao || "1.0",
-      eixos,
-      etapas: existing?.etapas ?? [],
-      totalFormacoes: totalFormacoes || (existing?.totalFormacoes ?? 0),
-      objetivos: form.objetivos.trim() || undefined,
-      fundamentacao: form.fundamentacao.trim() || undefined,
-      documentoAnexo: form.documentoNome || undefined,
-      ativo: true,
-      criadoEm: existing?.criadoEm ?? today,
-    };
-
-    if (isFormadorGeral && eixosComFormacoes.length > 0) {
-      const novasFormacoes: Formacao[] = eixosComFormacoes.flatMap((ec, idx) =>
-        ec.formacoes.map((f) => ({
-          id: `fm${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          tema: f.tema.trim(),
-          objetivo: f.objetivo.trim(),
-          descricao: f.descricao.trim(),
-          nivelFormativo,
-          eixoId: eixos[idx].id,
-          eixoNome: ec.eixoPlano.nome,
-          formadorId: f.formadorId,
-          formadorNome: allUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
-          cargaHoraria: Number(f.cargaHoraria) || 2,
-          modalidade: f.modalidade,
-          tipoFormacao: "comunitaria" as const,
-          gradeId: entId,
-          gradeNome: form.nome.trim(),
-          vezesUtilizada: 0,
-          criadoEm: today,
-        }))
-      );
-      setFormacoes((prev) => [
-        ...prev.filter((f) => f.gradeId !== entId),
-        ...novasFormacoes,
-      ]);
-    }
-
-    if (isEditing && id) {
-      setGrades((prev) => prev.map((g) => (g.id === id ? payload : g)));
-      if (form.documentoUrl) {
-        localStorage.setItem(`doc_${entId}`, form.documentoUrl);
-      } else if (!form.documentoNome) {
-        localStorage.removeItem(`doc_${entId}`);
+      if (documentoFile) {
+        const fd = new FormData();
+        fd.append("file", documentoFile);
+        fd.append("entityType", "grade");
+        fd.append("entityId", entId);
+        const res = await fetch("/api/arquivos", { method: "POST", body: fd });
+        if (!res.ok) {
+          toast.error(`Erro ao enviar documento: ${await res.text()}`);
+          return;
+        }
+        const uploaded = await res.json() as { id: string; nome: string };
+        if (existing?.documentoAnexoId) {
+          fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+        }
+        documentoAnexo = uploaded.nome;
+        documentoAnexoId = uploaded.id;
+      } else if (!form.documentoNome && existing?.documentoAnexoId) {
+        fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+        documentoAnexo = undefined;
+        documentoAnexoId = undefined;
       }
-      toast.success("Grade atualizada com sucesso!");
-      router.push(`/grades/${id}`);
-    } else {
-      setGrades((prev) => [...prev, payload]);
-      if (form.documentoUrl) localStorage.setItem(`doc_${entId}`, form.documentoUrl);
-      toast.success("Grade criada com sucesso!");
-      router.push("/grades");
+
+      const eixos: Eixo[] =
+        eixosComFormacoes.length > 0
+          ? eixosComFormacoes.map((ec, idx) => ({
+              id: `e${entId}-${idx}`,
+              nome: ec.eixoPlano.nome,
+              descricao: ec.eixoPlano.objetivo,
+              gradeId: entId,
+              ordem: idx + 1,
+              cor: EIXO_HEX[idx % EIXO_HEX.length],
+            }))
+          : parseEixos(form.eixos, entId);
+
+      const totalFormacoes = eixosComFormacoes.reduce(
+        (sum, ec) => sum + ec.formacoes.length,
+        0
+      );
+
+      const payload: GradeFormativa = {
+        id: entId,
+        nome: form.nome.trim(),
+        planoId: form.planoId,
+        planoNome: plano?.nome ?? "",
+        nivelFormativo,
+        vigenciaInicio: form.vigenciaInicio,
+        vigenciaFim: form.vigenciaFim,
+        versao: form.versao || "1.0",
+        eixos,
+        etapas: existing?.etapas ?? [],
+        totalFormacoes: totalFormacoes || (existing?.totalFormacoes ?? 0),
+        objetivos: form.objetivos.trim() || undefined,
+        fundamentacao: form.fundamentacao.trim() || undefined,
+        documentoAnexo,
+        documentoAnexoId,
+        ativo: true,
+        criadoEm: existing?.criadoEm ?? today,
+      };
+
+      if (isFormadorGeral && eixosComFormacoes.length > 0) {
+        const novasFormacoes: Formacao[] = eixosComFormacoes.flatMap((ec, idx) =>
+          ec.formacoes.map((f) => ({
+            id: `fm${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            tema: f.tema.trim(),
+            objetivo: f.objetivo.trim(),
+            descricao: f.descricao.trim(),
+            nivelFormativo,
+            eixoId: eixos[idx].id,
+            eixoNome: ec.eixoPlano.nome,
+            formadorId: f.formadorId,
+            formadorNome: allUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
+            cargaHoraria: Number(f.cargaHoraria) || 2,
+            modalidade: f.modalidade,
+            tipoFormacao: "comunitaria" as const,
+            gradeId: entId,
+            gradeNome: form.nome.trim(),
+            vezesUtilizada: 0,
+            criadoEm: today,
+          }))
+        );
+        setFormacoes((prev) => [
+          ...prev.filter((f) => f.gradeId !== entId),
+          ...novasFormacoes,
+        ]);
+      }
+
+      if (isEditing && id) {
+        setGrades((prev) => prev.map((g) => (g.id === id ? payload : g)));
+        toast.success("Grade atualizada com sucesso!");
+        router.push(`/grades/${id}`);
+      } else {
+        setGrades((prev) => [...prev, payload]);
+        toast.success("Grade criada com sucesso!");
+        router.push("/grades");
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -556,6 +586,9 @@ export default function GradeFormPage({ id }: { id?: string }) {
               <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/40">
                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="text-sm truncate flex-1">{form.documentoNome}</span>
+                {documentoFile && (
+                  <span className="text-xs text-amber-600 shrink-0">pendente de salvar</span>
+                )}
                 <button
                   type="button"
                   onClick={removerDocumento}
@@ -776,11 +809,12 @@ export default function GradeFormPage({ id }: { id?: string }) {
         <Button
           variant="outline"
           onClick={() => router.push(isEditing ? `/grades/${id}` : "/grades")}
+          disabled={saving}
         >
           Cancelar
         </Button>
-        <Button onClick={handleSave}>
-          {isEditing ? "Salvar alterações" : "Criar grade"}
+        <Button onClick={handleSave} disabled={saving || extracting}>
+          {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando…</> : isEditing ? "Salvar alterações" : "Criar grade"}
         </Button>
       </div>
     </div>

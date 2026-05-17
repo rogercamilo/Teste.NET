@@ -76,7 +76,9 @@ export default function PlanoDetalhePage() {
   const totalCH = plano.eixos.reduce((acc, e) => acc + e.cargaHoraria, 0);
 
   function handleDelete() {
-    localStorage.removeItem(`doc_${id}`);
+    if (plano?.documentoAnexoId) {
+      fetch(`/api/arquivos/${plano.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+    }
     setPlanos((prev) => prev.filter((p) => p.id !== id));
     toast.success("Plano excluído.");
     router.push("/planos");
@@ -213,7 +215,7 @@ export default function PlanoDetalhePage() {
               variant="ghost"
               size="sm"
               className="shrink-0 ml-2 h-7 text-xs gap-1 text-primary"
-              onClick={() => router.push(`/viewer?id=${id}&nome=${encodeURIComponent(plano.documentoAnexo!)}&origem=/planos/${id}`)}
+              onClick={() => router.push(`/viewer?arquivoId=${plano.documentoAnexoId}&nome=${encodeURIComponent(plano.documentoAnexo!)}&origem=/planos/${id}`)}
             >
               <Eye className="h-3 w-3" />
               Ver documento

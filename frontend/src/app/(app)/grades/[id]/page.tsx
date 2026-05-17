@@ -109,7 +109,9 @@ export default function GradeDetalhePage() {
   }
 
   function handleDelete() {
-    localStorage.removeItem(`doc_${id}`);
+    if (grade?.documentoAnexoId) {
+      fetch(`/api/arquivos/${grade.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+    }
     setGrades((prev) => prev.filter((g) => g.id !== id));
     toast.success("Grade excluída.");
     router.push("/grades");
@@ -280,7 +282,7 @@ export default function GradeDetalhePage() {
               variant="ghost"
               size="sm"
               className="shrink-0 ml-2 h-7 text-xs gap-1 text-primary"
-              onClick={() => router.push(`/viewer?id=${id}&nome=${encodeURIComponent(grade.documentoAnexo!)}&origem=/grades/${id}`)}
+              onClick={() => router.push(`/viewer?arquivoId=${grade.documentoAnexoId}&nome=${encodeURIComponent(grade.documentoAnexo!)}&origem=/grades/${id}`)}
             >
               <Eye className="h-3 w-3" />
               Ver documento

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useFormacoes, db } from "@/lib/data-store";
-import { extractDocumentFields } from "@/lib/doc-extract";
 import {
   NIVEL_FORMATIVO_LABELS,
   MODALIDADE_LABELS,
@@ -24,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Paperclip, Upload, X } from "lucide-react";
+import { ArrowLeft, Loader2, Paperclip, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 const formadores = db.usuarios.load().filter((u) => u.ativo);
@@ -41,7 +40,7 @@ type FormState = {
   eixoNome: string;
   materialApoio: string;
   documentoNome: string;
-  documentoUrl: string;
+  documentoId: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -56,14 +55,16 @@ const EMPTY_FORM: FormState = {
   eixoNome: "",
   materialApoio: "",
   documentoNome: "",
-  documentoUrl: "",
+  documentoId: "",
 };
 
 export default function FormacaoFormPage({ id }: { id?: string }) {
   const router = useRouter();
   const [formacoes, setFormacoes] = useFormacoes();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const initialized = useRef(false);
   const isEditing = !!id;
 
@@ -83,7 +84,7 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
       eixoNome: f.eixoNome ?? "",
       materialApoio: f.materialApoio ?? "",
       documentoNome: f.documentoAnexo ?? "",
-      documentoUrl: localStorage.getItem(`doc_${id}`) ?? "",
+      documentoId: f.documentoAnexoId ?? "",
     });
     initialized.current = true;
   }, [id, formacoes]);
@@ -96,61 +97,87 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
     if (!file) return;
     setExtracting(true);
     try {
-      const { dataUrl } = await extractDocumentFields(file);
-      setForm((prev) => ({ ...prev, documentoNome: file.name, documentoUrl: dataUrl }));
-      toast.success("Documento anexado com sucesso.");
+      setDocumentoFile(file);
+      setForm((prev) => ({ ...prev, documentoNome: file.name, documentoId: "" }));
+      toast.success("Documento selecionado. Será salvo ao confirmar.");
     } finally {
       setExtracting(false);
     }
   }
 
   function removerDocumento() {
-    setForm((prev) => ({ ...prev, documentoNome: "", documentoUrl: "" }));
+    setDocumentoFile(null);
+    setForm((prev) => ({ ...prev, documentoNome: "", documentoId: "" }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.tema.trim()) return toast.error("Tema é obrigatório.");
     if (!form.formadorId) return toast.error("Selecione um formador.");
     const horas = Number(form.cargaHoraria);
     if (!horas || horas <= 0) return toast.error("Carga horária inválida.");
 
-    const formador = formadores.find((u) => u.id === form.formadorId);
-    const today = new Date().toISOString().split("T")[0];
-    const entId = id ?? `fm${Date.now()}`;
-    const existing = isEditing ? formacoes.find((f) => f.id === id) : undefined;
+    setSaving(true);
+    try {
+      const formador = formadores.find((u) => u.id === form.formadorId);
+      const today = new Date().toISOString().split("T")[0];
+      const entId = id ?? `fm${Date.now()}`;
+      const existing = isEditing ? formacoes.find((f) => f.id === id) : undefined;
 
-    const payload: Formacao = {
-      id: entId,
-      tema: form.tema.trim(),
-      objetivo: form.objetivo.trim(),
-      descricao: form.descricao.trim(),
-      nivelFormativo: form.nivelFormativo,
-      tipoFormacao: form.tipoFormacao,
-      formadorId: form.formadorId,
-      formadorNome: formador?.nome ?? "",
-      cargaHoraria: horas,
-      modalidade: form.modalidade,
-      eixoNome: form.eixoNome.trim() || undefined,
-      materialApoio: form.materialApoio.trim() || undefined,
-      documentoAnexo: form.documentoNome || undefined,
-      vezesUtilizada: existing?.vezesUtilizada ?? 0,
-      criadoEm: existing?.criadoEm ?? today,
-    };
+      let documentoAnexo = form.documentoNome || undefined;
+      let documentoAnexoId = form.documentoId || undefined;
 
-    if (form.documentoUrl) {
-      localStorage.setItem(`doc_${entId}`, form.documentoUrl);
-    } else if (!form.documentoNome && existing) {
-      localStorage.removeItem(`doc_${entId}`);
-    }
+      if (documentoFile) {
+        const fd = new FormData();
+        fd.append("file", documentoFile);
+        fd.append("entityType", "formacao");
+        fd.append("entityId", entId);
+        const res = await fetch("/api/arquivos", { method: "POST", body: fd });
+        if (!res.ok) {
+          toast.error(`Erro ao enviar documento: ${await res.text()}`);
+          return;
+        }
+        const uploaded = await res.json() as { id: string; nome: string };
+        if (existing?.documentoAnexoId) {
+          fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+        }
+        documentoAnexo = uploaded.nome;
+        documentoAnexoId = uploaded.id;
+      } else if (!form.documentoNome && existing?.documentoAnexoId) {
+        fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+        documentoAnexo = undefined;
+        documentoAnexoId = undefined;
+      }
 
-    if (isEditing && id) {
-      setFormacoes((prev) => prev.map((f) => (f.id === id ? payload : f)));
-      toast.success("Formação atualizada com sucesso!");
-      router.push(`/formacoes/${id}`);
-    } else {
-      setFormacoes((prev) => [...prev, payload]);
-      toast.success("Formação criada com sucesso!");
-      router.push("/formacoes");
+      const payload: Formacao = {
+        id: entId,
+        tema: form.tema.trim(),
+        objetivo: form.objetivo.trim(),
+        descricao: form.descricao.trim(),
+        nivelFormativo: form.nivelFormativo,
+        tipoFormacao: form.tipoFormacao,
+        formadorId: form.formadorId,
+        formadorNome: formador?.nome ?? "",
+        cargaHoraria: horas,
+        modalidade: form.modalidade,
+        eixoNome: form.eixoNome.trim() || undefined,
+        materialApoio: form.materialApoio.trim() || undefined,
+        documentoAnexo,
+        documentoAnexoId,
+        vezesUtilizada: existing?.vezesUtilizada ?? 0,
+        criadoEm: existing?.criadoEm ?? today,
+      };
+
+      if (isEditing && id) {
+        setFormacoes((prev) => prev.map((f) => (f.id === id ? payload : f)));
+        toast.success("Formação atualizada com sucesso!");
+        router.push(`/formacoes/${id}`);
+      } else {
+        setFormacoes((prev) => [...prev, payload]);
+        toast.success("Formação criada com sucesso!");
+        router.push("/formacoes");
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -262,6 +289,9 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
               <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/40">
                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="text-sm truncate flex-1">{form.documentoNome}</span>
+                {documentoFile && (
+                  <span className="text-xs text-amber-600 shrink-0">pendente de salvar</span>
+                )}
                 <button type="button" onClick={removerDocumento} className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -277,11 +307,11 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
         </div>
 
         <div className="flex items-center justify-end gap-2 mt-6 pt-4 border-t border-border/60">
-          <Button variant="outline" onClick={() => router.push(isEditing ? `/formacoes/${id}` : "/formacoes")}>
+          <Button variant="outline" onClick={() => router.push(isEditing ? `/formacoes/${id}` : "/formacoes")} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>
-            {isEditing ? "Salvar alterações" : "Criar formação"}
+          <Button onClick={handleSave} disabled={saving || extracting}>
+            {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando…</> : isEditing ? "Salvar alterações" : "Criar formação"}
           </Button>
         </div>
       </div>

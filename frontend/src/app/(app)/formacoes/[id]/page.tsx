@@ -63,7 +63,9 @@ export default function FormacaoDetalhePage() {
   }
 
   function handleDelete() {
-    localStorage.removeItem(`doc_${id}`);
+    if (formacao?.documentoAnexoId) {
+      fetch(`/api/arquivos/${formacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+    }
     setFormacoes((prev) => prev.filter((f) => f.id !== id));
     toast.success("Formação excluída.");
     router.push("/formacoes");
@@ -167,7 +169,7 @@ export default function FormacaoDetalhePage() {
               variant="ghost"
               size="sm"
               className="shrink-0 ml-2 h-7 text-xs gap-1 text-primary"
-              onClick={() => router.push(`/viewer?id=${id}&nome=${encodeURIComponent(formacao.documentoAnexo!)}&origem=/formacoes/${id}`)}
+              onClick={() => router.push(`/viewer?arquivoId=${formacao.documentoAnexoId}&nome=${encodeURIComponent(formacao.documentoAnexo!)}&origem=/formacoes/${id}`)}
             >
               <Eye className="h-3 w-3" />
               Ver documento

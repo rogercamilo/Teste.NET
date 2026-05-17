@@ -41,7 +41,7 @@ const DEFAULT_COMUNIDADE: ComunidadeConfig = {
 };
 
 // Bump this version whenever the entity schema changes to force a fresh load from mock data.
-const SCHEMA_VERSION = "7";
+const SCHEMA_VERSION = "8";
 const VERSION_KEY = "appForm:_version";
 
 const KEY = (entity: string) => `appForm:${entity}`;
