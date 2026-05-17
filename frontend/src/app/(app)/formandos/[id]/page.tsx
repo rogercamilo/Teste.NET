@@ -715,7 +715,7 @@ export default function FormandoDetailPage({
             Dados Pessoais
           </TabsTrigger>
           <TabsTrigger value="registros" className="text-xs h-7">
-            Registros
+            Registro de solicitações
           </TabsTrigger>
         </TabsList>
 
