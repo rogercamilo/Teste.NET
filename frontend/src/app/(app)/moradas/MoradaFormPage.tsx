@@ -496,25 +496,33 @@ export default function MoradaFormPage() {
                 </div>
               ))}
             </div>
+
+            {/* Ações */}
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                onClick={handleSave}
+                disabled={saving || !form.nome.trim()}
+                className="w-full"
+              >
+                {saving ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Criando...
+                  </span>
+                ) : (
+                  `Criar ${termoMorada.toLowerCase()}`
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push("/moradas")}
+              >
+                Cancelar
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Rodapé com ações */}
-      <div className="flex items-center justify-between pt-4 pb-6 border-t border-border/60">
-        <Button variant="outline" onClick={() => router.push("/moradas")}>
-          Cancelar
-        </Button>
-        <Button onClick={handleSave} disabled={saving || !form.nome.trim()}>
-          {saving ? (
-            <span className="flex items-center gap-2">
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Criando...
-            </span>
-          ) : (
-            `Criar ${termoMorada.toLowerCase()}`
-          )}
-        </Button>
       </div>
     </div>
   );
