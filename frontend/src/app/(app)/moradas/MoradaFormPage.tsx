@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useMoradas, useComunidade, db } from "@/lib/data-store";
+import { useMoradas, usePlanos, useGrades, useComunidade, db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -29,7 +29,6 @@ import {
   CheckCircle2,
   Home,
   Layers,
-  MapPin,
   User,
   Users,
 } from "lucide-react";
@@ -58,7 +57,6 @@ type FormState = {
   gradeId: string;
   vigenciaInicio: string;
   vigenciaFim: string;
-  endereco: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -69,7 +67,6 @@ const EMPTY_FORM: FormState = {
   gradeId: "",
   vigenciaInicio: "",
   vigenciaFim: "",
-  endereco: "",
 };
 
 const formadores = db.usuarios
@@ -81,8 +78,8 @@ export default function MoradaFormPage() {
   const [, setMoradas] = useMoradas();
   const [comunidade] = useComunidade();
   const termoMorada = comunidade.termoMorada?.trim() || "Morada";
-  const [allPlanos] = useState(() => db.planos.load());
-  const [allGrades] = useState(() => db.grades.load());
+  const [allPlanos] = usePlanos();
+  const [allGrades] = useGrades();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
@@ -138,7 +135,6 @@ export default function MoradaFormPage() {
       const payload: Morada = {
         id: `m${Date.now()}`,
         nome: form.nome.trim(),
-        endereco: form.endereco.trim() || undefined,
         nivelFormativo: form.nivelFormativo,
         formadorId: form.formadorId || undefined,
         planoId: form.planoId || undefined,
@@ -233,18 +229,6 @@ export default function MoradaFormPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Endereço</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                  <Input
-                    value={form.endereco}
-                    onChange={(e) => set("endereco")(e.target.value)}
-                    placeholder="Rua, bairro, cidade..."
-                    className="pl-8"
-                  />
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -281,10 +265,11 @@ export default function MoradaFormPage() {
               <SectionHeader icon={<User className="h-3.5 w-3.5 text-primary" />} title="Formador Responsável" />
 
               <div className="space-y-1.5">
-                <Label>Formador</Label>
+                <Label>Formador Comunitário (Responsável)</Label>
                 <Select
                   value={form.formadorId}
                   onValueChange={(v) => set("formadorId")(v ?? "")}
+                  items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o formador (opcional)..." />
@@ -324,6 +309,7 @@ export default function MoradaFormPage() {
                     set("planoId")(v ?? "");
                     set("gradeId")("");
                   }}
+                  items={Object.fromEntries(availablePlanos.map((p) => [p.id, p.nome]))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o plano..." />
@@ -349,6 +335,7 @@ export default function MoradaFormPage() {
                 <Select
                   value={form.gradeId}
                   onValueChange={(v) => v && set("gradeId")(v)}
+                  items={Object.fromEntries(availableGrades.map((g) => [g.id, `${g.nome} v${g.versao}`]))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a grade..." />
@@ -413,11 +400,6 @@ export default function MoradaFormPage() {
                         {hasFormador ? "Ativa" : "Inativa"}
                       </Badge>
                     </div>
-                    {form.endereco && (
-                      <p className="text-xs text-muted-foreground mt-1 truncate">
-                        {form.endereco}
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -542,7 +524,7 @@ function SectionHeader({
   icon,
   title,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
 }) {
   return (
