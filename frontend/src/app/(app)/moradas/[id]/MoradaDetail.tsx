@@ -601,10 +601,12 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                   <BookOpen className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-foreground">{plano.nome}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(parseISO(plano.vigenciaInicio), "dd/MM/yyyy")} —{" "}
-                      {format(parseISO(plano.vigenciaFim), "dd/MM/yyyy")}
-                    </p>
+                    {plano.vigenciaInicio && plano.vigenciaFim && (
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(plano.vigenciaInicio), "dd/MM/yyyy")} —{" "}
+                        {format(parseISO(plano.vigenciaFim), "dd/MM/yyyy")}
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (

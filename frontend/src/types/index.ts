@@ -86,8 +86,8 @@ export interface PlanoFormativo {
   fundamentacao: string;
   eixos: EixoPlano[];
   nivelFormativo: NivelFormativo;
-  vigenciaInicio: string;
-  vigenciaFim: string;
+  vigenciaInicio?: string;
+  vigenciaFim?: string;
   status: StatusPlano;
   documentoAnexo?: string;
   documentoAnexoId?: string;

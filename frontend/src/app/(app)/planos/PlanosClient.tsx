@@ -32,7 +32,6 @@ import {
 import {
   BookOpen,
   Calendar,
-  Clock,
   Eye,
   FileText,
   MoreHorizontal,
@@ -233,14 +232,8 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
                     <div className="flex flex-wrap gap-4 mt-3">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3 shrink-0" />
-                        <span className="text-muted-foreground/60">Criado:</span>
-                        {format(parseISO(plano.criadoEm), "dd/MM/yyyy", { locale: ptBR })}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3 shrink-0" />
-                        <span className="text-muted-foreground/60">Vigência:</span>
-                        {format(parseISO(plano.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })} —{" "}
-                        {format(parseISO(plano.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })}
+                        <span className="text-muted-foreground/60">Cadastrado em:</span>
+                        {format(parseISO(plano.criadoEm.split("T")[0]), "dd/MM/yyyy", { locale: ptBR })}
                       </div>
                       {totalCH > 0 && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

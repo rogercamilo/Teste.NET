@@ -30,8 +30,6 @@ type FormState = {
   objetivos: string;
   fundamentacao: string;
   nivelFormativo: NivelFormativo;
-  vigenciaInicio: string;
-  vigenciaFim: string;
   status: StatusPlano;
   eixos: EixoPlano[];
   documentoNome: string;
@@ -43,8 +41,6 @@ const EMPTY_FORM: FormState = {
   objetivos: "",
   fundamentacao: "",
   nivelFormativo: "pre-discipulado",
-  vigenciaInicio: "",
-  vigenciaFim: "",
   status: "rascunho",
   eixos: [],
   documentoNome: "",
@@ -77,8 +73,6 @@ export default function PlanoFormPage({ id }: { id?: string }) {
       objetivos: p.objetivos,
       fundamentacao: p.fundamentacao,
       nivelFormativo: p.nivelFormativo,
-      vigenciaInicio: p.vigenciaInicio,
-      vigenciaFim: p.vigenciaFim,
       status: p.status,
       eixos: p.eixos,
       documentoNome: p.documentoAnexo ?? "",
@@ -141,8 +135,6 @@ export default function PlanoFormPage({ id }: { id?: string }) {
 
   async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório.");
-    if (!form.vigenciaInicio || !form.vigenciaFim)
-      return toast.error("Datas de vigência são obrigatórias.");
 
     setSaving(true);
     try {
@@ -181,8 +173,6 @@ export default function PlanoFormPage({ id }: { id?: string }) {
         objetivos: form.objetivos.trim(),
         fundamentacao: form.fundamentacao.trim(),
         nivelFormativo: form.nivelFormativo,
-        vigenciaInicio: form.vigenciaInicio,
-        vigenciaFim: form.vigenciaFim,
         status: form.status,
         eixos: form.eixos,
         documentoAnexo,
@@ -243,17 +233,6 @@ export default function PlanoFormPage({ id }: { id?: string }) {
                 Já existe um plano para esta etapa: <span className="font-medium">{conflito.nome}</span>
               </p>
             )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Vigência início <span className="text-destructive">*</span></Label>
-              <Input type="date" value={form.vigenciaInicio} onChange={(e) => set("vigenciaInicio")(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Vigência fim <span className="text-destructive">*</span></Label>
-              <Input type="date" value={form.vigenciaFim} onChange={(e) => set("vigenciaFim")(e.target.value)} />
-            </div>
           </div>
 
           <div className="grid gap-1.5">

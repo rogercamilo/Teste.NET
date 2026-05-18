@@ -134,17 +134,10 @@ export default function PlanoDetalhePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="rounded-lg bg-muted/40 p-3">
-            <p className="text-xs text-muted-foreground mb-0.5">Data de criação</p>
+            <p className="text-xs text-muted-foreground mb-0.5">Data de cadastro</p>
             <p className="text-sm font-medium flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-              {format(parseISO(plano.criadoEm), "dd/MM/yyyy", { locale: ptBR })}
-            </p>
-          </div>
-          <div className="rounded-lg bg-muted/40 p-3">
-            <p className="text-xs text-muted-foreground mb-0.5">Período de vigência</p>
-            <p className="text-sm font-medium flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-              {format(parseISO(plano.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })} — {format(parseISO(plano.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })}
+              {format(parseISO(plano.criadoEm.split("T")[0]), "dd/MM/yyyy", { locale: ptBR })}
             </p>
           </div>
           {totalCH > 0 && (
