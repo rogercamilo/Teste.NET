@@ -44,9 +44,29 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
-  const row = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId }, include: { progressoEtapas: true } });
+  const row = await prisma.formando.findFirst({
+    where: { id, organizacaoId: user.organizacaoId },
+    include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
+  });
   if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-  return NextResponse.json(toFormando(row));
+
+  const { morada, ...rest } = row;
+  let totalFormacoes = rest.totalFormacoes;
+
+  if (morada?.gradeId) {
+    const grade = await prisma.gradeFormativa.findUnique({
+      where: { id: morada.gradeId },
+      select: { totalFormacoes: true },
+    });
+    if (grade && grade.totalFormacoes > 0) totalFormacoes = grade.totalFormacoes;
+  } else {
+    const count = await prisma.formacao.count({
+      where: { nivelFormativo: rest.nivelFormativo, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+    });
+    if (count > 0) totalFormacoes = count;
+  }
+
+  return NextResponse.json(toFormando({ ...rest, totalFormacoes }));
 }
 
 export async function PUT(request: Request, { params }: Params) {

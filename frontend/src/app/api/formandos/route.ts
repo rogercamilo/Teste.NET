@@ -60,10 +60,38 @@ export async function GET(request: Request) {
 
   const rows = await prisma.formando.findMany({
     where,
-    include: { progressoEtapas: true },
+    include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
     orderBy: { nome: "asc" },
   });
-  return NextResponse.json(rows.map(toFormando));
+
+  // Batch-fetch totalFormacoes from grades linked to moradas
+  const gradeIds = [...new Set(
+    rows.map((r) => r.morada?.gradeId).filter((id): id is string => !!id)
+  )];
+  const gradeMap = new Map<string, number>();
+  if (gradeIds.length > 0) {
+    const grades = await prisma.gradeFormativa.findMany({
+      where: { id: { in: gradeIds } },
+      select: { id: true, totalFormacoes: true },
+    });
+    for (const g of grades) gradeMap.set(g.id, g.totalFormacoes);
+  }
+
+  // Fallback: count registered formações per nivelFormativo in the org
+  const formacoesAgg = await prisma.formacao.groupBy({
+    by: ["nivelFormativo"],
+    where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+    _count: { id: true },
+  });
+  const countByNivel = new Map(formacoesAgg.map((c) => [c.nivelFormativo, c._count.id]));
+
+  return NextResponse.json(rows.map((r) => {
+    const { morada, ...rest } = r;
+    const gradeTotal = morada?.gradeId ? gradeMap.get(morada.gradeId) : undefined;
+    const nivelTotal = countByNivel.get(r.nivelFormativo);
+    const totalFormacoes = (gradeTotal ?? nivelTotal) || rest.totalFormacoes;
+    return toFormando({ ...rest, totalFormacoes });
+  }));
 }
 
 export async function POST(request: Request) {
