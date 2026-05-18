@@ -10,6 +10,8 @@ import {
   MODALIDADE_LABELS,
   totalRequerido,
   type Formando,
+  type GradeFormativa,
+  type Morada,
   type NivelFormativo,
   type Modalidade,
   type ProgressoEtapa,
@@ -54,7 +56,9 @@ import {
   AlertTriangle,
   Filter,
   LayoutGrid,
+  Link2,
   List,
+  Loader2,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -118,7 +122,8 @@ export default function FormandosPage() {
   const [formandos, setFormandos] = useFormandos();
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
-  const [allMoradas] = useState(() => db.moradas.load());
+  const [allMoradas, setAllMoradas] = useState<Morada[]>(() => db.moradas.load());
+  const [allGrades] = useState<GradeFormativa[]>(() => db.grades.load());
   const [search, setSearch] = useState("");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -126,6 +131,9 @@ export default function FormandosPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editing, setEditing] = useState<Formando | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [linkGradeState, setLinkGradeState] = useState<{ moradaId: string; nivelFormativo: NivelFormativo } | null>(null);
+  const [selectedGradeId, setSelectedGradeId] = useState("");
+  const [linkGradeSaving, setLinkGradeSaving] = useState(false);
 
   useEffect(() => {
     if (isFC && userMoradaId) {
@@ -236,6 +244,34 @@ export default function FormandosPage() {
     toast.success(`${termoFormando} excluído.`);
   }
 
+  async function handleVincularGrade() {
+    if (!linkGradeState || !selectedGradeId) return;
+    setLinkGradeSaving(true);
+    try {
+      const morada = allMoradas.find((m) => m.id === linkGradeState.moradaId);
+      if (!morada) return;
+      const res = await fetch(`/api/moradas/${linkGradeState.moradaId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...morada, gradeId: selectedGradeId }),
+      });
+      if (!res.ok) throw new Error();
+      const updated: Morada = await res.json();
+      const updatedMoradas = allMoradas.map((m) => (m.id === updated.id ? updated : m));
+      setAllMoradas(updatedMoradas);
+      db.moradas.save(updatedMoradas);
+      // Refresh formandos so totalFormacoes reflects the newly linked grade
+      setFormandos((prev) => [...prev]);
+      setLinkGradeState(null);
+      setSelectedGradeId("");
+      toast.success("Grade vinculada com sucesso!");
+    } catch {
+      toast.error("Falha ao vincular grade.");
+    } finally {
+      setLinkGradeSaving(false);
+    }
+  }
+
   const selectedMorada = allMoradas.find((m) => m.id === form.moradaId);
 
   return (
@@ -312,6 +348,10 @@ export default function FormandosPage() {
                 semGrade={semGrade}
                 onEdit={openEdit}
                 onDelete={openDelete}
+                onVincularGrade={!isFC ? (moradaId, nivel) => {
+                  setSelectedGradeId("");
+                  setLinkGradeState({ moradaId, nivelFormativo: nivel });
+                } : undefined}
               />
             );
           })}
@@ -538,6 +578,61 @@ export default function FormandosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Link Grade Dialog */}
+      <Dialog open={!!linkGradeState} onOpenChange={(open) => { if (!open) { setLinkGradeState(null); setSelectedGradeId(""); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Vincular grade à morada</DialogTitle>
+          </DialogHeader>
+          {linkGradeState && (() => {
+            const grades = allGrades.filter(
+              (g) => g.nivelFormativo === linkGradeState.nivelFormativo && g.ativo
+            );
+            return (
+              <div className="space-y-4 py-2">
+                <p className="text-sm text-muted-foreground">
+                  Selecione a grade formativa para{" "}
+                  <span className="font-medium text-foreground">
+                    {NIVEL_FORMATIVO_LABELS[linkGradeState.nivelFormativo]}
+                  </span>
+                  .
+                </p>
+                {grades.length === 0 ? (
+                  <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                    Nenhuma grade ativa encontrada para este nível.
+                  </p>
+                ) : (
+                  <Select value={selectedGradeId} onValueChange={(v) => v && setSelectedGradeId(v)} items={Object.fromEntries(grades.map((g) => [g.id, g.nome || g.planoNome]))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a grade..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {grades.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          <span>{g.nome || g.planoNome}</span>
+                          {g.totalFormacoes > 0 && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              · {g.totalFormacoes} formações
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setLinkGradeState(null); setSelectedGradeId(""); }}>Cancelar</Button>
+            <Button onClick={handleVincularGrade} disabled={!selectedGradeId || linkGradeSaving}>
+              {linkGradeSaving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              Vincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -547,11 +642,13 @@ function FormandoCard({
   semGrade,
   onEdit,
   onDelete,
+  onVincularGrade,
 }: {
   formando: Formando;
   semGrade: boolean;
   onEdit: (f: Formando, e: React.MouseEvent) => void;
   onDelete: (f: Formando, e: React.MouseEvent) => void;
+  onVincularGrade?: (moradaId: string, nivelFormativo: NivelFormativo) => void;
 }) {
   const progresso = Math.round(
     (formando.formacoesRealizadas / formando.totalFormacoes) * 100
@@ -613,9 +710,20 @@ function FormandoCard({
           </div>
           <Progress value={progresso} className="h-1.5" />
           {semGrade && (
-            <div className="flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-xs text-amber-700 mt-1">
-              <AlertTriangle className="h-3 w-3 shrink-0" />
-              <span>Morada sem grade vinculada</span>
+            <div className="flex items-center justify-between gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-xs text-amber-700 mt-1">
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                <span>Morada sem grade vinculada</span>
+              </div>
+              {onVincularGrade && formando.moradaId && (
+                <button
+                  onClick={(e) => { e.preventDefault(); onVincularGrade(formando.moradaId!, formando.nivelFormativo); }}
+                  className="flex items-center gap-1 font-medium underline underline-offset-2 hover:text-amber-900 transition-colors whitespace-nowrap"
+                >
+                  <Link2 className="h-3 w-3" />
+                  Vincular
+                </button>
+              )}
             </div>
           )}
         </div>
