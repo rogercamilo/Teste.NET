@@ -51,6 +51,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertTriangle,
   Filter,
   LayoutGrid,
   List,
@@ -301,14 +302,19 @@ export default function FormandosPage() {
 
       {view === "grid" && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((formando) => (
-            <FormandoCard
-              key={formando.id}
-              formando={formando}
-              onEdit={openEdit}
-              onDelete={openDelete}
-            />
-          ))}
+          {filtered.map((formando) => {
+            const morada = formando.moradaId ? allMoradas.find((m) => m.id === formando.moradaId) : null;
+            const semGrade = !!formando.moradaId && !morada?.gradeId;
+            return (
+              <FormandoCard
+                key={formando.id}
+                formando={formando}
+                semGrade={semGrade}
+                onEdit={openEdit}
+                onDelete={openDelete}
+              />
+            );
+          })}
         </div>
       )}
 
@@ -356,12 +362,23 @@ export default function FormandosPage() {
                       {format(parseISO(formando.dataIngresso), "MMM yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <div className="flex items-center gap-2">
-                        <Progress value={progresso} className="h-1.5 w-20" />
-                        <span className="text-xs text-muted-foreground">
-                          {formando.formacoesRealizadas}/{formando.totalFormacoes}
-                        </span>
-                      </div>
+                      {(() => {
+                        const morada = formando.moradaId ? allMoradas.find((m) => m.id === formando.moradaId) : null;
+                        const semGrade = !!formando.moradaId && !morada?.gradeId;
+                        return (
+                          <div className="flex items-center gap-2">
+                            <Progress value={progresso} className="h-1.5 w-20" />
+                            <span className="text-xs text-muted-foreground">
+                              {formando.formacoesRealizadas}/{formando.totalFormacoes}
+                            </span>
+                            {semGrade && (
+                              <span title="Morada sem grade vinculada">
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -527,10 +544,12 @@ export default function FormandosPage() {
 
 function FormandoCard({
   formando,
+  semGrade,
   onEdit,
   onDelete,
 }: {
   formando: Formando;
+  semGrade: boolean;
   onEdit: (f: Formando, e: React.MouseEvent) => void;
   onDelete: (f: Formando, e: React.MouseEvent) => void;
 }) {
@@ -593,6 +612,12 @@ function FormandoCard({
             </span>
           </div>
           <Progress value={progresso} className="h-1.5" />
+          {semGrade && (
+            <div className="flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-xs text-amber-700 mt-1">
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              <span>Morada sem grade vinculada</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
