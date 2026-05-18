@@ -357,6 +357,23 @@ export default function MoradaFormPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Ações — encerram o fluxo do formulário */}
+          <div className="flex items-center justify-between pt-2 pb-2 border-t border-border/60">
+            <Button variant="outline" onClick={() => router.push("/moradas")}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} disabled={saving || !form.nome.trim()}>
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Criando...
+                </span>
+              ) : (
+                `Criar ${termoMorada.toLowerCase()}`
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Preview + Checklist — ocupa 1/3 */}
@@ -497,30 +514,6 @@ export default function MoradaFormPage() {
               ))}
             </div>
 
-            {/* Ações */}
-            <div className="flex flex-col gap-2 pt-2">
-              <Button
-                onClick={handleSave}
-                disabled={saving || !form.nome.trim()}
-                className="w-full"
-              >
-                {saving ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Criando...
-                  </span>
-                ) : (
-                  `Criar ${termoMorada.toLowerCase()}`
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => router.push("/moradas")}
-              >
-                Cancelar
-              </Button>
-            </div>
           </div>
         </div>
       </div>
