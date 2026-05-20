@@ -54,6 +54,13 @@ export async function POST(request: Request) {
     const body = await request.json() as Partial<Morada>;
     if (!body.nome?.trim()) return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
 
+    if (body.formadorId) {
+      const formador = await prisma.usuario.findFirst({
+        where: { id: body.formadorId, organizacaoId: user.organizacaoId },
+      });
+      if (!formador) return NextResponse.json({ error: "Formador não encontrado" }, { status: 400 });
+    }
+
     const row = await prisma.morada.create({
       data: {
         organizacaoId: user.organizacaoId,

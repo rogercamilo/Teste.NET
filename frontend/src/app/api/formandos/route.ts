@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import type { Formando, ProgressoEtapa } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
 
 type PrismaFormando = {
   id: string; organizacaoId: string; nome: string; dataNascimento: Date;
@@ -56,7 +56,13 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const moradaId = searchParams.get("moradaId");
   const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
-  if (moradaId) where.moradaId = moradaId;
+
+  if (user.role === "formador_comunitario") {
+    // Formador comunitário só vê formandos da sua própria morada
+    where.moradaId = user.moradaId ?? null;
+  } else if (moradaId) {
+    where.moradaId = moradaId;
+  }
 
   const rows = await prisma.formando.findMany({
     where,

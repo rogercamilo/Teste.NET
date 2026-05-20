@@ -17,20 +17,11 @@ export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
   const original = await prisma.gradeFormativa.findFirst({
-    where: { id },
+    where: { id, OR: [{ isGlobal: true }, { organizacaoId: user.organizacaoId }] },
     include: { eixos: { include: { etapas: true } } },
   });
 
   if (!original) return NextResponse.json({ error: "Grade não encontrada" }, { status: 404 });
-
-  const isGlobalOrSameTenant =
-    original.isGlobal ||
-    original.organizacaoId === null ||
-    original.organizacaoId === user.organizacaoId;
-
-  if (!isGlobalOrSameTenant) {
-    return NextResponse.json({ error: "Sem permissão para clonar esta grade" }, { status: 403 });
-  }
 
   const clone = await prisma.$transaction(async (tx) => {
     const newGrade = await tx.gradeFormativa.create({

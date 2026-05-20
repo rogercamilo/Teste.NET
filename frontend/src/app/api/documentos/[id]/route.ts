@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteFile, readLocalFile, localFileExists } from "@/lib/storage";
+import { logAction, getClientIp } from "@/lib/audit-log";
 import { type NextRequest } from "next/server";
 
 type SessionUser = { id?: string; role?: string; moradaId?: string | null; organizacaoId?: string };
@@ -86,5 +87,6 @@ export async function DELETE(
   await deleteFile(doc.storageKey);
   await prisma.arquivo.delete({ where: { id } });
 
+  logAction("document_deleted", user.id, getClientIp(_request), { documentoId: id }, user.organizacaoId);
   return Response.json({ ok: true });
 }

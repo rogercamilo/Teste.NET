@@ -17,21 +17,11 @@ export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
   const original = await prisma.planoFormativo.findFirst({
-    where: { id },
+    where: { id, OR: [{ isGlobal: true }, { organizacaoId: user.organizacaoId }] },
     include: { eixos: true },
   });
 
   if (!original) return NextResponse.json({ error: "Plano não encontrado" }, { status: 404 });
-
-  // Verifica se é global ou pertence ao mesmo tenant
-  const isGlobalOrSameTenant =
-    original.isGlobal ||
-    original.organizacaoId === null ||
-    original.organizacaoId === user.organizacaoId;
-
-  if (!isGlobalOrSameTenant) {
-    return NextResponse.json({ error: "Sem permissão para clonar este plano" }, { status: 403 });
-  }
 
   const clone = await prisma.$transaction(async (tx) => {
     return tx.planoFormativo.create({

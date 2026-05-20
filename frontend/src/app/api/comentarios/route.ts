@@ -53,6 +53,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "formandoId e texto são obrigatórios" }, { status: 400 });
     }
 
+    const formando = await prisma.formando.findFirst({
+      where: { id: body.formandoId, organizacaoId: user.organizacaoId },
+    });
+    if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
+
     const row = await prisma.comentarioFormando.create({
       data: {
         organizacaoId: user.organizacaoId,

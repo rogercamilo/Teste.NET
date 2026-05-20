@@ -29,7 +29,10 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
-  const row = await prisma.planoFormativo.findFirst({ where: { id, organizacaoId: user.organizacaoId }, include: { eixos: true } });
+  const row = await prisma.planoFormativo.findFirst({
+    where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+    include: { eixos: true },
+  });
   if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   return NextResponse.json(toPlano(row));
 }

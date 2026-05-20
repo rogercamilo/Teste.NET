@@ -30,7 +30,10 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
-  const row = await prisma.gradeFormativa.findFirst({ where: { id }, include: { eixos: { include: { etapas: true } } } });
+  const row = await prisma.gradeFormativa.findFirst({
+    where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+    include: { eixos: { include: { etapas: true } } },
+  });
   if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   return NextResponse.json(toGrade(row));
 }
@@ -42,7 +45,7 @@ export async function PUT(request: Request, { params }: Params) {
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const { id } = await params;
   try {
-    const existing = await prisma.gradeFormativa.findFirst({ where: { id } });
+    const existing = await prisma.gradeFormativa.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     const body = await request.json() as Partial<GradeFormativa>;
 
@@ -80,7 +83,7 @@ export async function DELETE(request: Request, { params }: Params) {
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const { id } = await params;
   try {
-    const existing = await prisma.gradeFormativa.findFirst({ where: { id } });
+    const existing = await prisma.gradeFormativa.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     await prisma.gradeFormativa.delete({ where: { id } });
     logAction("grade_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);

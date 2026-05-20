@@ -64,11 +64,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.organizacaoId = dbUser.organizacaoId;
             token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
           } else {
-            token.id = user.id ?? `g_${Date.now()}`;
-            token.role = "formador_comunitario";
-            token.moradaId = null;
-            token.organizacaoId = null;
-            token.primeiroAcesso = false;
+            // Google user sem registo na BD → acesso negado
+            // Apenas utilizadores convidados por e-mail podem aceder (D0.4)
+            throw new Error("Utilizador não autorizado. Solicite um convite para aceder à plataforma.");
           }
         } else {
           token.id = user.id;

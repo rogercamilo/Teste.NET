@@ -20,7 +20,9 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
-  const row = await prisma.formacao.findFirst({ where: { id } });
+  const row = await prisma.formacao.findFirst({
+    where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+  });
   if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   return NextResponse.json(toFormacao(row));
 }
@@ -32,7 +34,7 @@ export async function PUT(request: Request, { params }: Params) {
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const { id } = await params;
   try {
-    const existing = await prisma.formacao.findFirst({ where: { id } });
+    const existing = await prisma.formacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     const body = await request.json() as Partial<Formacao>;
     const updated = await prisma.formacao.update({ where: { id }, data: { tema: body.tema?.trim(), objetivo: body.objetivo, descricao: body.descricao, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, eixoId: body.eixoId || null, eixoNome: body.eixoNome || null, etapaId: body.etapaId || null, etapaNome: body.etapaNome || null, formadorNome: body.formadorNome, cargaHoraria: body.cargaHoraria, modalidade: body.modalidade, materialApoio: body.materialApoio || null, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null, gradeId: body.gradeId || null, gradeNome: body.gradeNome || null, vezesUtilizada: body.vezesUtilizada } });
@@ -48,7 +50,7 @@ export async function DELETE(request: Request, { params }: Params) {
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const { id } = await params;
   try {
-    const existing = await prisma.formacao.findFirst({ where: { id } });
+    const existing = await prisma.formacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     await prisma.formacao.delete({ where: { id } });
     logAction("formacao_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);

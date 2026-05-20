@@ -16,18 +16,11 @@ export async function POST(request: Request, { params }: Params) {
 
   const { id } = await params;
 
-  const original = await prisma.formacao.findFirst({ where: { id } });
+  const original = await prisma.formacao.findFirst({
+    where: { id, OR: [{ isGlobal: true }, { organizacaoId: user.organizacaoId }] },
+  });
 
   if (!original) return NextResponse.json({ error: "Formação não encontrada" }, { status: 404 });
-
-  const isGlobalOrSameTenant =
-    original.isGlobal ||
-    original.organizacaoId === null ||
-    original.organizacaoId === user.organizacaoId;
-
-  if (!isGlobalOrSameTenant) {
-    return NextResponse.json({ error: "Sem permissão para clonar esta formação" }, { status: 403 });
-  }
 
   const clone = await prisma.formacao.create({
     data: {

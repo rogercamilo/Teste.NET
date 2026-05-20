@@ -21,7 +21,8 @@ export async function POST(request: Request) {
   }
 
   const userId = (session.user as { id: string }).id;
-  const user = await findById(userId);
+  const organizacaoId = (session.user as { organizacaoId?: string }).organizacaoId;
+  const user = await findById(userId, organizacaoId);
   if (!user) {
     return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
   }

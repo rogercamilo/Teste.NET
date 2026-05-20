@@ -53,6 +53,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "agendamentoId e formandoId são obrigatórios" }, { status: 400 });
     }
 
+    const agendamento = await prisma.agendamento.findFirst({
+      where: { id: body.agendamentoId, organizacaoId: user.organizacaoId },
+    });
+    if (!agendamento) return NextResponse.json({ error: "Agendamento não encontrado" }, { status: 404 });
+
+    const formando = await prisma.formando.findFirst({
+      where: { id: body.formandoId, organizacaoId: user.organizacaoId },
+    });
+    if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
+
     const row = await prisma.presencaFormacao.upsert({
       where: { agendamentoId_formandoId: { agendamentoId: body.agendamentoId, formandoId: body.formandoId } },
       create: {

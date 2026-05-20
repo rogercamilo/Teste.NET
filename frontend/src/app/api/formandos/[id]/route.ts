@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import type { Formando, ProgressoEtapa } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
 type Params = { params: Promise<{ id: string }> };
 
 type PrismaFormando = {
@@ -44,8 +44,11 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
+  const where: Record<string, unknown> = { id, organizacaoId: user.organizacaoId };
+  if (user.role === "formador_comunitario") where.moradaId = user.moradaId ?? null;
+
   const row = await prisma.formando.findFirst({
-    where: { id, organizacaoId: user.organizacaoId },
+    where,
     include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
   });
   if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });

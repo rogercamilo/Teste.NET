@@ -33,6 +33,14 @@ export async function PUT(request: Request, { params }: Params) {
     const existing = await prisma.morada.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     const body = await request.json() as Partial<Morada>;
+
+    if (body.formadorId) {
+      const formador = await prisma.usuario.findFirst({
+        where: { id: body.formadorId, organizacaoId: user.organizacaoId },
+      });
+      if (!formador) return NextResponse.json({ error: "Formador não encontrado" }, { status: 400 });
+    }
+
     const updated = await prisma.morada.update({
       where: { id },
       data: { nome: body.nome?.trim(), endereco: body.endereco || null, nivelFormativo: body.nivelFormativo, formadorId: body.formadorId || null, planoId: body.planoId || null, gradeId: body.gradeId || null, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null, ativo: body.ativo },

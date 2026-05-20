@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
+import { logAction, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import { type NextRequest } from "next/server";
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -23,6 +25,14 @@ export async function POST(request: NextRequest) {
   if (!session?.user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const user = session.user as SessionUser;
+
+  const rl = limiters.upload(user.id ?? "unknown");
+  if (!rl.allowed) {
+    return Response.json(
+      { error: "Limite de uploads atingido. Tente novamente mais tarde." },
+      { status: 429 }
+    );
+  }
 
   let formData: FormData;
   try {
@@ -81,6 +91,13 @@ export async function POST(request: NextRequest) {
       moradaId: moradaId ?? null,
     },
   });
+
+  logAction("document_uploaded", user.id, getClientIp(request), {
+    documentoId: documento.id,
+    eventoId,
+    formandoId,
+    tamanho: file.size,
+  }, orgId);
 
   return Response.json(
     { id: documento.id, nome: documento.nome, tamanho: documento.tamanho, tipo: documento.tipo, criadoEm: documento.criadoEm.toISOString() },
