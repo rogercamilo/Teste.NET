@@ -23,6 +23,15 @@ export async function POST(request: Request, { params }: Params) {
 
   if (!original) return NextResponse.json({ error: "Grade não encontrada" }, { status: 404 });
 
+  // Validate the referenced plano is accessible (global or tenant's own)
+  const planoAcessivel = await prisma.planoFormativo.findFirst({
+    where: { id: original.planoId, OR: [{ isGlobal: true }, { organizacaoId: user.organizacaoId }] },
+    select: { id: true },
+  });
+  if (!planoAcessivel) {
+    return NextResponse.json({ error: "Plano da grade não está acessível para esta organização" }, { status: 422 });
+  }
+
   const clone = await prisma.$transaction(async (tx) => {
     const newGrade = await tx.gradeFormativa.create({
       data: {
