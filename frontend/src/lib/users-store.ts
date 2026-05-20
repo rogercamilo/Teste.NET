@@ -114,12 +114,20 @@ export async function findByEmail(
   return user ? toUserAuth(user) : undefined;
 }
 
+// Searches across all orgs — used for multi-tenant login and Google OAuth
+export async function findByEmailGlobal(email: string): Promise<UserAuth | undefined> {
+  const user = await prisma.usuario.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+  });
+  return user ? toUserAuth(user) : undefined;
+}
+
 export async function findById(
   id: string,
-  organizacaoId: string = DEFAULT_ORG_ID
+  organizacaoId?: string
 ): Promise<UserAuth | undefined> {
   const user = await prisma.usuario.findFirst({
-    where: { id, organizacaoId },
+    where: organizacaoId ? { id, organizacaoId } : { id },
   });
   return user ? toUserAuth(user) : undefined;
 }
@@ -130,6 +138,17 @@ export async function authenticate(
   organizacaoId: string = DEFAULT_ORG_ID
 ): Promise<UserAuth | null> {
   const user = await findByEmail(email, organizacaoId);
+  if (!user || !user.ativo || !user.passwordHash) return null;
+  if (!verifyPassword(password, user.passwordHash)) return null;
+  return user;
+}
+
+// Multi-tenant login: searches by email across all orgs
+export async function authenticateGlobal(
+  email: string,
+  password: string
+): Promise<UserAuth | null> {
+  const user = await findByEmailGlobal(email);
   if (!user || !user.ativo || !user.passwordHash) return null;
   if (!verifyPassword(password, user.passwordHash)) return null;
   return user;

@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
-import { authenticate, findByEmail, findById } from "@/lib/users-store";
+import { authenticateGlobal, findByEmailGlobal, findById } from "@/lib/users-store";
 import { authConfig } from "@/auth.config";
 
 const providers: NextAuthConfig["providers"] = [
@@ -15,7 +15,7 @@ const providers: NextAuthConfig["providers"] = [
     async authorize(credentials) {
       if (!credentials?.email || !credentials?.password) return null;
 
-      const user = await authenticate(
+      const user = await authenticateGlobal(
         credentials.email as string,
         credentials.password as string
       );
@@ -56,7 +56,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, account }) {
       if (user) {
         if (account?.provider === "google") {
-          const dbUser = await findByEmail(user.email!);
+          const dbUser = await findByEmailGlobal(user.email!);
           if (dbUser) {
             token.id = dbUser.id;
             token.role = dbUser.perfil;
