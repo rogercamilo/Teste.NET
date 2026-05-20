@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
-import { saveArquivo } from "@/lib/arquivos-store";
+import { prisma } from "@/lib/prisma";
+import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { type NextRequest } from "next/server";
@@ -12,13 +13,45 @@ const ALLOWED_TYPES: Record<string, string> = {
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
-type SessionUser = { id?: string; role?: string; name?: string | null };
+type SessionUser = { id?: string; role?: string; name?: string | null; organizacaoId?: string };
+
+export async function GET(request: NextRequest) {
+  const session = await auth();
+  const user = session?.user as SessionUser | undefined;
+  if (!user?.id) return Response.json({ error: "Não autenticado" }, { status: 401 });
+
+  const url = new URL(request.url);
+  const entityType = url.searchParams.get("entityType") ?? undefined;
+  const entityId = url.searchParams.get("entityId") ?? undefined;
+
+  const where = {
+    organizacaoId: user.organizacaoId,
+    ...(entityType ? { entityType } : {}),
+    ...(entityId ? { entityId } : {}),
+  };
+
+  const arquivos = await prisma.arquivo.findMany({
+    where,
+    orderBy: { criadoEm: "desc" },
+  });
+
+  return Response.json(
+    arquivos.map((a) => ({
+      id: a.id,
+      nome: a.nome,
+      tamanho: a.tamanho,
+      tipo: a.tipo,
+      extensao: a.extensao,
+      entityType: a.entityType,
+      entityId: a.entityId,
+      criadoEm: a.criadoEm.toISOString(),
+    }))
+  );
+}
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session?.user) {
-    return Response.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  if (!session?.user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const user = session.user as SessionUser;
 
@@ -58,30 +91,39 @@ export async function POST(request: NextRequest) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  const orgId = user.organizacaoId ?? "default";
 
-  const meta = saveArquivo(
-    {
-      entityType,
-      entityId,
-      // Armazena nome original apenas para exibição; o arquivo no disco usa o ID gerado.
+  let storageKey: string;
+  try {
+    storageKey = await uploadFile(orgId, "arquivos", buffer, extensao, file.type);
+  } catch {
+    return Response.json({ error: "Falha ao salvar arquivo." }, { status: 500 });
+  }
+
+  const arquivo = await prisma.arquivo.create({
+    data: {
+      organizacaoId: orgId,
       nome: file.name,
       tamanho: file.size,
       tipo: file.type,
       extensao,
-      uploadadoPor: user.id ?? "unknown",
+      storageKey,
+      uploadedById: user.id,
+      uploadedByNome: user.name ?? null,
+      entityType,
+      entityId,
     },
-    buffer
-  );
+  });
 
   logAction("file_uploaded", user.id, getClientIp(request), {
-    arquivoId: meta.id,
+    arquivoId: arquivo.id,
     entityType,
     entityId,
     tamanho: file.size,
-  });
+  }, orgId);
 
   return Response.json(
-    { id: meta.id, nome: meta.nome, tamanho: meta.tamanho, tipo: meta.tipo, criadoEm: meta.criadoEm },
+    { id: arquivo.id, nome: arquivo.nome, tamanho: arquivo.tamanho, tipo: arquivo.tipo, criadoEm: arquivo.criadoEm.toISOString() },
     { status: 201 }
   );
 }

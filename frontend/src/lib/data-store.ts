@@ -4,9 +4,8 @@
  * The `db` object provides a synchronous in-memory cache for non-reactive reads
  * (e.g. `db.moradas.load()` in useState initialisers); it is populated when hooks load.
  *
- * Backward compatibility: the `[data, setter]` hook interface is preserved.
- * The setter applies an optimistic update immediately, then syncs to the API in the
- * background and refreshes state from the server response.
+ * D2.6: localStorage removido completamente. Fonte de verdade é a API/PostgreSQL.
+ * Fallback de desenvolvimento: mock-data (apenas enquanto a API não responde).
  */
 import React, { useState, useEffect, useRef } from "react";
 import type {
@@ -43,43 +42,12 @@ import {
 const mem: Record<string, unknown[]> = {};
 
 // ---------------------------------------------------------------------------
-// Legacy localStorage helpers (kept for cache warm-up on first render)
-// ---------------------------------------------------------------------------
-const SCHEMA_VERSION = "8";
-const VERSION_KEY = "appForm:_version";
-const KEY = (e: string) => `appForm:${e}`;
-
-function ensureFreshSchema() {
-  if (typeof window === "undefined") return;
-  if (localStorage.getItem(VERSION_KEY) !== SCHEMA_VERSION) {
-    Object.keys(localStorage)
-      .filter((k) => k.startsWith("appForm:") && k !== VERSION_KEY)
-      .forEach((k) => localStorage.removeItem(k));
-    localStorage.setItem(VERSION_KEY, SCHEMA_VERSION);
-  }
-}
-
-function lsRead<T>(entity: string, fallback: T[]): T[] {
-  if (typeof window === "undefined") return fallback;
-  ensureFreshSchema();
-  try {
-    const raw = localStorage.getItem(KEY(entity));
-    return raw ? (JSON.parse(raw) as T[]) : fallback;
-  } catch { return fallback; }
-}
-
-function lsWrite<T>(entity: string, data: T[]): void {
-  if (typeof window === "undefined") return;
-  try { localStorage.setItem(KEY(entity), JSON.stringify(data)); } catch { /* quota */ }
-}
-
-// ---------------------------------------------------------------------------
-// db — synchronous interface (reads from mem cache, falls back to localStorage)
+// db — interface síncrona (lê do cache em memória, fallback para mock-data)
 // ---------------------------------------------------------------------------
 function makeDbEntity<T>(entity: string, fallback: T[]) {
   return {
-    load: (): T[] => (mem[entity] as T[] | undefined) ?? lsRead(entity, fallback),
-    save: (d: T[]): void => { mem[entity] = d; lsWrite(entity, d); },
+    load: (): T[] => (mem[entity] as T[] | undefined) ?? fallback,
+    save: (d: T[]): void => { mem[entity] = d; },
   };
 }
 
@@ -223,9 +191,8 @@ export function useFormandos(): [Formando[], Setter<Formando>] {
   return useApiEntity("formandos", db.formandos);
 }
 export function useHistorico(): [HistoricoFormando[], Setter<HistoricoFormando>] {
-  // Histórico (HistoricoFormando) não tem endpoint próprio ainda — mantém localStorage
+  // HistoricoFormando é derivado das presenças — sem endpoint próprio; usa cache em memória.
   const [s, ss] = useState<HistoricoFormando[]>(() => db.historico.load());
-  useEffect(() => { ss(db.historico.load()); }, []);
   const setter: Setter<HistoricoFormando> = (updater) => {
     ss((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
@@ -242,7 +209,6 @@ export function usePresencas(): [PresencaFormacao[], Setter<PresencaFormacao>] {
   return useApiEntity("presencas", db.presencas);
 }
 export function useUsuarios(): [Usuario[], Setter<Usuario>] {
-  // Usuários são geridos via /api/users — mantém compatibilidade com hook local
   const [s, ss] = useState<Usuario[]>(() => db.usuarios.load());
   useEffect(() => {
     fetch("/api/users")

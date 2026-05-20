@@ -1,35 +1,23 @@
 import { auth } from "@/auth";
-import {
-  findDocumento,
-  deleteDocumento,
-  getDocumentoFilePath,
-} from "@/lib/documentos-store";
-import { existsSync, readFileSync } from "fs";
+import { prisma } from "@/lib/prisma";
+import { deleteFile, readLocalFile, localFileExists } from "@/lib/storage";
 import { type NextRequest } from "next/server";
 
-type SessionUser = {
-  id?: string;
-  role?: string;
-  moradaId?: string | null;
-};
+type SessionUser = { id?: string; role?: string; moradaId?: string | null; organizacaoId?: string };
 
 function canRead(
-  meta: { moradaId?: string; uploadadoPor: string },
+  doc: { uploadedById: string | null; moradaId: string | null },
   user: SessionUser
 ): boolean {
   if (user.role === "administrador" || user.role === "formador_geral") return true;
-  if (meta.uploadadoPor === user.id) return true;
-  if (meta.moradaId && meta.moradaId === user.moradaId) return true;
+  if (doc.uploadedById === user.id) return true;
+  if (doc.moradaId && doc.moradaId === user.moradaId) return true;
   return false;
 }
 
-function canDelete(
-  meta: { uploadadoPor: string },
-  user: SessionUser
-): boolean {
+function canDelete(doc: { uploadedById: string | null }, user: SessionUser): boolean {
   if (user.role === "administrador" || user.role === "formador_geral") return true;
-  if (meta.uploadadoPor === user.id) return true;
-  return false;
+  return doc.uploadedById === user.id;
 }
 
 export async function GET(
@@ -37,34 +25,42 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user) {
-    return Response.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  if (!session?.user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const { id } = await params;
-  const meta = findDocumento(id);
-
-  if (!meta) {
-    return Response.json({ error: "Documento não encontrado" }, { status: 404 });
-  }
-
   const user = session.user as SessionUser;
-  if (!canRead(meta, user)) {
-    return Response.json({ error: "Acesso negado" }, { status: 403 });
+
+  const doc = await prisma.arquivo.findFirst({
+    where: { id, organizacaoId: user.organizacaoId },
+  });
+
+  if (!doc) return Response.json({ error: "Documento não encontrado" }, { status: 404 });
+  if (!canRead(doc, user)) return Response.json({ error: "Acesso negado" }, { status: 403 });
+
+  // R2: redireciona para pre-signed URL
+  if (
+    process.env.R2_ACCOUNT_ID &&
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY &&
+    process.env.R2_BUCKET_NAME
+  ) {
+    const { getFileUrl } = await import("@/lib/storage");
+    const url = await getFileUrl(doc.storageKey, doc.id);
+    return Response.redirect(url, 302);
   }
 
-  const filePath = getDocumentoFilePath(meta);
-  if (!existsSync(filePath)) {
+  // Local: serve do disco
+  if (!localFileExists(doc.storageKey)) {
     return Response.json({ error: "Arquivo não encontrado no servidor" }, { status: 404 });
   }
 
-  const fileBuffer = readFileSync(filePath);
+  const fileBuffer = readLocalFile(doc.storageKey);
 
-  return new Response(fileBuffer, {
+  return new Response(new Uint8Array(fileBuffer), {
     headers: {
-      "Content-Type": meta.tipo,
-      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(meta.nome)}`,
-      "Content-Length": String(meta.tamanho),
+      "Content-Type": doc.tipo,
+      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(doc.nome)}`,
+      "Content-Length": String(doc.tamanho),
       "Cache-Control": "private, no-cache",
     },
   });
@@ -75,22 +71,20 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user) {
-    return Response.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  if (!session?.user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const { id } = await params;
-  const meta = findDocumento(id);
-
-  if (!meta) {
-    return Response.json({ error: "Documento não encontrado" }, { status: 404 });
-  }
-
   const user = session.user as SessionUser;
-  if (!canDelete(meta, user)) {
-    return Response.json({ error: "Acesso negado" }, { status: 403 });
-  }
 
-  deleteDocumento(id);
+  const doc = await prisma.arquivo.findFirst({
+    where: { id, organizacaoId: user.organizacaoId },
+  });
+
+  if (!doc) return Response.json({ error: "Documento não encontrado" }, { status: 404 });
+  if (!canDelete(doc, user)) return Response.json({ error: "Acesso negado" }, { status: 403 });
+
+  await deleteFile(doc.storageKey);
+  await prisma.arquivo.delete({ where: { id } });
+
   return Response.json({ ok: true });
 }

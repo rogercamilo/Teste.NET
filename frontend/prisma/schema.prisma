@@ -93,8 +93,9 @@ model Usuario {
   comentarios    ComentarioFormando[]
   eventos        EventoFormando[]
   compromissos   Compromisso[]
-  formacoesCriadas Formacao[]
-  agendamentos   Agendamento[]
+  formacoesCriadas   Formacao[]
+  agendamentos       Agendamento[]
+  privacyAcceptances PrivacyAcceptance[]
 
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
@@ -491,26 +492,83 @@ model Compromisso {
 
 // ==========================================================
 // ARQUIVO — storage unificado (docs de eventos + uploads avulsos)
-// Fase 2: storageKey aponta para disco local
-// Fase 3 (R2): storageKey será o path no bucket Cloudflare R2
+// storageKey: path relativo no disco local (dev) ou key no R2 (prod)
+// Ativação R2: definir R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME
 // ==========================================================
 
 model Arquivo {
-  id            String   @id @default(cuid())
-  organizacaoId String
-  nome          String
-  tamanho       Int
-  tipo          String   // MIME type: application/pdf, application/vnd.openxmlformats-officedocument...
-  storageKey    String   // path relativo no disco (ou key no R2 após Fase 3)
-  uploadedById  String?
-  eventoId      String?
-  criadoEm     DateTime @default(now())
+  id              String   @id @default(cuid())
+  organizacaoId   String
+  nome            String
+  tamanho         Int
+  tipo            String   // MIME type
+  extensao        String   @default(".pdf") // .pdf | .docx | .doc
+  storageKey      String   // path relativo no disco ou key no R2
+  uploadedById    String?
+  uploadedByNome  String?
+  // Associação genérica: plano | grade | formacao
+  entityType      String?
+  entityId        String?
+  // Associação com evento de formando
+  eventoId        String?
+  formandoId      String?
+  formandoNome    String?
+  tipoEvento      String?
+  moradaId        String?
+  criadoEm       DateTime @default(now())
 
-  organizacao   Organizacao    @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  evento        EventoFormando? @relation(fields: [eventoId], references: [id], onDelete: SetNull)
+  organizacao     Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  evento          EventoFormando? @relation(fields: [eventoId], references: [id], onDelete: SetNull)
 
   @@index([organizacaoId])
   @@index([eventoId])
+  @@index([entityType, entityId])
+}
+
+// ==========================================================
+// LGPD — tabelas de compliance (D2.1 / Fase 5)
+// ==========================================================
+
+model PrivacyAcceptance {
+  id            String   @id @default(cuid())
+  usuarioId     String
+  organizacaoId String?
+  tipo          String   // "privacidade" | "termos"
+  versao        String
+  criadoEm     DateTime @default(now())
+
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+}
+
+model CookieConsent {
+  id            String   @id @default(cuid())
+  userId        String?
+  sessionId     String?
+  organizacaoId String?
+  necessarios   Boolean  @default(true)
+  analiticos    Boolean  @default(false)
+  marketing     Boolean  @default(false)
+  preferencias  Boolean  @default(false)
+  versao        String   @default("1")
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model DeletionRequest {
+  id            String    @id @default(cuid())
+  usuarioId     String?
+  organizacaoId String?
+  tipo          String    // "usuario" | "organizacao"
+  status        String    @default("pendente") // pendente | processando | concluido
+  solicitadoEm DateTime  @default(now())
+  processadoEm DateTime?
+
+  @@index([usuarioId])
+  @@index([organizacaoId])
 }
 
 // ==========================================================

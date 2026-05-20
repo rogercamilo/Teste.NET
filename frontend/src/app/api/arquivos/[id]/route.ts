@@ -1,51 +1,54 @@
 import { auth } from "@/auth";
-import { findArquivo, deleteArquivo, getArquivoFilePath } from "@/lib/arquivos-store";
+import { prisma } from "@/lib/prisma";
+import { deleteFile, readLocalFile, localFileExists } from "@/lib/storage";
 import { logAction, getClientIp } from "@/lib/audit-log";
-import { readFileSync, existsSync } from "fs";
 import { type NextRequest } from "next/server";
 
-type SessionUser = { id?: string; role?: string };
+type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
-function canAccessArquivo(
-  uploadadoPor: string,
-  userId: string,
-  role: string
-): boolean {
-  if (role === "administrador" || role === "formador_geral") return true;
-  return uploadadoPor === userId;
+function canAccess(arquivo: { uploadedById: string | null; organizacaoId: string }, user: SessionUser): boolean {
+  if (user.role === "administrador" || user.role === "formador_geral") return true;
+  return arquivo.uploadedById === user.id && arquivo.organizacaoId === user.organizacaoId;
 }
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   const user = session?.user as SessionUser | undefined;
-
-  if (!user?.id) {
-    return new Response("Não autenticado", { status: 401 });
-  }
+  if (!user?.id) return new Response("Não autenticado", { status: 401 });
 
   const { id } = await params;
-  const meta = findArquivo(id);
-  if (!meta) return new Response("Arquivo não encontrado", { status: 404 });
+  const arquivo = await prisma.arquivo.findFirst({
+    where: { id, organizacaoId: user.organizacaoId },
+  });
 
-  if (!canAccessArquivo(meta.uploadadoPor, user.id, user.role ?? "")) {
-    logAction("file_deleted", user.id, getClientIp(request), {
-      error: "acesso negado",
-      arquivoId: id,
-    });
-    return new Response("Sem permissão", { status: 403 });
+  if (!arquivo) return new Response("Arquivo não encontrado", { status: 404 });
+  if (!canAccess(arquivo, user)) return new Response("Sem permissão", { status: 403 });
+
+  // R2: redireciona para pre-signed URL gerada em tempo real
+  if (
+    process.env.R2_ACCOUNT_ID &&
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY &&
+    process.env.R2_BUCKET_NAME
+  ) {
+    const { getFileUrl } = await import("@/lib/storage");
+    const url = await getFileUrl(arquivo.storageKey, arquivo.id);
+    return Response.redirect(url, 302);
   }
 
-  const filePath = getArquivoFilePath(meta);
-  if (!existsSync(filePath)) return new Response("Arquivo não encontrado", { status: 404 });
+  // Local: serve o arquivo diretamente do disco
+  if (!localFileExists(arquivo.storageKey)) {
+    return new Response("Arquivo não encontrado no servidor", { status: 404 });
+  }
 
-  const buffer = readFileSync(filePath);
-  return new Response(buffer, {
+  const buffer = readLocalFile(arquivo.storageKey);
+  return new Response(new Uint8Array(buffer), {
     headers: {
-      "Content-Type": meta.tipo,
-      "Content-Disposition": `inline; filename="${encodeURIComponent(meta.nome)}"`,
+      "Content-Type": arquivo.tipo,
+      "Content-Disposition": `inline; filename="${encodeURIComponent(arquivo.nome)}"`,
       "Content-Length": String(buffer.length),
       "Cache-Control": "private, no-cache",
     },
@@ -58,20 +61,19 @@ export async function DELETE(
 ) {
   const session = await auth();
   const user = session?.user as SessionUser | undefined;
-
-  if (!user?.id) {
-    return Response.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  if (!user?.id) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const { id } = await params;
-  const meta = findArquivo(id);
-  if (!meta) return Response.json({ error: "Arquivo não encontrado" }, { status: 404 });
+  const arquivo = await prisma.arquivo.findFirst({
+    where: { id, organizacaoId: user.organizacaoId },
+  });
 
-  if (!canAccessArquivo(meta.uploadadoPor, user.id, user.role ?? "")) {
-    return Response.json({ error: "Sem permissão" }, { status: 403 });
-  }
+  if (!arquivo) return Response.json({ error: "Arquivo não encontrado" }, { status: 404 });
+  if (!canAccess(arquivo, user)) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
-  deleteArquivo(id);
-  logAction("file_deleted", user.id, getClientIp(request), { arquivoId: id });
+  await deleteFile(arquivo.storageKey);
+  await prisma.arquivo.delete({ where: { id } });
+
+  logAction("file_deleted", user.id, getClientIp(request), { arquivoId: id }, user.organizacaoId);
   return Response.json({ ok: true });
 }
