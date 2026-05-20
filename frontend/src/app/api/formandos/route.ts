@@ -116,6 +116,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: limitCheck.reason }, { status: 403 });
     }
 
+    if (user.role === "formador_comunitario" && body.moradaId && body.moradaId !== user.moradaId) {
+      return NextResponse.json({ error: "Sem permissão para criar formandos em outra morada" }, { status: 403 });
+    }
+
     const row = await prisma.formando.create({
       data: {
         organizacaoId: user.organizacaoId,

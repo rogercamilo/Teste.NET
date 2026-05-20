@@ -68,6 +68,14 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
   }
 
   async function saveStep3() {
+    // Mark onboarding as done first to prevent duplicate moradas if the user retries
+    const flagRes = await fetch("/api/organizacao", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ onboardingConcluido: true }),
+    });
+    if (!flagRes.ok) throw new Error("Falha ao concluir onboarding");
+
     if (moradaNome.trim()) {
       const res = await fetch("/api/moradas", {
         method: "POST",
@@ -79,13 +87,6 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
         throw new Error(data.error ?? "Falha ao criar morada");
       }
     }
-
-    // Mark onboarding as done
-    await fetch("/api/organizacao", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ onboardingConcluido: true }),
-    });
   }
 
   async function handleNext() {
@@ -97,6 +98,9 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
         await saveStep1();
         setStep(2);
       } else if (step === 2) {
+        if (!termoMorada.trim() || !termoFormando.trim() || !termoFormador.trim()) {
+          throw new Error("Todos os termos são obrigatórios");
+        }
         await saveStep2();
         setStep(3);
       } else if (step === 3) {

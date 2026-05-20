@@ -37,46 +37,47 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verificar se e-mail já está em uso em qualquer organização
-    const existingUser = await prisma.usuario.findFirst({
-      where: { email: { equals: adminEmail.toLowerCase().trim(), mode: "insensitive" } },
-    });
-    if (existingUser) {
-      return NextResponse.json({ error: "E-mail já cadastrado na plataforma" }, { status: 409 });
-    }
-
     const trialExpiresAt = new Date();
     trialExpiresAt.setDate(trialExpiresAt.getDate() + 14);
 
-    const org = await prisma.organizacao.create({
-      data: {
-        nome: orgNome.trim(),
-        status: "TRIAL",
-        planoAssinatura: "GRATUITO",
-        trialExpiresAt,
-        privacyVersion: PRIVACY_VERSION,
-      },
-    });
+    const { org, usuario } = await prisma.$transaction(async (tx) => {
+      const existingUser = await tx.usuario.findFirst({
+        where: { email: { equals: adminEmail.toLowerCase().trim(), mode: "insensitive" } },
+      });
+      if (existingUser) throw new Error("EMAIL_EXISTS");
 
-    const usuario = await prisma.usuario.create({
-      data: {
-        organizacaoId: org.id,
-        nome: adminNome.trim(),
-        email: adminEmail.toLowerCase().trim(),
-        passwordHash: hashPassword(senha),
-        perfil: "administrador",
-        ativo: true,
-        primeiroAcesso: false,
-      },
-    });
+      const newOrg = await tx.organizacao.create({
+        data: {
+          nome: orgNome.trim(),
+          status: "TRIAL",
+          planoAssinatura: "GRATUITO",
+          trialExpiresAt,
+          privacyVersion: PRIVACY_VERSION,
+        },
+      });
 
-    await prisma.privacyAcceptance.create({
-      data: {
-        usuarioId: usuario.id,
-        organizacaoId: org.id,
-        tipo: "privacidade",
-        versao: PRIVACY_VERSION,
-      },
+      const newUsuario = await tx.usuario.create({
+        data: {
+          organizacaoId: newOrg.id,
+          nome: adminNome.trim(),
+          email: adminEmail.toLowerCase().trim(),
+          passwordHash: hashPassword(senha),
+          perfil: "administrador",
+          ativo: true,
+          primeiroAcesso: false,
+        },
+      });
+
+      await tx.privacyAcceptance.create({
+        data: {
+          usuarioId: newUsuario.id,
+          organizacaoId: newOrg.id,
+          tipo: "privacidade",
+          versao: PRIVACY_VERSION,
+        },
+      });
+
+      return { org: newOrg, usuario: newUsuario };
     });
 
     logAction(
@@ -92,6 +93,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (err) {
+    if (err instanceof Error && err.message === "EMAIL_EXISTS") {
+      return NextResponse.json({ error: "E-mail já cadastrado na plataforma" }, { status: 409 });
+    }
     console.error("[registro] Erro:", err);
     return NextResponse.json({ error: "Falha ao criar organização" }, { status: 500 });
   }

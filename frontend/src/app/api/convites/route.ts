@@ -49,8 +49,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nome e e-mail são obrigatórios" }, { status: 400 });
     }
 
-    const perfilSanitizado =
-      perfil === "super_admin" || perfil === "formador_geral" ? "administrador" : (perfil ?? "formador_comunitario");
+    const ALLOWED_PERFIS = ["formador_comunitario", "formador_geral", "administrador"];
+    if (!perfil || !ALLOWED_PERFIS.includes(perfil)) {
+      return NextResponse.json({ error: "Perfil inválido" }, { status: 400 });
+    }
+    const perfilSanitizado = perfil;
 
     // Verificar se já existe usuário com esse e-mail
     const existing = await prisma.usuario.findFirst({
@@ -75,6 +78,13 @@ export async function POST(request: Request) {
 
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 48);
+
+    if (moradaId) {
+      const morada = await prisma.morada.findFirst({
+        where: { id: moradaId, organizacaoId: user.organizacaoId },
+      });
+      if (!morada) return NextResponse.json({ error: "Morada não encontrada" }, { status: 404 });
+    }
 
     const convite = await prisma.conviteUsuario.create({
       data: {

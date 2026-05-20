@@ -28,11 +28,14 @@ export interface LimitCheckResult {
 export async function canAddMorada(orgId: string): Promise<LimitCheckResult> {
   const org = await prisma.organizacao.findUnique({
     where: { id: orgId },
-    select: { planoAssinatura: true, status: true },
+    select: { planoAssinatura: true, status: true, trialExpiresAt: true },
   });
   if (!org) return { allowed: false, reason: "Organização não encontrada" };
   if (org.status === "SUSPENSO" || org.status === "CANCELADO") {
     return { allowed: false, reason: "Conta suspensa ou cancelada" };
+  }
+  if (org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt < new Date()) {
+    return { allowed: false, reason: "Período de avaliação expirado" };
   }
 
   const limits = getLimits(org.planoAssinatura);
@@ -56,11 +59,14 @@ export async function canAddMorada(orgId: string): Promise<LimitCheckResult> {
 export async function canAddFormando(orgId: string): Promise<LimitCheckResult> {
   const org = await prisma.organizacao.findUnique({
     where: { id: orgId },
-    select: { planoAssinatura: true, status: true },
+    select: { planoAssinatura: true, status: true, trialExpiresAt: true },
   });
   if (!org) return { allowed: false, reason: "Organização não encontrada" };
   if (org.status === "SUSPENSO" || org.status === "CANCELADO") {
     return { allowed: false, reason: "Conta suspensa ou cancelada" };
+  }
+  if (org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt < new Date()) {
+    return { allowed: false, reason: "Período de avaliação expirado" };
   }
 
   const limits = getLimits(org.planoAssinatura);
@@ -84,11 +90,14 @@ export async function canAddFormando(orgId: string): Promise<LimitCheckResult> {
 export async function canUpload(orgId: string, sizeBytes: number): Promise<LimitCheckResult> {
   const org = await prisma.organizacao.findUnique({
     where: { id: orgId },
-    select: { planoAssinatura: true, status: true },
+    select: { planoAssinatura: true, status: true, trialExpiresAt: true },
   });
   if (!org) return { allowed: false, reason: "Organização não encontrada" };
   if (org.status === "SUSPENSO" || org.status === "CANCELADO") {
     return { allowed: false, reason: "Conta suspensa ou cancelada" };
+  }
+  if (org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt < new Date()) {
+    return { allowed: false, reason: "Período de avaliação expirado" };
   }
 
   const limits = getLimits(org.planoAssinatura);

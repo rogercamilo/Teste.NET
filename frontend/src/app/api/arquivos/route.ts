@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { canUpload } from "@/lib/plan-limits";
 import { type NextRequest } from "next/server";
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -90,8 +91,15 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Arquivo excede o limite de 10 MB." }, { status: 422 });
   }
 
+  if (!user.organizacaoId) return Response.json({ error: "Não autenticado" }, { status: 401 });
+  const orgId = user.organizacaoId;
+
   const buffer = Buffer.from(await file.arrayBuffer());
-  const orgId = user.organizacaoId ?? "default";
+
+  const uploadCheck = await canUpload(orgId, file.size);
+  if (!uploadCheck.allowed) {
+    return Response.json({ error: uploadCheck.reason }, { status: 403 });
+  }
 
   let storageKey: string;
   try {

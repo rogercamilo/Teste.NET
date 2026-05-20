@@ -39,7 +39,7 @@ export async function PUT(request: Request) {
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   try {
-    const body = await request.json() as Partial<ComunidadeConfig>;
+    const body = await request.json() as Partial<ComunidadeConfig & { onboardingConcluido?: boolean }>;
     const updated = await prisma.organizacao.update({
       where: { id: user.organizacaoId },
       data: {
@@ -51,11 +51,12 @@ export async function PUT(request: Request) {
         termoMorada: body.termoMorada || undefined,
         termoFormando: body.termoFormando || undefined,
         termoFormador: body.termoFormador || undefined,
+        ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
-      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true },
+      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, onboardingConcluido: true },
     });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
     const config: ComunidadeConfig = { nome: updated.nome, descricao: updated.descricao ?? "", endereco: updated.endereco ?? "", missao: updated.missao ?? "", anoFundacao: updated.anoFundacao ?? "", termoMorada: updated.termoMorada, termoFormando: updated.termoFormando, termoFormador: updated.termoFormador };
-    return NextResponse.json(config);
+    return NextResponse.json({ ...config, onboardingConcluido: updated.onboardingConcluido });
   } catch { return NextResponse.json({ error: "Falha ao atualizar organização" }, { status: 500 }); }
 }

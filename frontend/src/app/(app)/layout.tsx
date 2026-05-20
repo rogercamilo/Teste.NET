@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
 import { ThemeApplier } from "@/components/layout/ThemeApplier";
@@ -15,9 +16,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     email?: string | null;
     id?: string;
     role?: string;
+    organizacaoId?: string;
     moradaId?: string | null;
     primeiroAcesso?: boolean;
   };
+
+  if (sessionUser.organizacaoId && sessionUser.role !== "super_admin") {
+    const org = await prisma.organizacao.findUnique({
+      where: { id: sessionUser.organizacaoId },
+      select: { onboardingConcluido: true },
+    });
+    if (org && !org.onboardingConcluido) redirect("/onboarding");
+  }
 
   const user = {
     name: sessionUser.name ?? "Usuário",

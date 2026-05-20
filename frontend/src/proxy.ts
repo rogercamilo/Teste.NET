@@ -11,7 +11,7 @@ export default auth(function proxy(req) {
     "/registro",
     "/convite",
     "/api/registro",
-    "/api/convites",
+    "/api/convites/",
     "/api/auth/signin",
     "/api/auth/signout",
     "/api/auth/callback",

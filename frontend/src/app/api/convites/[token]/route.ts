@@ -46,37 +46,38 @@ export async function POST(request: Request, { params }: Params) {
       );
     }
 
-    const convite = await prisma.conviteUsuario.findFirst({
-      where: { token },
-    });
+    const { usuario, convite } = await prisma.$transaction(async (tx) => {
+      const found = await tx.conviteUsuario.findFirst({ where: { token } });
+      if (!found) throw new Error("NOT_FOUND");
+      if (found.aceitoEm) throw new Error("ALREADY_ACCEPTED");
+      if (found.expiresAt < new Date()) throw new Error("EXPIRED");
 
-    if (!convite) return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
-    if (convite.aceitoEm) return NextResponse.json({ error: "Convite já foi aceito" }, { status: 410 });
-    if (convite.expiresAt < new Date()) return NextResponse.json({ error: "Convite expirado" }, { status: 410 });
+      const existing = await tx.usuario.findFirst({
+        where: { email: { equals: found.email, mode: "insensitive" }, organizacaoId: found.organizacaoId },
+      });
+      if (existing) throw new Error("EMAIL_EXISTS");
 
-    const existing = await prisma.usuario.findFirst({
-      where: { email: { equals: convite.email, mode: "insensitive" }, organizacaoId: convite.organizacaoId },
-    });
-    if (existing) {
-      return NextResponse.json({ error: "Já existe um usuário com este e-mail" }, { status: 409 });
-    }
+      // Atomic claim — only succeeds if aceitoEm is still null
+      const claimed = await tx.conviteUsuario.updateMany({
+        where: { id: found.id, aceitoEm: null },
+        data: { aceitoEm: new Date() },
+      });
+      if (claimed.count === 0) throw new Error("ALREADY_ACCEPTED");
 
-    const usuario = await prisma.usuario.create({
-      data: {
-        organizacaoId: convite.organizacaoId,
-        nome: nome?.trim() || convite.nome,
-        email: convite.email,
-        passwordHash: hashPassword(senha),
-        perfil: convite.perfil,
-        moradaId: convite.moradaId ?? null,
-        ativo: true,
-        primeiroAcesso: false,
-      },
-    });
+      const newUsuario = await tx.usuario.create({
+        data: {
+          organizacaoId: found.organizacaoId,
+          nome: nome?.trim() || found.nome,
+          email: found.email,
+          passwordHash: hashPassword(senha),
+          perfil: found.perfil,
+          moradaId: found.moradaId ?? null,
+          ativo: true,
+          primeiroAcesso: false,
+        },
+      });
 
-    await prisma.conviteUsuario.update({
-      where: { id: convite.id },
-      data: { aceitoEm: new Date() },
+      return { usuario: newUsuario, convite: found };
     });
 
     logAction(
@@ -89,6 +90,12 @@ export async function POST(request: Request, { params }: Params) {
 
     return NextResponse.json({ ok: true, email: usuario.email });
   } catch (err) {
+    if (err instanceof Error) {
+      if (err.message === "NOT_FOUND") return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
+      if (err.message === "ALREADY_ACCEPTED") return NextResponse.json({ error: "Convite já foi aceito" }, { status: 410 });
+      if (err.message === "EXPIRED") return NextResponse.json({ error: "Convite expirado" }, { status: 410 });
+      if (err.message === "EMAIL_EXISTS") return NextResponse.json({ error: "Já existe um usuário com este e-mail" }, { status: 409 });
+    }
     console.error("[convite/token] Erro:", err);
     return NextResponse.json({ error: "Falha ao aceitar convite" }, { status: 500 });
   }

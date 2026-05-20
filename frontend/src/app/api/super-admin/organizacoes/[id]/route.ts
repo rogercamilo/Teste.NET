@@ -23,11 +23,15 @@ export async function PATCH(request: Request, { params }: Params) {
     };
     const { acao, plano } = body;
 
+    if (acao && plano) {
+      return NextResponse.json({ error: "Envie apenas 'acao' ou 'plano', não ambos" }, { status: 400 });
+    }
+
     const org = await prisma.organizacao.findUnique({ where: { id } });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
     let newStatus: StatusOrganizacao | undefined;
-    let auditAction: "organizacao_suspended" | "organizacao_reactivated" | "organizacao_plan_changed" | "organizacao_updated" = "organizacao_updated";
+    let auditAction: "organizacao_suspended" | "organizacao_reactivated" | "organizacao_cancelada" | "organizacao_plan_changed" | "organizacao_updated" = "organizacao_updated";
 
     if (acao === "suspender") {
       newStatus = "SUSPENSO";
@@ -37,7 +41,7 @@ export async function PATCH(request: Request, { params }: Params) {
       auditAction = "organizacao_reactivated";
     } else if (acao === "cancelar") {
       newStatus = "CANCELADO";
-      auditAction = "organizacao_suspended";
+      auditAction = "organizacao_cancelada";
     }
 
     if (plano) auditAction = "organizacao_plan_changed";

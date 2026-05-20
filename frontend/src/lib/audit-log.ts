@@ -53,6 +53,7 @@ export type AuditAction =
   | "organizacao_created"
   | "organizacao_suspended"
   | "organizacao_reactivated"
+  | "organizacao_cancelada"
   | "organizacao_plan_changed"
   | "convite_criado"
   | "convite_aceito"
