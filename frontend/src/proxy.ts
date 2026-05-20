@@ -3,10 +3,15 @@ import { NextResponse } from "next/server";
 
 export default auth(function proxy(req) {
   const isLoggedIn = !!req.auth;
+  const role = (req.auth?.user as { role?: string } | undefined)?.role;
   const { pathname } = req.nextUrl;
 
   const publicPaths = [
     "/login",
+    "/registro",
+    "/convite",
+    "/api/registro",
+    "/api/convites",
     "/api/auth/signin",
     "/api/auth/signout",
     "/api/auth/callback",
@@ -22,6 +27,11 @@ export default auth(function proxy(req) {
   }
 
   if (isLoggedIn && pathname === "/login") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  // Protege /super-admin — apenas super_admin pode acessar
+  if (pathname.startsWith("/super-admin") && role !== "super_admin") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

@@ -49,7 +49,15 @@ export type AuditAction =
   | "evento_created"
   | "evento_updated"
   | "evento_deleted"
-  | "organizacao_updated";
+  | "organizacao_updated"
+  | "organizacao_created"
+  | "organizacao_suspended"
+  | "organizacao_reactivated"
+  | "organizacao_plan_changed"
+  | "convite_criado"
+  | "convite_aceito"
+  | "convite_expirado"
+  | "onboarding_completed";
 
 export interface AuditEntry {
   timestamp: string;

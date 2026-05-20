@@ -12,7 +12,9 @@ export type StatusFormacao =
   | "cancelada"
   | "reagendada";
 export type Modalidade = "presencial" | "online" | "hibrida";
-export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comunitario";
+export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comunitario" | "super_admin";
+export type PlanoAssinatura = "GRATUITO" | "ESSENCIAL" | "PROFISSIONAL";
+export type StatusOrganizacao = "TRIAL" | "ATIVO" | "SUSPENSO" | "CANCELADO";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
 export type TipoCompromisso = "individual" | "geral";
 export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoal";
@@ -329,6 +331,20 @@ export const PERFIL_USUARIO_LABELS: Record<PerfilUsuario, string> = {
   formador_geral: "Formador Geral",
   administrador: "Administrador",
   formador_comunitario: "Formador Comunitário",
+  super_admin: "Super Admin",
+};
+
+export const PLANO_ASSINATURA_LABELS: Record<PlanoAssinatura, string> = {
+  GRATUITO: "Gratuito",
+  ESSENCIAL: "Essencial",
+  PROFISSIONAL: "Profissional",
+};
+
+export const STATUS_ORGANIZACAO_LABELS: Record<StatusOrganizacao, string> = {
+  TRIAL: "Trial",
+  ATIVO: "Ativo",
+  SUSPENSO: "Suspenso",
+  CANCELADO: "Cancelado",
 };
 
 /** Retorna true se `role` tem ao menos o mesmo nível que `required`. */
@@ -340,8 +356,17 @@ export function temPermissao(
     formador_comunitario: 1,
     administrador: 2,
     formador_geral: 3,
+    super_admin: 99,
   };
   return (nivel[role as PerfilUsuario] ?? 0) >= nivel[required];
+}
+
+export function isSuperAdmin(role: string | undefined): boolean {
+  return role === "super_admin";
+}
+
+export function isAdminOrAbove(role: string | undefined): boolean {
+  return role === "administrador" || role === "formador_geral" || role === "super_admin";
 }
 
 export const TIPO_COMENTARIO_LABELS: Record<TipoComentario, string> = {

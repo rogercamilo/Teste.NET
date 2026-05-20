@@ -19,7 +19,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { navGroupsGestao, navGroupsFormador, type NavGroup } from "./nav-items";
+import { navGroupsGestao, navGroupsFormador, navGroupsSuperAdmin, type NavGroup } from "./nav-items";
 import { useComunidade } from "@/lib/data-store";
 
 export interface AppSidebarUser {
@@ -51,13 +51,16 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
   const isFormadorGeral = user.role === "formador_geral";
   const isAdmin = user.role === "administrador";
+  const isSuperAdmin = user.role === "super_admin";
   const isGestao = isFormadorGeral || isAdmin;
 
-  const roleLabel = isFormadorGeral ? "Formador Geral" : isAdmin ? "Administrador" : formador;
-  const RoleIcon = isFormadorGeral ? ShieldCheck : isAdmin ? Shield : UserCog;
+  const roleLabel = isSuperAdmin ? "Super Admin" : isFormadorGeral ? "Formador Geral" : isAdmin ? "Administrador" : formador;
+  const RoleIcon = isSuperAdmin ? ShieldCheck : isFormadorGeral ? ShieldCheck : isAdmin ? Shield : UserCog;
 
   // Inject "Visão Geral" for formadores before applying term substitution
-  const baseGroups: NavGroup[] = isGestao
+  const baseGroups: NavGroup[] = isSuperAdmin
+    ? navGroupsSuperAdmin
+    : isGestao
     ? navGroupsGestao
     : navGroupsFormador.map((g) => {
         if (g.label === "Minha Morada" && user.moradaId && !isGestao) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { canAddFormando } from "@/lib/plan-limits";
 import type { Formando, ProgressoEtapa } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
@@ -109,6 +110,11 @@ export async function POST(request: Request) {
     const body = await request.json() as Partial<Formando>;
     if (!body.nome?.trim()) return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
     if (!body.dataNascimento) return NextResponse.json({ error: "Data de nascimento é obrigatória" }, { status: 400 });
+
+    const limitCheck = await canAddFormando(user.organizacaoId!);
+    if (!limitCheck.allowed) {
+      return NextResponse.json({ error: limitCheck.reason }, { status: 403 });
+    }
 
     const row = await prisma.formando.create({
       data: {

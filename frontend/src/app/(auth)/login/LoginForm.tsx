@@ -222,7 +222,13 @@ export default function LoginForm() {
             Entrar com Google
           </Button>
 
-          <p className="text-center text-xs text-muted-foreground mt-8">
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            Não tem conta?{" "}
+            <a href="/registro" className="text-primary hover:underline font-medium">
+              Registrar organização
+            </a>
+          </p>
+          <p className="text-center text-xs text-muted-foreground mt-2">
             Problemas para acessar?{" "}
             <a href="mailto:admin@dombosco.org" className="text-primary hover:underline">
               Fale com o administrador

@@ -15,6 +15,7 @@ enum PerfilUsuario {
   formador_geral
   administrador
   formador_comunitario
+  super_admin
 }
 
 enum PlanoAssinatura {
@@ -49,6 +50,8 @@ model Organizacao {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   trialExpiresAt       DateTime?
+  privacyVersion       String            @default("1.0")
+  onboardingConcluido  Boolean           @default(false)
   criadoEm             DateTime          @default(now())
   atualizadoEm         DateTime          @updatedAt
 
@@ -65,6 +68,7 @@ model Organizacao {
   compromissos         Compromisso[]
   auditLogs            AuditLog[]
   arquivos             Arquivo[]
+  convites             ConviteUsuario[]
 }
 
 // ==========================================================
@@ -96,6 +100,7 @@ model Usuario {
   formacoesCriadas   Formacao[]
   agendamentos       Agendamento[]
   privacyAcceptances PrivacyAcceptance[]
+  convitesEnviados   ConviteUsuario[]
 
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
@@ -523,6 +528,30 @@ model Arquivo {
   @@index([organizacaoId])
   @@index([eventoId])
   @@index([entityType, entityId])
+}
+
+// ==========================================================
+// CONVITE DE USUARIO (Fase 3 — D3.4)
+// ==========================================================
+
+model ConviteUsuario {
+  id            String        @id @default(cuid())
+  organizacaoId String
+  email         String
+  nome          String
+  perfil        PerfilUsuario
+  moradaId      String?
+  token         String        @unique @default(cuid())
+  expiresAt     DateTime
+  aceitoEm      DateTime?
+  criadoPorId   String
+  criadoEm      DateTime      @default(now())
+
+  organizacao   Organizacao   @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  criadoPor     Usuario       @relation(fields: [criadoPorId], references: [id])
+
+  @@index([organizacaoId])
+  @@index([token])
 }
 
 // ==========================================================

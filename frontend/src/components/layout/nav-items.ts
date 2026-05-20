@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Library,
   Settings,
+  ShieldAlert,
   type LucideIcon,
   Users,
 } from "lucide-react";
@@ -46,6 +47,28 @@ export const navGroupsGestao: NavGroup[] = [
       { title: "Moradas", href: "/moradas", icon: Home },
       { title: "Formandos", href: "/formandos", icon: Users },
       { title: "Documentos", href: "/documentos", icon: FolderOpen },
+    ],
+  },
+  {
+    label: "Sistema",
+    items: [
+      { title: "Configurações", href: "/configuracoes", icon: Settings },
+    ],
+  },
+];
+
+/** Super Admin — acesso global à plataforma */
+export const navGroupsSuperAdmin: NavGroup[] = [
+  {
+    label: "Principal",
+    items: [
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Administração",
+    items: [
+      { title: "Super Admin", href: "/super-admin", icon: ShieldAlert },
     ],
   },
   {

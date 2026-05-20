@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { canAddMorada } from "@/lib/plan-limits";
 import type { Morada } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -53,6 +54,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as Partial<Morada>;
     if (!body.nome?.trim()) return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
+
+    const limitCheck = await canAddMorada(user.organizacaoId!);
+    if (!limitCheck.allowed) {
+      return NextResponse.json({ error: limitCheck.reason }, { status: 403 });
+    }
 
     if (body.formadorId) {
       const formador = await prisma.usuario.findFirst({

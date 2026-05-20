@@ -75,15 +75,18 @@ import {
   Server,
   ShieldCheck,
   Shuffle,
+  TrendingUp,
   Trash2,
   Type,
   Upload,
   User,
   UserCog,
+  UserPlus,
   Users,
   X,
   XCircle,
 } from "lucide-react";
+import PlanUsage from "@/components/PlanUsage";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -148,6 +151,12 @@ export default function ConfiguracoesClient({
               E-mail
             </TabsTrigger>
           )}
+          {isGestao && (
+            <TabsTrigger value="plano" className="text-xs h-7 gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5" />
+              Plano
+            </TabsTrigger>
+          )}
           <TabsTrigger value="sistema" className="text-xs h-7 gap-1.5">
             <Server className="h-3.5 w-3.5" />
             Sistema
@@ -173,6 +182,19 @@ export default function ConfiguracoesClient({
         {isGestao && (
           <TabsContent value="email" className="mt-4">
             <EmailTab />
+          </TabsContent>
+        )}
+
+        {isGestao && (
+          <TabsContent value="plano" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Uso do plano</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PlanUsage />
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
 
@@ -423,6 +445,9 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ nome: "", email: "", perfil: "formador_comunitario", moradaId: "" });
+  const [inviteSaving, setInviteSaving] = useState(false);
   const [tempPasswordDialog, setTempPasswordDialog] = useState<{
     nome: string;
     email: string;
@@ -462,6 +487,28 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
     setShowPassword(false);
     setShowConfirm(false);
     setDialogOpen(true);
+  }
+
+  async function handleInvite() {
+    if (!inviteForm.nome.trim() || !inviteForm.email.trim()) {
+      toast.error("Nome e e-mail são obrigatórios."); return;
+    }
+    setInviteSaving(true);
+    const res = await fetch("/api/convites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(inviteForm),
+    });
+    const data = await res.json() as { error?: string; emailSent?: boolean; inviteUrl?: string };
+    setInviteSaving(false);
+    if (!res.ok) { toast.error(data.error ?? "Falha ao criar convite"); return; }
+    setInviteOpen(false);
+    setInviteForm({ nome: "", email: "", perfil: "formador_comunitario", moradaId: "" });
+    if (data.emailSent) {
+      toast.success("Convite enviado por e-mail!");
+    } else {
+      toast.success(`Convite criado. Link: ${data.inviteUrl}`);
+    }
   }
 
   function openEdit(u: UserPublic) {
@@ -649,10 +696,16 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
           onChange={(e) => setSearch(e.target.value)}
           className="h-9 text-sm max-w-sm"
         />
-        <Button size="sm" onClick={openCreate} className="sm:ml-auto gap-1.5">
-          <Plus className="h-4 w-4" />
-          Novo Usuário
-        </Button>
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <Button size="sm" variant="outline" onClick={() => setInviteOpen(true)} className="gap-1.5">
+            <UserPlus className="h-4 w-4" />
+            Convidar
+          </Button>
+          <Button size="sm" onClick={openCreate} className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            Novo Usuário
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
@@ -1195,6 +1248,82 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
           </div>
           <DialogFooter>
             <Button onClick={() => setTempPasswordDialog(null)}>Entendi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convidar usuário Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Convidar usuário
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <p className="text-xs text-muted-foreground">
+              Um link de ativação será gerado (válido por 48h). Se SMTP estiver configurado, o e-mail é enviado automaticamente.
+            </p>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Nome</label>
+              <Input
+                placeholder="Nome completo"
+                value={inviteForm.nome}
+                onChange={(e) => setInviteForm((f) => ({ ...f, nome: e.target.value }))}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">E-mail</label>
+              <Input
+                type="email"
+                placeholder="email@exemplo.com"
+                value={inviteForm.email}
+                onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Perfil</label>
+              <Select
+                value={inviteForm.perfil}
+                onValueChange={(v) => v && setInviteForm((f) => ({ ...f, perfil: v }))}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="formador_comunitario">Formador Comunitário</SelectItem>
+                  <SelectItem value="administrador">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {inviteForm.perfil === "formador_comunitario" && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Morada (opcional)</label>
+                <Select
+                  value={inviteForm.moradaId || "none"}
+                  onValueChange={(v) => v && setInviteForm((f) => ({ ...f, moradaId: v === "none" ? "" : v }))}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecionar morada" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {allMoradas.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
+            <Button onClick={handleInvite} disabled={inviteSaving}>
+              {inviteSaving ? "Enviando..." : "Enviar convite"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
