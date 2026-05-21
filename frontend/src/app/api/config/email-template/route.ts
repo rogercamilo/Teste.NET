@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { loadEmailTemplate, saveEmailTemplate, DEFAULT_EMAIL_TEMPLATE } from "@/lib/email-template";
 import { logAction, getClientIp } from "@/lib/audit-log";
 
-type SessionUser = { id?: string; role?: string };
+type SU = { id?: string; role?: string; organizacaoId?: string };
 
 function isAdminOrAbove(role: string | undefined): boolean {
   return role === "administrador" || role === "formador_geral";
@@ -11,32 +11,21 @@ function isAdminOrAbove(role: string | undefined): boolean {
 
 export async function GET(request: Request) {
   const session = await auth();
-  const user = session?.user as SessionUser | undefined;
-
-  if (!user) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-  if (!isAdminOrAbove(user.role)) {
-    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
-  }
-
-  return NextResponse.json(loadEmailTemplate());
+  const user = session?.user as SU | undefined;
+  if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  return NextResponse.json(await loadEmailTemplate(user.organizacaoId));
 }
 
 export async function PUT(request: Request) {
   const session = await auth();
-  const user = session?.user as SessionUser | undefined;
-
-  if (!user) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-  if (!isAdminOrAbove(user.role)) {
-    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
-  }
+  const user = session?.user as SU | undefined;
+  if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   try {
     const body = await request.json() as Record<string, unknown>;
-    const current = loadEmailTemplate();
+    const current = await loadEmailTemplate(user.organizacaoId);
     const updated = {
       assunto: typeof body.assunto === "string" ? body.assunto : current.assunto,
       saudacao: typeof body.saudacao === "string" ? body.saudacao : current.saudacao,
@@ -47,8 +36,8 @@ export async function PUT(request: Request) {
       avisoSeguranca: typeof body.avisoSeguranca === "string" ? body.avisoSeguranca : current.avisoSeguranca,
       rodape: typeof body.rodape === "string" ? body.rodape : current.rodape,
     };
-    saveEmailTemplate(updated);
-    logAction("email_template_changed", user.id, getClientIp(request));
+    await saveEmailTemplate(user.organizacaoId, updated);
+    logAction("email_template_changed", user.id, getClientIp(request), {}, user.organizacaoId);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
@@ -57,16 +46,14 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await auth();
-  const user = session?.user as SessionUser | undefined;
+  const user = session?.user as SU | undefined;
+  if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
-  if (!user) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-  if (!isAdminOrAbove(user.role)) {
-    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
-  }
-
-  saveEmailTemplate({ ...DEFAULT_EMAIL_TEMPLATE, passos: [...DEFAULT_EMAIL_TEMPLATE.passos] });
-  logAction("email_template_changed", user.id, getClientIp(request), { action: "reset" });
+  await saveEmailTemplate(user.organizacaoId, {
+    ...DEFAULT_EMAIL_TEMPLATE,
+    passos: [...DEFAULT_EMAIL_TEMPLATE.passos],
+  });
+  logAction("email_template_changed", user.id, getClientIp(request), { action: "reset" }, user.organizacaoId);
   return NextResponse.json({ ok: true });
 }

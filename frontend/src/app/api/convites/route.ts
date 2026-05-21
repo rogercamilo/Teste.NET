@@ -107,6 +107,7 @@ export async function POST(request: Request) {
     const inviteUrl = `${appUrl}/convite/${convite.token}`;
 
     const emailResult = await sendInviteEmail({
+      organizacaoId: user.organizacaoId!,
       nome: nome.trim(),
       email: email.toLowerCase().trim(),
       inviteUrl,

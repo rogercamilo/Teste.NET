@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
     let emailSent = false;
     if (tempPassword) {
-      const result = await sendWelcomeEmail({ nome, email, tempPassword });
+      const result = await sendWelcomeEmail({ organizacaoId: actor.organizacaoId!, nome, email, tempPassword });
       emailSent = result.sent;
     }
 

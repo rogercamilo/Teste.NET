@@ -1,9 +1,9 @@
 /**
- * Server-side email template store backed by data/email-template.json.
- * NEVER import this module in client components — it uses Node.js 'fs'.
+ * Email template — stored per-tenant in ConfiguracaoOrg.emailTemplate (PostgreSQL).
+ * Falls back to DEFAULT_EMAIL_TEMPLATE when no DB record exists.
+ * NEVER import this module in client components — uses Prisma (Node.js only).
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { prisma } from "@/lib/prisma";
 
 export interface TemplateStep {
   titulo: string;
@@ -52,31 +52,39 @@ export const DEFAULT_EMAIL_TEMPLATE: EmailTemplate = {
   rodape: "Este é um e-mail automático — por favor, não responda a esta mensagem.",
 };
 
-const DATA_DIR = join(process.cwd(), "data");
-const FILE = join(DATA_DIR, "email-template.json");
+function parseTemplateJson(raw: unknown): EmailTemplate {
+  const r = raw as Partial<EmailTemplate>;
+  return {
+    assunto: r.assunto ?? DEFAULT_EMAIL_TEMPLATE.assunto,
+    saudacao: r.saudacao ?? DEFAULT_EMAIL_TEMPLATE.saudacao,
+    mensagem1: r.mensagem1 ?? DEFAULT_EMAIL_TEMPLATE.mensagem1,
+    mensagem2: r.mensagem2 ?? DEFAULT_EMAIL_TEMPLATE.mensagem2,
+    passos: r.passos?.length ? r.passos : DEFAULT_EMAIL_TEMPLATE.passos,
+    textoBotao: r.textoBotao ?? DEFAULT_EMAIL_TEMPLATE.textoBotao,
+    avisoSeguranca: r.avisoSeguranca ?? DEFAULT_EMAIL_TEMPLATE.avisoSeguranca,
+    rodape: r.rodape ?? DEFAULT_EMAIL_TEMPLATE.rodape,
+  };
+}
 
-export function loadEmailTemplate(): EmailTemplate {
-  if (existsSync(FILE)) {
-    try {
-      const raw = JSON.parse(readFileSync(FILE, "utf-8")) as Partial<EmailTemplate>;
-      return {
-        assunto: raw.assunto ?? DEFAULT_EMAIL_TEMPLATE.assunto,
-        saudacao: raw.saudacao ?? DEFAULT_EMAIL_TEMPLATE.saudacao,
-        mensagem1: raw.mensagem1 ?? DEFAULT_EMAIL_TEMPLATE.mensagem1,
-        mensagem2: raw.mensagem2 ?? DEFAULT_EMAIL_TEMPLATE.mensagem2,
-        passos: raw.passos?.length ? raw.passos : DEFAULT_EMAIL_TEMPLATE.passos,
-        textoBotao: raw.textoBotao ?? DEFAULT_EMAIL_TEMPLATE.textoBotao,
-        avisoSeguranca: raw.avisoSeguranca ?? DEFAULT_EMAIL_TEMPLATE.avisoSeguranca,
-        rodape: raw.rodape ?? DEFAULT_EMAIL_TEMPLATE.rodape,
-      };
-    } catch { /* fall through to default */ }
+export async function loadEmailTemplate(organizacaoId: string): Promise<EmailTemplate> {
+  try {
+    const cfg = await prisma.configuracaoOrg.findUnique({
+      where: { organizacaoId },
+      select: { emailTemplate: true },
+    });
+    if (cfg?.emailTemplate) return parseTemplateJson(cfg.emailTemplate);
+  } catch {
+    // DB unavailable — fall through to default
   }
   return { ...DEFAULT_EMAIL_TEMPLATE, passos: [...DEFAULT_EMAIL_TEMPLATE.passos] };
 }
 
-export function saveEmailTemplate(template: EmailTemplate): void {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(FILE, JSON.stringify(template, null, 2), "utf-8");
+export async function saveEmailTemplate(organizacaoId: string, template: EmailTemplate): Promise<void> {
+  await prisma.configuracaoOrg.upsert({
+    where: { organizacaoId },
+    create: { organizacaoId, emailTemplate: template as object },
+    update: { emailTemplate: template as object },
+  });
 }
 
 export interface TemplateVars {

@@ -5,7 +5,7 @@ import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import nodemailer from "nodemailer";
 
-type SessionUser = { id?: string; role?: string };
+type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
 function isAdminOrAbove(role: string | undefined): boolean {
   return role === "administrador" || role === "formador_geral";
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   try {
     const { testEmail } = await request.json() as { testEmail?: string };
-    const config = loadSmtpConfig();
+    const config = await loadSmtpConfig(user.organizacaoId ?? "");
 
     if (!isSmtpReady(config)) {
       return NextResponse.json(

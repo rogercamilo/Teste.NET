@@ -1,10 +1,9 @@
 /**
- * Server-side SMTP configuration store backed by data/smtp-config.json.
- * Falls back to SMTP_* environment variables if the file is absent.
- * NEVER import this module in client components — it uses Node.js 'fs'.
+ * SMTP configuration — stored per-tenant in ConfiguracaoOrg.smtpConfig (PostgreSQL).
+ * Falls back to SMTP_* environment variables when no DB record exists.
+ * NEVER import this module in client components — uses Prisma (Node.js only).
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { prisma } from "@/lib/prisma";
 
 export interface SmtpConfig {
   host: string;
@@ -15,23 +14,7 @@ export interface SmtpConfig {
   from: string;
 }
 
-const DATA_DIR = join(process.cwd(), "data");
-const FILE = join(DATA_DIR, "smtp-config.json");
-
-export function loadSmtpConfig(): SmtpConfig {
-  if (existsSync(FILE)) {
-    try {
-      const raw = JSON.parse(readFileSync(FILE, "utf-8")) as Partial<SmtpConfig>;
-      return {
-        host: raw.host ?? "",
-        port: raw.port ?? 587,
-        secure: raw.secure ?? false,
-        user: raw.user ?? "",
-        pass: raw.pass ?? "",
-        from: raw.from ?? "",
-      };
-    } catch { /* fall through to env vars */ }
-  }
+function fromEnv(): SmtpConfig {
   return {
     host: process.env.SMTP_HOST ?? "",
     port: Number(process.env.SMTP_PORT ?? 587),
@@ -42,12 +25,40 @@ export function loadSmtpConfig(): SmtpConfig {
   };
 }
 
-export function saveSmtpConfig(config: SmtpConfig): void {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(FILE, JSON.stringify(config, null, 2), "utf-8");
+function parseSmtpJson(raw: unknown): SmtpConfig {
+  const r = raw as Partial<SmtpConfig>;
+  const env = fromEnv();
+  return {
+    host: r.host ?? env.host,
+    port: r.port ?? env.port,
+    secure: r.secure ?? env.secure,
+    user: r.user ?? env.user,
+    pass: r.pass ?? env.pass,
+    from: r.from ?? env.from,
+  };
 }
 
-export function isSmtpReady(config?: SmtpConfig): boolean {
-  const c = config ?? loadSmtpConfig();
-  return !!(c.host && c.user && c.pass);
+export async function loadSmtpConfig(organizacaoId: string): Promise<SmtpConfig> {
+  try {
+    const cfg = await prisma.configuracaoOrg.findUnique({
+      where: { organizacaoId },
+      select: { smtpConfig: true },
+    });
+    if (cfg?.smtpConfig) return parseSmtpJson(cfg.smtpConfig);
+  } catch {
+    // DB unavailable during cold start — fall through to env vars
+  }
+  return fromEnv();
+}
+
+export async function saveSmtpConfig(organizacaoId: string, config: SmtpConfig): Promise<void> {
+  await prisma.configuracaoOrg.upsert({
+    where: { organizacaoId },
+    create: { organizacaoId, smtpConfig: config as object },
+    update: { smtpConfig: config as object },
+  });
+}
+
+export function isSmtpReady(config: SmtpConfig): boolean {
+  return !!(config.host && config.user && config.pass);
 }

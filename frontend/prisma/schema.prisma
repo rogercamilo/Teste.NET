@@ -69,6 +69,22 @@ model Organizacao {
   auditLogs            AuditLog[]
   arquivos             Arquivo[]
   convites             ConviteUsuario[]
+  configuracao         ConfiguracaoOrg?
+}
+
+// ==========================================================
+// CONFIGURACAO ORG — SMTP e template de e-mail por tenant
+// ==========================================================
+
+model ConfiguracaoOrg {
+  id            String   @id @default(cuid())
+  organizacaoId String   @unique
+  smtpConfig    Json?
+  emailTemplate Json?
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  organizacao   Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
 }
 
 // ==========================================================

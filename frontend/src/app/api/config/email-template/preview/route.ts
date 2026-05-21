@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { buildEmailHtml, loadEmailTemplate } from "@/lib/email-template";
 import type { EmailTemplate, TemplateVars } from "@/lib/email-template";
 
-type SessionUser = { id?: string; role?: string };
+type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
 function isAdminOrAbove(role: string | undefined): boolean {
   return role === "administrador" || role === "formador_geral";
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json() as { template?: Partial<EmailTemplate> };
-    const base = loadEmailTemplate();
+    const base = await loadEmailTemplate(user.organizacaoId ?? "");
     const template: EmailTemplate = body.template
       ? {
           assunto: body.template.assunto ?? base.assunto,

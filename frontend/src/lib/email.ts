@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import nodemailer from "nodemailer";
-import { loadSmtpConfig, isSmtpReady } from "./smtp-config";
+import { loadSmtpConfig, isSmtpReady, type SmtpConfig } from "./smtp-config";
 import { loadEmailTemplate, buildEmailHtml } from "./email-template";
 
 // Resend takes priority over SMTP when RESEND_API_KEY is set
@@ -20,7 +20,7 @@ async function sendViaResend(
   return { sent: true };
 }
 
-function createTransporter(config: ReturnType<typeof loadSmtpConfig>) {
+function createTransporter(config: SmtpConfig) {
   return nodemailer.createTransport({
     host: config.host,
     port: config.port,
@@ -30,19 +30,19 @@ function createTransporter(config: ReturnType<typeof loadSmtpConfig>) {
 }
 
 async function send(
+  organizacaoId: string,
   to: string,
   subject: string,
-  html: string,
-  smtpFrom?: string
+  html: string
 ): Promise<{ sent: boolean; error?: string }> {
   if (resend) return sendViaResend(to, subject, html);
 
-  const config = loadSmtpConfig();
+  const config = await loadSmtpConfig(organizacaoId);
   if (!isSmtpReady(config)) {
     console.warn("[email] Nenhum provedor configurado — e-mail não enviado.");
     return { sent: false, error: "Nenhum provedor de e-mail configurado" };
   }
-  const from = smtpFrom ?? config.from ?? config.user;
+  const from = config.from || config.user;
   try {
     const transporter = createTransporter(config);
     await transporter.sendMail({ from, to, subject, html });
@@ -54,26 +54,30 @@ async function send(
 }
 
 export async function sendWelcomeEmail({
+  organizacaoId,
   nome,
   email,
   tempPassword,
 }: {
+  organizacaoId: string;
   nome: string;
   email: string;
   tempPassword: string;
 }): Promise<{ sent: boolean; error?: string }> {
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  const template = loadEmailTemplate();
+  const template = await loadEmailTemplate(organizacaoId);
   const html = buildEmailHtml(template, { nome, email, senha: tempPassword, url: appUrl });
-  return send(email, template.assunto, html);
+  return send(organizacaoId, email, template.assunto, html);
 }
 
 export async function sendInviteEmail({
+  organizacaoId,
   nome,
   email,
   inviteUrl,
   orgNome,
 }: {
+  organizacaoId: string;
   nome: string;
   email: string;
   inviteUrl: string;
@@ -101,16 +105,18 @@ export async function sendInviteEmail({
       </p>
     </div>
   `;
-  return send(email, `Convite para ${orgNome} — Plataforma Formativa`, html);
+  return send(organizacaoId, email, `Convite para ${orgNome} — Plataforma Formativa`, html);
 }
 
 export async function sendLimitAlertEmail({
+  organizacaoId,
   email,
   orgNome,
   recurso,
   percentUsed,
   appUrl,
 }: {
+  organizacaoId: string;
   email: string;
   orgNome: string;
   recurso: string;
@@ -131,5 +137,5 @@ export async function sendLimitAlertEmail({
       </p>
     </div>
   `;
-  return send(email, `Alerta de limite — ${recurso} em ${percentUsed}% (${orgNome})`, html);
+  return send(organizacaoId, email, `Alerta de limite — ${recurso} em ${percentUsed}% (${orgNome})`, html);
 }
