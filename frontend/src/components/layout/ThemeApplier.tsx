@@ -1,13 +1,12 @@
 "use client";
 
 import { useLayoutEffect } from "react";
-import { applyThemePalette, getStoredThemeKey } from "@/lib/themes";
+import { applyThemePalette } from "@/lib/themes";
 
-export function ThemeApplier() {
+export function ThemeApplier({ themeKey = "azul" }: { themeKey?: string }) {
   useLayoutEffect(() => {
-    const key = getStoredThemeKey();
-    if (key !== "azul") applyThemePalette(key);
-  }, []);
+    if (themeKey !== "azul") applyThemePalette(themeKey);
+  }, [themeKey]);
 
   return null;
 }

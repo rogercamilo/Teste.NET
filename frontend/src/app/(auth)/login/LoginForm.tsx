@@ -23,22 +23,25 @@ export default function LoginForm() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [logo, setLogo] = useState<string | null>(null);
-  const [communityName, setCommunityName] = useState("Comunidade Missionária Dom Bosco");
+  const [communityName, setCommunityName] = useState("Formatio");
+  const [platformName, setPlatformName] = useState<string | null>(null);
   const [communityDesc, setCommunityDesc] = useState(
     "Plataforma pedagógica para gestão e acompanhamento da jornada formativa comunitária."
   );
 
   useEffect(() => {
-    setLogo(localStorage.getItem("appForm:logo"));
-    try {
-      const raw = localStorage.getItem("appForm:comunidade");
-      if (raw) {
-        const cfg = JSON.parse(raw) as { nome?: string; descricao?: string; missao?: string };
-        if (cfg.nome) setCommunityName(cfg.nome);
-        if (cfg.missao || cfg.descricao)
-          setCommunityDesc(cfg.missao ?? cfg.descricao ?? communityDesc);
-      }
-    } catch {}
+    fetch("/api/public/branding")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: { nome?: string; nomePlataforma?: string | null; logoUrl?: string | null; temaCor?: string } | null) => {
+        if (!data) return;
+        if (data.nome) setCommunityName(data.nome);
+        if (data.nomePlataforma) setPlatformName(data.nomePlataforma);
+        if (data.logoUrl) setLogo(data.logoUrl);
+        if (data.temaCor) {
+          import("@/lib/themes").then(({ applyThemePalette }) => applyThemePalette(data.temaCor!));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const errorMessages: Record<string, string> = {
@@ -95,10 +98,12 @@ export default function LoginForm() {
           </div>
 
           <h1 className="text-3xl font-bold leading-tight mb-3">
-            Formatio
+            {platformName || communityName}
           </h1>
-          <p className="text-base text-white/90 font-medium mb-4">{communityName}</p>
-          <p className="text-sm text-white/60 leading-relaxed">{communityDesc}</p>
+          {platformName && (
+            <p className="text-sm text-white/70 font-medium mb-1">{communityName}</p>
+          )}
+          <p className="text-sm text-white/60 leading-relaxed mt-2">{communityDesc}</p>
         </div>
 
         <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-white/5 -translate-y-1/3 translate-x-1/3" />
@@ -120,8 +125,10 @@ export default function LoginForm() {
               </div>
             )}
             <div>
-              <p className="font-semibold text-foreground text-sm leading-tight">Formatio</p>
-              <p className="text-xs text-muted-foreground truncate max-w-[180px]">{communityName}</p>
+              <p className="font-semibold text-foreground text-sm leading-tight">{platformName || communityName}</p>
+              {platformName && (
+                <p className="text-xs text-muted-foreground truncate max-w-[180px]">{communityName}</p>
+              )}
             </div>
           </div>
 
@@ -237,7 +244,7 @@ export default function LoginForm() {
         </div>
 
         <p className="text-xs text-muted-foreground mt-8 text-center">
-          © {new Date().getFullYear()} {communityName}
+          © {new Date().getFullYear()} {platformName || communityName}
         </p>
       </div>
     </div>

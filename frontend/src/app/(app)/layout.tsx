@@ -21,12 +21,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     primeiroAcesso?: boolean;
   };
 
+  let orgBranding = { onboardingConcluido: true, temaCor: "azul", logoUrl: null as string | null, nomePlataforma: null as string | null, nome: "" };
+
   if (sessionUser.organizacaoId && sessionUser.role !== "super_admin") {
     const org = await prisma.organizacao.findUnique({
       where: { id: sessionUser.organizacaoId },
-      select: { onboardingConcluido: true },
+      select: { onboardingConcluido: true, temaCor: true, logoUrl: true, nomePlataforma: true, nome: true },
     });
-    if (org && !org.onboardingConcluido) redirect("/onboarding");
+    if (org) {
+      orgBranding = { ...orgBranding, ...org };
+      if (!org.onboardingConcluido) redirect("/onboarding");
+    }
   }
 
   const user = {
@@ -40,9 +45,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
-      <ThemeApplier />
+      <ThemeApplier themeKey={orgBranding.temaCor} />
       <PrimeiroAcessoModal primeiroAcesso={primeiroAcesso} />
-      <AppSidebar user={user} />
+      <AppSidebar user={user} orgLogo={orgBranding.logoUrl} nomePlataforma={orgBranding.nomePlataforma} />
       <SidebarInset>
         <AppTopbar />
         <main className="flex-1 overflow-auto p-4 md:p-6">
@@ -50,11 +55,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
         <footer className="shrink-0 border-t border-border/60 bg-card/50 px-4 md:px-6 py-2.5">
           <p className="text-xs text-muted-foreground text-center">
-            © {new Date().getFullYear()} Formatio —{" "}
-            <span className="font-medium text-foreground/70">
-              Comunidade Missionária Dom Bosco
-            </span>
-            . Todos os direitos reservados.
+            {orgBranding.nomePlataforma || orgBranding.nome
+              ? <>{orgBranding.nomePlataforma || orgBranding.nome} · <span className="opacity-60">powered by Formatio</span></>
+              : <>© {new Date().getFullYear()} Formatio</>
+            }
+            {" "}— Todos os direitos reservados.
           </p>
         </footer>
       </SidebarInset>

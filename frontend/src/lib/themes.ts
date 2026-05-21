@@ -80,14 +80,4 @@ export function applyThemePalette(key: string): void {
   Object.entries(palette.vars).forEach(([k, v]) => root.style.setProperty(k, v));
 }
 
-export function getStoredThemeKey(): string {
-  if (typeof window === "undefined") return "azul";
-  return localStorage.getItem("appForm:theme") ?? "azul";
-}
-
-export function saveThemeKey(key: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem("appForm:theme", key);
-  applyThemePalette(key);
-}
 

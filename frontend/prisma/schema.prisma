@@ -50,6 +50,9 @@ model Organizacao {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   trialExpiresAt       DateTime?
+  nomePlataforma       String?
+  logoUrl              String?           @db.Text
+  temaCor              String            @default("azul")
   privacyVersion       String            @default("1.0")
   onboardingConcluido  Boolean           @default(false)
   criadoEm             DateTime          @default(now())

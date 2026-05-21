@@ -498,4 +498,10 @@ export interface ComunidadeConfig {
   termoFormando?: string;
   /** Termo personalizado para "Formador Comunitário" (ex.: Líder, Coordenador) */
   termoFormador?: string;
+  /** Nome da instância da plataforma nesta organização (ex.: "Portal Formativo da Diocese") */
+  nomePlataforma?: string;
+  /** Logo da organização em base64 ou URL */
+  logoUrl?: string;
+  /** Chave da paleta de cores (ex.: "azul", "verde") */
+  temaCor?: string;
 }

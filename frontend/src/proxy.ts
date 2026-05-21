@@ -11,6 +11,7 @@ export default auth(function proxy(req) {
     "/registro",
     "/convite",
     "/api/health",
+    "/api/public/",
     "/api/registro",
     "/api/convites/",
     "/api/stripe/webhook",

@@ -15,7 +15,7 @@ export async function GET() {
 
   const org = await prisma.organizacao.findUnique({
     where: { id: user.organizacaoId },
-    select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true },
+    select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, nomePlataforma: true, logoUrl: true, temaCor: true },
   });
   if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
@@ -28,6 +28,9 @@ export async function GET() {
     termoMorada: org.termoMorada,
     termoFormando: org.termoFormando,
     termoFormador: org.termoFormador,
+    nomePlataforma: org.nomePlataforma ?? undefined,
+    logoUrl: org.logoUrl ?? undefined,
+    temaCor: org.temaCor,
   };
   return NextResponse.json(config);
 }
@@ -51,12 +54,27 @@ export async function PUT(request: Request) {
         termoMorada: body.termoMorada || undefined,
         termoFormando: body.termoFormando || undefined,
         termoFormador: body.termoFormador || undefined,
+        nomePlataforma: body.nomePlataforma?.trim() || null,
+        logoUrl: body.logoUrl !== undefined ? (body.logoUrl || null) : undefined,
+        temaCor: body.temaCor || undefined,
         ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
-      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, onboardingConcluido: true },
+      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
-    const config: ComunidadeConfig = { nome: updated.nome, descricao: updated.descricao ?? "", endereco: updated.endereco ?? "", missao: updated.missao ?? "", anoFundacao: updated.anoFundacao ?? "", termoMorada: updated.termoMorada, termoFormando: updated.termoFormando, termoFormador: updated.termoFormador };
+    const config: ComunidadeConfig = {
+      nome: updated.nome,
+      descricao: updated.descricao ?? "",
+      endereco: updated.endereco ?? "",
+      missao: updated.missao ?? "",
+      anoFundacao: updated.anoFundacao ?? "",
+      termoMorada: updated.termoMorada,
+      termoFormando: updated.termoFormando,
+      termoFormador: updated.termoFormador,
+      nomePlataforma: updated.nomePlataforma ?? undefined,
+      logoUrl: updated.logoUrl ?? undefined,
+      temaCor: updated.temaCor,
+    };
     return NextResponse.json({ ...config, onboardingConcluido: updated.onboardingConcluido });
   } catch { return NextResponse.json({ error: "Falha ao atualizar organização" }, { status: 500 }); }
 }

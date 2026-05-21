@@ -91,7 +91,7 @@ import StripeUpgrade from "@/components/StripeUpgrade";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { THEME_PALETTES, applyThemePalette, getStoredThemeKey, saveThemeKey } from "@/lib/themes";
+import { THEME_PALETTES, applyThemePalette } from "@/lib/themes";
 
 interface ConfiguracoesClientProps {
   userId: string;
@@ -1341,18 +1341,20 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
 const MAX_LOGO_BYTES = 1_048_576; // 1 MB
 
 function ComunidadeTab() {
+  const router = useRouter();
   const [comunidade, setComunidade] = useComunidade();
   const [form, setForm] = useState<ComunidadeConfig>(() => ({ ...comunidade }));
   const [dirty, setDirty] = useState(false);
 
-  // Logo state
-  const [logo, setLogo] = useState<string | null>(() =>
-    typeof window !== "undefined" ? localStorage.getItem("appForm:logo") : null
-  );
+  const [logo, setLogo] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [themeKey, setThemeKey] = useState<string>("azul");
 
-  // Theme state
-  const [themeKey, setThemeKey] = useState<string>(() => getStoredThemeKey());
+  // Sync logo and theme from DB once the API responds
+  useEffect(() => {
+    setLogo(comunidade.logoUrl ?? null);
+    setThemeKey(comunidade.temaCor ?? "azul");
+  }, [comunidade.logoUrl, comunidade.temaCor]);
 
   function handleChange(field: keyof ComunidadeConfig, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -1361,8 +1363,9 @@ function ComunidadeTab() {
 
   function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome da comunidade é obrigatório.");
-    setComunidade(form);
+    setComunidade({ ...form, logoUrl: logo ?? undefined, temaCor: themeKey });
     setDirty(false);
+    router.refresh();
     toast.success("Configurações da comunidade salvas!");
   }
 
@@ -1383,9 +1386,9 @@ function ComunidadeTab() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target?.result as string;
-      localStorage.setItem("appForm:logo", base64);
-      window.dispatchEvent(new Event("appform:logo-changed"));
       setLogo(base64);
+      setComunidade({ ...comunidade, logoUrl: base64 });
+      router.refresh();
       toast.success("Logo atualizada com sucesso!");
     };
     reader.readAsDataURL(file);
@@ -1405,15 +1408,17 @@ function ComunidadeTab() {
   }
 
   function removeLogo() {
-    localStorage.removeItem("appForm:logo");
-    window.dispatchEvent(new Event("appform:logo-changed"));
     setLogo(null);
+    // Envia logoUrl como string vazia — a API converte para null no banco
+    setComunidade({ ...comunidade, logoUrl: "" });
+    router.refresh();
     toast.success("Logo removida.");
   }
 
   function handleThemeSelect(key: string) {
     setThemeKey(key);
-    saveThemeKey(key);
+    applyThemePalette(key);
+    setComunidade({ ...comunidade, temaCor: key });
     toast.success(`Tema "${THEME_PALETTES.find((p) => p.key === key)?.label}" aplicado!`);
   }
 
@@ -1437,6 +1442,21 @@ function ComunidadeTab() {
               onChange={(e) => handleChange("nome", e.target.value)}
               placeholder="Nome oficial da comunidade"
             />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>
+              Nome da plataforma{" "}
+              <span className="font-normal text-muted-foreground text-xs">(opcional)</span>
+            </Label>
+            <Input
+              value={form.nomePlataforma ?? ""}
+              onChange={(e) => handleChange("nomePlataforma", e.target.value)}
+              placeholder="Ex.: Portal Formativo da Diocese, Plataforma de Formação"
+            />
+            <p className="text-xs text-muted-foreground">
+              Como a sua instância aparece para os usuários. Se não preenchido, usa o nome da comunidade.
+            </p>
           </div>
 
           <div className="grid gap-1.5">

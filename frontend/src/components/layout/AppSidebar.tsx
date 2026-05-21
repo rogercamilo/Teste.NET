@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, LogOut, Shield, ShieldCheck, UserCog } from "lucide-react";
@@ -31,19 +30,14 @@ export interface AppSidebarUser {
 
 interface AppSidebarProps {
   user: AppSidebarUser;
+  orgLogo?: string | null;
+  nomePlataforma?: string | null;
 }
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, orgLogo, nomePlataforma }: AppSidebarProps) {
   const pathname = usePathname();
-  const [logo, setLogo] = useState<string | null>(null);
   const [comunidade] = useComunidade();
-
-  useEffect(() => {
-    setLogo(localStorage.getItem("appForm:logo"));
-    const handler = () => setLogo(localStorage.getItem("appForm:logo"));
-    window.addEventListener("appform:logo-changed", handler);
-    return () => window.removeEventListener("appform:logo-changed", handler);
-  }, []);
+  const logo = orgLogo ?? null;
 
   const morada = comunidade.termoMorada?.trim() || "Morada";
   const formando = comunidade.termoFormando?.trim() || "Formando";
@@ -112,11 +106,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
           )}
           <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold text-foreground leading-tight truncate">
-              Formatio
+              {nomePlataforma || comunidade.nome || "Formatio"}
             </span>
-            <span className="text-xs text-muted-foreground truncate">
-              {comunidade.nome || "Minha Comunidade"}
-            </span>
+            {nomePlataforma && (
+              <span className="text-xs text-muted-foreground truncate">
+                {comunidade.nome || ""}
+              </span>
+            )}
           </div>
         </div>
       </SidebarHeader>
