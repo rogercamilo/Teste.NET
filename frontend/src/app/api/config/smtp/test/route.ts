@@ -54,13 +54,12 @@ export async function POST(request: Request) {
     await transporter.sendMail({
       from,
       to,
-      subject: "Teste de conexão SMTP — Plataforma de Formação Comunitária",
+      subject: "Teste de conexão SMTP — Formatio",
       html: `
         <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f9fafb;border-radius:12px;">
           <h2 style="margin:0 0 12px;color:#1d4ed8;font-size:20px;">✅ Conexão SMTP confirmada</h2>
           <p style="margin:0 0 12px;color:#374151;font-size:15px;line-height:1.6;">
-            Este e-mail confirma que o servidor SMTP está corretamente configurado
-            na plataforma de gestão da formação comunitária.
+            Este e-mail confirma que o servidor SMTP está corretamente configurado no Formatio.
           </p>
           <p style="margin:0;color:#9ca3af;font-size:13px;">
             Enviado em ${new Date().toLocaleString("pt-BR")}

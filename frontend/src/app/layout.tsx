@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Aplicativo para Formação Comunitária",
-  description: "Plataforma de gestão pedagógica e formativa — Comunidade Missionária Dom Bosco",
+  title: "Formatio",
+  description: "Plataforma formativa para gestão e acompanhamento da jornada comunitária",
 };
 
 export default function RootLayout({

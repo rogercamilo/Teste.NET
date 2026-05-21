@@ -2488,7 +2488,7 @@ function SistemaTab() {
         </CardHeader>
         <CardContent className="pb-4 space-y-0">
           {[
-            { label: "Aplicativo", value: "App Formativo — Dom Bosco" },
+            { label: "Aplicativo", value: "Formatio" },
             { label: "Versão do schema", value: "3" },
             { label: "Ambiente", value: "Desenvolvimento / Mock" },
             { label: "Armazenamento", value: "localStorage (navegador)" },

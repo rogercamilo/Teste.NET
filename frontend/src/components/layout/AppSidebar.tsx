@@ -107,15 +107,15 @@ export function AppSidebar({ user }: AppSidebarProps) {
             />
           ) : (
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-              <span className="text-xs font-bold text-primary-foreground leading-none">AFC</span>
+              <span className="text-xs font-bold text-primary-foreground leading-none">Fo</span>
             </div>
           )}
           <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold text-foreground leading-tight truncate">
-              Formação Comunitária
+              Formatio
             </span>
             <span className="text-xs text-muted-foreground truncate">
-              {comunidade.nome || "Formação Comunitária"}
+              {comunidade.nome || "Minha Comunidade"}
             </span>
           </div>
         </div>

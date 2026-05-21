@@ -95,7 +95,7 @@ export default function LoginForm() {
           </div>
 
           <h1 className="text-3xl font-bold leading-tight mb-3">
-            Plataforma de gestão <br />para Formação Comunitária
+            Formatio
           </h1>
           <p className="text-base text-white/90 font-medium mb-4">{communityName}</p>
           <p className="text-sm text-white/60 leading-relaxed">{communityDesc}</p>
@@ -120,7 +120,7 @@ export default function LoginForm() {
               </div>
             )}
             <div>
-              <p className="font-semibold text-foreground text-sm leading-tight">Formação Comunitária</p>
+              <p className="font-semibold text-foreground text-sm leading-tight">Formatio</p>
               <p className="text-xs text-muted-foreground truncate max-w-[180px]">{communityName}</p>
             </div>
           </div>

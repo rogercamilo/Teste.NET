@@ -5,7 +5,7 @@ import { loadEmailTemplate, buildEmailHtml } from "./email-template";
 
 // Resend takes priority over SMTP when RESEND_API_KEY is set
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const RESEND_FROM = process.env.RESEND_FROM ?? "noreply@plataformaformativa.com.br";
+const RESEND_FROM = process.env.RESEND_FROM ?? "noreply@formatio.app";
 
 async function sendViaResend(
   to: string,
@@ -105,7 +105,7 @@ export async function sendInviteEmail({
       </p>
     </div>
   `;
-  return send(organizacaoId, email, `Convite para ${orgNome} — Plataforma Formativa`, html);
+  return send(organizacaoId, email, `Convite para ${orgNome} — Formatio`, html);
 }
 
 export async function sendLimitAlertEmail({

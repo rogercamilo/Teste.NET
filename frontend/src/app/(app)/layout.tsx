@@ -50,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
         <footer className="shrink-0 border-t border-border/60 bg-card/50 px-4 md:px-6 py-2.5">
           <p className="text-xs text-muted-foreground text-center">
-            © {new Date().getFullYear()} Aplicativo para Formação Comunitária —{" "}
+            © {new Date().getFullYear()} Formatio —{" "}
             <span className="font-medium text-foreground/70">
               Comunidade Missionária Dom Bosco
             </span>

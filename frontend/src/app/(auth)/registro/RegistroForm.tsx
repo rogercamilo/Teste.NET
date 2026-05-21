@@ -69,9 +69,9 @@ export default function RegistroForm() {
             </div>
           </div>
           <h1 className="text-3xl font-bold leading-tight mb-3">
-            Plataforma Formativa
+            Formatio
           </h1>
-          <p className="text-base text-white/90 font-medium mb-4">Gestão de Formação Comunitária</p>
+          <p className="text-base text-white/90 font-medium mb-4">Gestão formativa para comunidades</p>
           <p className="text-sm text-white/60 leading-relaxed">
             Registre sua organização e comece a gerenciar a jornada formativa da sua comunidade.
           </p>

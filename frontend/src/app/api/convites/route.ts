@@ -111,7 +111,7 @@ export async function POST(request: Request) {
       nome: nome.trim(),
       email: email.toLowerCase().trim(),
       inviteUrl,
-      orgNome: org?.nome ?? "Plataforma Formativa",
+      orgNome: org?.nome ?? "Formatio",
     });
 
     logAction(
