@@ -58,7 +58,12 @@ export type AuditAction =
   | "convite_criado"
   | "convite_aceito"
   | "convite_expirado"
-  | "onboarding_completed";
+  | "onboarding_completed"
+  | "stripe_checkout_iniciado"
+  | "stripe_checkout_concluido"
+  | "stripe_portal_acessado"
+  | "stripe_assinatura_cancelada"
+  | "stripe_pagamento_falhou";
 
 export interface AuditEntry {
   timestamp: string;

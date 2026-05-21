@@ -87,6 +87,7 @@ import {
   XCircle,
 } from "lucide-react";
 import PlanUsage from "@/components/PlanUsage";
+import StripeUpgrade from "@/components/StripeUpgrade";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -190,9 +191,13 @@ export default function ConfiguracoesClient({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Uso do plano</CardTitle>
+                <CardDescription className="text-xs">
+                  Recursos utilizados na sua organização
+                </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <PlanUsage />
+                {userRole === "administrador" && <StripeUpgrade />}
               </CardContent>
             </Card>
           </TabsContent>
