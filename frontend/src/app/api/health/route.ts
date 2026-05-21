@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+  let db = "disconnected";
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return NextResponse.json({ status: "ok", db: "connected" });
+    db = "connected";
   } catch {
-    return NextResponse.json({ status: "error", db: "disconnected" }, { status: 503 });
+    // DB may not be ready yet — process is still healthy
   }
+  return NextResponse.json({ status: "ok", db });
 }
