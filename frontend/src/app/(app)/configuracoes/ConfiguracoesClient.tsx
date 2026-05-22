@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useComunidade, db } from "@/lib/data-store";
+import { passwordErrorMessage } from "@/lib/password-validation";
 import type { UserPublic } from "@/lib/users-store";
 import {
   PERFIL_USUARIO_LABELS,
@@ -243,9 +244,8 @@ function PerfilTab({
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      toast.error("A nova senha deve ter ao menos 6 caracteres."); return;
-    }
+    const pwErr = passwordErrorMessage(newPassword);
+    if (pwErr) { toast.error(pwErr); return; }
     if (newPassword !== confirmPassword) {
       toast.error("As senhas não conferem."); return;
     }

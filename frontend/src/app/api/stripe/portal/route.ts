@@ -4,13 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { stripe, isStripeEnabled } from "@/lib/stripe";
 import { logAction, getClientIp } from "@/lib/audit-log";
 
-type SU = { id?: string; perfil?: string; organizacaoId?: string };
+type SU = { id?: string; role?: string; organizacaoId?: string };
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (user.perfil !== "administrador") {
+  if (user.role !== "administrador") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
   if (!isStripeEnabled()) {

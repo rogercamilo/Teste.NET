@@ -12,7 +12,9 @@ import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react";
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const rawCallbackUrl = searchParams.get("callbackUrl") ?? "";
+  // Rejeita redirecionamentos para domínios externos (open redirect)
+  const callbackUrl = rawCallbackUrl.startsWith("/") ? rawCallbackUrl : "/dashboard";
   const error = searchParams.get("error");
 
   const [showPassword, setShowPassword] = useState(false);
@@ -236,10 +238,7 @@ export default function LoginForm() {
             </a>
           </p>
           <p className="text-center text-xs text-muted-foreground mt-2">
-            Problemas para acessar?{" "}
-            <a href="mailto:admin@dombosco.org" className="text-primary hover:underline">
-              Fale com o administrador
-            </a>
+            Problemas para acessar? Fale com o administrador da sua organização.
           </p>
         </div>
 

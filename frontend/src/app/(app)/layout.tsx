@@ -21,12 +21,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     primeiroAcesso?: boolean;
   };
 
-  let orgBranding = { onboardingConcluido: true, temaCor: "azul", logoUrl: null as string | null, nomePlataforma: null as string | null, nome: "" };
+  let orgBranding = { onboardingConcluido: true, temaCor: "azul", nomePlataforma: null as string | null, nome: "" };
 
   if (sessionUser.organizacaoId && sessionUser.role !== "super_admin") {
     const org = await prisma.organizacao.findUnique({
       where: { id: sessionUser.organizacaoId },
-      select: { onboardingConcluido: true, temaCor: true, logoUrl: true, nomePlataforma: true, nome: true },
+      // logoUrl é TEXT potencialmente grande (base64) — carregado client-side via useComunidade
+      select: { onboardingConcluido: true, temaCor: true, nomePlataforma: true, nome: true },
     });
     if (org) {
       orgBranding = { ...orgBranding, ...org };
@@ -47,7 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <SidebarProvider>
       <ThemeApplier themeKey={orgBranding.temaCor} />
       <PrimeiroAcessoModal primeiroAcesso={primeiroAcesso} />
-      <AppSidebar user={user} orgLogo={orgBranding.logoUrl} nomePlataforma={orgBranding.nomePlataforma} />
+      <AppSidebar user={user} nomePlataforma={orgBranding.nomePlataforma} />
       <SidebarInset>
         <AppTopbar />
         <main className="flex-1 overflow-auto p-4 md:p-6">

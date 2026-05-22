@@ -3,10 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/users-store";
 import { validatePassword } from "@/lib/password-validation";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 
 const PRIVACY_VERSION = "1.0";
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = limiters.register(ip);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
+  }
+
   try {
     const body = await request.json() as {
       orgNome?: string;
@@ -40,6 +47,9 @@ export async function POST(request: Request) {
     const trialExpiresAt = new Date();
     trialExpiresAt.setDate(trialExpiresAt.getDate() + 14);
 
+    // Hash computado antes da transação para não bloquear a conexão com operação CPU-intensiva
+    const passwordHash = hashPassword(senha);
+
     const { org, usuario } = await prisma.$transaction(async (tx) => {
       const existingUser = await tx.usuario.findFirst({
         where: { email: { equals: adminEmail.toLowerCase().trim(), mode: "insensitive" } },
@@ -61,7 +71,7 @@ export async function POST(request: Request) {
           organizacaoId: newOrg.id,
           nome: adminNome.trim(),
           email: adminEmail.toLowerCase().trim(),
-          passwordHash: hashPassword(senha),
+          passwordHash,
           perfil: "administrador",
           ativo: true,
           primeiroAcesso: false,

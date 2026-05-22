@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { findById, verifyPassword, updateUser } from "@/lib/users-store";
 import { passwordErrorMessage } from "@/lib/password-validation";
+import { logAction, getClientIp } from "@/lib/audit-log";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -37,5 +38,6 @@ export async function POST(request: Request) {
   }
 
   await updateUser(userId, { password: newPassword, primeiroAcesso: false });
+  logAction("password_changed", userId, getClientIp(request), {}, organizacaoId);
   return NextResponse.json({ ok: true });
 }

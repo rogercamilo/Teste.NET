@@ -46,6 +46,9 @@ export async function POST(request: Request, { params }: Params) {
       );
     }
 
+    // Hash computado antes da transação para não bloquear a conexão com operação CPU-intensiva
+    const passwordHash = hashPassword(senha);
+
     const { usuario, convite } = await prisma.$transaction(async (tx) => {
       const found = await tx.conviteUsuario.findFirst({ where: { token } });
       if (!found) throw new Error("NOT_FOUND");
@@ -69,7 +72,7 @@ export async function POST(request: Request, { params }: Params) {
           organizacaoId: found.organizacaoId,
           nome: nome?.trim() || found.nome,
           email: found.email,
-          passwordHash: hashPassword(senha),
+          passwordHash,
           perfil: found.perfil,
           moradaId: found.moradaId ?? null,
           ativo: true,
