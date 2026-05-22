@@ -66,12 +66,17 @@ export async function GET() {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const rows = await prisma.gradeFormativa.findMany({
-    where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-    include: { eixos: { include: { etapas: true } } },
-    orderBy: { criadoEm: "desc" },
-  });
-  return NextResponse.json(rows.map(toGrade));
+  try {
+    const rows = await prisma.gradeFormativa.findMany({
+      where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      include: { eixos: { include: { etapas: true } } },
+      orderBy: { criadoEm: "desc" },
+    });
+    return NextResponse.json(rows.map(toGrade));
+  } catch (err) {
+    console.error("[grades GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar grades" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -104,23 +109,24 @@ export async function POST(request: Request) {
         },
       });
 
-      // Create eixos and map client IDs to server IDs for etapas
-      const eixoIdMap = new Map<string, string>();
-      for (const eixo of body.eixos ?? []) {
-        const e = await tx.eixo.create({
-          data: { gradeId: created.id, nome: eixo.nome, descricao: eixo.descricao, ordem: eixo.ordem, cor: eixo.cor || null },
-        });
-        eixoIdMap.set(eixo.id, e.id);
-      }
+      // Criar eixos em paralelo, mapeando IDs do cliente para IDs do servidor
+      const eixoEntries = await Promise.all(
+        (body.eixos ?? []).map((eixo) =>
+          tx.eixo
+            .create({ data: { gradeId: created.id, nome: eixo.nome, descricao: eixo.descricao, ordem: eixo.ordem, cor: eixo.cor || null }, select: { id: true } })
+            .then((e) => [eixo.id, e.id] as [string, string])
+        )
+      );
+      const eixoIdMap = new Map(eixoEntries);
 
-      for (const etapa of body.etapas ?? []) {
-        const newEixoId = eixoIdMap.get(etapa.eixoId);
-        if (newEixoId) {
-          await tx.etapa.create({
-            data: { eixoId: newEixoId, nome: etapa.nome, descricao: etapa.descricao, ordem: etapa.ordem, cargaHoraria: etapa.cargaHoraria },
-          });
-        }
-      }
+      // Criar etapas em paralelo
+      await Promise.all(
+        (body.etapas ?? []).map((etapa) => {
+          const newEixoId = eixoIdMap.get(etapa.eixoId);
+          if (!newEixoId) return Promise.resolve(null);
+          return tx.etapa.create({ data: { eixoId: newEixoId, nome: etapa.nome, descricao: etapa.descricao, ordem: etapa.ordem, cargaHoraria: etapa.cargaHoraria } });
+        })
+      );
 
       return tx.gradeFormativa.findUniqueOrThrow({
         where: { id: created.id },
@@ -130,7 +136,8 @@ export async function POST(request: Request) {
 
     logAction("grade_created", user.id, getClientIp(request), { planoId: body.planoId }, user.organizacaoId);
     return NextResponse.json(toGrade(grade), { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[grades POST]", err);
     return NextResponse.json({ error: "Falha ao criar grade" }, { status: 500 });
   }
 }

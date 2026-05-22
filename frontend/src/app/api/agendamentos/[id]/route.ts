@@ -17,10 +17,15 @@ export async function GET(_req: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  const { id } = await params;
-  const row = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
-  if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-  return NextResponse.json(toAg(row));
+  try {
+    const { id } = await params;
+    const row = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    return NextResponse.json(toAg(row));
+  } catch (err) {
+    console.error("[agendamentos/:id GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar agendamento" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -38,7 +43,7 @@ export async function PUT(request: Request, { params }: Params) {
     });
     logAction("agendamento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toAg(updated));
-  } catch { return NextResponse.json({ error: "Falha ao atualizar agendamento" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar agendamento" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -52,5 +57,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.agendamento.delete({ where: { id } });
     logAction("agendamento_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch { return NextResponse.json({ error: "Falha ao excluir agendamento" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir agendamento" }, { status: 500 }); }
 }

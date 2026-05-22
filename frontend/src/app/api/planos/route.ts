@@ -48,12 +48,17 @@ export async function GET() {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const rows = await prisma.planoFormativo.findMany({
-    where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-    include: { eixos: true },
-    orderBy: { criadoEm: "desc" },
-  });
-  return NextResponse.json(rows.map(toPlano));
+  try {
+    const rows = await prisma.planoFormativo.findMany({
+      where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      include: { eixos: true },
+      orderBy: { criadoEm: "desc" },
+    });
+    return NextResponse.json(rows.map(toPlano));
+  } catch (err) {
+    console.error("[planos GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar planos" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -92,7 +97,8 @@ export async function POST(request: Request) {
     });
     logAction("plano_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
     return NextResponse.json(toPlano(row), { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao criar plano" }, { status: 500 });
   }
 }

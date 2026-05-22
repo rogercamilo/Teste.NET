@@ -77,7 +77,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.primeiroAcesso =
             (user as { primeiroAcesso?: boolean }).primeiroAcesso ?? false;
         }
-      } else if (token.id) {
+      } else if (token.id && token.primeiroAcesso) {
+        // Only query DB while primeiroAcesso is true — once cleared, no further DB round-trip.
         const dbUser = await findById(token.id as string);
         if (dbUser) token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
       }

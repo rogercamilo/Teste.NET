@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NextImage from "next/image";
 import { usePathname } from "next/navigation";
 import { Home, LogOut, Shield, ShieldCheck, UserCog } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -30,14 +31,14 @@ export interface AppSidebarUser {
 
 interface AppSidebarProps {
   user: AppSidebarUser;
-  orgLogo?: string | null;
   nomePlataforma?: string | null;
 }
 
-export function AppSidebar({ user, orgLogo, nomePlataforma }: AppSidebarProps) {
+export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   const pathname = usePathname();
   const [comunidade] = useComunidade();
-  const logo = orgLogo ?? null;
+  // Logo carregada client-side via useComunidade para evitar transferir base64 no SSR
+  const logo = comunidade.logoUrl ?? null;
 
   const morada = comunidade.termoMorada?.trim() || "Morada";
   const formando = comunidade.termoFormando?.trim() || "Formando";
@@ -94,10 +95,13 @@ export function AppSidebar({ user, orgLogo, nomePlataforma }: AppSidebarProps) {
       <SidebarHeader>
         <div className="flex items-center gap-2.5 px-2 py-1">
           {logo ? (
-            <img
+            <NextImage
               src={logo}
               alt="Logo"
+              width={32}
+              height={32}
               className="h-8 w-8 shrink-0 rounded-lg object-contain bg-muted"
+              unoptimized={logo.startsWith("data:")}
             />
           ) : (
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">

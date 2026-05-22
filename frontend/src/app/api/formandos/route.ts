@@ -54,51 +54,53 @@ export async function GET(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const { searchParams } = new URL(request.url);
-  const moradaId = searchParams.get("moradaId");
-  const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
+  try {
+    const { searchParams } = new URL(request.url);
+    const moradaId = searchParams.get("moradaId");
+    const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
 
-  if (user.role === "formador_comunitario") {
-    // Formador comunitário só vê formandos da sua própria morada
-    where.moradaId = user.moradaId ?? null;
-  } else if (moradaId) {
-    where.moradaId = moradaId;
-  }
+    if (user.role === "formador_comunitario") {
+      where.moradaId = user.moradaId ?? null;
+    } else if (moradaId) {
+      where.moradaId = moradaId;
+    }
 
-  const rows = await prisma.formando.findMany({
-    where,
-    include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
-    orderBy: { nome: "asc" },
-  });
-
-  // Batch-fetch totalFormacoes from grades linked to moradas
-  const gradeIds = [...new Set(
-    rows.map((r) => r.morada?.gradeId).filter((id): id is string => !!id)
-  )];
-  const gradeMap = new Map<string, number>();
-  if (gradeIds.length > 0) {
-    const grades = await prisma.gradeFormativa.findMany({
-      where: { id: { in: gradeIds } },
-      select: { id: true, totalFormacoes: true },
+    const rows = await prisma.formando.findMany({
+      where,
+      include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
+      orderBy: { nome: "asc" },
     });
-    for (const g of grades) gradeMap.set(g.id, g.totalFormacoes);
+
+    const gradeIds = [...new Set(
+      rows.map((r) => r.morada?.gradeId).filter((id): id is string => !!id)
+    )];
+    const gradeMap = new Map<string, number>();
+    if (gradeIds.length > 0) {
+      const grades = await prisma.gradeFormativa.findMany({
+        where: { id: { in: gradeIds } },
+        select: { id: true, totalFormacoes: true },
+      });
+      for (const g of grades) gradeMap.set(g.id, g.totalFormacoes);
+    }
+
+    const formacoesAgg = await prisma.formacao.groupBy({
+      by: ["nivelFormativo"],
+      where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      _count: { id: true },
+    });
+    const countByNivel = new Map(formacoesAgg.map((c) => [c.nivelFormativo, c._count.id]));
+
+    return NextResponse.json(rows.map((r) => {
+      const { morada, ...rest } = r;
+      const gradeTotal = morada?.gradeId ? gradeMap.get(morada.gradeId) : undefined;
+      const nivelTotal = countByNivel.get(r.nivelFormativo);
+      const totalFormacoes = (gradeTotal ?? nivelTotal) || rest.totalFormacoes;
+      return toFormando({ ...rest, totalFormacoes });
+    }));
+  } catch (err) {
+    console.error("[formandos GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar formandos" }, { status: 500 });
   }
-
-  // Fallback: count registered formações per nivelFormativo in the org
-  const formacoesAgg = await prisma.formacao.groupBy({
-    by: ["nivelFormativo"],
-    where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-    _count: { id: true },
-  });
-  const countByNivel = new Map(formacoesAgg.map((c) => [c.nivelFormativo, c._count.id]));
-
-  return NextResponse.json(rows.map((r) => {
-    const { morada, ...rest } = r;
-    const gradeTotal = morada?.gradeId ? gradeMap.get(morada.gradeId) : undefined;
-    const nivelTotal = countByNivel.get(r.nivelFormativo);
-    const totalFormacoes = (gradeTotal ?? nivelTotal) || rest.totalFormacoes;
-    return toFormando({ ...rest, totalFormacoes });
-  }));
 }
 
 export async function POST(request: Request) {
@@ -153,7 +155,8 @@ export async function POST(request: Request) {
     });
     logAction("formando_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
     return NextResponse.json(toFormando(row), { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao criar formando" }, { status: 500 });
   }
 }

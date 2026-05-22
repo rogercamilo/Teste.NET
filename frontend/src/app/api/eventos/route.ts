@@ -44,13 +44,18 @@ export async function GET(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const { searchParams } = new URL(request.url);
-  const formandoId = searchParams.get("formandoId");
-  const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
-  if (formandoId) where.formandoId = formandoId;
+  try {
+    const { searchParams } = new URL(request.url);
+    const formandoId = searchParams.get("formandoId");
+    const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
+    if (formandoId) where.formandoId = formandoId;
 
-  const rows = await prisma.eventoFormando.findMany({ where, orderBy: { criadoEm: "desc" } });
-  return NextResponse.json(rows.map(toEvento));
+    const rows = await prisma.eventoFormando.findMany({ where, orderBy: { criadoEm: "desc" } });
+    return NextResponse.json(rows.map(toEvento));
+  } catch (err) {
+    console.error("[eventos GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar eventos" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -92,7 +97,8 @@ export async function POST(request: Request) {
     });
     logAction("evento_created", user.id, getClientIp(request), { formandoId: body.formandoId, tipo: body.tipo }, user.organizacaoId);
     return NextResponse.json(toEvento(row), { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao criar evento" }, { status: 500 });
   }
 }

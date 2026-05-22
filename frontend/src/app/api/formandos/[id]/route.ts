@@ -43,33 +43,38 @@ export async function GET(_req: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  const { id } = await params;
-  const where: Record<string, unknown> = { id, organizacaoId: user.organizacaoId };
-  if (user.role === "formador_comunitario") where.moradaId = user.moradaId ?? null;
+  try {
+    const { id } = await params;
+    const where: Record<string, unknown> = { id, organizacaoId: user.organizacaoId };
+    if (user.role === "formador_comunitario") where.moradaId = user.moradaId ?? null;
 
-  const row = await prisma.formando.findFirst({
-    where,
-    include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
-  });
-  if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-
-  const { morada, ...rest } = row;
-  let totalFormacoes = rest.totalFormacoes;
-
-  if (morada?.gradeId) {
-    const grade = await prisma.gradeFormativa.findUnique({
-      where: { id: morada.gradeId },
-      select: { totalFormacoes: true },
+    const row = await prisma.formando.findFirst({
+      where,
+      include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
     });
-    if (grade && grade.totalFormacoes > 0) totalFormacoes = grade.totalFormacoes;
-  } else {
-    const count = await prisma.formacao.count({
-      where: { nivelFormativo: rest.nivelFormativo, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-    });
-    if (count > 0) totalFormacoes = count;
+    if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+
+    const { morada, ...rest } = row;
+    let totalFormacoes = rest.totalFormacoes;
+
+    if (morada?.gradeId) {
+      const grade = await prisma.gradeFormativa.findUnique({
+        where: { id: morada.gradeId },
+        select: { totalFormacoes: true },
+      });
+      if (grade && grade.totalFormacoes > 0) totalFormacoes = grade.totalFormacoes;
+    } else {
+      const count = await prisma.formacao.count({
+        where: { nivelFormativo: rest.nivelFormativo, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      });
+      if (count > 0) totalFormacoes = count;
+    }
+
+    return NextResponse.json(toFormando({ ...rest, totalFormacoes }));
+  } catch (err) {
+    console.error("[formandos/:id GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar formando" }, { status: 500 });
   }
-
-  return NextResponse.json(toFormando({ ...rest, totalFormacoes }));
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -132,7 +137,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     logAction("formando_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toFormando(updated));
-  } catch { return NextResponse.json({ error: "Falha ao atualizar formando" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar formando" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -146,5 +151,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.formando.delete({ where: { id } });
     logAction("formando_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch { return NextResponse.json({ error: "Falha ao excluir formando" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir formando" }, { status: 500 }); }
 }

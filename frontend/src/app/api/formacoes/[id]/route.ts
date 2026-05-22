@@ -20,11 +20,13 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
-  const row = await prisma.formacao.findFirst({
-    where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-  });
-  if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-  return NextResponse.json(toFormacao(row));
+  try {
+    const row = await prisma.formacao.findFirst({
+      where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+    });
+    if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    return NextResponse.json(toFormacao(row));
+  } catch (err) { console.error("[formacoes/:id GET]", err); return NextResponse.json({ error: "Falha ao carregar formação" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -40,7 +42,7 @@ export async function PUT(request: Request, { params }: Params) {
     const updated = await prisma.formacao.update({ where: { id }, data: { tema: body.tema?.trim(), objetivo: body.objetivo, descricao: body.descricao, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, eixoId: body.eixoId || null, eixoNome: body.eixoNome || null, etapaId: body.etapaId || null, etapaNome: body.etapaNome || null, formadorNome: body.formadorNome, cargaHoraria: body.cargaHoraria, modalidade: body.modalidade, materialApoio: body.materialApoio || null, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null, gradeId: body.gradeId || null, gradeNome: body.gradeNome || null, vezesUtilizada: body.vezesUtilizada } });
     logAction("formacao_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toFormacao(updated));
-  } catch { return NextResponse.json({ error: "Falha ao atualizar formação" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar formação" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -55,5 +57,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.formacao.delete({ where: { id } });
     logAction("formacao_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch { return NextResponse.json({ error: "Falha ao excluir formação" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir formação" }, { status: 500 }); }
 }

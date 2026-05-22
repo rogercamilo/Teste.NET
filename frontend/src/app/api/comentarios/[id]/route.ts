@@ -18,9 +18,11 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
-  const row = await prisma.comentarioFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
-  if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-  return NextResponse.json(toComentario(row));
+  try {
+    const row = await prisma.comentarioFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    return NextResponse.json(toComentario(row));
+  } catch (err) { console.error("[comentarios/:id GET]", err); return NextResponse.json({ error: "Falha ao carregar comentário" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -35,7 +37,7 @@ export async function PUT(request: Request, { params }: Params) {
     const updated = await prisma.comentarioFormando.update({ where: { id }, data: { texto: body.texto?.trim(), tipo: body.tipo } });
     logAction("comentario_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toComentario(updated));
-  } catch { return NextResponse.json({ error: "Falha ao atualizar comentário" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar comentário" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -49,5 +51,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.comentarioFormando.delete({ where: { id } });
     logAction("comentario_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch { return NextResponse.json({ error: "Falha ao excluir comentário" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir comentário" }, { status: 500 }); }
 }

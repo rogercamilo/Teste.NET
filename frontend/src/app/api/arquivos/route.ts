@@ -21,33 +21,38 @@ export async function GET(request: NextRequest) {
   const user = session?.user as SessionUser | undefined;
   if (!user?.id) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
-  const url = new URL(request.url);
-  const entityType = url.searchParams.get("entityType") ?? undefined;
-  const entityId = url.searchParams.get("entityId") ?? undefined;
+  try {
+    const url = new URL(request.url);
+    const entityType = url.searchParams.get("entityType") ?? undefined;
+    const entityId = url.searchParams.get("entityId") ?? undefined;
 
-  const where = {
-    organizacaoId: user.organizacaoId,
-    ...(entityType ? { entityType } : {}),
-    ...(entityId ? { entityId } : {}),
-  };
+    const where = {
+      organizacaoId: user.organizacaoId,
+      ...(entityType ? { entityType } : {}),
+      ...(entityId ? { entityId } : {}),
+    };
 
-  const arquivos = await prisma.arquivo.findMany({
-    where,
-    orderBy: { criadoEm: "desc" },
-  });
+    const arquivos = await prisma.arquivo.findMany({
+      where,
+      orderBy: { criadoEm: "desc" },
+    });
 
-  return Response.json(
-    arquivos.map((a) => ({
-      id: a.id,
-      nome: a.nome,
-      tamanho: a.tamanho,
-      tipo: a.tipo,
-      extensao: a.extensao,
-      entityType: a.entityType,
-      entityId: a.entityId,
-      criadoEm: a.criadoEm.toISOString(),
-    }))
-  );
+    return Response.json(
+      arquivos.map((a) => ({
+        id: a.id,
+        nome: a.nome,
+        tamanho: a.tamanho,
+        tipo: a.tipo,
+        extensao: a.extensao,
+        entityType: a.entityType,
+        entityId: a.entityId,
+        criadoEm: a.criadoEm.toISOString(),
+      }))
+    );
+  } catch (err) {
+    console.error("[arquivos GET]", err);
+    return Response.json({ error: "Falha ao carregar arquivos" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -67,7 +72,8 @@ export async function POST(request: NextRequest) {
   let formData: FormData;
   try {
     formData = await request.formData();
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return Response.json({ error: "Requisição inválida" }, { status: 400 });
   }
 
@@ -104,7 +110,8 @@ export async function POST(request: NextRequest) {
   let storageKey: string;
   try {
     storageKey = await uploadFile(orgId, "arquivos", buffer, extensao, file.type);
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return Response.json({ error: "Falha ao salvar arquivo." }, { status: 500 });
   }
 

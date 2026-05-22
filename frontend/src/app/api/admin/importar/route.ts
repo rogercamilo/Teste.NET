@@ -30,7 +30,8 @@ export async function POST(request: Request) {
   let body: ImportPayload;
   try {
     body = await request.json() as ImportPayload;
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
@@ -90,39 +91,51 @@ export async function POST(request: Request) {
       results.formandos = count;
     }
 
-    // Comentários
+    // Comentários — verifica FKs em batch para evitar N+1
     if (Array.isArray(body.comentarios) && body.comentarios.length > 0) {
-      let count = 0;
-      for (const c of body.comentarios) {
-        const row = c as Record<string, unknown>;
-        if (!row.id || !row.formandoId || !row.formadorId || !row.texto) continue;
-        const formandoExists = await prisma.formando.findFirst({ where: { id: String(row.formandoId), organizacaoId: orgId } });
-        const formadorExists = await prisma.usuario.findFirst({ where: { id: String(row.formadorId), organizacaoId: orgId } });
-        if (!formandoExists || !formadorExists) continue;
-        await prisma.comentarioFormando.upsert({
-          where: { id: String(row.id) },
-          update: {},
-          create: {
-            id: String(row.id),
-            organizacaoId: orgId,
-            formandoId: String(row.formandoId),
-            formandoNome: row.formandoNome ? String(row.formandoNome) : "",
-            formadorId: String(row.formadorId),
-            formadorNome: row.formadorNome ? String(row.formadorNome) : null,
-            texto: String(row.texto),
-            tipo: row.tipo ? String(row.tipo) : "observação",
-          },
-        });
-        count++;
+      const validRows = (body.comentarios as Record<string, unknown>[]).filter(
+        (row) => row.id && row.formandoId && row.formadorId && row.texto
+      );
+
+      if (validRows.length > 0) {
+        const formandoIds = [...new Set(validRows.map((r) => String(r.formandoId)))];
+        const formadorIds = [...new Set(validRows.map((r) => String(r.formadorId)))];
+
+        const [existingFormandos, existingFormadores] = await Promise.all([
+          prisma.formando.findMany({ where: { id: { in: formandoIds }, organizacaoId: orgId }, select: { id: true } }),
+          prisma.usuario.findMany({ where: { id: { in: formadorIds }, organizacaoId: orgId }, select: { id: true } }),
+        ]);
+        const validFormandoIds = new Set(existingFormandos.map((f) => f.id));
+        const validFormadorIds = new Set(existingFormadores.map((f) => f.id));
+
+        let count = 0;
+        for (const row of validRows) {
+          if (!validFormandoIds.has(String(row.formandoId)) || !validFormadorIds.has(String(row.formadorId))) continue;
+          await prisma.comentarioFormando.upsert({
+            where: { id: String(row.id) },
+            update: {},
+            create: {
+              id: String(row.id),
+              organizacaoId: orgId,
+              formandoId: String(row.formandoId),
+              formandoNome: row.formandoNome ? String(row.formandoNome) : "",
+              formadorId: String(row.formadorId),
+              formadorNome: row.formadorNome ? String(row.formadorNome) : null,
+              texto: String(row.texto),
+              tipo: row.tipo ? String(row.tipo) : "observacao",
+            },
+          });
+          count++;
+        }
+        results.comentarios = count;
       }
-      results.comentarios = count;
     }
 
     logAction(
-      "formando_created",
+      "dados_importados",
       user.id,
       getClientIp(request),
-      { importação: true, totais: results },
+      { totais: results },
       orgId
     );
 

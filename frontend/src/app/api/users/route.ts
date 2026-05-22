@@ -7,7 +7,7 @@ import { logAction, getClientIp } from "@/lib/audit-log";
 type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
 function isAdminOrAbove(role: string | undefined): boolean {
-  return role === "administrador" || role === "formador_geral";
+  return role === "administrador" || role === "formador_geral" || role === "super_admin";
 }
 
 export async function GET(request: Request) {
@@ -24,7 +24,8 @@ export async function GET(request: Request) {
   try {
     const users = await listUsers(user.organizacaoId);
     return NextResponse.json(users.map(toPublic));
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao carregar usuários" }, { status: 500 });
   }
 }
@@ -84,7 +85,8 @@ export async function POST(request: Request) {
     logAction("user_created", actor.id, getClientIp(request), { targetEmail: email, perfil: perfilSanitizado }, actor.organizacaoId);
 
     return NextResponse.json({ ...toPublic(user), tempPassword, emailSent }, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[users POST]", err);
     return NextResponse.json({ error: "Falha ao criar usuário" }, { status: 500 });
   }
 }

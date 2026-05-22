@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sendInviteEmail } from "@/lib/email";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import type { PerfilUsuario } from "@prisma/client";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -36,6 +37,11 @@ export async function POST(request: Request) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
+  const rl = limiters.email(user.id ?? getClientIp(request));
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Limite de convites atingido. Aguarde antes de enviar mais." }, { status: 429 });
+  }
+
   try {
     const body = await request.json() as {
       email?: string;
@@ -53,7 +59,6 @@ export async function POST(request: Request) {
     if (!perfil || !ALLOWED_PERFIS.includes(perfil)) {
       return NextResponse.json({ error: "Perfil inválido" }, { status: 400 });
     }
-    const perfilSanitizado = perfil;
 
     // Verificar se já existe usuário com esse e-mail
     const existing = await prisma.usuario.findFirst({
@@ -91,7 +96,7 @@ export async function POST(request: Request) {
         organizacaoId: user.organizacaoId,
         email: email.toLowerCase().trim(),
         nome: nome.trim(),
-        perfil: perfilSanitizado as PerfilUsuario,
+        perfil: perfil as PerfilUsuario,
         moradaId: moradaId || null,
         expiresAt,
         criadoPorId: user.id!,
@@ -118,7 +123,7 @@ export async function POST(request: Request) {
       "convite_criado",
       user.id,
       getClientIp(request),
-      { targetEmail: email, perfil: perfilSanitizado, emailSent: emailResult.sent },
+      { targetEmail: email, perfil, emailSent: emailResult.sent },
       user.organizacaoId
     );
 
@@ -148,5 +153,6 @@ export async function DELETE(request: Request) {
   if (!convite) return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
 
   await prisma.conviteUsuario.delete({ where: { id } });
+  logAction("convite_cancelado", user.id, getClientIp(request), { conviteId: id }, user.organizacaoId);
   return NextResponse.json({ ok: true });
 }

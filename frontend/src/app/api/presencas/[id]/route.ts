@@ -18,9 +18,11 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
-  const row = await prisma.presencaFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
-  if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-  return NextResponse.json(toPresenca(row));
+  try {
+    const row = await prisma.presencaFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    return NextResponse.json(toPresenca(row));
+  } catch (err) { console.error("[presencas/:id GET]", err); return NextResponse.json({ error: "Falha ao carregar presença" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -35,7 +37,7 @@ export async function PUT(request: Request, { params }: Params) {
     const updated = await prisma.presencaFormacao.update({ where: { id }, data: { presente: body.presente, justificativa: body.justificativa || null } });
     logAction("presenca_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toPresenca(updated));
-  } catch { return NextResponse.json({ error: "Falha ao atualizar presença" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar presença" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -49,5 +51,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.presencaFormacao.delete({ where: { id } });
     logAction("presenca_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch { return NextResponse.json({ error: "Falha ao excluir presença" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir presença" }, { status: 500 }); }
 }

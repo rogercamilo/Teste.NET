@@ -40,11 +40,16 @@ export async function GET() {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const rows = await prisma.agendamento.findMany({
-    where: { organizacaoId: user.organizacaoId },
-    orderBy: { dataInicio: "asc" },
-  });
-  return NextResponse.json(rows.map(toAg));
+  try {
+    const rows = await prisma.agendamento.findMany({
+      where: { organizacaoId: user.organizacaoId },
+      orderBy: { dataInicio: "asc" },
+    });
+    return NextResponse.json(rows.map(toAg));
+  } catch (err) {
+    console.error("[agendamentos GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar agendamentos" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -58,8 +63,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "formacaoId e dataInicio são obrigatórios" }, { status: 400 });
     }
 
-    // Resolve formadorId — prefer session user to avoid FK errors with client-generated IDs
+    // formadorId is always the authenticated user; formadorNome resolved server-side.
     const formadorId = user.id!;
+    const formadorUser = await prisma.usuario.findUnique({
+      where: { id: formadorId },
+      select: { nome: true },
+    });
+    const formadorNome = formadorUser?.nome ?? "";
 
     const row = await prisma.agendamento.create({
       data: {
@@ -69,7 +79,7 @@ export async function POST(request: Request) {
         nivelFormativo: body.nivelFormativo ?? "pre-discipulado",
         tipoFormacao: body.tipoFormacao ?? "comunitaria",
         formadorId,
-        formadorNome: body.formadorNome ?? "",
+        formadorNome,
         dataInicio: new Date(body.dataInicio),
         dataFim: new Date(body.dataFim ?? body.dataInicio),
         local: body.local || null,
@@ -82,7 +92,8 @@ export async function POST(request: Request) {
     });
     logAction("agendamento_created", user.id, getClientIp(request), { formacaoId: body.formacaoId }, user.organizacaoId);
     return NextResponse.json(toAg(row), { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao criar agendamento" }, { status: 500 });
   }
 }

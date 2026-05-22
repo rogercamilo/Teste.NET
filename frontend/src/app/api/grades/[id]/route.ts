@@ -30,12 +30,14 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
-  const row = await prisma.gradeFormativa.findFirst({
-    where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-    include: { eixos: { include: { etapas: true } } },
-  });
-  if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-  return NextResponse.json(toGrade(row));
+  try {
+    const row = await prisma.gradeFormativa.findFirst({
+      where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      include: { eixos: { include: { etapas: true } } },
+    });
+    if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    return NextResponse.json(toGrade(row));
+  } catch (err) { console.error("[grades/:id GET]", err); return NextResponse.json({ error: "Falha ao carregar grade" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -58,22 +60,28 @@ export async function PUT(request: Request, { params }: Params) {
         data: { nome: body.nome ?? existing.nome, planoId: body.planoId, planoNome: body.planoNome, nivelFormativo: body.nivelFormativo, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : undefined, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : undefined, versao: body.versao, totalFormacoes: body.totalFormacoes, objetivos: body.objetivos || null, fundamentacao: body.fundamentacao || null, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null, ativo: body.ativo },
       });
 
-      const eixoIdMap = new Map<string, string>();
-      for (const eixo of body.eixos ?? []) {
-        const e = await tx.eixo.create({ data: { gradeId: id, nome: eixo.nome, descricao: eixo.descricao, ordem: eixo.ordem, cor: eixo.cor || null } });
-        eixoIdMap.set(eixo.id, e.id);
-      }
-      for (const etapa of body.etapas ?? []) {
-        const newEixoId = eixoIdMap.get(etapa.eixoId);
-        if (newEixoId) await tx.etapa.create({ data: { eixoId: newEixoId, nome: etapa.nome, descricao: etapa.descricao, ordem: etapa.ordem, cargaHoraria: etapa.cargaHoraria } });
-      }
+      const eixoEntries = await Promise.all(
+        (body.eixos ?? []).map((eixo) =>
+          tx.eixo
+            .create({ data: { gradeId: id, nome: eixo.nome, descricao: eixo.descricao, ordem: eixo.ordem, cor: eixo.cor || null }, select: { id: true } })
+            .then((e) => [eixo.id, e.id] as [string, string])
+        )
+      );
+      const eixoIdMap = new Map(eixoEntries);
+      await Promise.all(
+        (body.etapas ?? []).map((etapa) => {
+          const newEixoId = eixoIdMap.get(etapa.eixoId);
+          if (!newEixoId) return Promise.resolve(null);
+          return tx.etapa.create({ data: { eixoId: newEixoId, nome: etapa.nome, descricao: etapa.descricao, ordem: etapa.ordem, cargaHoraria: etapa.cargaHoraria } });
+        })
+      );
 
       return tx.gradeFormativa.findUniqueOrThrow({ where: { id }, include: { eixos: { include: { etapas: true } } } });
     });
 
     logAction("grade_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toGrade(updated));
-  } catch { return NextResponse.json({ error: "Falha ao atualizar grade" }, { status: 500 }); }
+  } catch (err) { console.error("[grades PUT]", err); return NextResponse.json({ error: "Falha ao atualizar grade" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -88,5 +96,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.gradeFormativa.delete({ where: { id } });
     logAction("grade_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch { return NextResponse.json({ error: "Falha ao excluir grade" }, { status: 500 }); }
+  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir grade" }, { status: 500 }); }
 }

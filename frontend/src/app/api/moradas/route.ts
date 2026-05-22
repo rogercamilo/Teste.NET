@@ -38,11 +38,16 @@ export async function GET() {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const rows = await prisma.morada.findMany({
-    where: { organizacaoId: user.organizacaoId },
-    orderBy: { nome: "asc" },
-  });
-  return NextResponse.json(rows.map(toMorada));
+  try {
+    const rows = await prisma.morada.findMany({
+      where: { organizacaoId: user.organizacaoId },
+      orderBy: { nome: "asc" },
+    });
+    return NextResponse.json(rows.map(toMorada));
+  } catch (err) {
+    console.error("[moradas GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar moradas" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -83,7 +88,8 @@ export async function POST(request: Request) {
     });
     logAction("morada_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
     return NextResponse.json(toMorada(row), { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao criar morada" }, { status: 500 });
   }
 }

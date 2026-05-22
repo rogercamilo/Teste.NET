@@ -41,8 +41,8 @@ export const mockMoradas: Morada[] = [
 export const mockUsuarios: Usuario[] = [
   {
     id: "u1",
-    nome: "Roger",
-    email: "rogercmdb@gmail.com",
+    nome: "Admin",
+    email: "admin@exemplo.org",
     perfil: "formador_geral",
     ativo: true,
     criadoEm: "2024-01-10",
@@ -50,7 +50,7 @@ export const mockUsuarios: Usuario[] = [
   {
     id: "u0",
     nome: "Ana Costa",
-    email: "ana.costa@dombosco.org",
+    email: "ana.costa@exemplo.org",
     perfil: "administrador",
     ativo: true,
     criadoEm: "2024-01-12",
@@ -58,7 +58,7 @@ export const mockUsuarios: Usuario[] = [
   {
     id: "u2",
     nome: "Carlos Mendes",
-    email: "carlos.mendes@dombosco.org",
+    email: "carlos.mendes@exemplo.org",
     perfil: "formador_comunitario",
     moradaId: "m1",
     ativo: true,
@@ -67,7 +67,7 @@ export const mockUsuarios: Usuario[] = [
   {
     id: "u3",
     nome: "Maria Silva",
-    email: "maria.silva@dombosco.org",
+    email: "maria.silva@exemplo.org",
     perfil: "formador_comunitario",
     moradaId: "m2",
     ativo: true,

@@ -15,16 +15,21 @@ export async function GET(request: Request) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
-  const config = await loadSmtpConfig(user.organizacaoId);
-  return NextResponse.json({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    user: config.user,
-    pass: config.pass ? "***" : "",
-    from: config.from,
-    configured: isSmtpReady(config),
-  });
+  try {
+    const config = await loadSmtpConfig(user.organizacaoId);
+    return NextResponse.json({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      user: config.user,
+      pass: config.pass ? "***" : "",
+      from: config.from,
+      configured: isSmtpReady(config),
+    });
+  } catch (err) {
+    console.error("[config smtp GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar configuração SMTP" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: Request) {
@@ -50,7 +55,8 @@ export async function PUT(request: Request) {
     await saveSmtpConfig(user.organizacaoId, updated);
     logAction("smtp_config_changed", user.id, getClientIp(request), {}, user.organizacaoId);
     return NextResponse.json({ ok: true, configured: isSmtpReady(updated) });
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao salvar configuração SMTP" }, { status: 500 });
   }
 }

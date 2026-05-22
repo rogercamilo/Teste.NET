@@ -31,15 +31,20 @@ export async function GET(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const { searchParams } = new URL(request.url);
-  const agendamentoId = searchParams.get("agendamentoId");
-  const formandoId = searchParams.get("formandoId");
-  const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
-  if (agendamentoId) where.agendamentoId = agendamentoId;
-  if (formandoId) where.formandoId = formandoId;
+  try {
+    const { searchParams } = new URL(request.url);
+    const agendamentoId = searchParams.get("agendamentoId");
+    const formandoId = searchParams.get("formandoId");
+    const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
+    if (agendamentoId) where.agendamentoId = agendamentoId;
+    if (formandoId) where.formandoId = formandoId;
 
-  const rows = await prisma.presencaFormacao.findMany({ where, orderBy: { data: "desc" } });
-  return NextResponse.json(rows.map(toPresenca));
+    const rows = await prisma.presencaFormacao.findMany({ where, orderBy: { data: "desc" } });
+    return NextResponse.json(rows.map(toPresenca));
+  } catch (err) {
+    console.error("[presencas GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar presenças" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -68,11 +73,11 @@ export async function POST(request: Request) {
       create: {
         organizacaoId: user.organizacaoId,
         agendamentoId: body.agendamentoId,
-        formacaoTema: body.formacaoTema ?? "",
-        data: new Date(body.data ?? Date.now()),
+        formacaoTema: body.formacaoTema ?? agendamento.formacaoTema,
+        data: new Date(body.data ?? agendamento.dataInicio),
         formandoId: body.formandoId,
-        formandoNome: body.formandoNome ?? "",
-        nivelFormativo: body.nivelFormativo ?? "pre-discipulado",
+        formandoNome: formando.nome,
+        nivelFormativo: formando.nivelFormativo,
         presente: body.presente ?? false,
         justificativa: body.justificativa || null,
       },
@@ -83,7 +88,8 @@ export async function POST(request: Request) {
     });
     logAction("presenca_registrada", user.id, getClientIp(request), { agendamentoId: body.agendamentoId, formandoId: body.formandoId }, user.organizacaoId);
     return NextResponse.json(toPresenca(row), { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao registrar presença" }, { status: 500 });
   }
 }

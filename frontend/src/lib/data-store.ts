@@ -7,7 +7,7 @@
  * D2.6: localStorage removido completamente. Fonte de verdade é a API/PostgreSQL.
  * Fallback de desenvolvimento: mock-data (apenas enquanto a API não responde).
  */
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import type {
   Agendamento,
   EventoFormando,
@@ -209,21 +209,7 @@ export function usePresencas(): [PresencaFormacao[], Setter<PresencaFormacao>] {
   return useApiEntity("presencas", db.presencas);
 }
 export function useUsuarios(): [Usuario[], Setter<Usuario>] {
-  const [s, ss] = useState<Usuario[]>(() => db.usuarios.load());
-  useEffect(() => {
-    fetch("/api/users")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: Usuario[] | null) => { if (data) { ss(data); db.usuarios.save(data); } })
-      .catch(() => {});
-  }, []);
-  const setter: Setter<Usuario> = (updater) => {
-    ss((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      db.usuarios.save(next);
-      return next;
-    });
-  };
-  return [s, setter];
+  return useApiEntity("users", db.usuarios);
 }
 export function useEventosFormando(): [EventoFormando[], Setter<EventoFormando>] {
   return useApiEntity("eventos", db.eventosFormando);
@@ -233,11 +219,11 @@ export function useEventosFormando(): [EventoFormando[], Setter<EventoFormando>]
 // ComunidadeConfig — backed by /api/organizacao
 // ---------------------------------------------------------------------------
 const DEFAULT_COMUNIDADE: ComunidadeConfig = {
-  nome: "Comunidade Missionária Dom Bosco",
-  descricao: "Comunidade de vida consagrada dedicada à formação cristã integral.",
-  endereco: "Fortaleza, Ceará — Brasil",
-  missao: "Evangelizar e formar discípulos de Cristo segundo o espírito salesiano de Dom Bosco.",
-  anoFundacao: "2000",
+  nome: "",
+  descricao: "",
+  endereco: "",
+  missao: "",
+  anoFundacao: "",
 };
 
 export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => void] {

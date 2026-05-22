@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
   let formData: FormData;
   try {
     formData = await request.formData();
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return Response.json({ error: "Requisição inválida" }, { status: 400 });
   }
 
@@ -70,7 +71,8 @@ export async function POST(request: NextRequest) {
   let storageKey: string;
   try {
     storageKey = await uploadFile(orgId, "documentos", buffer, extensao, file.type);
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return Response.json({ error: "Falha ao salvar documento." }, { status: 500 });
   }
 
@@ -110,47 +112,52 @@ export async function GET(request: NextRequest) {
   if (!session?.user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const user = session.user as SessionUser;
-  const url = new URL(request.url);
-  const eventoId = url.searchParams.get("eventoId") ?? undefined;
-  const formandoId = url.searchParams.get("formandoId") ?? undefined;
 
-  const where = {
-    organizacaoId: user.organizacaoId,
-    // Documentos de evento têm eventoId preenchido
-    NOT: { eventoId: null },
-    ...(eventoId ? { eventoId } : {}),
-    ...(formandoId ? { formandoId } : {}),
-  };
+  try {
+    const url = new URL(request.url);
+    const eventoId = url.searchParams.get("eventoId") ?? undefined;
+    const formandoId = url.searchParams.get("formandoId") ?? undefined;
 
-  const isAdmin = user.role === "administrador" || user.role === "formador_geral";
+    const where = {
+      organizacaoId: user.organizacaoId,
+      NOT: { eventoId: null },
+      ...(eventoId ? { eventoId } : {}),
+      ...(formandoId ? { formandoId } : {}),
+    };
 
-  const documentos = await prisma.arquivo.findMany({
-    where: isAdmin
-      ? where
-      : {
-          ...where,
-          OR: [
-            { uploadedById: user.id },
-            { moradaId: user.moradaId ?? undefined },
-          ],
-        },
-    orderBy: { criadoEm: "desc" },
-  });
+    const isAdmin = user.role === "administrador" || user.role === "formador_geral";
 
-  return Response.json(
-    documentos.map((d) => ({
-      id: d.id,
-      nome: d.nome,
-      tamanho: d.tamanho,
-      tipo: d.tipo,
-      eventoId: d.eventoId,
-      formandoId: d.formandoId,
-      formandoNome: d.formandoNome,
-      tipoEvento: d.tipoEvento,
-      uploadadoPor: d.uploadedById,
-      uploadadoPorNome: d.uploadedByNome,
-      moradaId: d.moradaId,
-      criadoEm: d.criadoEm.toISOString(),
-    }))
-  );
+    const documentos = await prisma.arquivo.findMany({
+      where: isAdmin
+        ? where
+        : {
+            ...where,
+            OR: [
+              { uploadedById: user.id },
+              { moradaId: user.moradaId ?? undefined },
+            ],
+          },
+      orderBy: { criadoEm: "desc" },
+    });
+
+    return Response.json(
+      documentos.map((d) => ({
+        id: d.id,
+        nome: d.nome,
+        tamanho: d.tamanho,
+        tipo: d.tipo,
+        eventoId: d.eventoId,
+        formandoId: d.formandoId,
+        formandoNome: d.formandoNome,
+        tipoEvento: d.tipoEvento,
+        uploadadoPor: d.uploadedById,
+        uploadadoPorNome: d.uploadedByNome,
+        moradaId: d.moradaId,
+        criadoEm: d.criadoEm.toISOString(),
+      }))
+    );
+  } catch (err) {
+    console.error("[documentos GET]", err);
+    return Response.json({ error: "Falha ao carregar documentos" }, { status: 500 });
+  }
 }

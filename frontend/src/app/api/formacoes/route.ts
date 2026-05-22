@@ -52,11 +52,16 @@ export async function GET() {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const rows = await prisma.formacao.findMany({
-    where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-    orderBy: { criadoEm: "desc" },
-  });
-  return NextResponse.json(rows.map(toFormacao));
+  try {
+    const rows = await prisma.formacao.findMany({
+      where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      orderBy: { criadoEm: "desc" },
+    });
+    return NextResponse.json(rows.map(toFormacao));
+  } catch (err) {
+    console.error("[formacoes GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar formações" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -95,7 +100,8 @@ export async function POST(request: Request) {
     });
     logAction("formacao_created", user.id, getClientIp(request), { tema: body.tema }, user.organizacaoId);
     return NextResponse.json(toFormacao(row), { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao criar formação" }, { status: 500 });
   }
 }

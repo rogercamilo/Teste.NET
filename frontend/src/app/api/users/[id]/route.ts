@@ -7,7 +7,7 @@ type Ctx = { params: Promise<{ id: string }> };
 type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
 function isAdminOrAbove(role: string | undefined): boolean {
-  return role === "administrador" || role === "formador_geral";
+  return role === "administrador" || role === "formador_geral" || role === "super_admin";
 }
 
 export async function PUT(request: Request, ctx: Ctx) {
@@ -39,7 +39,8 @@ export async function PUT(request: Request, ctx: Ctx) {
 
     logAction("user_updated", actor.id, getClientIp(request), { targetId: id }, actor.organizacaoId);
     return NextResponse.json(toPublic(updated));
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao atualizar usuário" }, { status: 500 });
   }
 }
@@ -72,7 +73,8 @@ export async function DELETE(request: Request, ctx: Ctx) {
 
     logAction("user_deleted", actor.id, getClientIp(request), { targetId: id }, actor.organizacaoId);
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao excluir usuário" }, { status: 500 });
   }
 }

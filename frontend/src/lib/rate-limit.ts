@@ -7,15 +7,17 @@
 interface Entry {
   count: number;
   windowStart: number;
+  windowMs: number;
 }
 
 const store = new Map<string, Entry>();
 
-// Lazy cleanup: remove expired entries to avoid unbounded memory growth.
-function cleanup(windowMs: number): void {
+// Lazy cleanup: removes only genuinely expired entries regardless of which
+// limiter triggers it, avoiding premature eviction of longer-window entries.
+function cleanup(): void {
   const now = Date.now();
   for (const [key, entry] of store) {
-    if (now - entry.windowStart >= windowMs) store.delete(key);
+    if (now - entry.windowStart >= entry.windowMs) store.delete(key);
   }
 }
 
@@ -36,14 +38,14 @@ export function rateLimit(
   const now = Date.now();
 
   if (now - lastCleanup >= CLEANUP_INTERVAL) {
-    cleanup(windowMs);
+    cleanup();
     lastCleanup = now;
   }
 
   const entry = store.get(key);
 
   if (!entry || now - entry.windowStart >= windowMs) {
-    store.set(key, { count: 1, windowStart: now });
+    store.set(key, { count: 1, windowStart: now, windowMs });
     return { allowed: true, remaining: limit - 1, resetInMs: windowMs };
   }
 

@@ -13,26 +13,31 @@ export async function GET() {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const org = await prisma.organizacao.findUnique({
-    where: { id: user.organizacaoId },
-    select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, nomePlataforma: true, logoUrl: true, temaCor: true },
-  });
-  if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
+  try {
+    const org = await prisma.organizacao.findUnique({
+      where: { id: user.organizacaoId },
+      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+    });
+    if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
-  const config: ComunidadeConfig = {
-    nome: org.nome,
-    descricao: org.descricao ?? "",
-    endereco: org.endereco ?? "",
-    missao: org.missao ?? "",
-    anoFundacao: org.anoFundacao ?? "",
-    termoMorada: org.termoMorada,
-    termoFormando: org.termoFormando,
-    termoFormador: org.termoFormador,
-    nomePlataforma: org.nomePlataforma ?? undefined,
-    logoUrl: org.logoUrl ?? undefined,
-    temaCor: org.temaCor,
-  };
-  return NextResponse.json(config);
+    const config: ComunidadeConfig = {
+      nome: org.nome,
+      descricao: org.descricao ?? "",
+      endereco: org.endereco ?? "",
+      missao: org.missao ?? "",
+      anoFundacao: org.anoFundacao ?? "",
+      termoMorada: org.termoMorada,
+      termoFormando: org.termoFormando,
+      termoFormador: org.termoFormador,
+      nomePlataforma: org.nomePlataforma ?? undefined,
+      logoUrl: org.logoUrl ?? undefined,
+      temaCor: org.temaCor,
+    };
+    return NextResponse.json(config);
+  } catch (err) {
+    console.error("[organizacao GET]", err);
+    return NextResponse.json({ error: "Falha ao carregar organização" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: Request) {
@@ -76,5 +81,8 @@ export async function PUT(request: Request) {
       temaCor: updated.temaCor,
     };
     return NextResponse.json({ ...config, onboardingConcluido: updated.onboardingConcluido });
-  } catch { return NextResponse.json({ error: "Falha ao atualizar organização" }, { status: 500 }); }
+  } catch (err) {
+    console.error("[organizacao PUT]", err);
+    return NextResponse.json({ error: "Falha ao atualizar organização" }, { status: 500 });
+  }
 }

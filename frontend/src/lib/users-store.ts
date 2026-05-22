@@ -35,13 +35,22 @@ export function generateRandomPassword(): string {
   const special = "@#$!%*?&";
   const all = lower + upper + digits + special;
 
-  const pick = (charset: string) => charset[randomBytes(1)[0] % charset.length];
+  const pick = (charset: string): string => {
+    const maxValid = Math.floor(256 / charset.length) * charset.length;
+    let byte: number;
+    do { byte = randomBytes(1)[0]; } while (byte >= maxValid);
+    return charset[byte % charset.length];
+  };
+
   const required = [pick(lower), pick(upper), pick(digits), pick(special)];
-  const rest = Array.from(randomBytes(8), (b) => all[b % all.length]);
+  const rest = Array.from({ length: 8 }, () => pick(all));
 
   const arr = [...required, ...rest];
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = randomBytes(1)[0] % (i + 1);
+    const maxValid = Math.floor(256 / (i + 1)) * (i + 1);
+    let byte: number;
+    do { byte = randomBytes(1)[0]; } while (byte >= maxValid);
+    const j = byte % (i + 1);
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr.join("");
@@ -195,7 +204,7 @@ export async function updateUser(
   const exists = await prisma.usuario.findFirst({ where: { id, organizacaoId: orgId } });
   if (!exists) return null;
 
-  const { password, organizacaoId: _org, ...rest } = data;
+  const { password, organizacaoId: _organizacaoId, ...rest } = data;
 
   const updated = await prisma.usuario.update({
     where: { id },
