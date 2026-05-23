@@ -107,7 +107,11 @@ const schema = z
 // ── Validation ───────────────────────────────────────────────────────────────
 
 function validateEnv() {
-  const result = schema.safeParse(process.env);
+  // Convert empty strings to undefined so optional() works correctly with .env files
+  const raw = Object.fromEntries(
+    Object.entries(process.env).map(([k, v]) => [k, v === "" ? undefined : v])
+  );
+  const result = schema.safeParse(raw);
 
   if (!result.success) {
     const lines = result.error.issues.map(
