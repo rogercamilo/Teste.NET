@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Lint & Type Check
+    name: Lint, Type Check & Test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -39,3 +39,6 @@ jobs:
         # Warnings are reported but do not block the pipeline.
         # Errors would fail the step. Run `npm run lint` locally to see full output.
         run: npm run lint -- --max-warnings 9999
+
+      - name: Test (with coverage thresholds)
+        run: npm run test:coverage
