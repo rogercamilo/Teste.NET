@@ -24,6 +24,6 @@ jobs:
         # RAILWAY_TOKEN must be set in GitHub repository secrets.
         # To get it: Railway dashboard → Account Settings → Tokens → Create Token
         # Then: GitHub repo → Settings → Secrets → New repository secret → RAILWAY_TOKEN
-        run: railway up --service ${{ vars.RAILWAY_SERVICE_NAME || 'app' }} --detach
+        run: railway up --service FORMATIO --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
