@@ -4,6 +4,7 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import Providers from "@/components/Providers";
+import CookieBanner from "@/components/CookieBanner";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -27,6 +28,7 @@ export default function RootLayout({
           <TooltipProvider delay={300}>
             {children}
             <Toaster richColors position="top-right" />
+            <CookieBanner />
           </TooltipProvider>
         </Providers>
       </body>

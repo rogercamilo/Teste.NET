@@ -6,6 +6,7 @@ import { AppTopbar } from "@/components/layout/AppTopbar";
 import { ThemeApplier } from "@/components/layout/ThemeApplier";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import PrimeiroAcessoModal from "@/components/PrimeiroAcessoModal";
+import CookiePreferencesLink from "@/components/CookiePreferencesLink";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -55,13 +56,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
         <footer className="shrink-0 border-t border-border/60 bg-card/50 px-4 md:px-6 py-2.5">
-          <p className="text-xs text-muted-foreground text-center">
-            {orgBranding.nomePlataforma || orgBranding.nome
-              ? <>{orgBranding.nomePlataforma || orgBranding.nome} · <span className="opacity-60">powered by Formatio</span></>
-              : <>© {new Date().getFullYear()} Formatio</>
-            }
-            {" "}— Todos os direitos reservados.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-xs text-muted-foreground">
+            <p>
+              {orgBranding.nomePlataforma || orgBranding.nome
+                ? <>{orgBranding.nomePlataforma || orgBranding.nome} · <span className="opacity-60">powered by Formatio</span></>
+                : <>© {new Date().getFullYear()} Formatio</>
+              }
+              {" "}— Todos os direitos reservados.
+            </p>
+            <span className="hidden sm:inline opacity-40">·</span>
+            <div className="flex gap-3">
+              <a href="/privacidade" target="_blank" className="hover:text-foreground transition-colors">Privacidade</a>
+              <a href="/termos" target="_blank" className="hover:text-foreground transition-colors">Termos</a>
+              <CookiePreferencesLink />
+            </div>
+          </div>
         </footer>
       </SidebarInset>
     </SidebarProvider>
