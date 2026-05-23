@@ -108,6 +108,29 @@ export async function sendInviteEmail({
   return send(organizacaoId, email, `Convite para ${orgNome} — Formatio`, html);
 }
 
+export async function sendAccountDeletionEmail({
+  organizacaoId,
+  nome,
+  email,
+}: {
+  organizacaoId: string;
+  nome: string;
+  email: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #dc2626;">Conta encerrada</h2>
+      <p>Olá, <strong>${nome}</strong>.</p>
+      <p>Sua conta na plataforma <strong>Formatio</strong> foi encerrada conforme solicitado.</p>
+      <p>Seus dados pessoais foram anonimizados imediatamente. Logs de auditoria são mantidos por 12 meses conforme exigência legal.</p>
+      <p>Se não solicitou esta exclusão, entre em contato imediatamente com <a href="mailto:privacidade@formatio.app">privacidade@formatio.app</a>.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+      <p style="color: #999; font-size: 12px;">Formatio — plataforma de gestão formativa</p>
+    </div>
+  `;
+  return send(organizacaoId, email, "Sua conta Formatio foi encerrada", html);
+}
+
 export async function sendLimitAlertEmail({
   organizacaoId,
   email,

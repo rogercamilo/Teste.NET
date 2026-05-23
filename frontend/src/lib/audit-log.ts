@@ -65,7 +65,9 @@ export type AuditAction =
   | "stripe_checkout_concluido"
   | "stripe_portal_acessado"
   | "stripe_assinatura_cancelada"
-  | "stripe_pagamento_falhou";
+  | "stripe_pagamento_falhou"
+  | "account_deleted"
+  | "dados_exportados";
 
 export interface AuditEntry {
   timestamp: string;

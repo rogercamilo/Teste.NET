@@ -89,6 +89,7 @@ import {
 } from "lucide-react";
 import PlanUsage from "@/components/PlanUsage";
 import StripeUpgrade from "@/components/StripeUpgrade";
+import PrivacidadeTab from "@/components/PrivacidadeTab";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -163,6 +164,10 @@ export default function ConfiguracoesClient({
             <Server className="h-3.5 w-3.5" />
             Sistema
           </TabsTrigger>
+          <TabsTrigger value="privacidade" className="text-xs h-7 gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Privacidade
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="perfil" className="mt-4">
@@ -206,6 +211,10 @@ export default function ConfiguracoesClient({
 
         <TabsContent value="sistema" className="mt-4">
           <SistemaTab />
+        </TabsContent>
+
+        <TabsContent value="privacidade" className="mt-4">
+          <PrivacidadeTab userEmail={userEmail} isAdmin={userRole === "administrador"} />
         </TabsContent>
       </Tabs>
     </div>
