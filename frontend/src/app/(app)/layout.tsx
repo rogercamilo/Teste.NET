@@ -7,6 +7,7 @@ import { ThemeApplier } from "@/components/layout/ThemeApplier";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import PrimeiroAcessoModal from "@/components/PrimeiroAcessoModal";
 import CookiePreferencesLink from "@/components/CookiePreferencesLink";
+import QuotaWarningBanner from "@/components/QuotaWarningBanner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -52,6 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppSidebar user={user} nomePlataforma={orgBranding.nomePlataforma} />
       <SidebarInset>
         <AppTopbar />
+        <QuotaWarningBanner role={user.role} />
         <main className="flex-1 overflow-auto p-4 md:p-6">
           {children}
         </main>

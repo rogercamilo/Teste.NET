@@ -31,7 +31,7 @@ async function saveConsent(consent: Omit<ConsentState, "version">) {
   const payload: ConsentState = { ...consent, version: CONSENT_VERSION };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 
-  const sessionId = `anon_${Math.random().toString(36).slice(2)}`;
+  const sessionId = `anon_${crypto.randomUUID()}`;
   await fetch("/api/cookies/consent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

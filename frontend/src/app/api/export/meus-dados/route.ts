@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logAction, getClientIp } from "@/lib/audit-log";
 
 type SessionUser = { id?: string; organizacaoId?: string };
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   const actor = session?.user as SessionUser | undefined;
   if (!actor?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -52,6 +53,8 @@ export async function GET() {
     consentimentoCookies: cookieConsent ?? null,
     historicoAcessos: usuario.auditLogs,
   };
+
+  logAction("dados_exportados", actor.id, getClientIp(request), { tipo: "meus-dados" }, actor.organizacaoId);
 
   const filename = `meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
   return new NextResponse(JSON.stringify(payload, null, 2), {

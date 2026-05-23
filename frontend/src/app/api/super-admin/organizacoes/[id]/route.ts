@@ -63,6 +63,36 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 }
 
+export async function DELETE(request: Request, { params }: Params) {
+  const session = await auth();
+  const user = session?.user as SU | undefined;
+  if (user?.role !== "super_admin") {
+    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  try {
+    const org = await prisma.organizacao.findUnique({ where: { id } });
+    if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
+
+    // Registra solicitação de exclusão antes de deletar
+    await prisma.deletionRequest.create({
+      data: { organizacaoId: id, tipo: "organizacao", status: "concluido", processadoEm: new Date() },
+    });
+
+    // Deleta organização — cascata remove todos os dados associados
+    await prisma.organizacao.delete({ where: { id } });
+
+    logAction("organizacao_deleted", user.id, getClientIp(request), { orgId: id, nome: org.nome });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[super-admin/org] Erro ao deletar:", err);
+    return NextResponse.json({ error: "Falha ao excluir organização" }, { status: 500 });
+  }
+}
+
 export async function GET(_request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;

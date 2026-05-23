@@ -62,7 +62,7 @@ export default function SuperAdminClient() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const [selectedOrg, setSelectedOrg] = useState<OrgRow | null>(null);
-  const [dialogAcao, setDialogAcao] = useState<"suspender" | "reativar" | "plano" | null>(null);
+  const [dialogAcao, setDialogAcao] = useState<"suspender" | "reativar" | "plano" | "excluir" | null>(null);
   const [novoPlano, setNovoPlano] = useState<string>("");
 
   const load = useCallback(async () => {
@@ -85,6 +85,16 @@ export default function SuperAdminClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ acao, ...(plano ? { plano } : {}) }),
     });
+    setActionLoading(null);
+    setDialogAcao(null);
+    setSelectedOrg(null);
+    await load();
+  }
+
+  async function deleteOrg() {
+    if (!selectedOrg) return;
+    setActionLoading(selectedOrg.id);
+    await fetch(`/api/super-admin/organizacoes/${selectedOrg.id}`, { method: "DELETE" });
     setActionLoading(null);
     setDialogAcao(null);
     setSelectedOrg(null);
@@ -282,6 +292,13 @@ export default function SuperAdminClient() {
                             Alterar plano
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => { setSelectedOrg(org); setDialogAcao("excluir"); }}
+                          >
+                            Excluir permanentemente
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           {org.status !== "SUSPENSO" && org.status !== "CANCELADO" ? (
                             <DropdownMenuItem
                               className="text-amber-600"
@@ -335,6 +352,32 @@ export default function SuperAdminClient() {
               onClick={() => selectedOrg && executeAction(selectedOrg.id, dialogAcao === "suspender" ? "suspender" : "reativar")}
             >
               {dialogAcao === "suspender" ? "Suspender" : "Reativar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog — Excluir organização */}
+      <Dialog open={dialogAcao === "excluir"} onOpenChange={() => { setDialogAcao(null); setSelectedOrg(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Excluir organização permanentemente</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Esta ação é <strong>irreversível</strong>. Todos os dados de{" "}
+            <strong>&ldquo;{selectedOrg?.nome}&rdquo;</strong> — usuários, formandos, formações,
+            documentos e histórico — serão apagados definitivamente.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDialogAcao(null); setSelectedOrg(null); }}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={actionLoading === selectedOrg?.id}
+              onClick={deleteOrg}
+            >
+              Excluir permanentemente
             </Button>
           </DialogFooter>
         </DialogContent>
