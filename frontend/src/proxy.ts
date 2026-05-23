@@ -6,7 +6,10 @@ export default auth(function proxy(req) {
   const role = (req.auth?.user as { role?: string } | undefined)?.role;
   const { pathname } = req.nextUrl;
 
-  const publicPaths = [
+  // Exact matches (paths where startsWith would be too broad)
+  const publicExact = ["/"];
+  // Prefix matches
+  const publicPrefixes = [
     "/login",
     "/registro",
     "/convite",
@@ -26,7 +29,9 @@ export default auth(function proxy(req) {
     "/api/auth/providers",
     "/api/auth/error",
   ];
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
+  const isPublic =
+    publicExact.includes(pathname) ||
+    publicPrefixes.some((p) => pathname.startsWith(p));
 
   if (!isLoggedIn && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));
