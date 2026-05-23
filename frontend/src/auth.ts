@@ -4,6 +4,8 @@ import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
 import { authenticateGlobal, findByEmailGlobal, findById } from "@/lib/users-store";
 import { authConfig } from "@/auth.config";
+import { limiters } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/audit-log";
 
 const providers: NextAuthConfig["providers"] = [
   Credentials({
@@ -12,8 +14,12 @@ const providers: NextAuthConfig["providers"] = [
       email: { label: "E-mail", type: "email" },
       password: { label: "Senha", type: "password" },
     },
-    async authorize(credentials) {
+    async authorize(credentials, request) {
       if (!credentials?.email || !credentials?.password) return null;
+
+      const ip = request ? getClientIp(request as Request) : "unknown";
+      const rl = await limiters.login(ip);
+      if (!rl.allowed) return null;
 
       const user = await authenticateGlobal(
         credentials.email as string,

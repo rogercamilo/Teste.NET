@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
-  const rl = limiters.email(user.id ?? getClientIp(request));
+  const rl = await limiters.email(user.id ?? getClientIp(request));
   if (!rl.allowed) {
     return NextResponse.json({ error: "Limite de convites atingido. Aguarde antes de enviar mais." }, { status: 429 });
   }

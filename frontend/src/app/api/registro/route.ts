@@ -9,7 +9,7 @@ const PRIVACY_VERSION = "1.0";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = limiters.register(ip);
+  const rl = await limiters.register(ip);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
   }

@@ -1,8 +1,13 @@
-/**
- * In-memory sliding-window rate limiter.
- * Phase 4 will replace the store with Redis (Upstash) — only the store changes,
- * the interface and call-sites remain identical.
- */
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+export interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetInMs: number;
+}
+
+// ── In-memory fallback (dev / no Upstash configured) ────────────────────────
 
 interface Entry {
   count: number;
@@ -11,9 +16,9 @@ interface Entry {
 }
 
 const store = new Map<string, Entry>();
+let lastCleanup = Date.now();
+const CLEANUP_INTERVAL = 5 * 60 * 1000;
 
-// Lazy cleanup: removes only genuinely expired entries regardless of which
-// limiter triggers it, avoiding premature eviction of longer-window entries.
 function cleanup(): void {
   const now = Date.now();
   for (const [key, entry] of store) {
@@ -21,51 +26,75 @@ function cleanup(): void {
   }
 }
 
-let lastCleanup = Date.now();
-const CLEANUP_INTERVAL = 5 * 60 * 1000; // every 5 min
-
-export interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  resetInMs: number;
-}
-
-export function rateLimit(
-  key: string,
-  limit: number,
-  windowMs: number
-): RateLimitResult {
+function inMemoryLimit(key: string, limit: number, windowMs: number): RateLimitResult {
   const now = Date.now();
-
   if (now - lastCleanup >= CLEANUP_INTERVAL) {
     cleanup();
     lastCleanup = now;
   }
-
   const entry = store.get(key);
-
   if (!entry || now - entry.windowStart >= windowMs) {
     store.set(key, { count: 1, windowStart: now, windowMs });
     return { allowed: true, remaining: limit - 1, resetInMs: windowMs };
   }
-
   if (entry.count >= limit) {
-    return {
-      allowed: false,
-      remaining: 0,
-      resetInMs: windowMs - (now - entry.windowStart),
-    };
+    return { allowed: false, remaining: 0, resetInMs: windowMs - (now - entry.windowStart) };
+  }
+  entry.count += 1;
+  return { allowed: true, remaining: limit - entry.count, resetInMs: windowMs - (now - entry.windowStart) };
+}
+
+// ── Upstash Redis (production) ───────────────────────────────────────────────
+
+const isUpstashConfigured =
+  !!process.env.UPSTASH_REDIS_REST_URL &&
+  !!process.env.UPSTASH_REDIS_REST_TOKEN;
+
+let redis: Redis | null = null;
+const upstashLimiters = new Map<string, Ratelimit>();
+
+function getUpstashLimiter(configKey: string, limit: number, windowMs: number): Ratelimit {
+  if (!upstashLimiters.has(configKey)) {
+    if (!redis) {
+      redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL!,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      });
+    }
+    const seconds = Math.ceil(windowMs / 1000);
+    upstashLimiters.set(
+      configKey,
+      new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(limit, `${seconds} s`),
+        prefix: "formatio:rl",
+      })
+    );
+  }
+  return upstashLimiters.get(configKey)!;
+}
+
+// ── Public API ───────────────────────────────────────────────────────────────
+
+export async function rateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  if (!isUpstashConfigured) {
+    return inMemoryLimit(key, limit, windowMs);
   }
 
-  entry.count += 1;
+  const configKey = `${limit}:${windowMs}`;
+  const limiter = getUpstashLimiter(configKey, limit, windowMs);
+  const result = await limiter.limit(key);
   return {
-    allowed: true,
-    remaining: limit - entry.count,
-    resetInMs: windowMs - (now - entry.windowStart),
+    allowed: result.success,
+    remaining: result.remaining,
+    resetInMs: Math.max(0, result.reset - Date.now()),
   };
 }
 
-/** Pre-configured limiters for common scenarios. */
 export const limiters = {
   /** 5 attempts per IP per 15 minutes — login endpoint. */
   login: (ip: string) => rateLimit(`login:${ip}`, 5, 15 * 60 * 1000),

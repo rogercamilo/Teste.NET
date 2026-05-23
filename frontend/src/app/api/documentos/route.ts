@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   const user = session.user as SessionUser;
 
-  const rl = limiters.upload(user.id ?? "unknown");
+  const rl = await limiters.upload(user.id ?? "unknown");
   if (!rl.allowed) {
     return Response.json(
       { error: "Limite de uploads atingido. Tente novamente mais tarde." },

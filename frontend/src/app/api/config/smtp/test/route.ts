@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
-  const rl = limiters.smtpTest(user.id ?? "unknown");
+  const rl = await limiters.smtpTest(user.id ?? "unknown");
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Muitas tentativas. Aguarde antes de testar novamente." },
