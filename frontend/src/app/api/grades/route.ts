@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { GradeFormativa, Eixo, Etapa } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -61,18 +62,28 @@ function toGrade(g: PrismaGrade): GradeFormativa {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   try {
-    const rows = await prisma.gradeFormativa.findMany({
-      where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-      include: { eixos: { include: { etapas: true } } },
-      orderBy: { criadoEm: "desc" },
-    });
-    return NextResponse.json(rows.map(toGrade));
+    const { searchParams } = new URL(request.url);
+    const pagination = parsePagination(searchParams);
+    const where = { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] };
+    const orderBy = { criadoEm: "desc" as const };
+    const include = { eixos: { include: { etapas: true } } };
+
+    if (!pagination) {
+      const rows = await prisma.gradeFormativa.findMany({ where, include, orderBy });
+      return NextResponse.json(rows.map(toGrade));
+    }
+
+    const [rows, total] = await Promise.all([
+      prisma.gradeFormativa.findMany({ where, include, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.gradeFormativa.count({ where }),
+    ]);
+    return NextResponse.json(rows.map(toGrade), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[grades GET]", err);
     return NextResponse.json({ error: "Falha ao carregar grades" }, { status: 500 });

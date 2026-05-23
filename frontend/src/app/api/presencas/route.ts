@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { PresencaFormacao } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -38,9 +39,19 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
     if (agendamentoId) where.agendamentoId = agendamentoId;
     if (formandoId) where.formandoId = formandoId;
+    const pagination = parsePagination(searchParams);
+    const orderBy = { data: "desc" as const };
 
-    const rows = await prisma.presencaFormacao.findMany({ where, orderBy: { data: "desc" } });
-    return NextResponse.json(rows.map(toPresenca));
+    if (!pagination) {
+      const rows = await prisma.presencaFormacao.findMany({ where, orderBy });
+      return NextResponse.json(rows.map(toPresenca));
+    }
+
+    const [rows, total] = await Promise.all([
+      prisma.presencaFormacao.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.presencaFormacao.count({ where }),
+    ]);
+    return NextResponse.json(rows.map(toPresenca), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[presencas GET]", err);
     return NextResponse.json({ error: "Falha ao carregar presenças" }, { status: 500 });

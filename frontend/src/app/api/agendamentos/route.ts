@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { Agendamento } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -35,17 +36,27 @@ function toAg(a: PrismaAg): Agendamento {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   try {
-    const rows = await prisma.agendamento.findMany({
-      where: { organizacaoId: user.organizacaoId },
-      orderBy: { dataInicio: "asc" },
-    });
-    return NextResponse.json(rows.map(toAg));
+    const { searchParams } = new URL(request.url);
+    const pagination = parsePagination(searchParams);
+    const where = { organizacaoId: user.organizacaoId };
+    const orderBy = { dataInicio: "asc" as const };
+
+    if (!pagination) {
+      const rows = await prisma.agendamento.findMany({ where, orderBy });
+      return NextResponse.json(rows.map(toAg));
+    }
+
+    const [rows, total] = await Promise.all([
+      prisma.agendamento.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.agendamento.count({ where }),
+    ]);
+    return NextResponse.json(rows.map(toAg), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[agendamentos GET]", err);
     return NextResponse.json({ error: "Falha ao carregar agendamentos" }, { status: 500 });

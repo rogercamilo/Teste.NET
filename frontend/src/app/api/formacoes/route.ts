@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { Formacao } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -47,17 +48,27 @@ function toFormacao(f: PrismaFormacao): Formacao {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   try {
-    const rows = await prisma.formacao.findMany({
-      where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-      orderBy: { criadoEm: "desc" },
-    });
-    return NextResponse.json(rows.map(toFormacao));
+    const { searchParams } = new URL(request.url);
+    const pagination = parsePagination(searchParams);
+    const where = { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] };
+    const orderBy = { criadoEm: "desc" as const };
+
+    if (!pagination) {
+      const rows = await prisma.formacao.findMany({ where, orderBy });
+      return NextResponse.json(rows.map(toFormacao));
+    }
+
+    const [rows, total] = await Promise.all([
+      prisma.formacao.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.formacao.count({ where }),
+    ]);
+    return NextResponse.json(rows.map(toFormacao), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[formacoes GET]", err);
     return NextResponse.json({ error: "Falha ao carregar formações" }, { status: 500 });

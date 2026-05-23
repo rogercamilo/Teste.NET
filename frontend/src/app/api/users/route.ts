@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { listUsers, createUser, findByEmail, toPublic } from "@/lib/users-store";
+import { listUsers, countUsers, createUser, findByEmail, toPublic } from "@/lib/users-store";
 import { sendWelcomeEmail } from "@/lib/email";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 
 type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
@@ -22,8 +23,19 @@ export async function GET(request: Request) {
   }
 
   try {
-    const users = await listUsers(user.organizacaoId);
-    return NextResponse.json(users.map(toPublic));
+    const { searchParams } = new URL(request.url);
+    const pagination = parsePagination(searchParams);
+
+    if (!pagination) {
+      const users = await listUsers(user.organizacaoId);
+      return NextResponse.json(users.map(toPublic));
+    }
+
+    const [users, total] = await Promise.all([
+      listUsers(user.organizacaoId, { skip: pagination.skip, take: pagination.take }),
+      countUsers(user.organizacaoId),
+    ]);
+    return NextResponse.json(users.map(toPublic), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao carregar usuários" }, { status: 500 });

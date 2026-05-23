@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 
 type SU = { role?: string };
 
-export async function GET() {
+const ORG_SELECT = {
+  id: true,
+  nome: true,
+  planoAssinatura: true,
+  status: true,
+  trialExpiresAt: true,
+  criadoEm: true,
+  _count: { select: { moradas: true, formandos: true, usuarios: true } },
+} as const;
+
+export async function GET(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -13,21 +24,20 @@ export async function GET() {
   }
 
   try {
-    const orgs = await prisma.organizacao.findMany({
-      orderBy: { criadoEm: "desc" },
-      select: {
-        id: true,
-        nome: true,
-        planoAssinatura: true,
-        status: true,
-        trialExpiresAt: true,
-        criadoEm: true,
-        _count: {
-          select: { moradas: true, formandos: true, usuarios: true },
-        },
-      },
-    });
-    return NextResponse.json(orgs);
+    const { searchParams } = new URL(request.url);
+    const pagination = parsePagination(searchParams);
+    const orderBy = { criadoEm: "desc" as const };
+
+    if (!pagination) {
+      const orgs = await prisma.organizacao.findMany({ orderBy, select: ORG_SELECT });
+      return NextResponse.json(orgs);
+    }
+
+    const [orgs, total] = await Promise.all([
+      prisma.organizacao.findMany({ orderBy, select: ORG_SELECT, skip: pagination.skip, take: pagination.take }),
+      prisma.organizacao.count(),
+    ]);
+    return NextResponse.json(orgs, { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[super-admin organizacoes GET]", err);
     return NextResponse.json({ error: "Falha ao carregar organizações" }, { status: 500 });

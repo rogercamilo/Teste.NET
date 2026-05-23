@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { type NextRequest } from "next/server";
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -125,37 +126,36 @@ export async function GET(request: NextRequest) {
       ...(formandoId ? { formandoId } : {}),
     };
 
-    const isAdmin = user.role === "administrador" || user.role === "formador_geral";
+    const isAdminRole = user.role === "administrador" || user.role === "formador_geral";
+    const effectiveWhere = isAdminRole
+      ? where
+      : { ...where, OR: [{ uploadedById: user.id }, { moradaId: user.moradaId ?? undefined }] };
+    const pagination = parsePagination(url.searchParams);
+    const orderBy = { criadoEm: "desc" as const };
 
-    const documentos = await prisma.arquivo.findMany({
-      where: isAdmin
-        ? where
-        : {
-            ...where,
-            OR: [
-              { uploadedById: user.id },
-              { moradaId: user.moradaId ?? undefined },
-            ],
-          },
-      orderBy: { criadoEm: "desc" },
+    const toDoc = (d: {
+      id: string; nome: string; tamanho: number; tipo: string;
+      eventoId: string | null; formandoId: string | null; formandoNome: string | null;
+      tipoEvento: string | null; uploadedById: string | null; uploadedByNome: string | null;
+      moradaId: string | null; criadoEm: Date;
+    }) => ({
+      id: d.id, nome: d.nome, tamanho: d.tamanho, tipo: d.tipo,
+      eventoId: d.eventoId, formandoId: d.formandoId, formandoNome: d.formandoNome,
+      tipoEvento: d.tipoEvento, uploadadoPor: d.uploadedById,
+      uploadadoPorNome: d.uploadedByNome, moradaId: d.moradaId,
+      criadoEm: d.criadoEm.toISOString(),
     });
 
-    return Response.json(
-      documentos.map((d) => ({
-        id: d.id,
-        nome: d.nome,
-        tamanho: d.tamanho,
-        tipo: d.tipo,
-        eventoId: d.eventoId,
-        formandoId: d.formandoId,
-        formandoNome: d.formandoNome,
-        tipoEvento: d.tipoEvento,
-        uploadadoPor: d.uploadedById,
-        uploadadoPorNome: d.uploadedByNome,
-        moradaId: d.moradaId,
-        criadoEm: d.criadoEm.toISOString(),
-      }))
-    );
+    if (!pagination) {
+      const documentos = await prisma.arquivo.findMany({ where: effectiveWhere, orderBy });
+      return Response.json(documentos.map(toDoc));
+    }
+
+    const [documentos, total] = await Promise.all([
+      prisma.arquivo.findMany({ where: effectiveWhere, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.arquivo.count({ where: effectiveWhere }),
+    ]);
+    return Response.json(documentos.map(toDoc), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[documentos GET]", err);
     return Response.json({ error: "Falha ao carregar documentos" }, { status: 500 });

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { canAddFormando } from "@/lib/plan-limits";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { Formando, ProgressoEtapa } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
@@ -65,11 +66,19 @@ export async function GET(request: Request) {
       where.moradaId = moradaId;
     }
 
-    const rows = await prisma.formando.findMany({
+    const pagination = parsePagination(searchParams);
+    const findManyArgs = {
       where,
       include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
-      orderBy: { nome: "asc" },
-    });
+      orderBy: { nome: "asc" as const },
+    };
+
+    const [rows, total] = pagination
+      ? await Promise.all([
+          prisma.formando.findMany({ ...findManyArgs, skip: pagination.skip, take: pagination.take }),
+          prisma.formando.count({ where }),
+        ])
+      : [await prisma.formando.findMany(findManyArgs), null];
 
     const gradeIds = [...new Set(
       rows.map((r) => r.morada?.gradeId).filter((id): id is string => !!id)
@@ -90,13 +99,18 @@ export async function GET(request: Request) {
     });
     const countByNivel = new Map(formacoesAgg.map((c) => [c.nivelFormativo, c._count.id]));
 
-    return NextResponse.json(rows.map((r) => {
+    const data = rows.map((r) => {
       const { morada, ...rest } = r;
       const gradeTotal = morada?.gradeId ? gradeMap.get(morada.gradeId) : undefined;
       const nivelTotal = countByNivel.get(r.nivelFormativo);
       const totalFormacoes = (gradeTotal ?? nivelTotal) || rest.totalFormacoes;
       return toFormando({ ...rest, totalFormacoes });
-    }));
+    });
+
+    if (pagination && total !== null) {
+      return NextResponse.json(data, { headers: paginationHeaders(total, pagination) });
+    }
+    return NextResponse.json(data);
   } catch (err) {
     console.error("[formandos GET]", err);
     return NextResponse.json({ error: "Falha ao carregar formandos" }, { status: 500 });

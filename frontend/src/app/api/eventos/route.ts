@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { EventoFormando } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -49,9 +50,19 @@ export async function GET(request: Request) {
     const formandoId = searchParams.get("formandoId");
     const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
     if (formandoId) where.formandoId = formandoId;
+    const pagination = parsePagination(searchParams);
+    const orderBy = { criadoEm: "desc" as const };
 
-    const rows = await prisma.eventoFormando.findMany({ where, orderBy: { criadoEm: "desc" } });
-    return NextResponse.json(rows.map(toEvento));
+    if (!pagination) {
+      const rows = await prisma.eventoFormando.findMany({ where, orderBy });
+      return NextResponse.json(rows.map(toEvento));
+    }
+
+    const [rows, total] = await Promise.all([
+      prisma.eventoFormando.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.eventoFormando.count({ where }),
+    ]);
+    return NextResponse.json(rows.map(toEvento), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[eventos GET]", err);
     return NextResponse.json({ error: "Falha ao carregar eventos" }, { status: 500 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { PlanoFormativo, EixoPlano } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -43,18 +44,27 @@ function toPlano(p: PrismaPlano): PlanoFormativo {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   try {
-    const rows = await prisma.planoFormativo.findMany({
-      where: { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-      include: { eixos: true },
-      orderBy: { criadoEm: "desc" },
-    });
-    return NextResponse.json(rows.map(toPlano));
+    const { searchParams } = new URL(request.url);
+    const pagination = parsePagination(searchParams);
+    const where = { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] };
+    const orderBy = { criadoEm: "desc" as const };
+
+    if (!pagination) {
+      const rows = await prisma.planoFormativo.findMany({ where, include: { eixos: true }, orderBy });
+      return NextResponse.json(rows.map(toPlano));
+    }
+
+    const [rows, total] = await Promise.all([
+      prisma.planoFormativo.findMany({ where, include: { eixos: true }, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.planoFormativo.count({ where }),
+    ]);
+    return NextResponse.json(rows.map(toPlano), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[planos GET]", err);
     return NextResponse.json({ error: "Falha ao carregar planos" }, { status: 500 });

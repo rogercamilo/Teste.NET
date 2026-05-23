@@ -4,6 +4,7 @@ import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { canUpload } from "@/lib/plan-limits";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { type NextRequest } from "next/server";
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -31,23 +32,33 @@ export async function GET(request: NextRequest) {
       ...(entityType ? { entityType } : {}),
       ...(entityId ? { entityId } : {}),
     };
+    const pagination = parsePagination(url.searchParams);
+    const orderBy = { criadoEm: "desc" as const };
 
-    const arquivos = await prisma.arquivo.findMany({
-      where,
-      orderBy: { criadoEm: "desc" },
+    const toArquivo = (a: { id: string; nome: string; tamanho: number; tipo: string; extensao: string; entityType: string | null; entityId: string | null; criadoEm: Date }) => ({
+      id: a.id,
+      nome: a.nome,
+      tamanho: a.tamanho,
+      tipo: a.tipo,
+      extensao: a.extensao,
+      entityType: a.entityType,
+      entityId: a.entityId,
+      criadoEm: a.criadoEm.toISOString(),
     });
 
+    if (!pagination) {
+      const arquivos = await prisma.arquivo.findMany({ where, orderBy });
+      return Response.json(arquivos.map(toArquivo));
+    }
+
+    const [arquivos, total] = await Promise.all([
+      prisma.arquivo.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.arquivo.count({ where }),
+    ]);
+
     return Response.json(
-      arquivos.map((a) => ({
-        id: a.id,
-        nome: a.nome,
-        tamanho: a.tamanho,
-        tipo: a.tipo,
-        extensao: a.extensao,
-        entityType: a.entityType,
-        entityId: a.entityId,
-        criadoEm: a.criadoEm.toISOString(),
-      }))
+      arquivos.map(toArquivo),
+      { headers: paginationHeaders(total, pagination) }
     );
   } catch (err) {
     console.error("[arquivos GET]", err);

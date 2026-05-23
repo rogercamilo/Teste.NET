@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { canAddMorada } from "@/lib/plan-limits";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { Morada } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -33,17 +34,27 @@ function toMorada(m: PrismaMorada): Morada {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   try {
-    const rows = await prisma.morada.findMany({
-      where: { organizacaoId: user.organizacaoId },
-      orderBy: { nome: "asc" },
-    });
-    return NextResponse.json(rows.map(toMorada));
+    const { searchParams } = new URL(request.url);
+    const pagination = parsePagination(searchParams);
+    const where = { organizacaoId: user.organizacaoId };
+    const orderBy = { nome: "asc" as const };
+
+    if (!pagination) {
+      const rows = await prisma.morada.findMany({ where, orderBy });
+      return NextResponse.json(rows.map(toMorada));
+    }
+
+    const [rows, total] = await Promise.all([
+      prisma.morada.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.morada.count({ where }),
+    ]);
+    return NextResponse.json(rows.map(toMorada), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     console.error("[moradas GET]", err);
     return NextResponse.json({ error: "Falha ao carregar moradas" }, { status: 500 });

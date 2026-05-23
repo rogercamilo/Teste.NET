@@ -107,10 +107,15 @@ function toUserAuth(u: {
 // ----------------------------------------------------------------
 
 export async function listUsers(
-  organizacaoId: string = DEFAULT_ORG_ID
+  organizacaoId: string = DEFAULT_ORG_ID,
+  options?: { skip?: number; take?: number }
 ): Promise<UserAuth[]> {
-  const users = await prisma.usuario.findMany({ where: { organizacaoId } });
+  const users = await prisma.usuario.findMany({ where: { organizacaoId }, ...options });
   return users.map(toUserAuth);
+}
+
+export async function countUsers(organizacaoId: string = DEFAULT_ORG_ID): Promise<number> {
+  return prisma.usuario.count({ where: { organizacaoId } });
 }
 
 export async function findByEmail(

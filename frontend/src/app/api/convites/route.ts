@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sendInviteEmail } from "@/lib/email";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { PerfilUsuario } from "@prisma/client";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -18,17 +19,26 @@ export async function GET(request: Request) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
-  const convites = await prisma.conviteUsuario.findMany({
-    where: { organizacaoId: user.organizacaoId },
-    orderBy: { criadoEm: "desc" },
-    select: {
-      id: true, email: true, nome: true, perfil: true, moradaId: true,
-      expiresAt: true, aceitoEm: true, criadoEm: true,
-      criadoPor: { select: { nome: true } },
-    },
-  });
+  const { searchParams } = new URL(request.url);
+  const pagination = parsePagination(searchParams);
+  const where = { organizacaoId: user.organizacaoId };
+  const orderBy = { criadoEm: "desc" as const };
+  const select = {
+    id: true, email: true, nome: true, perfil: true, moradaId: true,
+    expiresAt: true, aceitoEm: true, criadoEm: true,
+    criadoPor: { select: { nome: true } },
+  };
 
-  return NextResponse.json(convites);
+  if (!pagination) {
+    const convites = await prisma.conviteUsuario.findMany({ where, orderBy, select });
+    return NextResponse.json(convites);
+  }
+
+  const [convites, total] = await Promise.all([
+    prisma.conviteUsuario.findMany({ where, orderBy, select, skip: pagination.skip, take: pagination.take }),
+    prisma.conviteUsuario.count({ where }),
+  ]);
+  return NextResponse.json(convites, { headers: paginationHeaders(total, pagination) });
 }
 
 export async function POST(request: Request) {
