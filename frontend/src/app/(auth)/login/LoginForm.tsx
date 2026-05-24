@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -24,27 +24,8 @@ export default function LoginForm() {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const [logo, setLogo] = useState<string | null>(null);
-  const [communityName, setCommunityName] = useState("Formatio");
-  const [platformName, setPlatformName] = useState<string | null>(null);
-  const [communityDesc, setCommunityDesc] = useState(
-    "Plataforma pedagógica para gestão e acompanhamento da jornada formativa comunitária."
-  );
-
-  useEffect(() => {
-    fetch("/api/public/branding")
-      .then((r) => r.ok ? r.json() : null)
-      .then((data: { nome?: string; nomePlataforma?: string | null; logoUrl?: string | null; temaCor?: string } | null) => {
-        if (!data) return;
-        if (data.nome) setCommunityName(data.nome);
-        if (data.nomePlataforma) setPlatformName(data.nomePlataforma);
-        if (data.logoUrl) setLogo(data.logoUrl);
-        if (data.temaCor) {
-          import("@/lib/themes").then(({ applyThemePalette }) => applyThemePalette(data.temaCor!));
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const communityName = "Formatio";
+  const communityDesc = "Plataforma pedagógica para gestão e acompanhamento da jornada formativa comunitária.";
 
   const errorMessages: Record<string, string> = {
     CredentialsSignin: "E-mail ou senha inválidos.",
@@ -88,23 +69,12 @@ export default function LoginForm() {
         <div className="relative z-10 flex flex-col items-center text-center text-primary-foreground max-w-sm">
           {/* Logo */}
           <div className="mb-8">
-            {logo ? (
-              <div className="h-20 w-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden p-1.5 mx-auto">
-                <img src={logo} alt="Logo" className="h-full w-full object-contain" />
-              </div>
-            ) : (
-              <div className="h-20 w-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto">
-                <span className="text-2xl font-bold"></span>
-              </div>
-            )}
+            <div className="h-20 w-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto">
+              <span className="text-2xl font-bold">Fo</span>
+            </div>
           </div>
 
-          <h1 className="text-3xl font-bold leading-tight mb-3">
-            {platformName || communityName}
-          </h1>
-          {platformName && (
-            <p className="text-sm text-white/70 font-medium mb-1">{communityName}</p>
-          )}
+          <h1 className="text-3xl font-bold leading-tight mb-3">{communityName}</h1>
           <p className="text-sm text-white/60 leading-relaxed mt-2">{communityDesc}</p>
         </div>
 
@@ -117,20 +87,11 @@ export default function LoginForm() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center justify-center mb-8 lg:hidden">
-            {logo ? (
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mr-2.5 overflow-hidden p-1">
-                <img src={logo} alt="Logo" className="h-full w-full object-contain" />
-              </div>
-            ) : (
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center mr-2.5">
-                <span className="text-xs font-bold text-primary-foreground"> </span>
-              </div>
-            )}
+            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center mr-2.5">
+              <span className="text-xs font-bold text-primary-foreground">Fo</span>
+            </div>
             <div>
-              <p className="font-semibold text-foreground text-sm leading-tight">{platformName || communityName}</p>
-              {platformName && (
-                <p className="text-xs text-muted-foreground truncate max-w-[180px]">{communityName}</p>
-              )}
+              <p className="font-semibold text-foreground text-sm leading-tight">{communityName}</p>
             </div>
           </div>
 
@@ -243,7 +204,7 @@ export default function LoginForm() {
         </div>
 
         <p className="text-xs text-muted-foreground mt-8 text-center">
-          © {new Date().getFullYear()} {platformName || communityName}
+          © {new Date().getFullYear()} {communityName}
         </p>
       </div>
     </div>
