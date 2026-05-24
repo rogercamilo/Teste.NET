@@ -22,6 +22,7 @@ import {
   DollarSign, Activity, Minus, Scale, FileText, CheckCircle2, Clock,
   Shield, type LucideIcon,
 } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,7 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function SuperAdminClient() {
+  const PAGE_SIZE = 10;
   const [tab, setTab] = useState<Tab>("organizacoes");
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [metricas, setMetricas] = useState<Metricas | null>(null);
@@ -105,6 +107,9 @@ export default function SuperAdminClient() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [lgpdActionLoading, setLgpdActionLoading] = useState<string | null>(null);
+  const [pageOrgs, setPageOrgs] = useState(1);
+  const [pageCortesias, setPageCortesias] = useState(1);
+  const [pageLgpd, setPageLgpd] = useState(1);
 
   const [selectedOrg, setSelectedOrg] = useState<OrgRow | null>(null);
   const [dialogAcao, setDialogAcao] = useState<DialogAcao>(null);
@@ -137,6 +142,8 @@ export default function SuperAdminClient() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPageOrgs(1); setPageCortesias(1); }, [orgs]);
+  useEffect(() => { setPageLgpd(1); }, [lgpd]);
 
   useEffect(() => {
     if (tab === "lgpd" && !lgpdLoaded) loadLgpd();
@@ -313,7 +320,7 @@ export default function SuperAdminClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orgs.map((org) => {
+                {orgs.slice((pageOrgs - 1) * PAGE_SIZE, pageOrgs * PAGE_SIZE).map((org) => {
                   const trialExpired = org.trialExpiresAt && new Date(org.trialExpiresAt) < new Date();
                   const cortesiaExpired = org.cortesiaExpiresAt && new Date(org.cortesiaExpiresAt) < new Date();
                   return (
@@ -426,6 +433,11 @@ export default function SuperAdminClient() {
                 )}
               </TableBody>
             </Table>
+            {orgs.length > 0 && (
+              <div className="px-4 py-3 border-t">
+                <Pagination total={orgs.length} page={pageOrgs} pageSize={PAGE_SIZE} onPageChange={setPageOrgs} />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -623,7 +635,7 @@ export default function SuperAdminClient() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cortesiasOrgs.map((org) => {
+                    {cortesiasOrgs.slice((pageCortesias - 1) * PAGE_SIZE, pageCortesias * PAGE_SIZE).map((org) => {
                       const expired = org.cortesiaExpiresAt && new Date(org.cortesiaExpiresAt) < new Date();
                       return (
                         <TableRow key={org.id} className="bg-violet-50/40">
@@ -679,6 +691,11 @@ export default function SuperAdminClient() {
                     })}
                   </TableBody>
                 </Table>
+                {cortesiasOrgs.length > 0 && (
+                  <div className="px-4 py-3 border-t">
+                    <Pagination total={cortesiasOrgs.length} page={pageCortesias} pageSize={PAGE_SIZE} onPageChange={setPageCortesias} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -761,7 +778,7 @@ export default function SuperAdminClient() {
                             Nenhuma solicitação registrada.
                           </TableCell>
                         </TableRow>
-                      ) : lgpd.deletionRequests.map((d) => (
+                      ) : lgpd.deletionRequests.slice((pageLgpd - 1) * PAGE_SIZE, pageLgpd * PAGE_SIZE).map((d) => (
                         <TableRow key={d.id}>
                           <TableCell>
                             <span className="text-xs bg-muted px-2 py-0.5 rounded font-medium capitalize">{d.tipo}</span>
@@ -816,6 +833,11 @@ export default function SuperAdminClient() {
                       ))}
                     </TableBody>
                   </Table>
+                  {lgpd.deletionRequests.length > 0 && (
+                    <div className="px-4 py-3 border-t">
+                      <Pagination total={lgpd.deletionRequests.length} page={pageLgpd} pageSize={PAGE_SIZE} onPageChange={setPageLgpd} />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

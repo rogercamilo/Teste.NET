@@ -44,6 +44,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { Pagination } from "@/components/ui/pagination";
 
 const STATUS_STYLES: Record<StatusPlano, string> = {
   rascunho: "bg-slate-100 text-slate-600 border-slate-200",
@@ -64,6 +65,8 @@ interface PlanosClientProps {
   moradaId: string | null;
 }
 
+const PAGE_SIZE = 10;
+
 export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
   const router = useRouter();
   const [planos, setPlanos] = usePlanos();
@@ -71,6 +74,7 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
   const [search, setSearch] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<PlanoFormativo | null>(null);
+  const [page, setPage] = useState(1);
 
   const isAdmin = role === "formador_geral" || role === "administrador";
 
@@ -158,7 +162,7 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
             <p className="font-medium text-foreground">Nenhum plano encontrado</p>
           </div>
         )}
-        {filtered.map((plano) => {
+        {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((plano) => {
           const totalCH = plano.eixos.reduce((acc, e) => acc + e.cargaHoraria, 0);
           return (
             <Card key={plano.id} className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group">
@@ -269,6 +273,8 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
           );
         })}
       </div>
+
+      <Pagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
 
       {isAdmin && (
         <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

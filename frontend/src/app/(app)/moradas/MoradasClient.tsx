@@ -49,6 +49,7 @@ import Link from "next/link";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { Pagination } from "@/components/ui/pagination";
 
 const NIVEL_ICONS: Record<NivelFormativo, string> = {
   "pre-discipulado": "🌱",
@@ -79,6 +80,8 @@ const EMPTY_FORM: FormState = {
 
 const formadores = db.usuarios.load().filter((u) => u.perfil === "formador_comunitario" && u.ativo);
 
+const PAGE_SIZE = 10;
+
 export default function MoradasClient() {
   const [moradas, setMoradas] = useMoradas();
   const [, setFormandos] = useFormandos();
@@ -92,6 +95,7 @@ export default function MoradasClient() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editing, setEditing] = useState<Morada | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [page, setPage] = useState(1);
 
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -226,7 +230,7 @@ export default function MoradasClient() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {filtered.map((morada) => {
+        {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((morada) => {
           const formador = db.usuarios.load().find((u) => u.id === morada.formadorId);
           const plano = allPlanos.find((p) => p.id === morada.planoId);
           const grade = allGrades.find((g) => g.id === morada.gradeId);
@@ -332,6 +336,8 @@ export default function MoradasClient() {
           );
         })}
       </div>
+
+      <Pagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

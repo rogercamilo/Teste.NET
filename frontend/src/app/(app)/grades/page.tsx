@@ -44,6 +44,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { Pagination } from "@/components/ui/pagination";
 
 const EIXO_COLORS = [
   "bg-violet-100 text-violet-700",
@@ -60,10 +61,12 @@ export default function GradesPage() {
   const moradaId = (session?.user as { moradaId?: string })?.moradaId ?? null;
   const canEdit = userRole !== "formador_comunitario";
 
+  const PAGE_SIZE = 10;
   const [grades, setGrades] = useGrades();
   const [moradas, setMoradas] = useMoradas();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<GradeFormativa | null>(null);
+  const [page, setPage] = useState(1);
 
   const minhaMorada =
     userRole === "formador_comunitario" && moradaId
@@ -142,7 +145,7 @@ export default function GradesPage() {
             <p className="font-medium text-foreground">Nenhuma grade encontrada</p>
           </div>
         )}
-        {visibleGrades.map((grade) => (
+        {visibleGrades.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((grade) => (
           <Card key={grade.id} className="border-0 shadow-sm hover:shadow-md transition-all duration-200 group">
             <CardContent className="p-5">
               <div className="flex items-start gap-4">
@@ -266,6 +269,7 @@ export default function GradesPage() {
             </CardContent>
           </Card>
         ))}
+        <Pagination total={visibleGrades.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} className="pt-2" />
       </div>
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

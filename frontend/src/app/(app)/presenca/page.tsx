@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CheckCircle2, XCircle, Users, ClipboardList, Save } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -33,10 +34,12 @@ export default function PresencaPage() {
   const userRole = user?.role ?? "formador_comunitario";
   const userMoradaId = user?.moradaId ?? null;
 
+  const PAGE_SIZE = 10;
   const [agendamentos] = useAgendamentos();
   const [todosFormandos] = useFormandos();
   const [moradas] = useMoradas();
   const [presencas, setPresencas] = usePresencas();
+  const [page, setPage] = useState(1);
 
   const minhaMorada = userMoradaId ? moradas.find((m) => m.id === userMoradaId) : null;
   const nivelRestrito = userRole === "formador_comunitario" ? minhaMorada?.nivelFormativo : undefined;
@@ -217,7 +220,7 @@ export default function PresencaPage() {
                   <span>{formandosDaFormacao.length} formandos</span>
                 </div>
                 <div className="space-y-2">
-                  {formandosDaFormacao.map((formando) => {
+                  {formandosDaFormacao.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((formando) => {
                     const presente = getPresenca(formando.id);
                     return (
                       <div
@@ -264,6 +267,7 @@ export default function PresencaPage() {
                     );
                   })}
                 </div>
+                <Pagination total={formandosDaFormacao.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} className="pt-3" />
               </>
             )}
           </CardContent>

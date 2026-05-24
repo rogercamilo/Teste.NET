@@ -35,6 +35,9 @@ import { MessageSquare, Plus, Search } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { Pagination } from "@/components/ui/pagination";
+
+const PAGE_SIZE = 10;
 
 export default function ComentariosPage() {
   const [comentarios, setComentarios] = useComentarios();
@@ -42,6 +45,7 @@ export default function ComentariosPage() {
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
   const [dialogAberto, setDialogAberto] = useState(false);
+  const [page, setPage] = useState(1);
 
   const [novoFormandoId, setNovoFormandoId] = useState("");
   const [novoTipo, setNovoTipo] = useState<TipoComentario>("observacao");
@@ -140,7 +144,7 @@ export default function ComentariosPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {comentariosFiltrados.map((comentario) => {
+          {comentariosFiltrados.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((comentario) => {
             const formando = allFormandos.find((f) => f.id === comentario.formandoId);
             const initials = comentario.formandoNome
               .split(" ")
@@ -183,6 +187,7 @@ export default function ComentariosPage() {
               </Card>
             );
           })}
+          <Pagination total={comentariosFiltrados.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} className="pt-2" />
         </div>
       )}
 

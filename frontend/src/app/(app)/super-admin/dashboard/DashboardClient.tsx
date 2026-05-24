@@ -12,6 +12,7 @@ import {
   Home, Users, UserSquare, HardDrive, Database, Cloud, CloudOff,
   AlertTriangle, Trash2, type LucideIcon,
 } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -338,6 +339,8 @@ function TabVisaoGeral({ metricas, mrrFmt }: { metricas: Metricas; mrrFmt: strin
 // ── Tab: Serviços ─────────────────────────────────────────────────────────────
 
 function TabServicos({ data }: { data: ServicosData }) {
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -430,7 +433,7 @@ function TabServicos({ data }: { data: ServicosData }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.recentUploads.map((u) => (
+                {data.recentUploads.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((u) => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium text-sm max-w-56 truncate">{u.nome}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{u.orgNome}</TableCell>
@@ -441,6 +444,11 @@ function TabServicos({ data }: { data: ServicosData }) {
                 ))}
               </TableBody>
             </Table>
+            {data.recentUploads.length > 0 && (
+              <div className="px-4 py-3 border-t">
+                <Pagination total={data.recentUploads.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -558,6 +566,8 @@ function TabSeguranca({ data }: { data: SegurancaData }) {
 // ── Tab: Logs ─────────────────────────────────────────────────────────────────
 
 function TabLogs({ logs }: { logs: SegurancaData["recentLogs"] }) {
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
   return (
     <Card>
       <CardHeader className="pb-2 pt-4 px-4">
@@ -581,7 +591,7 @@ function TabLogs({ logs }: { logs: SegurancaData["recentLogs"] }) {
                   Nenhum registro encontrado.
                 </TableCell>
               </TableRow>
-            ) : logs.map((log) => (
+            ) : logs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((log) => (
               <TableRow key={log.id}>
                 <TableCell>
                   <span className={`text-xs px-2 py-0.5 rounded-full border font-medium font-mono ${
@@ -600,6 +610,11 @@ function TabLogs({ logs }: { logs: SegurancaData["recentLogs"] }) {
             ))}
           </TableBody>
         </Table>
+        {logs.length > 0 && (
+          <div className="px-4 py-3 border-t">
+            <Pagination total={logs.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

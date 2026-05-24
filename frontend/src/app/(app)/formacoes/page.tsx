@@ -55,6 +55,7 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Pagination } from "@/components/ui/pagination";
 
 const MODALIDADE_ICON: Record<Modalidade, string> = {
   presencial: "🏛️",
@@ -101,6 +102,7 @@ export default function FormacoesPage() {
   const canEdit = userRole === "formador_geral" || userRole === "administrador";
   const isFormadorComunitario = userRole === "formador_comunitario";
 
+  const PAGE_SIZE = 10;
   const [formacoes, setFormacoes] = useFormacoes();
   const [grades] = useGrades();
   const [moradas] = useMoradas();
@@ -110,6 +112,7 @@ export default function FormacoesPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Formacao | null>(null);
+  const [pagesByNivel, setPagesByNivel] = useState<Partial<Record<NivelFormativo, number>>>({});
 
   // For formador_comunitario: determine their nivelFormativo from their morada
   const myMorada = isFormadorComunitario ? moradas.find((m) => m.id === moradaId) : undefined;
@@ -299,7 +302,7 @@ export default function FormacoesPage() {
                     </Badge>
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {items.map((formacao) => (
+                    {items.slice(((pagesByNivel[nivel] ?? 1) - 1) * PAGE_SIZE, (pagesByNivel[nivel] ?? 1) * PAGE_SIZE).map((formacao) => (
                       <FormacaoCard
                         key={formacao.id}
                         formacao={formacao}
@@ -315,6 +318,13 @@ export default function FormacoesPage() {
                       />
                     ))}
                   </div>
+                  <Pagination
+                    total={items.length}
+                    page={pagesByNivel[nivel] ?? 1}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={(p) => setPagesByNivel((prev) => ({ ...prev, [nivel]: p }))}
+                    className="mt-4"
+                  />
                 </section>
               );
             })}

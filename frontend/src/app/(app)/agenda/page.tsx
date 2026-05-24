@@ -32,6 +32,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 import {
   format,
   parseISO,
@@ -63,10 +64,13 @@ const STATUS_DOT: Record<StatusFormacao, string> = {
   reagendada: "bg-amber-500",
 };
 
+const PAGE_SIZE = 10;
+
 export default function AgendaPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date(2026, 4, 1));
   const [calView, setCalView] = useState<"month" | "list">("month");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [page, setPage] = useState(1);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -229,9 +233,10 @@ export default function AgendaPage() {
             </p>
           </div>
         )}
-        {filtered.map((ag) => (
+        {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((ag) => (
           <AgendamentoCard key={ag.id} ag={ag} />
         ))}
+        <Pagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
     </div>
   );

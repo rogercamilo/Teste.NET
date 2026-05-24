@@ -69,6 +69,7 @@ import Link from "next/link";
 import { format, parseISO, differenceInYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { Pagination } from "@/components/ui/pagination";
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
@@ -125,9 +126,11 @@ export default function FormandosPage() {
   const etapaLabels = useEtapaLabels();
   const [allMoradas, setAllMoradas] = useState<Morada[]>(() => db.moradas.load());
   const [allGrades] = useState<GradeFormativa[]>(() => db.grades.load());
+  const PAGE_SIZE = 10;
   const [search, setSearch] = useState("");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editing, setEditing] = useState<Formando | null>(null);
@@ -339,7 +342,7 @@ export default function FormandosPage() {
 
       {view === "grid" && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((formando) => {
+          {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((formando) => {
             const morada = formando.moradaId ? allMoradas.find((m) => m.id === formando.moradaId) : null;
             const semGrade = !!formando.moradaId && !morada?.gradeId;
             return (
@@ -356,6 +359,9 @@ export default function FormandosPage() {
               />
             );
           })}
+          <div className="col-span-full">
+            <Pagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          </div>
         </div>
       )}
 
@@ -373,7 +379,7 @@ export default function FormandosPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((formando) => {
+              {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((formando) => {
                 const progresso = Math.round(
                   (formando.formacoesRealizadas / formando.totalFormacoes) * 100
                 );
@@ -452,6 +458,9 @@ export default function FormandosPage() {
               })}
             </TableBody>
           </Table>
+          <div className="p-3">
+            <Pagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          </div>
         </Card>
       )}
 

@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import type { DocumentoMeta } from "@/lib/documentos-store";
+import { Pagination } from "@/components/ui/pagination";
 
 const TIPO_EVENTO_LABELS: Record<string, string> = {
   "solicitacao-desligamento": "Solicitação de Desligamento",
@@ -46,6 +47,8 @@ type SessionUser = {
   moradaId?: string | null;
 };
 
+const PAGE_SIZE = 10;
+
 export default function DocumentosPage() {
   const { data: session } = useSession();
   const user = session?.user as SessionUser | undefined;
@@ -56,6 +59,7 @@ export default function DocumentosPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos");
+  const [page, setPage] = useState(1);
 
   const loadDocumentos = useCallback(async () => {
     setLoading(true);
@@ -168,7 +172,7 @@ export default function DocumentosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((doc) => (
+                {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((doc) => (
                   <TableRow key={doc.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -224,9 +228,7 @@ export default function DocumentosPage() {
       </Card>
 
       {!loading && filtered.length > 0 && (
-        <p className="text-xs text-muted-foreground text-right">
-          {filtered.length} documento{filtered.length !== 1 ? "s" : ""}
-        </p>
+        <Pagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
       )}
     </div>
   );
