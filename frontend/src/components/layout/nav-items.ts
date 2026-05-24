@@ -62,7 +62,7 @@ export const navGroupsSuperAdmin: NavGroup[] = [
   {
     label: "Principal",
     items: [
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Dashboard", href: "/super-admin/dashboard", icon: LayoutDashboard },
     ],
   },
   {

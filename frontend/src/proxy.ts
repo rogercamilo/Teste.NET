@@ -72,7 +72,7 @@ export default auth(function proxy(req) {
     "/documentos", "/comentarios", "/viewer",
   ];
   if (role === "super_admin" && superAdminBlocked.some((p) => pathname.startsWith(p))) {
-    return NextResponse.redirect(new URL("/super-admin", req.url));
+    return NextResponse.redirect(new URL("/super-admin/dashboard", req.url));
   }
 
   const response = NextResponse.next();
