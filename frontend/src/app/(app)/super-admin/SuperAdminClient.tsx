@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -62,7 +62,7 @@ export default function SuperAdminClient() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const [selectedOrg, setSelectedOrg] = useState<OrgRow | null>(null);
-  const [dialogAcao, setDialogAcao] = useState<"suspender" | "reativar" | "plano" | "excluir" | null>(null);
+  const [dialogAcao, setDialogAcao] = useState<"suspender" | "reativar" | "cancelar" | "plano" | "excluir" | null>(null);
   const [novoPlano, setNovoPlano] = useState<string>("");
 
   const load = useCallback(async () => {
@@ -80,39 +80,73 @@ export default function SuperAdminClient() {
 
   async function executeAction(orgId: string, acao: "suspender" | "reativar" | "cancelar", plano?: string) {
     setActionLoading(orgId);
-    await fetch(`/api/super-admin/organizacoes/${orgId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ acao, ...(plano ? { plano } : {}) }),
-    });
-    setActionLoading(null);
-    setDialogAcao(null);
-    setSelectedOrg(null);
-    await load();
+    try {
+      const res = await fetch(`/api/super-admin/organizacoes/${orgId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao, ...(plano ? { plano } : {}) }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(data.error ?? "Falha ao executar ação.");
+        return;
+      }
+      const labels: Record<string, string> = { suspender: "suspensa", reativar: "reativada", cancelar: "cancelada" };
+      toast.success(`Organização ${labels[acao] ?? "atualizada"} com sucesso.`);
+      await load();
+    } catch {
+      toast.error("Erro de rede. Tente novamente.");
+    } finally {
+      setActionLoading(null);
+      setDialogAcao(null);
+      setSelectedOrg(null);
+    }
   }
 
   async function deleteOrg() {
     if (!selectedOrg) return;
     setActionLoading(selectedOrg.id);
-    await fetch(`/api/super-admin/organizacoes/${selectedOrg.id}`, { method: "DELETE" });
-    setActionLoading(null);
-    setDialogAcao(null);
-    setSelectedOrg(null);
-    await load();
+    try {
+      const res = await fetch(`/api/super-admin/organizacoes/${selectedOrg.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(data.error ?? "Falha ao excluir organização.");
+        return;
+      }
+      toast.success(`"${selectedOrg.nome}" excluída permanentemente.`);
+      await load();
+    } catch {
+      toast.error("Erro de rede. Tente novamente.");
+    } finally {
+      setActionLoading(null);
+      setDialogAcao(null);
+      setSelectedOrg(null);
+    }
   }
 
   async function changePlano() {
     if (!selectedOrg || !novoPlano) return;
     setActionLoading(selectedOrg.id);
-    await fetch(`/api/super-admin/organizacoes/${selectedOrg.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plano: novoPlano }),
-    });
-    setActionLoading(null);
-    setDialogAcao(null);
-    setSelectedOrg(null);
-    await load();
+    try {
+      const res = await fetch(`/api/super-admin/organizacoes/${selectedOrg.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plano: novoPlano }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(data.error ?? "Falha ao alterar plano.");
+        return;
+      }
+      toast.success(`Plano alterado para ${novoPlano}.`);
+      await load();
+    } catch {
+      toast.error("Erro de rede. Tente novamente.");
+    } finally {
+      setActionLoading(null);
+      setDialogAcao(null);
+      setSelectedOrg(null);
+    }
   }
 
   if (loading) {
@@ -299,19 +333,34 @@ export default function SuperAdminClient() {
                             Excluir permanentemente
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          {org.status !== "SUSPENSO" && org.status !== "CANCELADO" ? (
-                            <DropdownMenuItem
-                              className="text-amber-600"
-                              onClick={() => { setSelectedOrg(org); setDialogAcao("suspender"); }}
-                            >
-                              Suspender
-                            </DropdownMenuItem>
-                          ) : (
+                          {org.status === "CANCELADO" ? (
                             <DropdownMenuItem
                               className="text-emerald-600"
                               onClick={() => { setSelectedOrg(org); setDialogAcao("reativar"); }}
                             >
                               Reativar
+                            </DropdownMenuItem>
+                          ) : org.status === "SUSPENSO" ? (
+                            <>
+                              <DropdownMenuItem
+                                className="text-emerald-600"
+                                onClick={() => { setSelectedOrg(org); setDialogAcao("reativar"); }}
+                              >
+                                Reativar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => { setSelectedOrg(org); setDialogAcao("cancelar"); }}
+                              >
+                                Cancelar contrato
+                              </DropdownMenuItem>
+                            </>
+                          ) : (
+                            <DropdownMenuItem
+                              className="text-amber-600"
+                              onClick={() => { setSelectedOrg(org); setDialogAcao("suspender"); }}
+                            >
+                              Suspender
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -331,6 +380,30 @@ export default function SuperAdminClient() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog — Cancelar contrato */}
+      <Dialog open={dialogAcao === "cancelar"} onOpenChange={() => { setDialogAcao(null); setSelectedOrg(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Cancelar contrato</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Tem certeza que deseja cancelar o contrato de{" "}
+            <strong>&ldquo;{selectedOrg?.nome}&rdquo;</strong>? O status será alterado para{" "}
+            <strong>CANCELADO</strong> e os usuários não terão mais acesso à plataforma.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDialogAcao(null); setSelectedOrg(null); }}>Voltar</Button>
+            <Button
+              variant="destructive"
+              disabled={actionLoading === selectedOrg?.id}
+              onClick={() => selectedOrg && executeAction(selectedOrg.id, "cancelar")}
+            >
+              Cancelar contrato
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog — Suspender/Reativar */}
       <Dialog open={dialogAcao === "suspender" || dialogAcao === "reativar"} onOpenChange={() => { setDialogAcao(null); setSelectedOrg(null); }}>
