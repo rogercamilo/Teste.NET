@@ -14,22 +14,25 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-
-const pageTitles: Record<string, { title: string; parent?: string; parentHref?: string }> = {
-  "/dashboard": { title: "Dashboard" },
-  "/agenda": { title: "Agenda" },
-  "/planos": { title: "Planos Formativos", parent: "Pedagógico" },
-  "/grades": { title: "Grades Formativas", parent: "Pedagógico" },
-  "/formacoes": { title: "Formações", parent: "Pedagógico" },
-  "/formandos": { title: "Formandos", parent: "Pessoas" },
-  "/presenca": { title: "Gestão de Presença", parent: "Minha Morada" },
-  "/comentarios": { title: "Comentários", parent: "Minha Morada" },
-  "/configuracoes": { title: "Configurações" },
-};
+import { useTermos } from "@/lib/data-store";
 
 export function AppTopbar() {
   const pathname = usePathname();
+  const { morada } = useTermos();
   const basePath = "/" + (pathname.split("/")[1] || "dashboard");
+
+  const pageTitles: Record<string, { title: string; parent?: string; parentHref?: string }> = {
+    "/dashboard": { title: "Dashboard" },
+    "/agenda": { title: "Agenda" },
+    "/planos": { title: "Planos Formativos", parent: "Pedagógico" },
+    "/grades": { title: "Grades Formativas", parent: "Pedagógico" },
+    "/formacoes": { title: "Formações", parent: "Pedagógico" },
+    "/formandos": { title: "Formandos", parent: "Pessoas" },
+    "/presenca": { title: "Gestão de Presença", parent: `Minha ${morada}` },
+    "/comentarios": { title: "Comentários", parent: `Minha ${morada}` },
+    "/configuracoes": { title: "Configurações" },
+  };
+
   const pageInfo = pageTitles[basePath] ?? { title: "Página" };
 
   return (

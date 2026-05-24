@@ -139,7 +139,7 @@ model Morada {
   id             String    @id @default(cuid())
   organizacaoId  String
   nome           String
-  endereco       String?
+  localReuniao   String?
   // NivelFormativo como String para manter compatibilidade com tipos existentes
   // valores: "pre-discipulado" | "discipulado" | "primeiras-promessas" | "formacao-permanente"
   nivelFormativo String

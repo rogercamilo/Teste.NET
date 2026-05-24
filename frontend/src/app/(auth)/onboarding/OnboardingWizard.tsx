@@ -54,7 +54,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
 
   // Step 3
   const [moradaNome, setMoradaNome] = useState("");
-  const [moradaEndereco, setMoradaEndereco] = useState("");
+  const [moradaLocalReuniao, setMoradaLocalReuniao] = useState("");
   const [moradaNivel, setMoradaNivel] = useState("pre-discipulado");
 
   async function saveStep1() {
@@ -91,7 +91,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
       const res = await fetch("/api/moradas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: moradaNome.trim(), endereco: moradaEndereco || undefined, nivelFormativo: moradaNivel }),
+        body: JSON.stringify({ nome: moradaNome.trim(), localReuniao: moradaLocalReuniao || undefined, nivelFormativo: moradaNivel }),
       });
       if (!res.ok) {
         const data = await res.json() as { error?: string };
@@ -207,7 +207,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
               <div className="space-y-1.5">
                 <Label htmlFor="termoMorada">
                   Grupo de formação{" "}
-                  <span className="font-normal text-muted-foreground">(padrão: "Morada")</span>
+                  <span className="font-normal text-muted-foreground">(Ex: "Morada", "Célula")</span>
                 </Label>
                 <Input id="termoMorada" value={termoMorada} onChange={(e) => setTermoMorada(e.target.value)} placeholder="Morada" className="h-10" />
                 <p className="text-xs text-muted-foreground">Ex.: Grupo, Célula, Casa, Comunidade</p>
@@ -216,7 +216,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
               <div className="space-y-1.5">
                 <Label htmlFor="termoFormando">
                   Membro do grupo{" "}
-                  <span className="font-normal text-muted-foreground">(padrão: "Formando")</span>
+                  <span className="font-normal text-muted-foreground">(Ex: "Formando", "Participante")</span>
                 </Label>
                 <Input id="termoFormando" value={termoFormando} onChange={(e) => setTermoFormando(e.target.value)} placeholder="Formando" className="h-10" />
                 <p className="text-xs text-muted-foreground">Ex.: Membro, Participante, Discípulo, Jovem</p>
@@ -225,7 +225,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
               <div className="space-y-1.5">
                 <Label htmlFor="termoFormador">
                   Responsável pelo grupo{" "}
-                  <span className="font-normal text-muted-foreground">(padrão: "Formador Comunitário")</span>
+                  <span className="font-normal text-muted-foreground">(Ex: "Formador Comunitário", "Líder")</span>
                 </Label>
                 <Input id="termoFormador" value={termoFormador} onChange={(e) => setTermoFormador(e.target.value)} placeholder="Formador Comunitário" className="h-10" />
                 <p className="text-xs text-muted-foreground">Ex.: Líder, Coordenador, Responsável</p>
@@ -242,28 +242,28 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                 <div className="space-y-1.5">
                   <Label htmlFor="termoPreDiscipulado">
                     1.ª etapa{" "}
-                    <span className="font-normal text-muted-foreground">(padrão: "Pré-Discipulado")</span>
+                    <span className="font-normal text-muted-foreground">(Ex: "Pré-Discipulado")</span>
                   </Label>
                   <Input id="termoPreDiscipulado" value={termoPreDiscipulado} onChange={(e) => setTermoPreDiscipulado(e.target.value)} placeholder="Pré-Discipulado" className="h-10" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="termoDiscipulado">
                     2.ª etapa{" "}
-                    <span className="font-normal text-muted-foreground">(padrão: "Discipulado")</span>
+                    <span className="font-normal text-muted-foreground">(Ex: "Discipulado")</span>
                   </Label>
                   <Input id="termoDiscipulado" value={termoDiscipulado} onChange={(e) => setTermoDiscipulado(e.target.value)} placeholder="Discipulado" className="h-10" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="termoPrimeirasPromessas">
                     3.ª etapa{" "}
-                    <span className="font-normal text-muted-foreground">(padrão: "Primeiras Promessas")</span>
+                    <span className="font-normal text-muted-foreground">(Ex: "Primeiras Promessas")</span>
                   </Label>
                   <Input id="termoPrimeirasPromessas" value={termoPrimeirasPromessas} onChange={(e) => setTermoPrimeirasPromessas(e.target.value)} placeholder="Primeiras Promessas" className="h-10" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="termoFormacaoPermanente">
                     4.ª etapa{" "}
-                    <span className="font-normal text-muted-foreground">(padrão: "Formação Permanente")</span>
+                    <span className="font-normal text-muted-foreground">(Ex: "Formação Permanente")</span>
                   </Label>
                   <Input id="termoFormacaoPermanente" value={termoFormacaoPermanente} onChange={(e) => setTermoFormacaoPermanente(e.target.value)} placeholder="Formação Permanente" className="h-10" />
                 </div>
@@ -274,13 +274,13 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <h2 className="font-semibold text-foreground">Criar primeira morada</h2>
+                <h2 className="font-semibold text-foreground">Criar primeiro grupo de formação</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Opcional — você pode adicionar moradas depois em Gestão → Moradas.
+                  Opcional — você pode adicionar seus grupos depois em Gestão → Grupos de formação.
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="moradaNome">Nome da morada</Label>
+                <Label htmlFor="moradaNome">Nome do grupo de formação</Label>
                 <Input
                   id="moradaNome"
                   placeholder="Ex: Morada São João"
@@ -290,17 +290,17 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="moradaEndereco">Endereço</Label>
+                <Label htmlFor="moradaLocalReuniao">Local de reunião</Label>
                 <Input
-                  id="moradaEndereco"
-                  placeholder="Opcional"
-                  value={moradaEndereco}
-                  onChange={(e) => setMoradaEndereco(e.target.value)}
+                  id="moradaLocalReuniao"
+                  placeholder="Ex: Paróquia São João, Salão 2"
+                  value={moradaLocalReuniao}
+                  onChange={(e) => setMoradaLocalReuniao(e.target.value)}
                   className="h-10"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="moradaNivel">Nível formativo</Label>
+                <Label htmlFor="moradaNivel">Etapa formativa</Label>
                 <select
                   id="moradaNivel"
                   value={moradaNivel}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useFormandos, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
+import { useFormandos, useComunidade, useTermos, useEtapaLabels, db } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   MODALIDADE_LABELS,
@@ -121,6 +121,7 @@ export default function FormandosPage() {
   const [formandos, setFormandos] = useFormandos();
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
+  const termoMorada = comunidade.termoMorada?.trim() || "Morada";
   const etapaLabels = useEtapaLabels();
   const [allMoradas, setAllMoradas] = useState<Morada[]>(() => db.moradas.load());
   const [allGrades] = useState<GradeFormativa[]>(() => db.grades.load());
@@ -412,7 +413,7 @@ export default function FormandosPage() {
                               {formando.formacoesRealizadas}/{formando.totalFormacoes}
                             </span>
                             {semGrade && (
-                              <span title="Morada sem grade vinculada">
+                              <span title={`${termoMorada} sem grade vinculada`}>
                                 <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                               </span>
                             )}
@@ -651,6 +652,7 @@ function FormandoCard({
   onVincularGrade?: (moradaId: string, nivelFormativo: NivelFormativo) => void;
 }) {
   const etapaLabels = useEtapaLabels();
+  const { morada: termoMoradaCard } = useTermos();
   const progresso = Math.round(
     (formando.formacoesRealizadas / formando.totalFormacoes) * 100
   );
@@ -714,7 +716,7 @@ function FormandoCard({
             <div className="flex items-center justify-between gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-xs text-amber-700 mt-1">
               <div className="flex items-center gap-1.5">
                 <AlertTriangle className="h-3 w-3 shrink-0" />
-                <span>Morada sem grade vinculada</span>
+                <span>{termoMoradaCard} sem grade vinculada</span>
               </div>
               {onVincularGrade && formando.moradaId && (
                 <button

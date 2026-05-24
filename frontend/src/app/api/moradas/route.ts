@@ -8,7 +8,7 @@ import type { Morada } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 type PrismaMorada = {
-  id: string; organizacaoId: string; nome: string; endereco: string | null;
+  id: string; organizacaoId: string; nome: string; localReuniao: string | null;
   nivelFormativo: string; formadorId: string | null; planoId: string | null;
   gradeId: string | null; vigenciaInicio: Date | null; vigenciaFim: Date | null;
   ativo: boolean; criadoEm: Date;
@@ -22,7 +22,7 @@ function toMorada(m: PrismaMorada): Morada {
   return {
     id: m.id,
     nome: m.nome,
-    endereco: m.endereco ?? undefined,
+    localReuniao: m.localReuniao ?? undefined,
     nivelFormativo: m.nivelFormativo as Morada["nivelFormativo"],
     formadorId: m.formadorId ?? undefined,
     planoId: m.planoId ?? undefined,
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       data: {
         organizacaoId: user.organizacaoId,
         nome: body.nome.trim(),
-        endereco: body.endereco || null,
+        localReuniao: body.localReuniao || null,
         nivelFormativo: body.nivelFormativo ?? "pre-discipulado",
         formadorId: body.formadorId || null,
         planoId: body.planoId || null,

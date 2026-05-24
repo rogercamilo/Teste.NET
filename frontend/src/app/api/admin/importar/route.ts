@@ -52,7 +52,7 @@ export async function POST(request: Request) {
             id: String(row.id),
             organizacaoId: orgId,
             nome: String(row.nome),
-            endereco: row.endereco ? String(row.endereco) : null,
+            localReuniao: row.localReuniao ? String(row.localReuniao) : null,
             nivelFormativo: String(row.nivelFormativo),
             ativo: row.ativo !== false,
           },

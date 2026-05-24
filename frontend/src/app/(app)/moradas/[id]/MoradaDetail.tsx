@@ -147,7 +147,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [allGrades] = useState(() => db.grades.load());
 
   const [editOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ nome: "", endereco: "" });
+  const [editForm, setEditForm] = useState({ nome: "", localReuniao: "" });
 
   const [agendamentoId, setAgendamentoId] = useState<string>("");
   const [presencas, setPresencas] = usePresencas();
@@ -263,7 +263,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
 
   function openEdit() {
     if (!morada) return;
-    setEditForm({ nome: morada.nome, endereco: morada.endereco ?? "" });
+    setEditForm({ nome: morada.nome, localReuniao: morada.localReuniao ?? "" });
     setEditOpen(true);
   }
 
@@ -271,7 +271,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     if (!editForm.nome.trim()) return toast.error("Nome é obrigatório.");
     setMorada((prev) => {
       if (!prev) return prev;
-      const updated = { ...prev, nome: editForm.nome.trim(), endereco: editForm.endereco.trim() || undefined };
+      const updated = { ...prev, nome: editForm.nome.trim(), localReuniao: editForm.localReuniao.trim() || undefined };
       const all = db.moradas.load().map((m) => (m.id === updated.id ? updated : m));
       db.moradas.save(all);
       return updated;
@@ -455,10 +455,10 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                 {morada.ativo ? "Ativa" : "Inativa"}
               </Badge>
             </div>
-            {morada.endereco && (
+            {morada.localReuniao && (
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5" />
-                {morada.endereco}
+                {morada.localReuniao}
               </p>
             )}
             {(morada.vigenciaInicio || morada.vigenciaFim) && (
@@ -1009,10 +1009,11 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>Endereço</Label>
+              <Label>Local de reunião</Label>
               <Input
-                value={editForm.endereco}
-                onChange={(e) => setEditForm((p) => ({ ...p, endereco: e.target.value }))}
+                value={editForm.localReuniao}
+                onChange={(e) => setEditForm((p) => ({ ...p, localReuniao: e.target.value }))}
+                placeholder="Ex: Paróquia São João, Salão 2"
               />
             </div>
           </div>

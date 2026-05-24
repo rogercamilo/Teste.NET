@@ -39,7 +39,7 @@ export interface RequisitosEtapa {
 export interface Morada {
   id: string;
   nome: string;
-  endereco?: string;
+  localReuniao?: string;
   nivelFormativo: NivelFormativo;
   formadorId?: string;
   planoId?: string;

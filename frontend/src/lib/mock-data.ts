@@ -18,7 +18,7 @@ export const mockMoradas: Morada[] = [
   {
     id: "m1",
     nome: "Morada São João Bosco",
-    endereco: "Rua das Flores, 123 — Fortaleza/CE",
+    localReuniao: "Rua das Flores, 123 — Fortaleza/CE",
     nivelFormativo: "pre-discipulado",
     formadorId: "u2",
     planoId: "p1",
@@ -29,7 +29,7 @@ export const mockMoradas: Morada[] = [
   {
     id: "m2",
     nome: "Morada Nossa Senhora",
-    endereco: "Av. da Paz, 456 — Fortaleza/CE",
+    localReuniao: "Av. da Paz, 456 — Fortaleza/CE",
     nivelFormativo: "discipulado",
     formadorId: "u3",
     planoId: "p2",

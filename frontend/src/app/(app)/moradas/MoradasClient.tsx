@@ -252,8 +252,8 @@ export default function MoradasClient() {
                           </Badge>
                         )}
                       </div>
-                      {morada.endereco && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{morada.endereco}</p>
+                      {morada.localReuniao && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{morada.localReuniao}</p>
                       )}
                     </div>
                   </div>

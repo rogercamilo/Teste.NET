@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useComunidade, useEtapaLabels, db } from "@/lib/data-store";
+import { useComunidade, useTermos, useEtapaLabels, db } from "@/lib/data-store";
 import { passwordErrorMessage } from "@/lib/password-validation";
 import type { UserPublic } from "@/lib/users-store";
 import {
@@ -232,6 +232,7 @@ function PerfilTab({
   userEmail: string;
 }) {
   const router = useRouter();
+  const { formador } = useTermos();
   const [usuario, setUsuario] = useState<UserPublic | null>(null);
 
   // Troca de senha
@@ -279,7 +280,7 @@ function PerfilTab({
   }
 
   const perfilLabel =
-    usuario?.perfil === "administrador" ? "Administrador" : "Formador Comunitário";
+    usuario?.perfil === "administrador" ? "Administrador" : formador;
 
   return (
     <div className="max-w-lg space-y-4">
