@@ -172,7 +172,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Sair"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => signOut({ callbackUrl: isSuperAdmin ? "/" : "/login" })}
             >
               <LogOut className="h-4 w-4" />
               <span>Sair</span>

@@ -16,9 +16,10 @@ import Link from "next/link";
 interface Props {
   userEmail: string;
   isAdmin: boolean;
+  isSuperAdmin?: boolean;
 }
 
-export default function PrivacidadeTab({ userEmail, isAdmin }: Props) {
+export default function PrivacidadeTab({ userEmail, isAdmin, isSuperAdmin = false }: Props) {
   const router = useRouter();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [emailConfirmacao, setEmailConfirmacao] = useState("");
@@ -81,7 +82,7 @@ export default function PrivacidadeTab({ userEmail, isAdmin }: Props) {
       const data = await res.json() as { error?: string };
       if (!res.ok) { toast.error(data.error ?? "Erro ao excluir conta"); setDeleting(false); return; }
       toast.success("Conta encerrada. Você será desconectado.");
-      setTimeout(() => signOut({ callbackUrl: "/login" }), 1500);
+      setTimeout(() => signOut({ callbackUrl: isSuperAdmin ? "/" : "/login" }), 1500);
     } catch {
       toast.error("Falha de conexão");
       setDeleting(false);

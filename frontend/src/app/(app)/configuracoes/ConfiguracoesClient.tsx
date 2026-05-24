@@ -213,7 +213,7 @@ export default function ConfiguracoesClient({
         </TabsContent>
 
         <TabsContent value="privacidade" className="mt-4">
-          <PrivacidadeTab userEmail={userEmail} isAdmin={userRole === "administrador"} />
+          <PrivacidadeTab userEmail={userEmail} isAdmin={userRole === "administrador"} isSuperAdmin={userRole === "super_admin"} />
         </TabsContent>
       </Tabs>
     </div>
