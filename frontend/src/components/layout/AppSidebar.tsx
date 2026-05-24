@@ -94,7 +94,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2.5 px-2 py-1">
-          {logo ? (
+          {!isSuperAdmin && logo ? (
             <NextImage
               src={logo}
               alt="Logo"
@@ -109,13 +109,22 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
             </div>
           )}
           <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-semibold text-foreground leading-tight truncate">
-              {nomePlataforma || comunidade.nome || "Formatio"}
-            </span>
-            {nomePlataforma && (
-              <span className="text-xs text-muted-foreground truncate">
-                {comunidade.nome || ""}
-              </span>
+            {isSuperAdmin ? (
+              <>
+                <span className="text-sm font-semibold text-foreground leading-tight truncate">Formatio</span>
+                <span className="text-xs text-muted-foreground truncate">Plataforma</span>
+              </>
+            ) : (
+              <>
+                <span className="text-sm font-semibold text-foreground leading-tight truncate">
+                  {nomePlataforma || comunidade.nome || "Formatio"}
+                </span>
+                {nomePlataforma && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {comunidade.nome || ""}
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>

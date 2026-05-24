@@ -60,7 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <footer className="shrink-0 border-t border-border/60 bg-card/50 px-4 md:px-6 py-2.5">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-xs text-muted-foreground">
             <p>
-              {orgBranding.nomePlataforma || orgBranding.nome
+              {sessionUser.role !== "super_admin" && (orgBranding.nomePlataforma || orgBranding.nome)
                 ? <>{orgBranding.nomePlataforma || orgBranding.nome} · <span className="opacity-60">powered by Formatio</span></>
                 : <>© {new Date().getFullYear()} Formatio</>
               }
