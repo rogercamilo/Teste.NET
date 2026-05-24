@@ -8,7 +8,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import {
   Building2, Users, Home, UserSquare, MoreHorizontal, RefreshCw, ShieldAlert,
-  TrendingUp, AlertTriangle,
+  TrendingUp, TrendingDown, AlertTriangle, Gift, Ban, BadgeCheck, DollarSign,
+  Activity, Minus,
 } from "lucide-react";
 
 interface OrgRow {
@@ -27,6 +28,9 @@ interface OrgRow {
   planoAssinatura: string;
   status: string;
   trialExpiresAt: string | null;
+  cortesia: boolean;
+  cortesiaExpiresAt: string | null;
+  cortesiaMotivo: string | null;
   criadoEm: string;
   _count: { moradas: number; formandos: number; usuarios: number };
 }
@@ -36,10 +40,16 @@ interface Metricas {
   orgsAtivas: number;
   orgsTrials: number;
   orgsSuspensas: number;
+  orgsCanceladas: number;
+  orgsCortesia: number;
   totalFormandos: number;
   totalMoradas: number;
   totalUsuarios: number;
   planoBreakdown: Record<string, number>;
+  mrrEstimado: number;
+  crescimento30d: number;
+  crescimentoAnterior30d: number;
+  crescimentoPercent: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -50,10 +60,12 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const PLANO_COLORS: Record<string, string> = {
-  GRATUITO: "bg-slate-100 text-slate-700",
+  GRATUITO: "bg-slate-100 text-slate-600",
   ESSENCIAL: "bg-violet-100 text-violet-700",
   PROFISSIONAL: "bg-amber-100 text-amber-700",
 };
+
+type DialogAcao = "suspender" | "reativar" | "cancelar" | "plano" | "excluir" | "cortesia" | "revogar-cortesia" | null;
 
 export default function SuperAdminClient() {
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
@@ -62,8 +74,12 @@ export default function SuperAdminClient() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const [selectedOrg, setSelectedOrg] = useState<OrgRow | null>(null);
-  const [dialogAcao, setDialogAcao] = useState<"suspender" | "reativar" | "cancelar" | "plano" | "excluir" | null>(null);
+  const [dialogAcao, setDialogAcao] = useState<DialogAcao>(null);
   const [novoPlano, setNovoPlano] = useState<string>("");
+  const [cortesiaMotivo, setCortesiaMotivo] = useState("");
+  const [cortesiaExpiry, setCortesiaExpiry] = useState("");
+
+  const closeDialog = () => { setDialogAcao(null); setSelectedOrg(null); setCortesiaMotivo(""); setCortesiaExpiry(""); };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,28 +94,30 @@ export default function SuperAdminClient() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function executeAction(orgId: string, acao: "suspender" | "reativar" | "cancelar", plano?: string) {
+  async function executeAction(orgId: string, acao: string, extra?: Record<string, unknown>) {
     setActionLoading(orgId);
     try {
       const res = await fetch(`/api/super-admin/organizacoes/${orgId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao, ...(plano ? { plano } : {}) }),
+        body: JSON.stringify({ acao, ...extra }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({})) as { error?: string };
         toast.error(data.error ?? "Falha ao executar ação.");
         return;
       }
-      const labels: Record<string, string> = { suspender: "suspensa", reativar: "reativada", cancelar: "cancelada" };
+      const labels: Record<string, string> = {
+        suspender: "suspensa", reativar: "reativada", cancelar: "cancelada",
+        cortesia: "cortesia concedida", "revogar-cortesia": "cortesia revogada",
+      };
       toast.success(`Organização ${labels[acao] ?? "atualizada"} com sucesso.`);
       await load();
     } catch {
       toast.error("Erro de rede. Tente novamente.");
     } finally {
       setActionLoading(null);
-      setDialogAcao(null);
-      setSelectedOrg(null);
+      closeDialog();
     }
   }
 
@@ -119,8 +137,7 @@ export default function SuperAdminClient() {
       toast.error("Erro de rede. Tente novamente.");
     } finally {
       setActionLoading(null);
-      setDialogAcao(null);
-      setSelectedOrg(null);
+      closeDialog();
     }
   }
 
@@ -144,34 +161,46 @@ export default function SuperAdminClient() {
       toast.error("Erro de rede. Tente novamente.");
     } finally {
       setActionLoading(null);
-      setDialogAcao(null);
-      setSelectedOrg(null);
+      closeDialog();
     }
+  }
+
+  async function concederCortesia() {
+    if (!selectedOrg) return;
+    await executeAction(selectedOrg.id, "cortesia", {
+      cortesiaMotivo: cortesiaMotivo || undefined,
+      cortesiaExpiresAt: cortesiaExpiry || null,
+    });
   }
 
   if (loading) {
     return (
       <div className="p-6 space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-muted rounded" />
+        <div className="h-8 w-64 bg-muted rounded" />
         <div className="grid grid-cols-4 gap-4">
-          {[1,2,3,4].map((i) => <div key={i} className="h-24 bg-muted rounded-xl" />)}
+          {[1, 2, 3, 4].map((i) => <div key={i} className="h-28 bg-muted rounded-xl" />)}
         </div>
         <div className="h-96 bg-muted rounded-xl" />
       </div>
     );
   }
 
+  const mrrFormatado = metricas
+    ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(metricas.mrrEstimado)
+    : "—";
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
+
+      {/* ── Header ──────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
             <ShieldAlert className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Super Admin</h1>
-            <p className="text-xs text-muted-foreground">Gestão global da plataforma</p>
+            <h1 className="text-xl font-bold">Formatio — Painel Administrativo</h1>
+            <p className="text-xs text-muted-foreground">Gestão operacional, tática e estratégica da plataforma</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
@@ -180,13 +209,27 @@ export default function SuperAdminClient() {
         </Button>
       </div>
 
-      {/* Métricas */}
+      {/* ── KPI Cards ───────────────────────────────────────── */}
       {metricas && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
-            <CardHeader className="pb-2 pt-4 px-4">
+            <CardHeader className="pb-1 pt-4 px-4">
               <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5" />Total de organizações
+                <DollarSign className="h-3.5 w-3.5" />MRR Estimado
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="text-2xl font-bold">{mrrFormatado}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {metricas.planoBreakdown["ESSENCIAL"] ?? 0} essencial · {metricas.planoBreakdown["PROFISSIONAL"] ?? 0} profissional
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-1 pt-4 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5" />Organizações
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
@@ -198,98 +241,175 @@ export default function SuperAdminClient() {
           </Card>
 
           <Card>
-            <CardHeader className="pb-2 pt-4 px-4">
+            <CardHeader className="pb-1 pt-4 px-4">
               <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5" />Total de formandos
+                <Activity className="h-3.5 w-3.5" />Crescimento (30d)
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-              <div className="text-2xl font-bold">{metricas.totalFormandos}</div>
+              <div className="text-2xl font-bold flex items-center gap-1.5">
+                {metricas.crescimento30d}
+                <span className={`text-sm font-medium flex items-center gap-0.5 ${metricas.crescimentoPercent >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                  {metricas.crescimentoPercent > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : metricas.crescimentoPercent < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5 text-muted-foreground" />}
+                  {metricas.crescimentoPercent > 0 ? "+" : ""}{metricas.crescimentoPercent}%
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                vs {metricas.crescimentoAnterior30d} novas no período anterior
+              </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-2 pt-4 px-4">
+            <CardHeader className="pb-1 pt-4 px-4">
               <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <Home className="h-3.5 w-3.5" />Total de moradas
+                <Gift className="h-3.5 w-3.5" />Cortesias Ativas
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-              <div className="text-2xl font-bold">{metricas.totalMoradas}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <UserSquare className="h-3.5 w-3.5" />Total de usuários
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="text-2xl font-bold">{metricas.totalUsuarios}</div>
+              <div className="text-2xl font-bold">{metricas.orgsCortesia}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                organizações isentas de pagamento
+              </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Breakdown por plano */}
+      {/* ── Breakdown row ────────────────────────────────────── */}
       {metricas && (
-        <Card>
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              Distribuição por plano
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="flex items-center gap-4">
-              {["GRATUITO", "ESSENCIAL", "PROFISSIONAL"].map((plano) => (
-                <div key={plano} className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PLANO_COLORS[plano]}`}>{plano}</span>
-                  <span className="text-sm font-bold">{metricas.planoBreakdown[plano] ?? 0}</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Status */}
+          <Card className="md:col-span-1">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium">Status das organizações</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 space-y-2">
+              {[
+                { label: "Ativas", count: metricas.orgsAtivas, color: "bg-emerald-500" },
+                { label: "Trial", count: metricas.orgsTrials, color: "bg-blue-500" },
+                { label: "Suspensas", count: metricas.orgsSuspensas, color: "bg-amber-500" },
+                { label: "Canceladas", count: metricas.orgsCanceladas, color: "bg-red-500" },
+              ].map(({ label, count, color }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "" }} >
+                    <div className={`w-2 h-2 rounded-full ${color}`} />
+                  </div>
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`} />
+                  <span className="text-sm flex-1">{label}</span>
+                  <span className="text-sm font-semibold">{count}</span>
+                  <span className="text-xs text-muted-foreground w-8 text-right">
+                    {metricas.totalOrgs > 0 ? Math.round((count / metricas.totalOrgs) * 100) : 0}%
+                  </span>
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Planos */}
+          <Card className="md:col-span-1">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium">Distribuição de planos</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 space-y-2">
+              {[
+                { label: "Gratuito", key: "GRATUITO", color: "bg-slate-400" },
+                { label: "Essencial", key: "ESSENCIAL", color: "bg-violet-500" },
+                { label: "Profissional", key: "PROFISSIONAL", color: "bg-amber-500" },
+              ].map(({ label, key, color }) => {
+                const count = metricas.planoBreakdown[key] ?? 0;
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`} />
+                    <span className="text-sm flex-1">{label}</span>
+                    <span className="text-sm font-semibold">{count}</span>
+                    <span className="text-xs text-muted-foreground w-8 text-right">
+                      {metricas.totalOrgs > 0 ? Math.round((count / metricas.totalOrgs) * 100) : 0}%
+                    </span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Totais globais */}
+          <Card className="md:col-span-1">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium">Totais da plataforma</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="h-3.5 w-3.5" />Formandos
+                </div>
+                <span className="font-semibold text-sm">{metricas.totalFormandos.toLocaleString("pt-BR")}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Home className="h-3.5 w-3.5" />Moradas
+                </div>
+                <span className="font-semibold text-sm">{metricas.totalMoradas.toLocaleString("pt-BR")}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <UserSquare className="h-3.5 w-3.5" />Usuários
+                </div>
+                <span className="font-semibold text-sm">{metricas.totalUsuarios.toLocaleString("pt-BR")}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      {/* Tabela de organizações */}
+      {/* ── Tabela de organizações ───────────────────────────── */}
       <Card>
-        <CardHeader className="pb-2 pt-4 px-4">
+        <CardHeader className="pb-2 pt-4 px-4 flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium">Organizações ({orgs.length})</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
+                <TableHead>Organização</TableHead>
                 <TableHead>Plano</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">Moradas</TableHead>
                 <TableHead className="text-center">Formandos</TableHead>
                 <TableHead className="text-center">Usuários</TableHead>
                 <TableHead>Cadastro</TableHead>
-                <TableHead className="w-10"></TableHead>
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {orgs.map((org) => {
                 const trialExpired = org.trialExpiresAt && new Date(org.trialExpiresAt) < new Date();
+                const cortesiaExpired = org.cortesiaExpiresAt && new Date(org.cortesiaExpiresAt) < new Date();
                 return (
-                  <TableRow key={org.id}>
+                  <TableRow key={org.id} className={org.cortesia ? "bg-violet-50/40 dark:bg-violet-950/10" : ""}>
                     <TableCell className="font-medium">
-                      <div>
-                        <span>{org.nome}</span>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span>{org.nome}</span>
+                          {org.cortesia && (
+                            <span className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 font-medium border border-violet-200">
+                              <Gift className="h-3 w-3" />
+                              {cortesiaExpired ? "Expirada" : "Cortesia"}
+                            </span>
+                          )}
+                        </div>
                         {org.status === "TRIAL" && trialExpired && (
-                          <span className="ml-2 text-xs text-destructive flex items-center gap-0.5 inline-flex">
+                          <span className="text-xs text-destructive flex items-center gap-0.5">
                             <AlertTriangle className="h-3 w-3" />Trial expirado
                           </span>
                         )}
-                        {org.trialExpiresAt && !trialExpired && org.status === "TRIAL" && (
-                          <div className="text-xs text-muted-foreground">
-                            Trial até {new Date(org.trialExpiresAt).toLocaleDateString("pt-PT")}
-                          </div>
+                        {org.status === "TRIAL" && !trialExpired && org.trialExpiresAt && (
+                          <span className="text-xs text-muted-foreground">
+                            Trial até {new Date(org.trialExpiresAt).toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
+                        {org.cortesia && org.cortesiaMotivo && (
+                          <span className="text-xs text-muted-foreground truncate max-w-48">{org.cortesiaMotivo}</span>
                         )}
                       </div>
                     </TableCell>
@@ -307,7 +427,7 @@ export default function SuperAdminClient() {
                     <TableCell className="text-center text-sm">{org._count.formandos}</TableCell>
                     <TableCell className="text-center text-sm">{org._count.usuarios}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(org.criadoEm).toLocaleDateString("pt-PT")}
+                      {new Date(org.criadoEm).toLocaleDateString("pt-BR")}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -319,26 +439,39 @@ export default function SuperAdminClient() {
                             ? <RefreshCw className="h-4 w-4 animate-spin" />
                             : <MoreHorizontal className="h-4 w-4" />}
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => { setSelectedOrg(org); setNovoPlano(org.planoAssinatura); setDialogAcao("plano"); }}
-                          >
-                            Alterar plano
+                        <DropdownMenuContent align="end" className="w-52">
+
+                          {/* Plano */}
+                          <DropdownMenuItem onClick={() => { setSelectedOrg(org); setNovoPlano(org.planoAssinatura); setDialogAcao("plano"); }}>
+                            <TrendingUp className="h-4 w-4 mr-2" />Alterar plano
                           </DropdownMenuItem>
+
+                          {/* Cortesia */}
+                          {!org.cortesia ? (
+                            <DropdownMenuItem
+                              className="text-violet-700"
+                              onClick={() => { setSelectedOrg(org); setDialogAcao("cortesia"); }}
+                            >
+                              <Gift className="h-4 w-4 mr-2" />Conceder cortesia
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              className="text-amber-600"
+                              onClick={() => { setSelectedOrg(org); setDialogAcao("revogar-cortesia"); }}
+                            >
+                              <Ban className="h-4 w-4 mr-2" />Revogar cortesia
+                            </DropdownMenuItem>
+                          )}
+
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => { setSelectedOrg(org); setDialogAcao("excluir"); }}
-                          >
-                            Excluir permanentemente
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
+
+                          {/* Status */}
                           {org.status === "CANCELADO" ? (
                             <DropdownMenuItem
                               className="text-emerald-600"
                               onClick={() => { setSelectedOrg(org); setDialogAcao("reativar"); }}
                             >
-                              Reativar
+                              <BadgeCheck className="h-4 w-4 mr-2" />Reativar
                             </DropdownMenuItem>
                           ) : org.status === "SUSPENSO" ? (
                             <>
@@ -346,13 +479,13 @@ export default function SuperAdminClient() {
                                 className="text-emerald-600"
                                 onClick={() => { setSelectedOrg(org); setDialogAcao("reativar"); }}
                               >
-                                Reativar
+                                <BadgeCheck className="h-4 w-4 mr-2" />Reativar
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600"
                                 onClick={() => { setSelectedOrg(org); setDialogAcao("cancelar"); }}
                               >
-                                Cancelar contrato
+                                <Ban className="h-4 w-4 mr-2" />Cancelar contrato
                               </DropdownMenuItem>
                             </>
                           ) : (
@@ -360,9 +493,18 @@ export default function SuperAdminClient() {
                               className="text-amber-600"
                               onClick={() => { setSelectedOrg(org); setDialogAcao("suspender"); }}
                             >
-                              Suspender
+                              <AlertTriangle className="h-4 w-4 mr-2" />Suspender acesso
                             </DropdownMenuItem>
                           )}
+
+                          <DropdownMenuSeparator />
+
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => { setSelectedOrg(org); setDialogAcao("excluir"); }}
+                          >
+                            <Ban className="h-4 w-4 mr-2" />Excluir permanentemente
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -371,7 +513,7 @@ export default function SuperAdminClient() {
               })}
               {orgs.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                     Nenhuma organização cadastrada.
                   </TableCell>
                 </TableRow>
@@ -381,8 +523,102 @@ export default function SuperAdminClient() {
         </CardContent>
       </Card>
 
-      {/* Dialog — Cancelar contrato */}
-      <Dialog open={dialogAcao === "cancelar"} onOpenChange={() => { setDialogAcao(null); setSelectedOrg(null); }}>
+      {/* ── Dialog — Conceder cortesia ────────────────────────── */}
+      <Dialog open={dialogAcao === "cortesia"} onOpenChange={closeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-violet-600" />
+              Conceder cortesia — {selectedOrg?.nome}
+            </DialogTitle>
+            <DialogDescription>
+              A organização ficará isenta de pagamento enquanto a cortesia estiver ativa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Motivo <span className="text-muted-foreground font-normal">(opcional)</span></label>
+              <textarea
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                rows={3}
+                placeholder="Ex: Cliente parceiro, período de teste estendido, acordo comercial..."
+                value={cortesiaMotivo}
+                onChange={(e) => setCortesiaMotivo(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Validade <span className="text-muted-foreground font-normal">(vazio = indefinido)</span></label>
+              <input
+                type="date"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={cortesiaExpiry}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setCortesiaExpiry(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+            <Button
+              className="bg-violet-600 hover:bg-violet-700 text-white"
+              disabled={actionLoading === selectedOrg?.id}
+              onClick={concederCortesia}
+            >
+              <Gift className="h-4 w-4 mr-1.5" />Conceder Cortesia
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog — Revogar cortesia ─────────────────────────── */}
+      <Dialog open={dialogAcao === "revogar-cortesia"} onOpenChange={closeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revogar cortesia</DialogTitle>
+            <DialogDescription>
+              A organização <strong>{selectedOrg?.nome}</strong> voltará ao regime de cobrança normal conforme o plano <strong>{selectedOrg?.planoAssinatura}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={actionLoading === selectedOrg?.id}
+              onClick={() => selectedOrg && executeAction(selectedOrg.id, "revogar-cortesia")}
+            >
+              Revogar cortesia
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog — Suspender/Reativar ───────────────────────── */}
+      <Dialog open={dialogAcao === "suspender" || dialogAcao === "reativar"} onOpenChange={closeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {dialogAcao === "suspender" ? "Suspender acesso" : "Reativar organização"}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {dialogAcao === "suspender"
+              ? `Tem certeza que deseja suspender "${selectedOrg?.nome}"? Os usuários perderão acesso imediatamente.`
+              : `Deseja reativar "${selectedOrg?.nome}"?`}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+            <Button
+              variant={dialogAcao === "suspender" ? "destructive" : "default"}
+              onClick={() => selectedOrg && executeAction(selectedOrg.id, dialogAcao === "suspender" ? "suspender" : "reativar")}
+            >
+              {dialogAcao === "suspender" ? "Suspender" : "Reativar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog — Cancelar contrato ────────────────────────── */}
+      <Dialog open={dialogAcao === "cancelar"} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-red-600">Cancelar contrato</DialogTitle>
@@ -390,10 +626,10 @@ export default function SuperAdminClient() {
           <p className="text-sm text-muted-foreground">
             Tem certeza que deseja cancelar o contrato de{" "}
             <strong>&ldquo;{selectedOrg?.nome}&rdquo;</strong>? O status será alterado para{" "}
-            <strong>CANCELADO</strong> e os usuários não terão mais acesso à plataforma.
+            <strong>CANCELADO</strong> e os usuários não terão mais acesso.
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogAcao(null); setSelectedOrg(null); }}>Voltar</Button>
+            <Button variant="outline" onClick={closeDialog}>Voltar</Button>
             <Button
               variant="destructive"
               disabled={actionLoading === selectedOrg?.id}
@@ -405,33 +641,8 @@ export default function SuperAdminClient() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog — Suspender/Reativar */}
-      <Dialog open={dialogAcao === "suspender" || dialogAcao === "reativar"} onOpenChange={() => { setDialogAcao(null); setSelectedOrg(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {dialogAcao === "suspender" ? "Suspender organização" : "Reativar organização"}
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            {dialogAcao === "suspender"
-              ? `Tem certeza que deseja suspender "${selectedOrg?.nome}"? Os usuários não conseguirão mais acessar a plataforma.`
-              : `Deseja reativar "${selectedOrg?.nome}"?`}
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogAcao(null); setSelectedOrg(null); }}>Cancelar</Button>
-            <Button
-              variant={dialogAcao === "suspender" ? "destructive" : "default"}
-              onClick={() => selectedOrg && executeAction(selectedOrg.id, dialogAcao === "suspender" ? "suspender" : "reativar")}
-            >
-              {dialogAcao === "suspender" ? "Suspender" : "Reativar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog — Excluir organização */}
-      <Dialog open={dialogAcao === "excluir"} onOpenChange={() => { setDialogAcao(null); setSelectedOrg(null); }}>
+      {/* ── Dialog — Excluir permanentemente ─────────────────── */}
+      <Dialog open={dialogAcao === "excluir"} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-red-600">Excluir organização permanentemente</DialogTitle>
@@ -442,42 +653,37 @@ export default function SuperAdminClient() {
             documentos e histórico — serão apagados definitivamente.
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogAcao(null); setSelectedOrg(null); }}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={actionLoading === selectedOrg?.id}
-              onClick={deleteOrg}
-            >
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+            <Button variant="destructive" disabled={actionLoading === selectedOrg?.id} onClick={deleteOrg}>
               Excluir permanentemente
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog — Alterar plano */}
-      <Dialog open={dialogAcao === "plano"} onOpenChange={() => { setDialogAcao(null); setSelectedOrg(null); }}>
+      {/* ── Dialog — Alterar plano ────────────────────────────── */}
+      <Dialog open={dialogAcao === "plano"} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Alterar plano — {selectedOrg?.nome}</DialogTitle>
+            <DialogDescription>
+              Plano atual: <strong>{selectedOrg?.planoAssinatura}</strong>
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5 py-2">
-            <Select value={novoPlano} onValueChange={(v) => v && setNovoPlano(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="GRATUITO">Gratuito (1 morada, 30 formandos)</SelectItem>
-                <SelectItem value="ESSENCIAL">Essencial (3 moradas, 150 formandos)</SelectItem>
-                <SelectItem value="PROFISSIONAL">Profissional (ilimitado)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={novoPlano} onValueChange={(v) => v && setNovoPlano(v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="GRATUITO">Gratuito — 1 morada, 30 formandos</SelectItem>
+              <SelectItem value="ESSENCIAL">Essencial — 3 moradas, 150 formandos (R$ 149/mês)</SelectItem>
+              <SelectItem value="PROFISSIONAL">Profissional — ilimitado (R$ 349/mês)</SelectItem>
+            </SelectContent>
+          </Select>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogAcao(null); setSelectedOrg(null); }}>Cancelar</Button>
-            <Button onClick={changePlano} disabled={!novoPlano || actionLoading === selectedOrg?.id}>
-              Salvar
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+            <Button onClick={changePlano} disabled={!novoPlano || novoPlano === selectedOrg?.planoAssinatura || actionLoading === selectedOrg?.id}>
+              Salvar alteração
             </Button>
           </DialogFooter>
         </DialogContent>

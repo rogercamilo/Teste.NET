@@ -68,6 +68,8 @@ export type AuditAction =
   | "stripe_pagamento_falhou"
   | "account_deleted"
   | "organizacao_deleted"
+  | "organizacao_cortesia_concedida"
+  | "organizacao_cortesia_revogada"
   | "dados_exportados"
   | "organizacao_exportada"
   | "privacy_accepted"

@@ -4,12 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { PlanoAssinatura, type StatusOrganizacao } from "@prisma/client";
 
-type SU = { id?: string; role?: string };
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: Params) {
   const session = await auth();
-  const user = session?.user as SU | undefined;
+  const user = session?.user;
   if (user?.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
@@ -17,10 +16,15 @@ export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params;
 
   try {
-    const body = await request.json() as { acao?: string; plano?: string };
+    const body = await request.json() as {
+      acao?: string;
+      plano?: string;
+      cortesiaExpiresAt?: string | null;
+      cortesiaMotivo?: string;
+    };
     const { acao, plano } = body;
 
-    const validAcoes = ["suspender", "reativar", "cancelar"] as const;
+    const validAcoes = ["suspender", "reativar", "cancelar", "cortesia", "revogar-cortesia"] as const;
     const validPlanos: PlanoAssinatura[] = ["GRATUITO", "ESSENCIAL", "PROFISSIONAL"];
 
     if (acao && !(validAcoes as readonly string[]).includes(acao)) {
@@ -36,19 +40,40 @@ export async function PATCH(request: Request, { params }: Params) {
     const org = await prisma.organizacao.findUnique({ where: { id } });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
-    let newStatus: StatusOrganizacao | undefined;
-    let auditAction: "organizacao_suspended" | "organizacao_reactivated" | "organizacao_cancelada" | "organizacao_plan_changed" | "organizacao_updated" = "organizacao_updated";
-
-    if (acao === "suspender") {
-      newStatus = "SUSPENSO";
-      auditAction = "organizacao_suspended";
-    } else if (acao === "reativar") {
-      newStatus = "ATIVO";
-      auditAction = "organizacao_reactivated";
-    } else if (acao === "cancelar") {
-      newStatus = "CANCELADO";
-      auditAction = "organizacao_cancelada";
+    // ── Cortesia ─────────────────────────────────────────────────────────────
+    if (acao === "cortesia") {
+      const expiresAt = body.cortesiaExpiresAt ? new Date(body.cortesiaExpiresAt) : null;
+      await prisma.organizacao.update({
+        where: { id },
+        data: {
+          cortesia: true,
+          cortesiaExpiresAt: expiresAt,
+          cortesiaMotivo: body.cortesiaMotivo?.trim() ?? null,
+          status: org.status === "SUSPENSO" || org.status === "CANCELADO" ? "ATIVO" : org.status,
+        },
+      });
+      logAction("organizacao_cortesia_concedida", user.id ?? undefined, getClientIp(request),
+        { orgId: id, expiresAt: expiresAt?.toISOString(), motivo: body.cortesiaMotivo }, id);
+      return NextResponse.json({ ok: true });
     }
+
+    if (acao === "revogar-cortesia") {
+      await prisma.organizacao.update({
+        where: { id },
+        data: { cortesia: false, cortesiaExpiresAt: null, cortesiaMotivo: null },
+      });
+      logAction("organizacao_cortesia_revogada", user.id ?? undefined, getClientIp(request), { orgId: id }, id);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── Status / Plano ────────────────────────────────────────────────────────
+    let newStatus: StatusOrganizacao | undefined;
+    let auditAction: "organizacao_suspended" | "organizacao_reactivated" | "organizacao_cancelada"
+      | "organizacao_plan_changed" | "organizacao_updated" = "organizacao_updated";
+
+    if (acao === "suspender") { newStatus = "SUSPENSO"; auditAction = "organizacao_suspended"; }
+    else if (acao === "reativar") { newStatus = "ATIVO"; auditAction = "organizacao_reactivated"; }
+    else if (acao === "cancelar") { newStatus = "CANCELADO"; auditAction = "organizacao_cancelada"; }
     if (plano) auditAction = "organizacao_plan_changed";
 
     const updated = await prisma.organizacao.update({
@@ -59,7 +84,7 @@ export async function PATCH(request: Request, { params }: Params) {
       },
     });
 
-    logAction(auditAction, user.id, getClientIp(request), { orgId: id, acao, plano }, id);
+    logAction(auditAction, user.id ?? undefined, getClientIp(request), { orgId: id, acao, plano }, id);
 
     return NextResponse.json({ id: updated.id, status: updated.status, planoAssinatura: updated.planoAssinatura });
   } catch (err) {
@@ -70,7 +95,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
 export async function DELETE(request: Request, { params }: Params) {
   const session = await auth();
-  const user = session?.user as SU | undefined;
+  const user = session?.user;
   if (user?.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
@@ -81,17 +106,14 @@ export async function DELETE(request: Request, { params }: Params) {
     const org = await prisma.organizacao.findUnique({ where: { id } });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
-    // Registra solicitação de exclusão antes de deletar
     await prisma.deletionRequest.create({
       data: { organizacaoId: id, tipo: "organizacao", status: "concluido", processadoEm: new Date() },
     });
-
-    // Deleta organização — cascata remove todos os dados associados
     await prisma.organizacao.delete({ where: { id } });
 
-    logAction("organizacao_deleted", user.id, getClientIp(request), { orgId: id, nome: org.nome });
+    logAction("organizacao_deleted", user.id ?? undefined, getClientIp(request), { orgId: id, nome: org.nome });
 
-    return NextResponse.json({ ok: true });
+    return new NextResponse(null, { status: 204 });
   } catch (err) {
     console.error("[super-admin/org] Erro ao deletar:", err);
     return NextResponse.json({ error: "Falha ao excluir organização" }, { status: 500 });
@@ -100,7 +122,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
 export async function GET(_request: Request, { params }: Params) {
   const session = await auth();
-  const user = session?.user as SU | undefined;
+  const user = session?.user;
   if (user?.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
@@ -113,7 +135,10 @@ export async function GET(_request: Request, { params }: Params) {
       where: { organizacaoId: id },
       orderBy: { criadoEm: "desc" },
       take: 50,
-      select: { acao: true, ip: true, criadoEm: true, detalhes: true, usuario: { select: { nome: true, email: true } } },
+      select: {
+        acao: true, ip: true, criadoEm: true, detalhes: true,
+        usuario: { select: { nome: true, email: true } },
+      },
     }),
   ]);
 

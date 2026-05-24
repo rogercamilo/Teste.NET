@@ -54,6 +54,9 @@ model Organizacao {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   trialExpiresAt       DateTime?
+  cortesia             Boolean           @default(false)
+  cortesiaExpiresAt    DateTime?
+  cortesiaMotivo       String?
   nomePlataforma       String?
   logoUrl              String?           @db.Text
   temaCor              String            @default("azul")

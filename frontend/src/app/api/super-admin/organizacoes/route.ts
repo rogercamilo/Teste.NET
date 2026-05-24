@@ -11,6 +11,9 @@ const ORG_SELECT = {
   planoAssinatura: true,
   status: true,
   trialExpiresAt: true,
+  cortesia: true,
+  cortesiaExpiresAt: true,
+  cortesiaMotivo: true,
   criadoEm: true,
   _count: { select: { moradas: true, formandos: true, usuarios: true } },
 } as const;

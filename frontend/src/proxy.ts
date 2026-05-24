@@ -65,6 +65,16 @@ export default auth(function proxy(req) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
+  // super_admin não tem acesso a funcionalidades operacionais das organizações
+  const superAdminBlocked = [
+    "/dashboard", "/formandos", "/moradas", "/formacoes",
+    "/planos", "/grades", "/presenca", "/agenda",
+    "/documentos", "/comentarios", "/viewer",
+  ];
+  if (role === "super_admin" && superAdminBlocked.some((p) => pathname.startsWith(p))) {
+    return NextResponse.redirect(new URL("/super-admin", req.url));
+  }
+
   const response = NextResponse.next();
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value);
