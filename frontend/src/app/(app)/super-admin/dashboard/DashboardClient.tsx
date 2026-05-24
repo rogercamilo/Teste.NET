@@ -128,12 +128,12 @@ export default function DashboardClient() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-4 animate-pulse">
+      <div className="space-y-4 animate-pulse">
         <div className="h-8 w-56 bg-muted rounded" />
         <div className="flex gap-1 border-b pb-0">
           {[1, 2, 3, 4].map((i) => <div key={i} className="h-9 w-28 bg-muted rounded-t" />)}
         </div>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => <div key={i} className="h-28 bg-muted rounded-xl" />)}
         </div>
         <div className="h-64 bg-muted rounded-xl" />
@@ -146,17 +146,12 @@ export default function DashboardClient() {
     : "—";
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <LayoutDashboard className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">Cockpit — Formatio</h1>
-            <p className="text-xs text-muted-foreground">Monitoramento técnico e operacional da plataforma</p>
-          </div>
+        <div>
+          <h1 className="text-base font-semibold">Cockpit — Formatio</h1>
+          <p className="text-xs text-muted-foreground">Monitoramento técnico e operacional da plataforma</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
           <RefreshCw className="h-4 w-4" />Atualizar
@@ -164,12 +159,12 @@ export default function DashboardClient() {
       </div>
 
       {/* Tab Bar */}
-      <div className="flex gap-0 border-b">
+      <div className="flex gap-0 border-b overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"

@@ -31,9 +31,11 @@ export function AppTopbar() {
     "/presenca": { title: "Gestão de Presença", parent: `Minha ${morada}` },
     "/comentarios": { title: "Comentários", parent: `Minha ${morada}` },
     "/configuracoes": { title: "Configurações" },
+    "/super-admin": { title: "Super Admin", parent: "Administração" },
+    "/super-admin/dashboard": { title: "Cockpit", parent: "Administração" },
   };
 
-  const pageInfo = pageTitles[basePath] ?? { title: "Página" };
+  const pageInfo = pageTitles[pathname] ?? pageTitles[basePath] ?? { title: "Página" };
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 bg-background/80 backdrop-blur-sm border-b border-border/60 px-4">

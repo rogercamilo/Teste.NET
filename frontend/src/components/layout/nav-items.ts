@@ -17,6 +17,7 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   badge?: number;
+  exact?: boolean;
 }
 
 export interface NavGroup {
@@ -68,7 +69,7 @@ export const navGroupsSuperAdmin: NavGroup[] = [
   {
     label: "Administração",
     items: [
-      { title: "Super Admin", href: "/super-admin", icon: ShieldAlert },
+      { title: "Super Admin", href: "/super-admin", icon: ShieldAlert, exact: true },
     ],
   },
   {
