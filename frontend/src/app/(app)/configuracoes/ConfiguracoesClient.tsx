@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useComunidade, db } from "@/lib/data-store";
+import { useComunidade, useEtapaLabels, db } from "@/lib/data-store";
 import { passwordErrorMessage } from "@/lib/password-validation";
 import type { UserPublic } from "@/lib/users-store";
 import {
   PERFIL_USUARIO_LABELS,
-  NIVEL_FORMATIVO_LABELS,
   type PerfilUsuario,
   type NivelFormativo,
   type ComunidadeConfig,
@@ -453,6 +452,7 @@ const EMPTY_USUARIO_FORM: UsuarioForm = {
 };
 
 function UsuariosTab({ currentUserId }: { currentUserId: string }) {
+  const etapaLabels = useEtapaLabels();
   const [usuarios, setUsuarios] = useState<UserPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [allMoradas] = useState(() => db.moradas.load());
@@ -1071,7 +1071,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                     <Select
                       value={form.moradaId}
                       onValueChange={(v) => v && set("moradaId")(v)}
-                      items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, `${m.nome} — ${NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}`]))}
+                      items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, `${m.nome} — ${etapaLabels[m.nivelFormativo]}`]))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a morada..." />
@@ -1081,14 +1081,14 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                           .filter((m) => m.ativo)
                           .map((m) => (
                             <SelectItem key={m.id} value={m.id}>
-                              {m.nome} — {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
+                              {m.nome} — {etapaLabels[m.nivelFormativo]}
                             </SelectItem>
                           ))}
                       </SelectContent>
                     </Select>
                     {moradaDoFormulario && (
                       <p className="text-xs text-muted-foreground">
-                        Nível: {NIVEL_FORMATIVO_LABELS[moradaDoFormulario.nivelFormativo]}
+                        Nível: {etapaLabels[moradaDoFormulario.nivelFormativo]}
                       </p>
                     )}
                   </div>
@@ -1114,13 +1114,13 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                       <Select
                         value={form.nivelFormativoProvisorio}
                         onValueChange={(v) => v && set("nivelFormativoProvisorio")(v)}
-                        items={NIVEL_FORMATIVO_LABELS}
+                        items={etapaLabels}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((n) => (
                             <SelectItem key={n} value={n}>
-                              {NIVEL_FORMATIVO_LABELS[n]}
+                              {etapaLabels[n]}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1352,6 +1352,7 @@ const MAX_LOGO_BYTES = 1_048_576; // 1 MB
 function ComunidadeTab() {
   const router = useRouter();
   const [comunidade, setComunidade] = useComunidade();
+  const etapaLabels = useEtapaLabels();
   const [form, setForm] = useState<ComunidadeConfig>(() => ({ ...comunidade }));
   const [dirty, setDirty] = useState(false);
 
@@ -1574,6 +1575,63 @@ function ComunidadeTab() {
               Exibido no perfil e na gestão de utilizadores.
               Ex.: Líder, Coordenador, Responsável.
             </p>
+          </div>
+
+          <div className="grid gap-2">
+            <p className="text-sm font-medium">Etapas formativas</p>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Nomes das 4 etapas do percurso formativo exibidos nos comboboxes e filtros.
+            </p>
+            <div className="grid grid-cols-2 gap-3 mt-1">
+              <div className="grid gap-1.5">
+                <Label>
+                  1.ª etapa{" "}
+                  <span className="font-normal text-muted-foreground text-xs">(padrão: "Pré-Discipulado")</span>
+                </Label>
+                <Input
+                  value={form.termoPreDiscipulado ?? ""}
+                  onChange={(e) => handleChange("termoPreDiscipulado", e.target.value)}
+                  placeholder="Pré-Discipulado"
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>
+                  2.ª etapa{" "}
+                  <span className="font-normal text-muted-foreground text-xs">(padrão: "Discipulado")</span>
+                </Label>
+                <Input
+                  value={form.termoDiscipulado ?? ""}
+                  onChange={(e) => handleChange("termoDiscipulado", e.target.value)}
+                  placeholder="Discipulado"
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>
+                  3.ª etapa{" "}
+                  <span className="font-normal text-muted-foreground text-xs">(padrão: "Primeiras Promessas")</span>
+                </Label>
+                <Input
+                  value={form.termoPrimeirasPromessas ?? ""}
+                  onChange={(e) => handleChange("termoPrimeirasPromessas", e.target.value)}
+                  placeholder="Primeiras Promessas"
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>
+                  4.ª etapa{" "}
+                  <span className="font-normal text-muted-foreground text-xs">(padrão: "Formação Permanente")</span>
+                </Label>
+                <Input
+                  value={form.termoFormacaoPermanente ?? ""}
+                  onChange={(e) => handleChange("termoFormacaoPermanente", e.target.value)}
+                  placeholder="Formação Permanente"
+                  className="h-9 text-sm"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Prévia */}

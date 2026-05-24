@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useFormandos, useComunidade, db } from "@/lib/data-store";
+import { useFormandos, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
 import {
-  NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   MODALIDADE_LABELS,
   totalRequerido,
@@ -122,6 +121,7 @@ export default function FormandosPage() {
   const [formandos, setFormandos] = useFormandos();
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
+  const etapaLabels = useEtapaLabels();
   const [allMoradas, setAllMoradas] = useState<Morada[]>(() => db.moradas.load());
   const [allGrades] = useState<GradeFormativa[]>(() => db.grades.load());
   const [search, setSearch] = useState("");
@@ -299,7 +299,7 @@ export default function FormandosPage() {
             className="pl-8 h-9 text-sm"
           />
         </div>
-        <Select value={nivelFilter} onValueChange={(v) => setNivelFilter(v ?? "todos")} items={{ todos: "Todos os níveis", ...NIVEL_FORMATIVO_LABELS }}>
+        <Select value={nivelFilter} onValueChange={(v) => setNivelFilter(v ?? "todos")} items={{ todos: "Todos os níveis", ...etapaLabels }}>
           <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
             <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue placeholder="Etapa formativa" />
@@ -395,7 +395,7 @@ export default function FormandosPage() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <Badge variant="outline" className={`text-xs ${NIVEL_CORES[formando.nivelFormativo]}`}>
-                        {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+                        {etapaLabels[formando.nivelFormativo]}
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
@@ -518,14 +518,14 @@ export default function FormandosPage() {
                   const morada = allMoradas.find((m) => m.id === v);
                   if (morada) set("nivelFormativo")(morada.nivelFormativo);
                 }}
-                items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, `${m.nome} — ${NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}`]))}
+                items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, `${m.nome} — ${etapaLabels[m.nivelFormativo]}`]))}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione a morada..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhuma</SelectItem>
                   {allMoradas.filter((m) => m.ativo).map((m) => (
                     <SelectItem key={m.id} value={m.id}>
-                      {m.nome} — {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
+                      {m.nome} — {etapaLabels[m.nivelFormativo]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -537,14 +537,14 @@ export default function FormandosPage() {
                 value={selectedMorada ? selectedMorada.nivelFormativo : form.nivelFormativo}
                 onValueChange={(v) => !selectedMorada && v && set("nivelFormativo")(v)}
                 disabled={!!selectedMorada}
-                items={NIVEL_FORMATIVO_LABELS}
+                items={etapaLabels}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((n) => (
-                    <SelectItem key={n} value={n}>{NIVEL_FORMATIVO_LABELS[n]}</SelectItem>
+                    <SelectItem key={n} value={n}>{etapaLabels[n]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -594,7 +594,7 @@ export default function FormandosPage() {
                 <p className="text-sm text-muted-foreground">
                   Selecione a grade formativa para{" "}
                   <span className="font-medium text-foreground">
-                    {NIVEL_FORMATIVO_LABELS[linkGradeState.nivelFormativo]}
+                    {etapaLabels[linkGradeState.nivelFormativo]}
                   </span>
                   .
                 </p>
@@ -650,6 +650,7 @@ function FormandoCard({
   onDelete: (f: Formando, e: React.MouseEvent) => void;
   onVincularGrade?: (moradaId: string, nivelFormativo: NivelFormativo) => void;
 }) {
+  const etapaLabels = useEtapaLabels();
   const progresso = Math.round(
     (formando.formacoesRealizadas / formando.totalFormacoes) * 100
   );
@@ -698,7 +699,7 @@ function FormandoCard({
         </div>
 
         <Badge variant="outline" className={`text-xs mb-3 ${NIVEL_CORES[formando.nivelFormativo]}`}>
-          {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+          {etapaLabels[formando.nivelFormativo]}
         </Badge>
 
         <div className="space-y-1.5">

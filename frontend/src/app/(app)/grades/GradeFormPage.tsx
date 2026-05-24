@@ -3,10 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useGrades, useFormacoes, db } from "@/lib/data-store";
+import { useGrades, useFormacoes, useEtapaLabels, db } from "@/lib/data-store";
 import { extractDocumentFields } from "@/lib/doc-extract";
 import {
-  NIVEL_FORMATIVO_LABELS,
   MODALIDADE_LABELS,
   type NivelFormativo,
   type GradeFormativa,
@@ -120,6 +119,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
 
   const [grades, setGrades] = useGrades();
   const [, setFormacoes] = useFormacoes();
+  const etapaLabels = useEtapaLabels();
   const [allPlanos] = useState(() => db.planos.load());
   const [allUsuarios] = useState(() => db.usuarios.load());
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -456,7 +456,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
 
           <div className="grid gap-1.5">
             <Label>Plano Formativo</Label>
-            <Select value={form.planoId} onValueChange={handlePlanoChange} items={Object.fromEntries(allPlanos.map((p) => [p.id, `${p.nome} (${NIVEL_FORMATIVO_LABELS[p.nivelFormativo]})`]))}>
+            <Select value={form.planoId} onValueChange={handlePlanoChange} items={Object.fromEntries(allPlanos.map((p) => [p.id, `${p.nome} (${etapaLabels[p.nivelFormativo]})`]))}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o plano..." />
               </SelectTrigger>
@@ -465,7 +465,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
                   <SelectItem key={p.id} value={p.id}>
                     <span>{p.nome}</span>
                     <span className="ml-2 text-xs text-muted-foreground">
-                      ({NIVEL_FORMATIVO_LABELS[p.nivelFormativo]})
+                      ({etapaLabels[p.nivelFormativo]})
                     </span>
                   </SelectItem>
                 ))}
@@ -481,7 +481,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
               value={form.nivelFormativo}
               onValueChange={(v) => v && set("nivelFormativo")(v)}
               disabled={!!form.planoId}
-              items={NIVEL_FORMATIVO_LABELS}
+              items={etapaLabels}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -496,7 +496,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
                   ] as NivelFormativo[]
                 ).map((n) => (
                   <SelectItem key={n} value={n}>
-                    {NIVEL_FORMATIVO_LABELS[n]}
+                    {etapaLabels[n]}
                   </SelectItem>
                 ))}
               </SelectContent>

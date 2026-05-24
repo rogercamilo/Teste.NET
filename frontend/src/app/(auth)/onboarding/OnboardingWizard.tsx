@@ -18,6 +18,10 @@ interface OrgData {
   termoMorada: string;
   termoFormando: string;
   termoFormador: string;
+  termoPreDiscipulado: string;
+  termoDiscipulado: string;
+  termoPrimeirasPromessas: string;
+  termoFormacaoPermanente: string;
 }
 
 const STEPS = [
@@ -43,6 +47,10 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
   const [termoMorada, setTermoMorada] = useState(org.termoMorada);
   const [termoFormando, setTermoFormando] = useState(org.termoFormando);
   const [termoFormador, setTermoFormador] = useState(org.termoFormador);
+  const [termoPreDiscipulado, setTermoPreDiscipulado] = useState(org.termoPreDiscipulado);
+  const [termoDiscipulado, setTermoDiscipulado] = useState(org.termoDiscipulado);
+  const [termoPrimeirasPromessas, setTermoPrimeirasPromessas] = useState(org.termoPrimeirasPromessas);
+  const [termoFormacaoPermanente, setTermoFormacaoPermanente] = useState(org.termoFormacaoPermanente);
 
   // Step 3
   const [moradaNome, setMoradaNome] = useState("");
@@ -62,7 +70,10 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
     const res = await fetch("/api/organizacao", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ termoMorada, termoFormando, termoFormador }),
+      body: JSON.stringify({
+        termoMorada, termoFormando, termoFormador,
+        termoPreDiscipulado, termoDiscipulado, termoPrimeirasPromessas, termoFormacaoPermanente,
+      }),
     });
     if (!res.ok) throw new Error("Falha ao salvar terminologia");
   }
@@ -209,6 +220,31 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                 <Input id="termoFormador" value={termoFormador} onChange={(e) => setTermoFormador(e.target.value)} className="h-10" />
                 <p className="text-xs text-muted-foreground">Ex: Formador Comunitário, Líder de Célula, Coordenador</p>
               </div>
+
+              <div className="pt-1">
+                <p className="text-xs font-medium text-foreground">Etapas formativas</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Como sua comunidade chama cada etapa do percurso formativo.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="termoPreDiscipulado">1.ª etapa</Label>
+                  <Input id="termoPreDiscipulado" value={termoPreDiscipulado} onChange={(e) => setTermoPreDiscipulado(e.target.value)} placeholder="Pré-Discipulado" className="h-10" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="termoDiscipulado">2.ª etapa</Label>
+                  <Input id="termoDiscipulado" value={termoDiscipulado} onChange={(e) => setTermoDiscipulado(e.target.value)} placeholder="Discipulado" className="h-10" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="termoPrimeirasPromessas">3.ª etapa</Label>
+                  <Input id="termoPrimeirasPromessas" value={termoPrimeirasPromessas} onChange={(e) => setTermoPrimeirasPromessas(e.target.value)} placeholder="Primeiras Promessas" className="h-10" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="termoFormacaoPermanente">4.ª etapa</Label>
+                  <Input id="termoFormacaoPermanente" value={termoFormacaoPermanente} onChange={(e) => setTermoFormacaoPermanente(e.target.value)} placeholder="Formação Permanente" className="h-10" />
+                </div>
+              </div>
             </div>
           )}
 
@@ -248,10 +284,10 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                   onChange={(e) => setMoradaNivel(e.target.value)}
                   className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="pre-discipulado">Pré-Discipulado</option>
-                  <option value="discipulado">Discipulado</option>
-                  <option value="primeiras-promessas">Primeiras Promessas</option>
-                  <option value="formacao-permanente">Formação Permanente</option>
+                  <option value="pre-discipulado">{termoPreDiscipulado || "Pré-Discipulado"}</option>
+                  <option value="discipulado">{termoDiscipulado || "Discipulado"}</option>
+                  <option value="primeiras-promessas">{termoPrimeirasPromessas || "Primeiras Promessas"}</option>
+                  <option value="formacao-permanente">{termoFormacaoPermanente || "Formação Permanente"}</option>
                 </select>
               </div>
             </div>

@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const org = await prisma.organizacao.findUnique({
       where: { id: user.organizacaoId },
-      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
@@ -29,6 +29,10 @@ export async function GET() {
       termoMorada: org.termoMorada,
       termoFormando: org.termoFormando,
       termoFormador: org.termoFormador,
+      termoPreDiscipulado: org.termoPreDiscipulado,
+      termoDiscipulado: org.termoDiscipulado,
+      termoPrimeirasPromessas: org.termoPrimeirasPromessas,
+      termoFormacaoPermanente: org.termoFormacaoPermanente,
       nomePlataforma: org.nomePlataforma ?? undefined,
       logoUrl: org.logoUrl ?? undefined,
       temaCor: org.temaCor,
@@ -59,12 +63,16 @@ export async function PUT(request: Request) {
         termoMorada: body.termoMorada || undefined,
         termoFormando: body.termoFormando || undefined,
         termoFormador: body.termoFormador || undefined,
+        termoPreDiscipulado: body.termoPreDiscipulado || undefined,
+        termoDiscipulado: body.termoDiscipulado || undefined,
+        termoPrimeirasPromessas: body.termoPrimeirasPromessas || undefined,
+        termoFormacaoPermanente: body.termoFormacaoPermanente || undefined,
         nomePlataforma: body.nomePlataforma?.trim() || null,
         logoUrl: body.logoUrl !== undefined ? (body.logoUrl || null) : undefined,
         temaCor: body.temaCor || undefined,
         ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
-      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
     const config: ComunidadeConfig = {
@@ -76,6 +84,10 @@ export async function PUT(request: Request) {
       termoMorada: updated.termoMorada,
       termoFormando: updated.termoFormando,
       termoFormador: updated.termoFormador,
+      termoPreDiscipulado: updated.termoPreDiscipulado,
+      termoDiscipulado: updated.termoDiscipulado,
+      termoPrimeirasPromessas: updated.termoPrimeirasPromessas,
+      termoFormacaoPermanente: updated.termoFormacaoPermanente,
       nomePlataforma: updated.nomePlataforma ?? undefined,
       logoUrl: updated.logoUrl ?? undefined,
       temaCor: updated.temaCor,

@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useFormacoes, db } from "@/lib/data-store";
+import { useFormacoes, useEtapaLabels, db } from "@/lib/data-store";
 import {
-  NIVEL_FORMATIVO_LABELS,
   MODALIDADE_LABELS,
   TIPO_FORMACAO_LABELS,
   type Formacao,
@@ -61,6 +60,7 @@ const EMPTY_FORM: FormState = {
 export default function FormacaoFormPage({ id }: { id?: string }) {
   const router = useRouter();
   const [formacoes, setFormacoes] = useFormacoes();
+  const etapaLabels = useEtapaLabels();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
@@ -228,11 +228,11 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
             </div>
             <div className="grid gap-1.5">
               <Label>Etapa Formativa <span className="text-destructive">*</span></Label>
-              <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)} items={NIVEL_FORMATIVO_LABELS}>
+              <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)} items={etapaLabels}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((n) => (
-                    <SelectItem key={n} value={n}>{NIVEL_FORMATIVO_LABELS[n]}</SelectItem>
+                    <SelectItem key={n} value={n}>{etapaLabels[n]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

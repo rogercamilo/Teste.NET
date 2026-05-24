@@ -13,6 +13,8 @@ export default async function OnboardingPage() {
     select: {
       id: true, nome: true, descricao: true, endereco: true, missao: true,
       anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true,
+      termoPreDiscipulado: true, termoDiscipulado: true,
+      termoPrimeirasPromessas: true, termoFormacaoPermanente: true,
       onboardingConcluido: true,
     },
   });

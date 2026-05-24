@@ -2,9 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useMoradas, usePlanos, useGrades, useComunidade, db } from "@/lib/data-store";
+import { useMoradas, usePlanos, useGrades, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
 import {
-  NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   type Morada,
   type NivelFormativo,
@@ -78,6 +77,7 @@ export default function MoradaFormPage() {
   const [, setMoradas] = useMoradas();
   const [comunidade] = useComunidade();
   const termoMorada = comunidade.termoMorada?.trim() || "Morada";
+  const etapaLabels = useEtapaLabels();
   const [allPlanos] = usePlanos();
   const [allGrades] = useGrades();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -222,7 +222,7 @@ export default function MoradaFormPage() {
                             : "text-foreground"
                         }`}
                       >
-                        {NIVEL_FORMATIVO_LABELS[nivel]}
+                        {etapaLabels[nivel]}
                       </span>
                     </button>
                   ))}
@@ -404,7 +404,7 @@ export default function MoradaFormPage() {
                         variant="outline"
                         className={`text-xs ${NIVEL_CORES[form.nivelFormativo]}`}
                       >
-                        {NIVEL_FORMATIVO_LABELS[form.nivelFormativo]}
+                        {etapaLabels[form.nivelFormativo]}
                       </Badge>
                       <Badge
                         variant="outline"

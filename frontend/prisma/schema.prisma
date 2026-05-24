@@ -42,9 +42,13 @@ model Organizacao {
   endereco             String?
   missao               String?
   anoFundacao          String?
-  termoMorada          String            @default("Morada")
-  termoFormando        String            @default("Formando")
-  termoFormador        String            @default("Formador Comunitário")
+  termoMorada               String            @default("Morada")
+  termoFormando             String            @default("Formando")
+  termoFormador             String            @default("Formador Comunitário")
+  termoPreDiscipulado       String            @default("Pré-Discipulado")
+  termoDiscipulado          String            @default("Discipulado")
+  termoPrimeirasPromessas   String            @default("Primeiras Promessas")
+  termoFormacaoPermanente   String            @default("Formação Permanente")
   planoAssinatura      PlanoAssinatura   @default(GRATUITO)
   status               StatusOrganizacao @default(TRIAL)
   stripeCustomerId     String?

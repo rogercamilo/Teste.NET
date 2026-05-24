@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanos } from "@/lib/data-store";
+import { usePlanos, useEtapaLabels } from "@/lib/data-store";
 import { extractDocumentFields } from "@/lib/doc-extract";
 import {
   STATUS_PLANO_LABELS,
-  NIVEL_FORMATIVO_LABELS,
   type StatusPlano,
   type NivelFormativo,
   type EixoPlano,
@@ -57,6 +56,7 @@ const NIVEIS: NivelFormativo[] = [
 export default function PlanoFormPage({ id }: { id?: string }) {
   const router = useRouter();
   const [planos, setPlanos] = usePlanos();
+  const etapaLabels = useEtapaLabels();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
@@ -220,11 +220,11 @@ export default function PlanoFormPage({ id }: { id?: string }) {
 
           <div className="grid gap-1.5">
             <Label>Etapa Formativa <span className="text-destructive">*</span></Label>
-            <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)} items={NIVEL_FORMATIVO_LABELS}>
+            <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)} items={etapaLabels}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {NIVEIS.map((n) => (
-                  <SelectItem key={n} value={n}>{NIVEL_FORMATIVO_LABELS[n]}</SelectItem>
+                  <SelectItem key={n} value={n}>{etapaLabels[n]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

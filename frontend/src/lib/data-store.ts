@@ -21,6 +21,7 @@ import type {
   PresencaFormacao,
   Usuario,
   ComunidadeConfig,
+  NivelFormativo,
 } from "@/types";
 import {
   mockAgendamentos,
@@ -263,5 +264,15 @@ export function useTermos(): Termos {
     morada: comunidade.termoMorada?.trim() || "Morada",
     formando: comunidade.termoFormando?.trim() || "Formando",
     formador: comunidade.termoFormador?.trim() || "Formador Comunitário",
+  };
+}
+
+export function useEtapaLabels(): Record<NivelFormativo, string> {
+  const [comunidade] = useComunidade();
+  return {
+    "pre-discipulado": comunidade.termoPreDiscipulado?.trim() || "Pré-Discipulado",
+    "discipulado": comunidade.termoDiscipulado?.trim() || "Discipulado",
+    "primeiras-promessas": comunidade.termoPrimeirasPromessas?.trim() || "Primeiras Promessas",
+    "formacao-permanente": comunidade.termoFormacaoPermanente?.trim() || "Formação Permanente",
   };
 }
