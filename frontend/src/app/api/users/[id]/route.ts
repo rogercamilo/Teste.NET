@@ -2,42 +2,44 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { updateUser, deleteUser, toPublic } from "@/lib/users-store";
 import { logAction, getClientIp } from "@/lib/audit-log";
-
+import { isAdminOrAbove } from "@/types";
 type Ctx = { params: Promise<{ id: string }> };
-type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
-function isAdminOrAbove(role: string | undefined): boolean {
-  return role === "administrador" || role === "formador_geral" || role === "super_admin";
-}
+type AssignablePerfil = "administrador" | "formador_comunitario";
+const VALID_PERFIS: AssignablePerfil[] = ["administrador", "formador_comunitario"];
 
 export async function PUT(request: Request, ctx: Ctx) {
   const session = await auth();
-  const actor = session?.user as SessionUser | undefined;
+  const actor = session?.user;
 
-  if (!actor) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-  if (!isAdminOrAbove(actor.role)) {
-    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
-  }
+  if (!actor) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!isAdminOrAbove(actor.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   try {
     const { id } = await ctx.params;
     const body = await request.json() as Record<string, unknown>;
 
-    if (body.perfil === "formador_geral") {
-      return NextResponse.json(
-        { error: "Não é permitido atribuir o perfil Formador Geral por esta rota" },
-        { status: 403 }
-      );
-    }
+    // Allowlist explícita — rejeita campos não autorizados
+    const nome = typeof body.nome === "string" ? body.nome.trim() : undefined;
+    const email = typeof body.email === "string" ? body.email.trim() : undefined;
+    const perfilRaw = body.perfil as string | undefined;
+    const moradaId = typeof body.moradaId === "string" ? body.moradaId : (body.moradaId === null ? undefined : undefined);
+    const ativo = typeof body.ativo === "boolean" ? body.ativo : undefined;
+    const password = typeof body.password === "string" ? body.password : undefined;
 
-    const updated = await updateUser(id, { ...body, organizacaoId: actor.organizacaoId });
-    if (!updated) {
-      return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
+    if (nome !== undefined && (nome.length === 0 || nome.length > 255)) {
+      return NextResponse.json({ error: "Nome deve ter entre 1 e 255 caracteres" }, { status: 400 });
     }
+    if (perfilRaw !== undefined && !VALID_PERFIS.includes(perfilRaw as AssignablePerfil)) {
+      return NextResponse.json({ error: "Perfil inválido" }, { status: 400 });
+    }
+    const perfil = perfilRaw as AssignablePerfil | undefined;
+    const orgId = actor.organizacaoId ?? undefined;
 
-    logAction("user_updated", actor.id, getClientIp(request), { targetId: id }, actor.organizacaoId);
+    const updated = await updateUser(id, { nome, email, perfil, moradaId, ativo, password, organizacaoId: orgId });
+    if (!updated) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
+
+    logAction("user_updated", actor.id ?? undefined, getClientIp(request), { targetId: id }, orgId);
     return NextResponse.json(toPublic(updated));
   } catch (err) {
     console.error("[api]", err);
@@ -47,32 +49,24 @@ export async function PUT(request: Request, ctx: Ctx) {
 
 export async function DELETE(request: Request, ctx: Ctx) {
   const session = await auth();
-  const actor = session?.user as SessionUser | undefined;
+  const actor = session?.user;
 
-  if (!actor) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-  if (!isAdminOrAbove(actor.role)) {
-    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
-  }
+  if (!actor) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!isAdminOrAbove(actor.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   try {
     const { id } = await ctx.params;
+    const orgId = actor.organizacaoId ?? undefined;
 
     if (id === actor.id) {
-      return NextResponse.json(
-        { error: "Não é possível excluir a própria conta por esta rota" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Não é possível excluir a própria conta por esta rota" }, { status: 400 });
     }
 
-    const ok = await deleteUser(id, actor.organizacaoId);
-    if (!ok) {
-      return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
-    }
+    const ok = await deleteUser(id, orgId);
+    if (!ok) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
 
-    logAction("user_deleted", actor.id, getClientIp(request), { targetId: id }, actor.organizacaoId);
-    return NextResponse.json({ ok: true });
+    logAction("user_deleted", actor.id ?? undefined, getClientIp(request), { targetId: id }, orgId);
+    return new NextResponse(null, { status: 204 });
   } catch (err) {
     console.error("[api]", err);
     return NextResponse.json({ error: "Falha ao excluir usuário" }, { status: 500 });

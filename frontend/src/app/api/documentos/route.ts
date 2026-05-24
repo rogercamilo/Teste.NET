@@ -67,6 +67,14 @@ export async function POST(request: NextRequest) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // Valida assinatura real do arquivo (magic bytes) — impede spoofing de MIME type
+  const isPdf = buffer[0] === 0x25 && buffer[1] === 0x50; // %P
+  const isDocx = buffer[0] === 0x50 && buffer[1] === 0x4b; // PK (ZIP — DOCX)
+  if (!isPdf && !isDocx) {
+    return Response.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 422 });
+  }
+
   const orgId = user.organizacaoId ?? "default";
 
   let storageKey: string;

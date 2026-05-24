@@ -113,6 +113,14 @@ export async function POST(request: NextRequest) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
+  // Valida assinatura real do arquivo (magic bytes) — impede spoofing de MIME type
+  const isPdf = buffer[0] === 0x25 && buffer[1] === 0x50; // %P
+  const isOffice = buffer[0] === 0x50 && buffer[1] === 0x4b; // PK (ZIP — DOCX/DOC)
+  const isDoc = buffer[0] === 0xd0 && buffer[1] === 0xcf; // OLE2 — DOC legado
+  if (!isPdf && !isOffice && !isDoc) {
+    return Response.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 422 });
+  }
+
   const uploadCheck = await canUpload(orgId, file.size);
   if (!uploadCheck.allowed) {
     return Response.json({ error: uploadCheck.reason }, { status: 403 });

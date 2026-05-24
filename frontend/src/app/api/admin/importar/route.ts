@@ -39,56 +39,62 @@ export async function POST(request: Request) {
   const results: Record<string, number> = {};
 
   try {
-    // Moradas
+    // Moradas — batch via $transaction elimina N+1
     if (Array.isArray(body.moradas) && body.moradas.length > 0) {
-      let count = 0;
-      for (const m of body.moradas) {
-        const row = m as Record<string, unknown>;
-        if (!row.id || !row.nome || !row.nivelFormativo) continue;
-        await prisma.morada.upsert({
-          where: { id: String(row.id) },
-          update: {},
-          create: {
-            id: String(row.id),
-            organizacaoId: orgId,
-            nome: String(row.nome),
-            localReuniao: row.localReuniao ? String(row.localReuniao) : null,
-            nivelFormativo: String(row.nivelFormativo),
-            ativo: row.ativo !== false,
-          },
-        });
-        count++;
+      const validRows = (body.moradas as Record<string, unknown>[]).filter(
+        (row) => row.id && row.nome && row.nivelFormativo
+      );
+      if (validRows.length > 0) {
+        await prisma.$transaction(
+          validRows.map((row) =>
+            prisma.morada.upsert({
+              where: { id: String(row.id) },
+              update: {},
+              create: {
+                id: String(row.id),
+                organizacaoId: orgId,
+                nome: String(row.nome),
+                localReuniao: row.localReuniao ? String(row.localReuniao) : null,
+                nivelFormativo: String(row.nivelFormativo),
+                ativo: row.ativo !== false,
+              },
+            })
+          ),
+          );
       }
-      results.moradas = count;
+      results.moradas = validRows.length;
     }
 
-    // Formandos
+    // Formandos — batch via $transaction elimina N+1
     if (Array.isArray(body.formandos) && body.formandos.length > 0) {
-      let count = 0;
-      for (const f of body.formandos) {
-        const row = f as Record<string, unknown>;
-        if (!row.id || !row.nome) continue;
-        await prisma.formando.upsert({
-          where: { id: String(row.id) },
-          update: {},
-          create: {
-            id: String(row.id),
-            organizacaoId: orgId,
-            nome: String(row.nome),
-            dataNascimento: row.dataNascimento ? new Date(String(row.dataNascimento)) : new Date("2000-01-01"),
-            estadoCivil: row.estadoCivil ? String(row.estadoCivil) : "solteiro",
-            modalidade: row.modalidade ? String(row.modalidade) : "presencial",
-            nivelFormativo: row.nivelFormativo ? String(row.nivelFormativo) : "pre-discipulado",
-            dataIngresso: row.dataIngresso ? new Date(String(row.dataIngresso)) : new Date(),
-            telefone: row.telefone ? String(row.telefone) : "",
-            email: row.email ? String(row.email) : "",
-            ativo: row.ativo !== false,
-            moradaId: row.moradaId ? String(row.moradaId) : null,
-          },
-        });
-        count++;
+      const validRows = (body.formandos as Record<string, unknown>[]).filter(
+        (row) => row.id && row.nome
+      );
+      if (validRows.length > 0) {
+        await prisma.$transaction(
+          validRows.map((row) =>
+            prisma.formando.upsert({
+              where: { id: String(row.id) },
+              update: {},
+              create: {
+                id: String(row.id),
+                organizacaoId: orgId,
+                nome: String(row.nome),
+                dataNascimento: row.dataNascimento ? new Date(String(row.dataNascimento)) : new Date("2000-01-01"),
+                estadoCivil: row.estadoCivil ? String(row.estadoCivil) : "solteiro",
+                modalidade: row.modalidade ? String(row.modalidade) : "presencial",
+                nivelFormativo: row.nivelFormativo ? String(row.nivelFormativo) : "pre-discipulado",
+                dataIngresso: row.dataIngresso ? new Date(String(row.dataIngresso)) : new Date(),
+                telefone: row.telefone ? String(row.telefone) : "",
+                email: row.email ? String(row.email) : "",
+                ativo: row.ativo !== false,
+                moradaId: row.moradaId ? String(row.moradaId) : null,
+              },
+            })
+          )
+        );
       }
-      results.formandos = count;
+      results.formandos = validRows.length;
     }
 
     // Comentários — verifica FKs em batch para evitar N+1

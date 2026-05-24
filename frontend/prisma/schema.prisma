@@ -77,6 +77,9 @@ model Organizacao {
   arquivos             Arquivo[]
   convites             ConviteUsuario[]
   configuracao         ConfiguracaoOrg?
+
+  @@index([status])
+  @@index([planoAssinatura])
 }
 
 // ==========================================================
@@ -199,6 +202,7 @@ model Formando {
 
   @@index([organizacaoId])
   @@index([moradaId])
+  @@index([organizacaoId, ativo])
 }
 
 // ==========================================================
@@ -405,6 +409,8 @@ model Agendamento {
 
   @@index([organizacaoId])
   @@index([dataInicio])
+  @@index([status])
+  @@index([organizacaoId, status, dataInicio])
 }
 
 // ==========================================================

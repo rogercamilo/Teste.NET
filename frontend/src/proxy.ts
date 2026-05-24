@@ -1,9 +1,28 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  // Inline styles required by Tailwind; eval by Next.js dev runtime only
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' data:",
+    "frame-src https://js.stripe.com",
+    "connect-src 'self' https://api.stripe.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join("; "),
+};
+
 export default auth(function proxy(req) {
   const isLoggedIn = !!req.auth;
-  const role = (req.auth?.user as { role?: string } | undefined)?.role;
+  const role = req.auth?.user?.role;
   const { pathname } = req.nextUrl;
 
   // Exact matches (paths where startsWith would be too broad)
@@ -46,7 +65,11 @@ export default auth(function proxy(req) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    response.headers.set(key, value);
+  }
+  return response;
 });
 
 export const config = {

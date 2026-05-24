@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
-import type { PlanoAssinatura, StatusOrganizacao } from "@prisma/client";
+import { PlanoAssinatura, type StatusOrganizacao } from "@prisma/client";
 
 type SU = { id?: string; role?: string };
 type Params = { params: Promise<{ id: string }> };
@@ -17,12 +17,18 @@ export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params;
 
   try {
-    const body = await request.json() as {
-      acao?: "suspender" | "reativar" | "cancelar";
-      plano?: PlanoAssinatura;
-    };
+    const body = await request.json() as { acao?: string; plano?: string };
     const { acao, plano } = body;
 
+    const validAcoes = ["suspender", "reativar", "cancelar"] as const;
+    const validPlanos: PlanoAssinatura[] = ["GRATUITO", "ESSENCIAL", "PROFISSIONAL"];
+
+    if (acao && !(validAcoes as readonly string[]).includes(acao)) {
+      return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
+    }
+    if (plano && !validPlanos.includes(plano as PlanoAssinatura)) {
+      return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
+    }
     if (acao && plano) {
       return NextResponse.json({ error: "Envie apenas 'acao' ou 'plano', não ambos" }, { status: 400 });
     }
@@ -43,14 +49,13 @@ export async function PATCH(request: Request, { params }: Params) {
       newStatus = "CANCELADO";
       auditAction = "organizacao_cancelada";
     }
-
     if (plano) auditAction = "organizacao_plan_changed";
 
     const updated = await prisma.organizacao.update({
       where: { id },
       data: {
         ...(newStatus ? { status: newStatus } : {}),
-        ...(plano ? { planoAssinatura: plano } : {}),
+        ...(plano ? { planoAssinatura: plano as PlanoAssinatura } : {}),
       },
     });
 
