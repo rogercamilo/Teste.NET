@@ -110,12 +110,15 @@ export async function listUsers(
   organizacaoId: string = DEFAULT_ORG_ID,
   options?: { skip?: number; take?: number }
 ): Promise<UserAuth[]> {
-  const users = await prisma.usuario.findMany({ where: { organizacaoId }, ...options });
+  const users = await prisma.usuario.findMany({
+    where: { organizacaoId, deletedAt: null },
+    ...options,
+  });
   return users.map(toUserAuth);
 }
 
 export async function countUsers(organizacaoId: string = DEFAULT_ORG_ID): Promise<number> {
-  return prisma.usuario.count({ where: { organizacaoId } });
+  return prisma.usuario.count({ where: { organizacaoId, deletedAt: null } });
 }
 
 export async function findByEmail(
@@ -123,7 +126,7 @@ export async function findByEmail(
   organizacaoId: string = DEFAULT_ORG_ID
 ): Promise<UserAuth | undefined> {
   const user = await prisma.usuario.findFirst({
-    where: { email: { equals: email, mode: "insensitive" }, organizacaoId },
+    where: { email: { equals: email, mode: "insensitive" }, organizacaoId, deletedAt: null },
   });
   return user ? toUserAuth(user) : undefined;
 }
@@ -131,7 +134,7 @@ export async function findByEmail(
 // Searches across all orgs — used for multi-tenant login and Google OAuth
 export async function findByEmailGlobal(email: string): Promise<UserAuth | undefined> {
   const user = await prisma.usuario.findFirst({
-    where: { email: { equals: email, mode: "insensitive" } },
+    where: { email: { equals: email, mode: "insensitive" }, deletedAt: null },
   });
   return user ? toUserAuth(user) : undefined;
 }
@@ -141,7 +144,7 @@ export async function findById(
   organizacaoId?: string
 ): Promise<UserAuth | undefined> {
   const user = await prisma.usuario.findFirst({
-    where: organizacaoId ? { id, organizacaoId } : { id },
+    where: organizacaoId ? { id, organizacaoId, deletedAt: null } : { id, deletedAt: null },
   });
   return user ? toUserAuth(user) : undefined;
 }

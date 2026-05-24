@@ -7,7 +7,8 @@ export const metadata: Metadata = {
   description: "Condições de uso da plataforma Formatio para organizações e usuários.",
 };
 
-export const TERMS_VERSION = "1.1";
+import { TERMS_VERSION } from "@/lib/legal-versions";
+export { TERMS_VERSION };
 export const TERMS_DATE = "24 de maio de 2026";
 
 const tocSections = [

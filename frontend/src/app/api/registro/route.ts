@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/users-store";
 import { validatePassword } from "@/lib/password-validation";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, anonymizeIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-
-const PRIVACY_VERSION = "1.0";
+import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal-versions";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -21,6 +20,7 @@ export async function POST(request: Request) {
       adminNome?: string;
       senha?: string;
       aceitouPrivacidade?: boolean;
+      aceitouTermos?: boolean;
     };
 
     const { orgNome, adminEmail, adminNome, senha, aceitouPrivacidade } = body;
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
 
     // Hash computado antes da transação para não bloquear a conexão com operação CPU-intensiva
     const passwordHash = hashPassword(senha);
+    const ipAnon = anonymizeIp(ip);
 
     const { org, usuario } = await prisma.$transaction(async (tx) => {
       const existingUser = await tx.usuario.findFirst({
@@ -78,25 +79,34 @@ export async function POST(request: Request) {
         },
       });
 
+      // Registra aceite da Política de Privacidade com IP anonimizado (art. 7º Marco Civil)
       await tx.privacyAcceptance.create({
         data: {
           usuarioId: newUsuario.id,
           organizacaoId: newOrg.id,
           tipo: "privacidade",
           versao: PRIVACY_VERSION,
+          ip: ipAnon,
+        },
+      });
+
+      // Registra aceite dos Termos de Uso com IP anonimizado (validade jurídica — cláusula 1)
+      await tx.privacyAcceptance.create({
+        data: {
+          usuarioId: newUsuario.id,
+          organizacaoId: newOrg.id,
+          tipo: "termos",
+          versao: TERMS_VERSION,
+          ip: ipAnon,
         },
       });
 
       return { org: newOrg, usuario: newUsuario };
     });
 
-    logAction(
-      "organizacao_created",
-      usuario.id,
-      getClientIp(request),
-      { orgNome: org.nome, adminEmail },
-      org.id
-    );
+    logAction("privacy_accepted", usuario.id, ip, { versao: PRIVACY_VERSION }, org.id);
+    logAction("terms_accepted", usuario.id, ip, { versao: TERMS_VERSION }, org.id);
+    logAction("organizacao_created", usuario.id, ip, { orgNome: org.nome, adminEmail }, org.id);
 
     return NextResponse.json(
       { organizacaoId: org.id, usuarioId: usuario.id, email: usuario.email },

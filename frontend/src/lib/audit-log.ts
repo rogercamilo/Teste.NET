@@ -69,7 +69,11 @@ export type AuditAction =
   | "account_deleted"
   | "organizacao_deleted"
   | "dados_exportados"
-  | "organizacao_exportada";
+  | "organizacao_exportada"
+  | "privacy_accepted"
+  | "terms_accepted"
+  | "audit_log_purged"
+  | "deletion_request_processed";
 
 export interface AuditEntry {
   timestamp: string;

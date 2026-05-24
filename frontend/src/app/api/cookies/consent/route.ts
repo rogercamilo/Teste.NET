@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, anonymizeIp } from "@/lib/audit-log";
 
 const COOKIE_VERSION = "1";
 
@@ -17,8 +18,9 @@ export async function POST(req: NextRequest) {
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
     const organizacaoId = (session?.user as { organizacaoId?: string } | undefined)?.organizacaoId ?? null;
     const sessionId = body.sessionId ?? null;
+    const ip = anonymizeIp(getClientIp(req));
 
-    const data = {
+    const preferences = {
       necessarios: true,
       analiticos: body.analiticos ?? false,
       marketing: body.marketing ?? false,
@@ -29,16 +31,17 @@ export async function POST(req: NextRequest) {
     if (userId) {
       const existing = await prisma.cookieConsent.findFirst({ where: { userId } });
       if (existing) {
-        await prisma.cookieConsent.update({ where: { id: existing.id }, data });
+        // Atualiza preferências; mantém o IP do consentimento original
+        await prisma.cookieConsent.update({ where: { id: existing.id }, data: preferences });
       } else {
-        await prisma.cookieConsent.create({ data: { ...data, userId, organizacaoId } });
+        await prisma.cookieConsent.create({ data: { ...preferences, userId, organizacaoId, ip } });
       }
     } else if (sessionId) {
       const existing = await prisma.cookieConsent.findFirst({ where: { sessionId } });
       if (existing) {
-        await prisma.cookieConsent.update({ where: { id: existing.id }, data });
+        await prisma.cookieConsent.update({ where: { id: existing.id }, data: preferences });
       } else {
-        await prisma.cookieConsent.create({ data: { ...data, sessionId } });
+        await prisma.cookieConsent.create({ data: { ...preferences, sessionId, ip } });
       }
     }
 

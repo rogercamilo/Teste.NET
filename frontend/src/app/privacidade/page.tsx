@@ -7,7 +7,8 @@ export const metadata: Metadata = {
   description: "Como a Formatio coleta, usa e protege seus dados pessoais em conformidade com a LGPD.",
 };
 
-export const PRIVACY_VERSION = "1.2";
+import { PRIVACY_VERSION } from "@/lib/legal-versions";
+export { PRIVACY_VERSION };
 export const PRIVACY_DATE = "23 de maio de 2026";
 
 const tocSections = [

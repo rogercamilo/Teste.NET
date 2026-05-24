@@ -584,6 +584,7 @@ model PrivacyAcceptance {
   organizacaoId String?
   tipo          String   // "privacidade" | "termos"
   versao        String
+  ip            String?  // IP anonimizado no momento do aceite (art. 7º Marco Civil)
   criadoEm     DateTime @default(now())
 
   usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -601,6 +602,7 @@ model CookieConsent {
   marketing     Boolean  @default(false)
   preferencias  Boolean  @default(false)
   versao        String   @default("1")
+  ip            String?  // IP anonimizado no momento do consentimento (5 anos — LGPD)
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
