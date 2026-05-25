@@ -14,6 +14,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Formatio",
   description: "Plataforma formativa para gestão e acompanhamento da jornada comunitária",
+  icons: { icon: "/brand/favicon.svg" },
 };
 
 export default function RootLayout({

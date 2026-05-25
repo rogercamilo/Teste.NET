@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Shield, Users, BookOpen, Calendar, BarChart3, Mail,
+  Users, BookOpen, Calendar, BarChart3, Mail,
   Check, ChevronDown, ChevronRight, Menu, X, ArrowRight,
-  Lock, Zap, Globe, Star,
+  Lock, Shield, Zap, Globe, Star,
 } from "lucide-react";
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
@@ -15,11 +15,8 @@ function Nav() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-white">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <Shield className="h-4.5 w-4.5 text-white" />
-          </div>
-          Formatio
+        <Link href="/" className="flex items-center">
+          <img src="/brand/formatio-horizontal-on-dark.svg" alt="Formatio" height={32} className="h-8 w-auto" />
         </Link>
 
         {/* Desktop nav */}
@@ -89,14 +86,14 @@ function Hero() {
 
         <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-[1.1] tracking-tight mb-6">
           Gestão formativa para{" "}
-          <span className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-primary to-amber-300 bg-clip-text text-transparent">
             comunidades que crescem
           </span>
         </h1>
 
         <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Do cadastro ao acompanhamento, o Formatio centraliza toda a jornada formativa
-          dos seus membros em uma plataforma simples, segura e em conformidade com a LGPD.
+          Do cadastro ao acompanhamento das formações aplicadas, o Formatio centraliza toda a jornada formativa
+          dos seus membros em uma plataforma simples, segura e em conformidade com a LGPD (Lei geral de proteção de dados).
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -116,7 +113,7 @@ function Hero() {
         </div>
 
         <p className="mt-6 text-xs text-slate-500">
-          Grátis para sempre com 1 morada e até 30 formandos. Sem prazo de expiração.
+          Grátis para sempre com 1 Grupo de formação e até 30 formandos. Sem prazo de expiração.
         </p>
 
         {/* Dashboard preview */}
@@ -201,7 +198,7 @@ const features = [
   {
     icon: BookOpen,
     title: "Planos e grades formativas",
-    desc: "Estruture o conteúdo em eixos e etapas. Crie grades reutilizáveis por nível e associe planos a cada morada.",
+    desc: "Estruture o conteúdo em eixos e etapas. Crie grades reutilizáveis por nível e associe planos a cada Grupo de formação.",
     color: "bg-violet-500/10 text-violet-400",
   },
   {
@@ -276,7 +273,7 @@ function HowItWorks() {
     {
       number: "02",
       title: "Configure a estrutura",
-      desc: "Adicione moradas, cadastre formandos manualmente ou via importação, e defina planos formativos por nível.",
+      desc: "Adicione Grupo de formaçãos, cadastre formandos manualmente ou via importação, e defina planos formativos por nível.",
     },
     {
       number: "03",
@@ -328,7 +325,7 @@ const plans = [
     ctaHref: "/registro",
     highlight: false,
     features: [
-      "1 morada (grupo local)",
+      "1 Grupo de formação (grupo local)",
       "Até 30 formandos",
       "500 MB de armazenamento",
       "Dashboard e relatórios",
@@ -347,7 +344,7 @@ const plans = [
     highlight: true,
     badge: "Mais popular",
     features: [
-      "3 moradas",
+      "3 Grupos de formação",
       "Até 150 formandos",
       "2 GB de armazenamento",
       "Tudo do plano Gratuito",
@@ -365,7 +362,7 @@ const plans = [
     ctaHref: "/registro",
     highlight: false,
     features: [
-      "Moradas ilimitadas",
+      "Grupos de formação ilimitados",
       "Formandos ilimitados",
       "Armazenamento ilimitado",
       "Tudo do plano Essencial",
@@ -452,15 +449,19 @@ function Pricing() {
 const faqs = [
   {
     q: "O plano Gratuito expira?",
-    a: "Não. O plano Gratuito é permanente. Você pode usar o Formatio com 1 morada e até 30 formandos por tempo indeterminado, sem cartão de crédito.",
+    a: "Não. O plano Gratuito é permanente. Você pode usar o Formatio com 1 Grupo de formação e até 30 formandos por tempo indeterminado, sem cartão de crédito.",
   },
   {
-    q: "O que é uma 'morada' no Formatio?",
-    a: "Uma morada é um grupo ou comunidade local dentro da sua organização. Cada morada tem seus próprios formandos, formador responsável, plano formativo e grade de conteúdos.",
+    q: "O que é um 'Grupo de formação' no Formatio?",
+    a: "Um Grupo de formação é um grupo que representa umconjunto de pessoas dentro da sua comunidade que percorrerão um caminho formativo. Cada grupo de formação tem seus próprios formandos, formador responsável, plano formativo e grade de conteúdos.",
   },
   {
     q: "Meus dados estão seguros?",
     a: "Sim. Todos os dados são criptografados em trânsito (HTTPS/TLS) e em repouso. A plataforma é hospedada em infraestrutura redundante e está em conformidade com a LGPD.",
+  },
+  {
+    q: "O que é a LGPD?",
+    a: "A LGPD é a lei que protege os dados pessoais e estabelece regras para que empresas utilizem essas informações com segurança, transparência e responsabilidade. Estar em conformidade com a LGPD ajuda a aumentar a confiança dos clientes, fortalecer a credibilidade da marca, evitar riscos jurídicos e multas, além de demonstrar profissionalismo e compromisso com a proteção dos dados dos usuários. O Formatio foi desenvolvido desde o início com foco na conformidade com a LGPD, garantindo que os dados dos seus formandos estejam protegidos e que sua organização esteja em conformidade com a legislação brasileira de proteção de dados.",
   },
   {
     q: "Posso migrar meus dados de outra plataforma?",
@@ -556,11 +557,8 @@ function Footer() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 font-bold text-white mb-3">
-              <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-                <Shield className="h-4 w-4 text-white" />
-              </div>
-              Formatio
+            <Link href="/" className="flex items-center mb-3">
+              <img src="/brand/formatio-horizontal-on-dark.svg" alt="Formatio" height={28} className="h-7 w-auto" />
             </Link>
             <p className="text-xs text-slate-500 leading-relaxed">
               Plataforma SaaS de gestão formativa para comunidades e organizações religiosas.

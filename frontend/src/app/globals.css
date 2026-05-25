@@ -49,73 +49,73 @@
 }
 
 :root {
-  /* Blue institutional palette */
-  --background: oklch(0.984 0.003 247.858);
-  --foreground: oklch(0.208 0.042 265.755);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.208 0.042 265.755);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.208 0.042 265.755);
-  --primary: oklch(0.546 0.245 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.005 247.858);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.967 0.005 247.858);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.951 0.025 254.624);
-  --accent-foreground: oklch(0.418 0.182 264.376);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.546 0.245 264.376);
-  --chart-1: oklch(0.546 0.245 264.376);
-  --chart-2: oklch(0.648 0.223 142.495);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.823);
-  --chart-5: oklch(0.645 0.246 16.439);
+  /* Formatio · Conceito H · Travessia — clay/terracota brand palette */
+  --background: oklch(0.98 0.006 75);    /* #FBF8F4 warm white */
+  --foreground: oklch(0.22 0.022 50);    /* #2A1E16 */
+  --card: oklch(1.00 0 0);              /* #FFFFFF */
+  --card-foreground: oklch(0.22 0.022 50);
+  --popover: oklch(1.00 0 0);
+  --popover-foreground: oklch(0.22 0.022 50);
+  --primary: oklch(0.55 0.135 36);       /* #B25433 clay */
+  --primary-foreground: oklch(0.97 0.012 75); /* #FBF6F0 */
+  --secondary: oklch(0.95 0.008 75);     /* #F0EBE4 */
+  --secondary-foreground: oklch(0.30 0.022 50);
+  --muted: oklch(0.96 0.006 75);         /* #F4F0EA */
+  --muted-foreground: oklch(0.54 0.018 55); /* #847A6F */
+  --accent: oklch(0.95 0.020 60);        /* #EFE5DA */
+  --accent-foreground: oklch(0.22 0.022 50);
+  --destructive: oklch(0.55 0.180 27);   /* #C03A2B */
+  --border: oklch(0.91 0.010 70);        /* #E5DED2 */
+  --input: oklch(0.91 0.010 70);
+  --ring: oklch(0.55 0.135 36);
+  --chart-1: oklch(0.55 0.135 36);       /* clay */
+  --chart-2: oklch(0.58 0.135 145);      /* green */
+  --chart-3: oklch(0.72 0.150 70);       /* amber */
+  --chart-4: oklch(0.55 0.115 230);      /* blue */
+  --chart-5: oklch(0.65 0.180 27);       /* red */
   --radius: 0.625rem;
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-primary: oklch(0.546 0.245 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.951 0.025 254.624);
-  --sidebar-accent-foreground: oklch(0.418 0.182 264.376);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.546 0.245 264.376);
+  --sidebar: oklch(1.00 0 0);
+  --sidebar-foreground: oklch(0.22 0.022 50);
+  --sidebar-primary: oklch(0.55 0.135 36);
+  --sidebar-primary-foreground: oklch(0.97 0.012 75);
+  --sidebar-accent: oklch(0.96 0.006 75);
+  --sidebar-accent-foreground: oklch(0.22 0.022 50);
+  --sidebar-border: oklch(0.91 0.010 70);
+  --sidebar-ring: oklch(0.55 0.135 36);
 }
 
 .dark {
-  --background: oklch(0.145 0.042 265.755);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0.042 265.755);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0.042 265.755);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.588 0.245 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0.042 265.755);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0.042 265.755);
-  --muted-foreground: oklch(0.708 0.046 257.417);
-  --accent: oklch(0.269 0.042 265.755);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.588 0.245 264.376);
-  --chart-1: oklch(0.588 0.245 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.823);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0.042 265.755);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.588 0.245 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0.042 265.755);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.588 0.245 264.376);
+  --background: oklch(0.18 0.020 40);    /* #1A1108 */
+  --foreground: oklch(0.96 0.012 75);    /* #FBF6F0 */
+  --card: oklch(0.22 0.020 40);          /* #221710 */
+  --card-foreground: oklch(0.96 0.012 75);
+  --popover: oklch(0.22 0.020 40);
+  --popover-foreground: oklch(0.96 0.012 75);
+  --primary: oklch(0.66 0.135 41);       /* #D4754C lifted clay */
+  --primary-foreground: oklch(0.18 0.020 40);
+  --secondary: oklch(0.28 0.022 40);     /* #2E2118 */
+  --secondary-foreground: oklch(0.92 0.010 75);
+  --muted: oklch(0.28 0.020 45);         /* #2E2218 */
+  --muted-foreground: oklch(0.66 0.018 55);
+  --accent: oklch(0.32 0.030 55);
+  --accent-foreground: oklch(0.96 0.010 75);
+  --destructive: oklch(0.65 0.180 27);   /* #E25A4A */
+  --border: oklch(0.30 0.020 40);        /* #322217 */
+  --input: oklch(0.30 0.020 40);
+  --ring: oklch(0.66 0.135 41);
+  --chart-1: oklch(0.66 0.135 41);
+  --chart-2: oklch(0.68 0.135 145);
+  --chart-3: oklch(0.78 0.150 70);
+  --chart-4: oklch(0.65 0.115 230);
+  --chart-5: oklch(0.70 0.180 27);
+  --sidebar: oklch(0.22 0.020 40);
+  --sidebar-foreground: oklch(0.96 0.012 75);
+  --sidebar-primary: oklch(0.66 0.135 41);
+  --sidebar-primary-foreground: oklch(0.18 0.020 40);
+  --sidebar-accent: oklch(0.28 0.020 45);
+  --sidebar-accent-foreground: oklch(0.96 0.010 75);
+  --sidebar-border: oklch(0.30 0.020 40);
+  --sidebar-ring: oklch(0.66 0.135 41);
 }
 
 @layer base {
@@ -142,6 +142,6 @@
 
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: oklch(0.929 0.013 255.508) transparent;
+    scrollbar-color: oklch(0.91 0.010 70) transparent;
   }
 }

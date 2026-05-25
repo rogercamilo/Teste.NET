@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" width="256" height="64" role="img" aria-label="Formatio">
+  <title>Formatio · Logotipo horizontal</title>
+  <g transform="translate(0 4) scale(0.875)">
+  <g transform="translate(5 0) skewX(-9)" fill="none" stroke="#D4754C" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 50V19H38"></path>
+    <path d="M18 33H32"></path>
+  </g>
+  <g fill="#D4754C">
+    <circle cx="48" cy="46" r="1.8" opacity="0.5"></circle>
+    <circle cx="51" cy="36" r="2.5" opacity="0.75"></circle>
+    <circle cx="54" cy="25" r="3.2" opacity="1"></circle>
+  </g></g>
+  <text x="76" y="42" font-family="Geist, -apple-system, BlinkMacSystemFont, system-ui, sans-serif" font-weight="600" font-size="32" letter-spacing="-0.015em" fill="#FBF6F0">Formatio</text>
+</svg>

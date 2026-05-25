@@ -3,9 +3,9 @@
 import { useLayoutEffect } from "react";
 import { applyThemePalette } from "@/lib/themes";
 
-export function ThemeApplier({ themeKey = "azul" }: { themeKey?: string }) {
+export function ThemeApplier({ themeKey }: { themeKey?: string | null }) {
   useLayoutEffect(() => {
-    if (themeKey !== "azul") applyThemePalette(themeKey);
+    if (themeKey) applyThemePalette(themeKey);
   }, [themeKey]);
 
   return null;

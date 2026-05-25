@@ -69,9 +69,13 @@ export default function LoginForm() {
         <div className="relative z-10 flex flex-col items-center text-center text-primary-foreground max-w-sm">
           {/* Logo */}
           <div className="mb-8">
-            <div className="h-20 w-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto">
-              <span className="text-2xl font-bold">Fo</span>
-            </div>
+            <img
+              src="/brand/formatio-symbol-mono-white.svg"
+              alt="Formatio"
+              width={80}
+              height={80}
+              className="mx-auto"
+            />
           </div>
 
           <h1 className="text-3xl font-bold leading-tight mb-3">{communityName}</h1>
@@ -87,12 +91,14 @@ export default function LoginForm() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center justify-center mb-8 lg:hidden">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center mr-2.5">
-              <span className="text-xs font-bold text-primary-foreground">Fo</span>
-            </div>
-            <div>
-              <p className="font-semibold text-foreground text-sm leading-tight">{communityName}</p>
-            </div>
+            <img
+              src="/brand/formatio-symbol.svg"
+              alt="Formatio"
+              width={40}
+              height={40}
+              className="mr-2.5 shrink-0"
+            />
+            <p className="font-semibold text-foreground text-sm leading-tight">{communityName}</p>
           </div>
 
           <div className="mb-8">

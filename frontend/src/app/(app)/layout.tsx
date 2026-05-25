@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     primeiroAcesso?: boolean;
   };
 
-  let orgBranding = { onboardingConcluido: true, temaCor: "azul", nomePlataforma: null as string | null, nome: "" };
+  let orgBranding = { onboardingConcluido: true, temaCor: null as string | null, nomePlataforma: null as string | null, nome: "" };
 
   if (sessionUser.organizacaoId && sessionUser.role !== "super_admin") {
     const org = await prisma.organizacao.findUnique({

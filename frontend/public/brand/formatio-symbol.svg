@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Formatio">
+  <title>Formatio · Símbolo Travessia</title>
+  <g transform="translate(5 0) skewX(-9)" fill="none" stroke="#B25433" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 50V19H38"></path>
+    <path d="M18 33H32"></path>
+  </g>
+  <g fill="#B25433">
+    <circle cx="48" cy="46" r="1.8" opacity="0.5"></circle>
+    <circle cx="51" cy="36" r="2.5" opacity="0.75"></circle>
+    <circle cx="54" cy="25" r="3.2" opacity="1"></circle>
+  </g>
+</svg>
