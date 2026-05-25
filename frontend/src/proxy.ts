@@ -84,6 +84,6 @@ export default auth(function proxy(req) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|brand).*)",
   ],
 };
