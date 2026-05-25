@@ -453,7 +453,7 @@ const faqs = [
   },
   {
     q: "O que é um 'Grupo de formação' no Formatio?",
-    a: "Um Grupo de formação é um grupo que representa umconjunto de pessoas dentro da sua comunidade que percorrerão um caminho formativo. Cada grupo de formação tem seus próprios formandos, formador responsável, plano formativo e grade de conteúdos.",
+    a: "Um Grupo de formação é um conjunto de pessoas dentro da sua comunidade que percorrerão um caminho formativo. Cada grupo de formação tem seus próprios formandos, formador responsável, plano formativo e grade de conteúdos.",
   },
   {
     q: "Meus dados estão seguros?",
