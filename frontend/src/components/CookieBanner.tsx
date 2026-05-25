@@ -6,6 +6,7 @@ import { Cookie, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "formatio_cookie_consent";
+const SESSION_ID_KEY = "formatio_consent_session_id";
 const CONSENT_VERSION = "1";
 
 interface ConsentState {
@@ -27,16 +28,27 @@ function loadConsent(): ConsentState | null {
   }
 }
 
+// Persiste o sessionId para que atualizações de preferência apontem para o mesmo
+// registro no banco — sem isso, cada chamada criaria um registro órfão.
+function getOrCreateSessionId(): string {
+  let id = localStorage.getItem(SESSION_ID_KEY);
+  if (!id) {
+    id = `anon_${crypto.randomUUID()}`;
+    localStorage.setItem(SESSION_ID_KEY, id);
+  }
+  return id;
+}
+
 async function saveConsent(consent: Omit<ConsentState, "version">) {
   const payload: ConsentState = { ...consent, version: CONSENT_VERSION };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 
-  const sessionId = `anon_${crypto.randomUUID()}`;
+  const sessionId = getOrCreateSessionId();
   await fetch("/api/cookies/consent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...consent, sessionId }),
-  }).catch(() => {});
+  }).catch((err) => console.warn("[CookieBanner] falha ao persistir consentimento:", err));
 }
 
 export default function CookieBanner() {
@@ -73,6 +85,7 @@ export default function CookieBanner() {
   return (
     <div
       role="dialog"
+      aria-modal="true"
       aria-label="Preferências de cookies"
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card shadow-2xl"
     >
@@ -121,9 +134,9 @@ export default function CookieBanner() {
           </div>
 
           <button
-            onClick={() => setVisible(false)}
+            onClick={acceptNecessary}
             className="shrink-0 p-1 rounded text-muted-foreground hover:text-foreground"
-            aria-label="Fechar"
+            aria-label="Fechar (aceitar apenas necessários)"
           >
             <X className="h-4 w-4" />
           </button>
