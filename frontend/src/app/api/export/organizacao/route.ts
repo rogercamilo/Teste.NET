@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 
 type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
@@ -17,6 +18,11 @@ export async function GET(request: Request) {
 
   const orgId = actor.organizacaoId;
   if (!orgId) return NextResponse.json({ error: "Organização não encontrada" }, { status: 400 });
+
+  const rl = await limiters.export(actor.id!);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Limite de exportações atingido. Aguarde antes de tentar novamente." }, { status: 429 });
+  }
 
   const [organizacao, usuarios, moradas, formandos, formacoes, agendamentos, presencas, comentarios, eventos] =
     await Promise.all([

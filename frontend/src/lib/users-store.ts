@@ -271,10 +271,8 @@ export async function deleteUser(
   id: string,
   organizacaoId: string
 ): Promise<boolean> {
-  const exists = await prisma.usuario.findFirst({ where: { id, organizacaoId } });
-  if (!exists) return false;
-  await prisma.usuario.delete({ where: { id } });
-  return true;
+  const result = await prisma.usuario.deleteMany({ where: { id, organizacaoId } });
+  return result.count > 0;
 }
 
 export function toPublic(u: UserAuth): UserPublic {

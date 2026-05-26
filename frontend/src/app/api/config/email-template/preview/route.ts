@@ -45,7 +45,12 @@ export async function POST(request: Request) {
 
     const html = buildEmailHtml(template, vars);
     return new Response(html, {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+      },
     });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

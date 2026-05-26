@@ -94,14 +94,27 @@ export interface TemplateVars {
   url: string;
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 function applyVars(text: string, vars: TemplateVars): string {
-  const primeiroNome = vars.nome.split(" ")[0];
-  return text
+  const primeiroNome = escapeHtml(vars.nome.split(" ")[0]);
+  const safeNome = escapeHtml(vars.nome);
+  const safeEmail = escapeHtml(vars.email);
+  const safeSenha = escapeHtml(vars.senha);
+  const safeUrl = vars.url.startsWith("http://") || vars.url.startsWith("https://") ? escapeHtml(vars.url) : "#";
+  return escapeHtml(text)
     .replace(/\{\{primeiroNome\}\}/g, primeiroNome)
-    .replace(/\{\{nome\}\}/g, vars.nome)
-    .replace(/\{\{email\}\}/g, vars.email)
-    .replace(/\{\{senha\}\}/g, vars.senha)
-    .replace(/\{\{url\}\}/g, vars.url);
+    .replace(/\{\{nome\}\}/g, safeNome)
+    .replace(/\{\{email\}\}/g, safeEmail)
+    .replace(/\{\{senha\}\}/g, safeSenha)
+    .replace(/\{\{url\}\}/g, safeUrl);
 }
 
 export function buildEmailHtml(template: EmailTemplate, vars: TemplateVars): string {

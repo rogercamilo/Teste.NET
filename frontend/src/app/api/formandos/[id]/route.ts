@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import type { Formando, ProgressoEtapa } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
@@ -82,10 +83,35 @@ export async function PUT(request: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
+
+  const rl = await limiters.mutation(user.id!);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
+  }
+
   try {
     const existing = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    const body = await request.json() as Partial<Formando>;
+    const raw = await request.json() as Record<string, unknown>;
+    // Explicit whitelist — prevents mass assignment of fields like organizacaoId, deletedAt
+    const body: Partial<Formando> = {
+      nome: typeof raw.nome === "string" ? raw.nome : undefined,
+      dataNascimento: typeof raw.dataNascimento === "string" ? raw.dataNascimento : undefined,
+      estadoCivil: raw.estadoCivil as Formando["estadoCivil"] | undefined,
+      modalidade: raw.modalidade as Formando["modalidade"] | undefined,
+      nivelFormativo: raw.nivelFormativo as Formando["nivelFormativo"] | undefined,
+      dataIngresso: typeof raw.dataIngresso === "string" ? raw.dataIngresso : undefined,
+      telefone: typeof raw.telefone === "string" ? raw.telefone : undefined,
+      email: typeof raw.email === "string" ? raw.email : undefined,
+      ativo: typeof raw.ativo === "boolean" ? raw.ativo : undefined,
+      motivoInatividade: raw.motivoInatividade as Formando["motivoInatividade"] | undefined,
+      foto: typeof raw.foto === "string" ? raw.foto : undefined,
+      turmaId: typeof raw.turmaId === "string" ? raw.turmaId : undefined,
+      moradaId: typeof raw.moradaId === "string" ? raw.moradaId : undefined,
+      totalFormacoes: typeof raw.totalFormacoes === "number" ? raw.totalFormacoes : undefined,
+      formacoesRealizadas: typeof raw.formacoesRealizadas === "number" ? raw.formacoesRealizadas : undefined,
+      progressoEtapas: Array.isArray(raw.progressoEtapas) ? raw.progressoEtapas as Formando["progressoEtapas"] : undefined,
+    };
 
     const updated = await prisma.$transaction(async (tx) => {
       await tx.formando.update({

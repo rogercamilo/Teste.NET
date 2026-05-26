@@ -109,6 +109,20 @@ const schema = z
         message: `${missing} must be set when the other Upstash variable is configured`,
       });
     }
+
+    // Upstash required in production — in-memory rate limiting is per-process and bypassed
+    // in multi-worker deployments (Vercel, Railway), making login brute-force limits ineffective.
+    if (data.NODE_ENV === "production" && (!hasUpstashUrl || !hasUpstashToken)) {
+      for (const key of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"] as const) {
+        if (!data[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} is required in production for distributed rate limiting`,
+          });
+        }
+      }
+    }
   });
 
 // ── Validation ───────────────────────────────────────────────────────────────

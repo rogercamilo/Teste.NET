@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
+import { limiters } from "@/lib/rate-limit";
 import type { ComentarioFormando } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -59,6 +60,11 @@ export async function POST(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+  const rl = await limiters.mutation(user.id!);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
+  }
 
   try {
     const body = await request.json() as Partial<ComentarioFormando>;

@@ -3,11 +3,18 @@ import { auth } from "@/auth";
 import { findById, verifyPassword, updateUser } from "@/lib/users-store";
 import { passwordErrorMessage } from "@/lib/password-validation";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const userId = (session.user as { id: string }).id;
+  const rl = await limiters.passwordChange(userId);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
   }
 
   const body = await request.json() as {
@@ -20,8 +27,6 @@ export async function POST(request: Request) {
   if (pwdError) {
     return NextResponse.json({ error: pwdError }, { status: 400 });
   }
-
-  const userId = (session.user as { id: string }).id;
   const organizacaoId = (session.user as { organizacaoId?: string }).organizacaoId;
   if (!organizacaoId) return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
   const user = await findById(userId, organizacaoId);

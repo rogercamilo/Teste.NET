@@ -6,7 +6,7 @@
 
 async function extractTextFromPdf(dataUrl: string): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
   const base64 = dataUrl.split(",")[1];
   const binary = atob(base64);

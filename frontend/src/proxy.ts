@@ -1,32 +1,38 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 const isProd = process.env.NODE_ENV === "production";
 
-const SECURITY_HEADERS: Record<string, string> = {
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  // HSTS only in production — local HTTP would break with this header
-  ...(isProd ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } : {}),
-  "Cross-Origin-Opener-Policy": "same-origin",
-  "Cross-Origin-Resource-Policy": "same-origin",
-  "Content-Security-Policy": [
-    "default-src 'self'",
-    // 'unsafe-eval' is required by Next.js Turbopack dev runtime only — removed in production
-    `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"} https://js.stripe.com`,
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
-    "font-src 'self' data:",
-    "frame-src https://js.stripe.com",
-    "connect-src 'self' https://api.stripe.com",
-    "object-src 'none'",
-    "base-uri 'self'",
-  ].join("; "),
-};
+function buildSecurityHeaders(nonce: string): Record<string, string> {
+  return {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    ...(isProd ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } : {}),
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "Content-Security-Policy": [
+      "default-src 'self'",
+      // 'strict-dynamic' allows nonce-trusted scripts to load further scripts dynamically.
+      // In supporting browsers it ignores 'unsafe-inline'; older browsers fall back to it.
+      // 'unsafe-eval' is only needed for Turbopack in dev.
+      `script-src 'nonce-${nonce}' 'strict-dynamic'${isProd ? "" : " 'unsafe-eval'"} https://js.stripe.com 'unsafe-inline'`,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "frame-src https://js.stripe.com",
+      "connect-src 'self' https://api.stripe.com",
+      "worker-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join("; "),
+  };
+}
 
 export default auth(function proxy(req) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isLoggedIn = !!req.auth;
   const role = req.auth?.user?.role;
   const { pathname } = req.nextUrl;
@@ -81,8 +87,10 @@ export default auth(function proxy(req) {
     return NextResponse.redirect(new URL("/super-admin/dashboard", req.url));
   }
 
-  const response = NextResponse.next();
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+  const response = NextResponse.next({
+    request: { headers: new Headers({ ...Object.fromEntries(req.headers), "x-nonce": nonce }) },
+  });
+  for (const [key, value] of Object.entries(buildSecurityHeaders(nonce))) {
     response.headers.set(key, value);
   }
   return response;

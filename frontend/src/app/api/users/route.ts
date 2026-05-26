@@ -97,7 +97,7 @@ export async function POST(request: Request) {
 
     logAction("user_created", actor.id, getClientIp(request), { targetEmail: email, perfil: perfilSanitizado }, actor.organizacaoId);
 
-    return NextResponse.json({ ...toPublic(user), tempPassword, emailSent }, { status: 201 });
+    return NextResponse.json({ ...toPublic(user), emailSent }, { status: 201 });
   } catch (err) {
     logError("users POST", err);
     return NextResponse.json({ error: "Falha ao criar usuário" }, { status: 500 });

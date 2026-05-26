@@ -11,13 +11,7 @@ export async function GET() {
     // DB may not be ready yet — process is still healthy
   }
   return NextResponse.json(
-    {
-      status: "ok",
-      db,
-      dbLatencyMs: Date.now() - start,
-      version: process.env.npm_package_version ?? "unknown",
-      env: process.env.NODE_ENV,
-    },
+    { status: "ok", db, dbLatencyMs: Date.now() - start },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

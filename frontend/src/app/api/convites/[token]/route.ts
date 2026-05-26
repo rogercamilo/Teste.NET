@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/users-store";
 import { validatePassword } from "@/lib/password-validation";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -31,6 +32,12 @@ export async function GET(_request: Request, { params }: Params) {
 
 export async function POST(request: Request, { params }: Params) {
   const { token } = await params;
+  const ip = getClientIp(request);
+
+  const rl = await limiters.conviteAccept(ip);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
+  }
 
   try {
     const body = await request.json() as { senha?: string; nome?: string };

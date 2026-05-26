@@ -130,6 +130,16 @@ export function logError(
   );
 }
 
+function sanitizeLogValue(val: unknown): unknown {
+  if (typeof val === "string") return val.replace(/[\r\n\t]/g, " ").slice(0, 500);
+  if (val && typeof val === "object" && !Array.isArray(val)) {
+    return Object.fromEntries(
+      Object.entries(val as Record<string, unknown>).map(([k, v]) => [k, sanitizeLogValue(v)])
+    );
+  }
+  return val;
+}
+
 export function logAction(
   action: AuditAction,
   userId: string | undefined,
@@ -143,7 +153,7 @@ export function logAction(
     userId: userId ?? "anonymous",
     ...(organizacaoId ? { organizacaoId } : {}),
     ipAnon: anonymizeIp(ip),
-    ...(details ? { details } : {}),
+    ...(details ? { details: sanitizeLogValue(details) as Record<string, unknown> } : {}),
   };
   console.log(JSON.stringify(entry));
 
