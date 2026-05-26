@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     if (!currentPassword) {
       return NextResponse.json({ error: "Senha atual é obrigatória" }, { status: 400 });
     }
-    if (!verifyPassword(currentPassword, user.passwordHash)) {
+    if (!await verifyPassword(currentPassword, user.passwordHash)) {
       return NextResponse.json({ error: "Senha atual incorreta" }, { status: 400 });
     }
   }

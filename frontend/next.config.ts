@@ -43,6 +43,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // argon2 uses native addons — must not be bundled by webpack
+  serverExternalPackages: ["argon2"],
   async headers() {
     return [
       {

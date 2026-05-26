@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     trialExpiresAt.setDate(trialExpiresAt.getDate() + 14);
 
     // Hash computado antes da transação para não bloquear a conexão com operação CPU-intensiva
-    const passwordHash = hashPassword(senha);
+    const passwordHash = await hashPassword(senha);
     const ipAnon = anonymizeIp(ip);
 
     const { org, usuario } = await prisma.$transaction(async (tx) => {

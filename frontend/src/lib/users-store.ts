@@ -6,6 +6,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
+import argon2 from "argon2";
 import type { PerfilUsuario } from "@prisma/client";
 
 export interface UserAuth {
@@ -24,7 +25,7 @@ export interface UserAuth {
 export type UserPublic = Omit<UserAuth, "passwordHash">;
 
 // ----------------------------------------------------------------
-// Helpers de senha (mantidos idênticos à implementação anterior)
+// Helpers de senha
 // ----------------------------------------------------------------
 
 export function generateRandomPassword(): string {
@@ -55,20 +56,41 @@ export function generateRandomPassword(): string {
   return arr.join("");
 }
 
-export function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString("hex");
-  const key = scryptSync(password, salt, 64);
-  return `${salt}:${key.toString("hex")}`;
+// Argon2id — OWASP 2024 recommended parameters
+const ARGON2_OPTIONS = {
+  type: argon2.argon2id,
+  memoryCost: 65536, // 64 MiB
+  timeCost: 3,
+  parallelism: 4,
+} as const;
+
+export async function hashPassword(password: string): Promise<string> {
+  return argon2.hash(password, ARGON2_OPTIONS);
 }
 
-export function verifyPassword(password: string, stored: string): boolean {
+// Verifies a legacy scrypt hash (format: "<salt_hex>:<key_hex>")
+function verifyScrypt(password: string, stored: string): boolean {
   try {
-    const [salt, hash] = stored.split(":");
+    const colon = stored.indexOf(":");
+    if (colon === -1) return false;
+    const salt = stored.slice(0, colon);
+    const hash = stored.slice(colon + 1);
     const key = scryptSync(password, salt, 64);
     return timingSafeEqual(key, Buffer.from(hash, "hex"));
   } catch {
     return false;
   }
+}
+
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  if (stored.startsWith("$argon2")) {
+    try {
+      return await argon2.verify(stored, password);
+    } catch {
+      return false;
+    }
+  }
+  return verifyScrypt(password, stored);
 }
 
 // ----------------------------------------------------------------
@@ -148,6 +170,17 @@ export async function findById(
   return user ? toUserAuth(user) : undefined;
 }
 
+// Upgrades a legacy scrypt hash to Argon2id after successful verification (fire-and-forget)
+async function upgradeHashIfNeeded(userId: string, password: string, stored: string): Promise<void> {
+  if (stored.startsWith("$argon2")) return;
+  try {
+    const newHash = await hashPassword(password);
+    await prisma.usuario.update({ where: { id: userId }, data: { passwordHash: newHash } });
+  } catch {
+    // Non-fatal — user is already authenticated
+  }
+}
+
 export async function authenticate(
   email: string,
   password: string,
@@ -155,7 +188,8 @@ export async function authenticate(
 ): Promise<UserAuth | null> {
   const user = await findByEmail(email, organizacaoId);
   if (!user || !user.ativo || !user.passwordHash) return null;
-  if (!verifyPassword(password, user.passwordHash)) return null;
+  if (!await verifyPassword(password, user.passwordHash)) return null;
+  void upgradeHashIfNeeded(user.id, password, user.passwordHash);
   return user;
 }
 
@@ -166,7 +200,8 @@ export async function authenticateGlobal(
 ): Promise<UserAuth | null> {
   const user = await findByEmailGlobal(email);
   if (!user || !user.ativo || !user.passwordHash) return null;
-  if (!verifyPassword(password, user.passwordHash)) return null;
+  if (!await verifyPassword(password, user.passwordHash)) return null;
+  void upgradeHashIfNeeded(user.id, password, user.passwordHash);
   return user;
 }
 
@@ -183,13 +218,14 @@ export async function createUser(
   const orgId = data.organizacaoId;
   const tempPassword = !data.password ? generateRandomPassword() : undefined;
   const password = data.password ?? tempPassword!;
+  const passwordHash = await hashPassword(password);
 
   const created = await prisma.usuario.create({
     data: {
       organizacaoId: orgId,
       nome: data.nome,
       email: data.email,
-      passwordHash: hashPassword(password),
+      passwordHash,
       perfil: data.perfil as PerfilUsuario,
       moradaId: data.moradaId ?? null,
       ativo: data.ativo,
@@ -212,6 +248,7 @@ export async function updateUser(
   if (!exists) return null;
 
   const { password, organizacaoId: _organizacaoId, ...rest } = data;
+  const newPasswordHash = password ? await hashPassword(password) : undefined;
 
   const updated = await prisma.usuario.update({
     where: { id },
@@ -222,7 +259,7 @@ export async function updateUser(
       ...(rest.moradaId !== undefined && { moradaId: rest.moradaId ?? null }),
       ...(rest.ativo !== undefined && { ativo: rest.ativo }),
       ...(rest.primeiroAcesso !== undefined && { primeiroAcesso: rest.primeiroAcesso }),
-      ...(password ? { passwordHash: hashPassword(password) } : {}),
+      ...(newPasswordHash ? { passwordHash: newPasswordHash } : {}),
     },
   });
   return toUserAuth(updated);

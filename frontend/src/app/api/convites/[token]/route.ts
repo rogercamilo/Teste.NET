@@ -47,7 +47,7 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     // Hash computado antes da transação para não bloquear a conexão com operação CPU-intensiva
-    const passwordHash = hashPassword(senha);
+    const passwordHash = await hashPassword(senha);
 
     const { usuario, convite } = await prisma.$transaction(async (tx) => {
       const found = await tx.conviteUsuario.findFirst({ where: { token } });
