@@ -23,6 +23,7 @@ export async function POST(request: Request) {
 
   const userId = (session.user as { id: string }).id;
   const organizacaoId = (session.user as { organizacaoId?: string }).organizacaoId;
+  if (!organizacaoId) return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
   const user = await findById(userId, organizacaoId);
   if (!user) {
     return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
     }
   }
 
-  await updateUser(userId, { password: newPassword, primeiroAcesso: false });
+  await updateUser(userId, { password: newPassword, primeiroAcesso: false, organizacaoId });
   logAction("password_changed", userId, getClientIp(request), {}, organizacaoId);
   return NextResponse.json({ ok: true });
 }

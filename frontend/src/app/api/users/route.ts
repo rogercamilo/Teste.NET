@@ -21,6 +21,9 @@ export async function GET(request: Request) {
   if (!isAdminOrAbove(user.role)) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
+  if (!user.organizacaoId) {
+    return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
+  }
 
   try {
     const { searchParams } = new URL(request.url);
@@ -51,6 +54,9 @@ export async function POST(request: Request) {
   }
   if (!isAdminOrAbove(actor.role)) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+  if (!actor.organizacaoId) {
+    return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
   }
 
   try {

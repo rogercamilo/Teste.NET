@@ -12,11 +12,13 @@ import { prisma } from "@/lib/prisma";
  *  Deve coincidir com o ID criado no seed. */
 export const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID ?? "org_default";
 
-/** Retorna o organizacaoId da sessão atual, ou lança se não autenticado. */
+/** Retorna o organizacaoId da sessão atual, ou lança se não autenticado ou sem organização. */
 export async function getOrganizacaoId(): Promise<string> {
   const session = await auth();
   if (!session?.user) throw new Error("Não autenticado");
-  return (session.user as { organizacaoId?: string }).organizacaoId ?? DEFAULT_ORG_ID;
+  const orgId = (session.user as { organizacaoId?: string }).organizacaoId;
+  if (!orgId) throw new Error("Sessão sem organização");
+  return orgId;
 }
 
 /** Retorna o organizacaoId da sessão ou null se não autenticado. */

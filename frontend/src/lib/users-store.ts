@@ -5,7 +5,6 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_ORG_ID } from "@/lib/tenant-context";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
 import type { PerfilUsuario } from "@prisma/client";
 
@@ -107,7 +106,7 @@ function toUserAuth(u: {
 // ----------------------------------------------------------------
 
 export async function listUsers(
-  organizacaoId: string = DEFAULT_ORG_ID,
+  organizacaoId: string,
   options?: { skip?: number; take?: number }
 ): Promise<UserAuth[]> {
   const users = await prisma.usuario.findMany({
@@ -117,13 +116,13 @@ export async function listUsers(
   return users.map(toUserAuth);
 }
 
-export async function countUsers(organizacaoId: string = DEFAULT_ORG_ID): Promise<number> {
+export async function countUsers(organizacaoId: string): Promise<number> {
   return prisma.usuario.count({ where: { organizacaoId, deletedAt: null } });
 }
 
 export async function findByEmail(
   email: string,
-  organizacaoId: string = DEFAULT_ORG_ID
+  organizacaoId: string
 ): Promise<UserAuth | undefined> {
   const user = await prisma.usuario.findFirst({
     where: { email: { equals: email, mode: "insensitive" }, organizacaoId, deletedAt: null },
@@ -152,7 +151,7 @@ export async function findById(
 export async function authenticate(
   email: string,
   password: string,
-  organizacaoId: string = DEFAULT_ORG_ID
+  organizacaoId: string
 ): Promise<UserAuth | null> {
   const user = await findByEmail(email, organizacaoId);
   if (!user || !user.ativo || !user.passwordHash) return null;
@@ -178,10 +177,10 @@ export async function authenticateGlobal(
 export async function createUser(
   data: Omit<UserAuth, "id" | "criadoEm" | "passwordHash" | "organizacaoId"> & {
     password?: string;
-    organizacaoId?: string;
+    organizacaoId: string;
   }
 ): Promise<{ user: UserAuth; tempPassword?: string }> {
-  const orgId = data.organizacaoId ?? DEFAULT_ORG_ID;
+  const orgId = data.organizacaoId;
   const tempPassword = !data.password ? generateRandomPassword() : undefined;
   const password = data.password ?? tempPassword!;
 
@@ -205,10 +204,10 @@ export async function updateUser(
   id: string,
   data: Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">> & {
     password?: string;
-    organizacaoId?: string;
+    organizacaoId: string;
   }
 ): Promise<UserAuth | null> {
-  const orgId = data.organizacaoId ?? DEFAULT_ORG_ID;
+  const orgId = data.organizacaoId;
   const exists = await prisma.usuario.findFirst({ where: { id, organizacaoId: orgId } });
   if (!exists) return null;
 
@@ -231,7 +230,7 @@ export async function updateUser(
 
 export async function deleteUser(
   id: string,
-  organizacaoId: string = DEFAULT_ORG_ID
+  organizacaoId: string
 ): Promise<boolean> {
   const exists = await prisma.usuario.findFirst({ where: { id, organizacaoId } });
   if (!exists) return false;

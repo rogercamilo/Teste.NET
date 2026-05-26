@@ -34,7 +34,8 @@ export async function PUT(request: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Perfil inválido" }, { status: 400 });
     }
     const perfil = perfilRaw as AssignablePerfil | undefined;
-    const orgId = actor.organizacaoId ?? undefined;
+    const orgId = actor.organizacaoId;
+    if (!orgId) return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
 
     const updated = await updateUser(id, { nome, email, perfil, moradaId, ativo, password, organizacaoId: orgId });
     if (!updated) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
@@ -56,7 +57,8 @@ export async function DELETE(request: Request, ctx: Ctx) {
 
   try {
     const { id } = await ctx.params;
-    const orgId = actor.organizacaoId ?? undefined;
+    const orgId = actor.organizacaoId;
+    if (!orgId) return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
 
     if (id === actor.id) {
       return NextResponse.json({ error: "Não é possível excluir a própria conta por esta rota" }, { status: 400 });
