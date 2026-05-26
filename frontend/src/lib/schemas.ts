@@ -143,7 +143,7 @@ export const UpdateOrganizacaoSchema = z.object({
   termoPrimeirasPromessas: nonEmptyString(100).optional(),
   termoFormacaoPermanente: nonEmptyString(100).optional(),
   nomePlataforma: optionalString(100).nullable(),
-  logoUrl: z.string().url("URL inválida").max(2048).optional().nullable(),
+  logoUrl: z.string().url("URL inválida").max(2048).refine((v) => v.startsWith("https://"), { message: "logoUrl deve usar HTTPS" }).optional().nullable(),
   temaCor: z.string().max(50).optional(),
   onboardingConcluido: z.boolean().optional(),
 });
@@ -197,6 +197,105 @@ export const UpdateFormacaoSchema = z.object({
   gradeId: z.string().optional().nullable(),
   gradeNome: optionalString(255).nullable(),
   vezesUtilizada: z.number().int().min(0).optional(),
+});
+
+// ── Formação (criação) ────────────────────────────────────────────────────────
+
+export const CreateFormacaoSchema = UpdateFormacaoSchema.extend({
+  tema: nonEmptyString(500),
+});
+
+// ── Plano Formativo ───────────────────────────────────────────────────────────
+
+export const StatusPlanoEnum = z.enum(["rascunho", "em-revisao", "ativo", "arquivado"]);
+
+export const EixoPlanoSchema = z.object({
+  nome: nonEmptyString(255),
+  objetivo: optionalString(2000).default(""),
+  intervaloEncontros: optionalString(100).default(""),
+  cargaHoraria: z.number().int().min(0).default(0),
+  areaFormacao: optionalString(255).default(""),
+});
+
+export const UpdatePlanoSchema = z.object({
+  nome: nonEmptyString(500).optional(),
+  objetivos: optionalString(2000),
+  fundamentacao: optionalString(2000),
+  nivelFormativo: NivelFormativoEnum.optional(),
+  vigenciaInicio: isoDate.optional(),
+  vigenciaFim: isoDate.optional(),
+  status: StatusPlanoEnum.optional(),
+  documentoAnexo: optionalString(500).nullable(),
+  documentoAnexoId: optionalString(255).nullable(),
+  eixos: z.array(EixoPlanoSchema).optional(),
+});
+
+// ── Evento Formando ───────────────────────────────────────────────────────────
+
+export const TipoEventoEnum = z.enum([
+  "avaliacao-adesao",
+  "solicitacao-desligamento",
+  "desligamento",
+  "licenca",
+]);
+
+export const NotaAdesaoEnum = z.enum(["otima", "boa", "regular", "insuficiente"]);
+export const TipoDesligamentoEnum = z.enum(["voluntario", "compulsorio"]);
+
+export const CreateEventoSchema = z.object({
+  formandoId: z.string().min(1, "formandoId obrigatório"),
+  tipo: TipoEventoEnum,
+  periodoInicio: isoDate.optional(),
+  periodoFim: isoDate.optional(),
+  notaAdesao: NotaAdesaoEnum.optional().nullable(),
+  textoAvaliacao: optionalString(5000).nullable(),
+  motivo: optionalString(2000).nullable(),
+  tipoDesligamento: TipoDesligamentoEnum.optional().nullable(),
+  dataEfetiva: isoDate.optional(),
+  checklistDevolveuEstatuto: z.boolean().optional().nullable(),
+  checklistDevolveuSacramental: z.boolean().optional().nullable(),
+  checklistApresentouCarta: z.boolean().optional().nullable(),
+  checklistAcompanhadoModerador: z.boolean().optional().nullable(),
+  dataInicioLicenca: isoDate.optional(),
+  dataFimLicenca: isoDate.optional(),
+});
+
+// ── Comentário ────────────────────────────────────────────────────────────────
+
+export const TipoComentarioEnum = z.enum(["adesao", "dificuldade", "progresso", "observacao"]);
+
+export const UpdateComentarioSchema = z.object({
+  texto: z.string().min(1, "Texto obrigatório").max(5000, "Máximo 5000 caracteres").trim(),
+  tipo: TipoComentarioEnum.optional(),
+});
+
+// ── Email Template ────────────────────────────────────────────────────────────
+
+const PassoEmailSchema = z.object({
+  titulo: z.string().max(200).trim(),
+  descricao: z.string().max(500).trim(),
+});
+
+export const EmailTemplateSchema = z.object({
+  assunto: z.string().max(255).trim().optional(),
+  saudacao: z.string().max(500).trim().optional(),
+  mensagem1: z.string().max(2000).trim().optional(),
+  mensagem2: z.string().max(2000).trim().optional(),
+  passos: z.array(PassoEmailSchema).max(10).optional(),
+  textoBotao: z.string().max(100).trim().optional(),
+  avisoSeguranca: z.string().max(1000).trim().optional(),
+  rodape: z.string().max(500).trim().optional(),
+});
+
+// ── Registro de organização ───────────────────────────────────────────────────
+
+export const RegistroSchema = z.object({
+  orgNome: z.string().min(2, "Nome da organização deve ter ao menos 2 caracteres").max(255).trim(),
+  adminEmail: z.string().email("E-mail inválido").max(255),
+  adminNome: z.string().min(2, "Nome deve ter ao menos 2 caracteres").max(255).trim(),
+  senha: z.string().min(8).max(128),
+  aceitouPrivacidade: z.boolean().optional(),
+  aceitouTermos: z.boolean().optional(),
 });
 
 // ── Helpers de resposta ───────────────────────────────────────────────────────

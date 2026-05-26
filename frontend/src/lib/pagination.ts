@@ -6,6 +6,7 @@ export interface PageParams {
 }
 
 const MAX_PAGE_SIZE = 200;
+const MAX_PAGE = 10_000;
 
 /**
  * Returns null when neither `page` nor `pageSize` appear in the query string,
@@ -17,7 +18,7 @@ export function parsePagination(searchParams: URLSearchParams): PageParams | nul
   if (!pageParam && !pageSizeParam) return null;
 
   const pageSize = Math.min(Math.max(1, Number(pageSizeParam ?? 50)), MAX_PAGE_SIZE);
-  const page = Math.max(1, Number(pageParam ?? 1));
+  const page = Math.min(Math.max(1, Number(pageParam ?? 1)), MAX_PAGE);
   return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize };
 }
 

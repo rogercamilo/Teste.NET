@@ -6,7 +6,7 @@ import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { limiters } from "@/lib/rate-limit";
 import type { ComentarioFormando } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
 
 type PrismaComentario = {
   id: string; organizacaoId: string; formandoId: string; formandoNome: string;
@@ -72,8 +72,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "formandoId e texto são obrigatórios" }, { status: 400 });
     }
 
+    const moradaFilter = user.role === "formador_comunitario" ? { moradaId: user.moradaId ?? null } : {};
     const formando = await prisma.formando.findFirst({
-      where: { id: body.formandoId, organizacaoId: user.organizacaoId },
+      where: { id: body.formandoId, organizacaoId: user.organizacaoId, ...moradaFilter },
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 

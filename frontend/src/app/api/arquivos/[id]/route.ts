@@ -36,6 +36,10 @@ export async function GET(
   ) {
     const { getFileUrl } = await import("@/lib/storage");
     const url = await getFileUrl(arquivo.storageKey, arquivo.id);
+    const expectedPrefix = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+    if (!url.startsWith(expectedPrefix)) {
+      return new Response("URL de redirecionamento inválida", { status: 500 });
+    }
     return Response.redirect(url, 302);
   }
 

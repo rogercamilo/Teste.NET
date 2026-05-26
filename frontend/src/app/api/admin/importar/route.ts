@@ -8,6 +8,16 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { NivelFormativoEnum, EstadoCivilEnum, ModalidadeEnum, TipoComentarioEnum } from "@/lib/schemas";
+
+const NIVEL_FORMATIVO_VALUES = NivelFormativoEnum.options;
+const ESTADO_CIVIL_VALUES = EstadoCivilEnum.options;
+const MODALIDADE_VALUES = ModalidadeEnum.options;
+const TIPO_COMENTARIO_VALUES = TipoComentarioEnum.options;
+
+function validEnum<T extends string>(value: unknown, values: readonly T[], fallback: T): T {
+  return values.includes(value as T) ? (value as T) : fallback;
+}
 
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -93,9 +103,9 @@ export async function POST(request: Request) {
               organizacaoId: orgId,
               nome: String(row.nome),
               dataNascimento: row.dataNascimento ? new Date(String(row.dataNascimento)) : new Date("2000-01-01"),
-              estadoCivil: row.estadoCivil ? String(row.estadoCivil) : "solteiro",
-              modalidade: row.modalidade ? String(row.modalidade) : "presencial",
-              nivelFormativo: row.nivelFormativo ? String(row.nivelFormativo) : "pre-discipulado",
+              estadoCivil: validEnum(row.estadoCivil, ESTADO_CIVIL_VALUES, "solteiro"),
+              modalidade: validEnum(row.modalidade, MODALIDADE_VALUES, "presencial"),
+              nivelFormativo: validEnum(row.nivelFormativo, NIVEL_FORMATIVO_VALUES, "pre-discipulado"),
               dataIngresso: row.dataIngresso ? new Date(String(row.dataIngresso)) : new Date(),
               telefone: row.telefone ? String(row.telefone) : "",
               email: row.email ? String(row.email) : "",
@@ -140,7 +150,7 @@ export async function POST(request: Request) {
               formadorId: String(row.formadorId),
               formadorNome: row.formadorNome ? String(row.formadorNome) : null,
               texto: String(row.texto),
-              tipo: row.tipo ? String(row.tipo) : "observacao",
+              tipo: validEnum(row.tipo, TIPO_COMENTARIO_VALUES, "observacao"),
             },
           });
           count++;

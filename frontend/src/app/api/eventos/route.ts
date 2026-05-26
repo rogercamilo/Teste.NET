@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { limiters } from "@/lib/rate-limit";
+import { CreateEventoSchema, parseBody } from "@/lib/schemas";
 import type { EventoFormando } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -81,10 +82,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json() as Partial<EventoFormando>;
-    if (!body.formandoId || !body.tipo) {
-      return NextResponse.json({ error: "formandoId e tipo são obrigatórios" }, { status: 400 });
-    }
+    const parsed = parseBody(CreateEventoSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
 
     const formando = await prisma.formando.findFirst({
       where: { id: body.formandoId, organizacaoId: user.organizacaoId },

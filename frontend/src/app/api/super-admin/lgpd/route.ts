@@ -69,7 +69,8 @@ export async function PATCH(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   const body = await request.json() as { id?: string; status?: string };
-  if (!body.id || !["processando", "concluido"].includes(body.status ?? "")) {
+  const CUID_RE = /^c[a-z0-9]{20,30}$/;
+  if (!body.id || !CUID_RE.test(body.id) || !["processando", "concluido"].includes(body.status ?? "")) {
     return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { UpdateComentarioSchema, parseBody } from "@/lib/schemas";
 import type { ComentarioFormando } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -39,8 +40,9 @@ export async function PUT(request: Request, { params }: Params) {
     if (user.role === "formador_comunitario" && existing.formadorId !== user.id) {
       return NextResponse.json({ error: "Sem permissão para editar comentários de outros formadores" }, { status: 403 });
     }
-    const body = await request.json() as Partial<ComentarioFormando>;
-    const updated = await prisma.comentarioFormando.update({ where: { id }, data: { texto: body.texto?.trim(), tipo: body.tipo } });
+    const parsedBody = parseBody(UpdateComentarioSchema, await request.json());
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const updated = await prisma.comentarioFormando.update({ where: { id }, data: { texto: parsedBody.data.texto, tipo: parsedBody.data.tipo } });
     logAction("comentario_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toComentario(updated));
   } catch (err) { logError("comentarios/[id] PUT", err); return NextResponse.json({ error: "Falha ao atualizar comentário" }, { status: 500 }); }

@@ -13,10 +13,11 @@ export async function GET() {
       select: { nome: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     if (!org) return NextResponse.json({ nome: "Formatio", nomePlataforma: null, logoUrl: null, temaCor: "azul" });
+    const safeLogoUrl = org.logoUrl?.startsWith("https://") ? org.logoUrl : null;
     return NextResponse.json({
       nome: org.nome,
       nomePlataforma: org.nomePlataforma ?? null,
-      logoUrl: org.logoUrl ?? null,
+      logoUrl: safeLogoUrl,
       temaCor: org.temaCor,
     });
   } catch {

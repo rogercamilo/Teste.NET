@@ -86,9 +86,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             (user as { primeiroAcesso?: boolean }).primeiroAcesso ?? false;
         }
       } else if (token.id && token.primeiroAcesso) {
-        // Only query DB while primeiroAcesso is true — once cleared, no further DB round-trip.
-        const dbUser = await findById(token.id as string, token.organizacaoId as string | undefined);
-        if (dbUser) token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
+        // Only query DB while primeiroAcesso is true — throttled to once per 30 s to avoid a DB
+        // hit on every request for accounts that were provisioned but never completed first login.
+        const now = Date.now();
+        const lastCheck = (token._primeiroAcessoCheckedAt as number | undefined) ?? 0;
+        if (now - lastCheck > 30_000) {
+          const dbUser = await findById(token.id as string, token.organizacaoId as string | undefined);
+          if (dbUser) token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
+          token._primeiroAcessoCheckedAt = now;
+        }
       }
       return token;
     },

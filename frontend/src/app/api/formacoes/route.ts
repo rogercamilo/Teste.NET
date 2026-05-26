@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
+import { CreateFormacaoSchema, parseBody } from "@/lib/schemas";
 import type { Formacao } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const pagination = parsePagination(searchParams);
-    const where = { OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] };
+    const where = { deletedAt: null, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] };
     const orderBy = { criadoEm: "desc" as const };
 
     if (!pagination) {
@@ -85,8 +86,9 @@ export async function POST(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const body = await request.json() as Partial<Formacao>;
-    if (!body.tema?.trim()) return NextResponse.json({ error: "Tema é obrigatório" }, { status: 400 });
+    const parsed = parseBody(CreateFormacaoSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
 
     const row = await prisma.formacao.create({
       data: {

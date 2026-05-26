@@ -8,7 +8,7 @@
  */
 
 import { randomBytes } from "crypto";
-import { join } from "path";
+import { join, resolve } from "path";
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import type { S3Client } from "@aws-sdk/client-s3";
 
@@ -54,12 +54,18 @@ async function deleteLocal(storageKey: string): Promise<void> {
   if (existsSync(fullPath)) unlinkSync(fullPath);
 }
 
+function safeLocalPath(storageKey: string): string {
+  const fullPath = resolve(join(LOCAL_ROOT, storageKey));
+  if (!fullPath.startsWith(LOCAL_ROOT)) throw new Error("Path traversal detected");
+  return fullPath;
+}
+
 export function readLocalFile(storageKey: string): Buffer {
-  return readFileSync(join(LOCAL_ROOT, storageKey));
+  return readFileSync(safeLocalPath(storageKey));
 }
 
 export function localFileExists(storageKey: string): boolean {
-  return existsSync(join(LOCAL_ROOT, storageKey));
+  return existsSync(safeLocalPath(storageKey));
 }
 
 // ---------------------------------------------------------------------------

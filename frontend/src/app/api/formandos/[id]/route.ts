@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { UpdateFormandoSchema, parseBody } from "@/lib/schemas";
 import type { Formando, ProgressoEtapa } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
@@ -98,26 +99,9 @@ export async function PUT(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Sem permissão para editar formandos de outra morada" }, { status: 403 });
     }
 
-    const raw = await request.json() as Record<string, unknown>;
-    // Explicit whitelist — prevents mass assignment of fields like organizacaoId, deletedAt
-    const body: Partial<Formando> = {
-      nome: typeof raw.nome === "string" ? raw.nome : undefined,
-      dataNascimento: typeof raw.dataNascimento === "string" ? raw.dataNascimento : undefined,
-      estadoCivil: raw.estadoCivil as Formando["estadoCivil"] | undefined,
-      modalidade: raw.modalidade as Formando["modalidade"] | undefined,
-      nivelFormativo: raw.nivelFormativo as Formando["nivelFormativo"] | undefined,
-      dataIngresso: typeof raw.dataIngresso === "string" ? raw.dataIngresso : undefined,
-      telefone: typeof raw.telefone === "string" ? raw.telefone : undefined,
-      email: typeof raw.email === "string" ? raw.email : undefined,
-      ativo: typeof raw.ativo === "boolean" ? raw.ativo : undefined,
-      motivoInatividade: raw.motivoInatividade as Formando["motivoInatividade"] | undefined,
-      foto: typeof raw.foto === "string" ? raw.foto : undefined,
-      turmaId: typeof raw.turmaId === "string" ? raw.turmaId : undefined,
-      moradaId: typeof raw.moradaId === "string" ? raw.moradaId : (raw.moradaId === null ? null : undefined),
-      totalFormacoes: typeof raw.totalFormacoes === "number" ? raw.totalFormacoes : undefined,
-      formacoesRealizadas: typeof raw.formacoesRealizadas === "number" ? raw.formacoesRealizadas : undefined,
-      progressoEtapas: Array.isArray(raw.progressoEtapas) ? raw.progressoEtapas as Formando["progressoEtapas"] : undefined,
-    };
+    const parsed = parseBody(UpdateFormandoSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
 
     if (body.moradaId) {
       const morada = await prisma.morada.findFirst({ where: { id: body.moradaId, organizacaoId: user.organizacaoId } });
@@ -169,7 +153,7 @@ export async function PUT(request: Request, { params }: Params) {
         }
       }
 
-      return tx.formando.findUniqueOrThrow({ where: { id }, include: { progressoEtapas: true } });
+      return tx.formando.findUniqueOrThrow({ where: { id, organizacaoId: user.organizacaoId }, include: { progressoEtapas: true } });
     });
 
     logAction("formando_updated", user.id, getClientIp(request), { id }, user.organizacaoId);

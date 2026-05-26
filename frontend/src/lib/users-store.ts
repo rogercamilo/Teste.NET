@@ -271,7 +271,10 @@ export async function deleteUser(
   id: string,
   organizacaoId: string
 ): Promise<boolean> {
-  const result = await prisma.usuario.deleteMany({ where: { id, organizacaoId } });
+  const result = await prisma.usuario.updateMany({
+    where: { id, organizacaoId, deletedAt: null },
+    data: { deletedAt: new Date(), ativo: false },
+  });
   return result.count > 0;
 }
 

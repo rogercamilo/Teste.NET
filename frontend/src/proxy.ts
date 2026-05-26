@@ -50,7 +50,7 @@ export default auth(function proxy(req) {
     "/api/health",
     "/api/public/",
     "/api/registro",
-    "/api/convites/",      // Only GET+POST /api/convites/[token] are public (invite lookup/accept). List/create/delete at /api/convites are auth-protected.
+    // /api/convites/[token] handled separately below — only token paths are public
     "/api/cookies/",
     "/api/stripe/webhook",
     "/api/auth/signin",
@@ -61,9 +61,15 @@ export default auth(function proxy(req) {
     "/api/auth/providers",
     "/api/auth/error",
   ];
+  // Only /api/convites/<token> (exactly one non-empty segment) is public.
+  // /api/convites and /api/convites/ (admin list/create/delete) remain auth-protected.
+  const isPublicConviteToken =
+    pathname.startsWith("/api/convites/") && pathname.length > "/api/convites/".length;
+
   const isPublic =
     publicExact.includes(pathname) ||
-    publicPrefixes.some((p) => pathname.startsWith(p));
+    publicPrefixes.some((p) => pathname.startsWith(p)) ||
+    isPublicConviteToken;
 
   if (!isLoggedIn && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));

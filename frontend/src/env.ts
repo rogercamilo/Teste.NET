@@ -65,6 +65,10 @@ const schema = z
       .regex(/^[0-9a-fA-F]{64}$/, "APP_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)")
       .optional(),
 
+    // Reverse proxy trust — only set to "true" when the app is behind a trusted reverse proxy.
+    // Setting this to any other value (e.g. "yes", "1") is treated as false.
+    TRUST_PROXY: z.enum(["true", "false"]).optional(),
+
     // Stripe — optional
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),

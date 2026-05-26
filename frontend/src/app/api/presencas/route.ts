@@ -6,7 +6,7 @@ import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { limiters } from "@/lib/rate-limit";
 import type { PresencaFormacao } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
 
 type PrismaPresenca = {
   id: string; organizacaoId: string; agendamentoId: string; formacaoTema: string;
@@ -80,8 +80,9 @@ export async function POST(request: Request) {
     });
     if (!agendamento) return NextResponse.json({ error: "Agendamento não encontrado" }, { status: 404 });
 
+    const moradaFilter = user.role === "formador_comunitario" ? { moradaId: user.moradaId ?? null } : {};
     const formando = await prisma.formando.findFirst({
-      where: { id: body.formandoId, organizacaoId: user.organizacaoId },
+      where: { id: body.formandoId, organizacaoId: user.organizacaoId, ...moradaFilter },
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 

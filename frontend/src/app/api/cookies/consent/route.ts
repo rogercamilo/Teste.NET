@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, anonymizeIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
+
+const SESSION_ID_RE = /^[a-zA-Z0-9_-]{8,128}$/;
 
 const COOKIE_VERSION = "1";
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rl = await limiters.mutation(ip);
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+
   try {
     const body = await req.json() as {
       analiticos?: boolean;
@@ -17,7 +24,8 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
     const organizacaoId = (session?.user as { organizacaoId?: string } | undefined)?.organizacaoId ?? null;
-    const sessionId = body.sessionId ?? null;
+    const rawSessionId = body.sessionId ?? null;
+    const sessionId = rawSessionId && SESSION_ID_RE.test(rawSessionId) ? rawSessionId : null;
     const ip = anonymizeIp(getClientIp(req));
 
     const preferences = {

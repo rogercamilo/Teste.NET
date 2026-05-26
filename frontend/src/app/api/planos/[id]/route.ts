@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { UpdatePlanoSchema, parseBody } from "@/lib/schemas";
 import type { PlanoFormativo, EixoPlano } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -51,7 +52,9 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.planoFormativo.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    const body = await request.json() as Partial<PlanoFormativo>;
+    const parsed = parseBody(UpdatePlanoSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
 
     const updated = await prisma.$transaction(async (tx) => {
       await tx.eixoPlano.deleteMany({ where: { planoId: id } });

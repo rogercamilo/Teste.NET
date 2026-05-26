@@ -5,6 +5,7 @@ import { validatePassword } from "@/lib/password-validation";
 import { logAction, getClientIp, anonymizeIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal-versions";
+import { RegistroSchema, parseBody } from "@/lib/schemas";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -14,20 +15,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json() as {
-      orgNome?: string;
-      adminEmail?: string;
-      adminNome?: string;
-      senha?: string;
-      aceitouPrivacidade?: boolean;
-      aceitouTermos?: boolean;
-    };
-
-    const { orgNome, adminEmail, adminNome, senha, aceitouPrivacidade } = body;
-
-    if (!orgNome?.trim() || !adminEmail?.trim() || !adminNome?.trim() || !senha) {
-      return NextResponse.json({ error: "Todos os campos são obrigatórios" }, { status: 400 });
-    }
+    const parsed = parseBody(RegistroSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const { orgNome, adminEmail, adminNome, senha, aceitouPrivacidade } = parsed.data;
 
     if (!aceitouPrivacidade) {
       return NextResponse.json(

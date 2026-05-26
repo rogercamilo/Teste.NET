@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { loadEmailTemplate, saveEmailTemplate, DEFAULT_EMAIL_TEMPLATE } from "@/lib/email-template";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { EmailTemplateSchema, parseBody } from "@/lib/schemas";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 
@@ -27,17 +28,19 @@ export async function PUT(request: Request) {
   if (!rlPut.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const body = await request.json() as Record<string, unknown>;
+    const parsed = parseBody(EmailTemplateSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
     const current = await loadEmailTemplate(user.organizacaoId);
     const updated = {
-      assunto: typeof body.assunto === "string" ? body.assunto : current.assunto,
-      saudacao: typeof body.saudacao === "string" ? body.saudacao : current.saudacao,
-      mensagem1: typeof body.mensagem1 === "string" ? body.mensagem1 : current.mensagem1,
-      mensagem2: typeof body.mensagem2 === "string" ? body.mensagem2 : current.mensagem2,
-      passos: Array.isArray(body.passos) ? body.passos : current.passos,
-      textoBotao: typeof body.textoBotao === "string" ? body.textoBotao : current.textoBotao,
-      avisoSeguranca: typeof body.avisoSeguranca === "string" ? body.avisoSeguranca : current.avisoSeguranca,
-      rodape: typeof body.rodape === "string" ? body.rodape : current.rodape,
+      assunto: body.assunto ?? current.assunto,
+      saudacao: body.saudacao ?? current.saudacao,
+      mensagem1: body.mensagem1 ?? current.mensagem1,
+      mensagem2: body.mensagem2 ?? current.mensagem2,
+      passos: body.passos ?? current.passos,
+      textoBotao: body.textoBotao ?? current.textoBotao,
+      avisoSeguranca: body.avisoSeguranca ?? current.avisoSeguranca,
+      rodape: body.rodape ?? current.rodape,
     };
     await saveEmailTemplate(user.organizacaoId, updated);
     logAction("email_template_changed", user.id, getClientIp(request), {}, user.organizacaoId);

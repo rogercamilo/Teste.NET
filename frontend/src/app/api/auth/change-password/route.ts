@@ -34,6 +34,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
   }
 
+  if (!user.primeiroAcesso && !user.passwordHash) {
+    return NextResponse.json({ error: "Estado de conta inválido. Solicite suporte." }, { status: 403 });
+  }
+
   if (!user.primeiroAcesso && user.passwordHash) {
     if (!currentPassword) {
       return NextResponse.json({ error: "Senha atual é obrigatória" }, { status: 400 });
