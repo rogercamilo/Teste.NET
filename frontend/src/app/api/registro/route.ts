@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/users-store";
 import { validatePassword } from "@/lib/password-validation";
-import { logAction, getClientIp, anonymizeIp } from "@/lib/audit-log";
+import { logAction, getClientIp, anonymizeIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal-versions";
 
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     if (err instanceof Error && err.message === "EMAIL_EXISTS") {
       return NextResponse.json({ error: "E-mail já cadastrado na plataforma" }, { status: 409 });
     }
-    console.error("[registro] Erro:", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao criar organização" }, { status: 500 });
   }
 }

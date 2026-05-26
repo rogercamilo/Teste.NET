@@ -113,6 +113,23 @@ export function getClientIp(request: Request): string {
   return request.headers.get("x-real-ip") ?? "unknown";
 }
 
+export function logError(
+  tag: string,
+  err: unknown,
+  context?: Record<string, unknown>
+): void {
+  console.error(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: "error",
+      tag,
+      message: err instanceof Error ? err.message : String(err),
+      ...(err instanceof Error && err.stack ? { stack: err.stack.split("\n").slice(0, 5) } : {}),
+      ...context,
+    })
+  );
+}
+
 export function logAction(
   action: AuditAction,
   userId: string | undefined,

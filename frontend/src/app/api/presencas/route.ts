@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { PresencaFormacao } from "@/types";
 
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toPresenca), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[presencas GET]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao carregar presenças" }, { status: 500 });
   }
 }
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     logAction("presenca_registrada", user.id, getClientIp(request), { agendamentoId: body.agendamentoId, formandoId: body.formandoId }, user.organizacaoId);
     return NextResponse.json(toPresenca(row), { status: 201 });
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao registrar presença" }, { status: 500 });
   }
 }

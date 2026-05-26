@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import type { Morada } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: Params) {
     const row = await prisma.morada.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toMorada(row));
-  } catch (err) { console.error("[moradas/:id GET]", err); return NextResponse.json({ error: "Falha ao carregar morada" }, { status: 500 }); }
+  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao carregar morada" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -49,7 +49,7 @@ export async function PUT(request: Request, { params }: Params) {
     });
     logAction("morada_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toMorada(updated));
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar morada" }, { status: 500 }); }
+  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao atualizar morada" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -64,5 +64,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.morada.delete({ where: { id } });
     logAction("morada_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir morada" }, { status: 500 }); }
+  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao excluir morada" }, { status: 500 }); }
 }

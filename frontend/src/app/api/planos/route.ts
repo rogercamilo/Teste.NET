@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { PlanoFormativo, EixoPlano } from "@/types";
 
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toPlano), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[planos GET]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao carregar planos" }, { status: 500 });
   }
 }
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     logAction("plano_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
     return NextResponse.json(toPlano(row), { status: 201 });
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao criar plano" }, { status: 500 });
   }
 }

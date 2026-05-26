@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/audit-log";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(orgs, { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[super-admin organizacoes GET]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao carregar organizações" }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import type { EventoFormando } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: Params) {
     const row = await prisma.eventoFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toEvento(row));
-  } catch (err) { console.error("[eventos/:id GET]", err); return NextResponse.json({ error: "Falha ao carregar evento" }, { status: 500 }); }
+  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao carregar evento" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -40,7 +40,7 @@ export async function PUT(request: Request, { params }: Params) {
     });
     logAction("evento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toEvento(updated));
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar evento" }, { status: 500 }); }
+  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao atualizar evento" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -54,5 +54,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.eventoFormando.delete({ where: { id } });
     logAction("evento_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir evento" }, { status: 500 }); }
+  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao excluir evento" }, { status: 500 }); }
 }

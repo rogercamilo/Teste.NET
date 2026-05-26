@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 
 type SessionUser = { id?: string; organizacaoId?: string };
 
@@ -9,6 +10,11 @@ export async function GET(request: Request) {
   const session = await auth();
   const actor = session?.user as SessionUser | undefined;
   if (!actor?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+  const rl = await limiters.export(actor.id);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Limite de exportações atingido. Tente novamente em 1 hora." }, { status: 429 });
+  }
 
   const usuario = await prisma.usuario.findUnique({
     where: { id: actor.id },

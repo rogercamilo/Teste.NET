@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/users-store";
 import { validatePassword } from "@/lib/password-validation";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -99,7 +99,7 @@ export async function POST(request: Request, { params }: Params) {
       if (err.message === "EXPIRED") return NextResponse.json({ error: "Convite expirado" }, { status: 410 });
       if (err.message === "EMAIL_EXISTS") return NextResponse.json({ error: "Já existe um usuário com este e-mail" }, { status: 409 });
     }
-    console.error("[convite/token] Erro:", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao aceitar convite" }, { status: 500 });
   }
 }

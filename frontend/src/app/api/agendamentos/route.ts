@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
+import { CreateAgendamentoSchema, parseBody } from "@/lib/schemas";
+import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -44,7 +46,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const pagination = parsePagination(searchParams);
-    const where = { organizacaoId: user.organizacaoId };
+    const where = { organizacaoId: user.organizacaoId, deletedAt: null as null };
     const orderBy = { dataInicio: "asc" as const };
 
     if (!pagination) {
@@ -58,7 +60,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toAg), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[agendamentos GET]", err);
+    logError("agendamentos GET", err);
     return NextResponse.json({ error: "Falha ao carregar agendamentos" }, { status: 500 });
   }
 }
@@ -68,11 +70,15 @@ export async function POST(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
+  const rl = await limiters.mutation(user.id ?? getClientIp(request));
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
+  }
+
   try {
-    const body = await request.json() as Partial<Agendamento>;
-    if (!body.formacaoId || !body.dataInicio) {
-      return NextResponse.json({ error: "formacaoId e dataInicio são obrigatórios" }, { status: 400 });
-    }
+    const parsed = parseBody(CreateAgendamentoSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
 
     // formadorId is always the authenticated user; formadorNome resolved server-side.
     const formadorId = user.id!;
@@ -93,18 +99,18 @@ export async function POST(request: Request) {
         formadorNome,
         dataInicio: new Date(body.dataInicio),
         dataFim: new Date(body.dataFim ?? body.dataInicio),
-        local: body.local || null,
-        linkOnline: body.linkOnline || null,
+        local: body.local ?? null,
+        linkOnline: body.linkOnline ?? null,
         status: body.status ?? "agendada",
         participantes: body.participantes ?? 0,
-        observacoes: body.observacoes || null,
-        googleCalendarEventId: body.googleCalendarEventId || null,
+        observacoes: body.observacoes ?? null,
+        googleCalendarEventId: body.googleCalendarEventId ?? null,
       },
     });
     logAction("agendamento_created", user.id, getClientIp(request), { formacaoId: body.formacaoId }, user.organizacaoId);
     return NextResponse.json(toAg(row), { status: 201 });
   } catch (err) {
-    console.error("[api]", err);
+    logError("agendamentos POST", err);
     return NextResponse.json({ error: "Falha ao criar agendamento" }, { status: 500 });
   }
 }

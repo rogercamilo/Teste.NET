@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { listUsers, countUsers, createUser, findByEmail, toPublic } from "@/lib/users-store";
 import { sendWelcomeEmail } from "@/lib/email";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
+import { CreateUserSchema, parseBody } from "@/lib/schemas";
+import { limiters } from "@/lib/rate-limit";
 
 type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
@@ -40,7 +42,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(users.map(toPublic), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[api]", err);
+    logError("users GET", err);
     return NextResponse.json({ error: "Falha ao carregar usuários" }, { status: 500 });
   }
 }
@@ -59,23 +61,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
   }
 
-  try {
-    const body = await request.json() as {
-      nome?: string;
-      email?: string;
-      password?: string;
-      perfil?: string;
-      moradaId?: string;
-      ativo?: boolean;
-    };
-    const { nome, email, password, perfil, moradaId, ativo } = body;
+  const rl = await limiters.mutation(actor.id ?? getClientIp(request));
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
+  }
 
-    if (!nome || !email) {
-      return NextResponse.json(
-        { error: "Nome e e-mail são obrigatórios" },
-        { status: 400 }
-      );
-    }
+  try {
+    const parsed = parseBody(CreateUserSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const { nome, email, password, perfil, moradaId, ativo } = parsed.data;
+
     if (await findByEmail(email, actor.organizacaoId)) {
       return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });
     }
@@ -104,7 +99,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ...toPublic(user), tempPassword, emailSent }, { status: 201 });
   } catch (err) {
-    console.error("[users POST]", err);
+    logError("users POST", err);
     return NextResponse.json({ error: "Falha ao criar usuário" }, { status: 500 });
   }
 }

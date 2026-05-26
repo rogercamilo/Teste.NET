@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json() as ImportPayload;
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, importados: results });
   } catch (err) {
-    console.error("Erro na importação:", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha durante a importação" }, { status: 500 });
   }
 }

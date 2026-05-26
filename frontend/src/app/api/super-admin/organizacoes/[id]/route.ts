@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { PlanoAssinatura, type StatusOrganizacao } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -88,7 +88,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     return NextResponse.json({ id: updated.id, status: updated.status, planoAssinatura: updated.planoAssinatura });
   } catch (err) {
-    console.error("[super-admin/org] Erro:", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao atualizar organização" }, { status: 500 });
   }
 }
@@ -115,7 +115,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
     return new NextResponse(null, { status: 204 });
   } catch (err) {
-    console.error("[super-admin/org] Erro ao deletar:", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao excluir organização" }, { status: 500 });
   }
 }

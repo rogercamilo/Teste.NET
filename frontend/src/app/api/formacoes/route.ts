@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { Formacao } from "@/types";
 
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toFormacao), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[formacoes GET]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao carregar formações" }, { status: 500 });
   }
 }
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     logAction("formacao_created", user.id, getClientIp(request), { tema: body.tema }, user.organizacaoId);
     return NextResponse.json(toFormacao(row), { status: 201 });
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao criar formação" }, { status: 500 });
   }
 }

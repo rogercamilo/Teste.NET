@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import type { PlanoFormativo, EixoPlano } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -36,7 +36,7 @@ export async function GET(_req: Request, { params }: Params) {
     });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toPlano(row));
-  } catch (err) { console.error("[planos/:id GET]", err); return NextResponse.json({ error: "Falha ao carregar plano" }, { status: 500 }); }
+  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao carregar plano" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -67,7 +67,7 @@ export async function PUT(request: Request, { params }: Params) {
     });
     logAction("plano_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toPlano(updated));
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar plano" }, { status: 500 }); }
+  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao atualizar plano" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -82,5 +82,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.planoFormativo.delete({ where: { id } });
     logAction("plano_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir plano" }, { status: 500 }); }
+  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao excluir plano" }, { status: 500 }); }
 }

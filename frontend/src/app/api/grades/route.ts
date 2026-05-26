@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { GradeFormativa, Eixo, Etapa } from "@/types";
 
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toGrade), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[grades GET]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao carregar grades" }, { status: 500 });
   }
 }
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     logAction("grade_created", user.id, getClientIp(request), { planoId: body.planoId }, user.organizacaoId);
     return NextResponse.json(toGrade(grade), { status: 201 });
   } catch (err) {
-    console.error("[grades POST]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao criar grade" }, { status: 500 });
   }
 }

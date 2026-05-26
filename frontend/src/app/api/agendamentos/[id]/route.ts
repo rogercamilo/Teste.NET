@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import type { Agendamento } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -19,11 +19,11 @@ export async function GET(_req: Request, { params }: Params) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   try {
     const { id } = await params;
-    const row = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    const row = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toAg(row));
   } catch (err) {
-    console.error("[agendamentos/:id GET]", err);
+    logError("agendamentos/:id GET", err);
     return NextResponse.json({ error: "Falha ao carregar agendamento" }, { status: 500 });
   }
 }
@@ -34,7 +34,7 @@ export async function PUT(request: Request, { params }: Params) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
   try {
-    const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     const body = await request.json() as Partial<Agendamento>;
     const updated = await prisma.agendamento.update({
@@ -43,7 +43,7 @@ export async function PUT(request: Request, { params }: Params) {
     });
     logAction("agendamento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toAg(updated));
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar agendamento" }, { status: 500 }); }
+  } catch (err) { logError("agendamentos/:id PUT", err); return NextResponse.json({ error: "Falha ao atualizar agendamento" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -52,10 +52,10 @@ export async function DELETE(request: Request, { params }: Params) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
   try {
-    const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    await prisma.agendamento.delete({ where: { id } });
+    await prisma.agendamento.update({ where: { id }, data: { deletedAt: new Date() } });
     logAction("agendamento_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir agendamento" }, { status: 500 }); }
+  } catch (err) { logError("agendamentos/:id DELETE", err); return NextResponse.json({ error: "Falha ao excluir agendamento" }, { status: 500 }); }
 }

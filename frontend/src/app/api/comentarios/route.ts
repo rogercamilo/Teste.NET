@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { ComentarioFormando } from "@/types";
 
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toComentario), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[comentarios GET]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao carregar comentários" }, { status: 500 });
   }
 }
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     logAction("comentario_created", user.id, getClientIp(request), { formandoId: body.formandoId }, user.organizacaoId);
     return NextResponse.json(toComentario(row), { status: 201 });
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao criar comentário" }, { status: 500 });
   }
 }

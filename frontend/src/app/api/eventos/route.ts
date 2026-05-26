@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import type { EventoFormando } from "@/types";
 
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toEvento), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[eventos GET]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao carregar eventos" }, { status: 500 });
   }
 }
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     logAction("evento_created", user.id, getClientIp(request), { formandoId: body.formandoId, tipo: body.tipo }, user.organizacaoId);
     return NextResponse.json(toEvento(row), { status: 201 });
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao criar evento" }, { status: 500 });
   }
 }

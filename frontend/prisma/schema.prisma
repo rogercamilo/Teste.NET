@@ -192,6 +192,7 @@ model Formando {
   moradaId            String?
   totalFormacoes      Int       @default(0)
   formacoesRealizadas Int       @default(0)
+  deletedAt           DateTime?
   criadoEm           DateTime  @default(now())
   atualizadoEm       DateTime  @updatedAt
 
@@ -206,6 +207,7 @@ model Formando {
   @@index([organizacaoId])
   @@index([moradaId])
   @@index([organizacaoId, ativo])
+  @@index([deletedAt])
 }
 
 // ==========================================================
@@ -371,6 +373,7 @@ model Formacao {
   gradeId          String?
   gradeNome        String?
   vezesUtilizada   Int       @default(0)
+  deletedAt        DateTime?
   criadoEm        DateTime  @default(now())
   atualizadoEm    DateTime  @updatedAt
 
@@ -379,6 +382,7 @@ model Formacao {
   agendamentos     Agendamento[]
 
   @@index([organizacaoId])
+  @@index([deletedAt])
 }
 
 // ==========================================================
@@ -402,6 +406,7 @@ model Agendamento {
   participantes         Int       @default(0)
   observacoes           String?
   googleCalendarEventId String?
+  deletedAt             DateTime?
   criadoEm             DateTime  @default(now())
   atualizadoEm         DateTime  @updatedAt
 
@@ -414,6 +419,7 @@ model Agendamento {
   @@index([dataInicio])
   @@index([status])
   @@index([organizacaoId, status, dataInicio])
+  @@index([deletedAt])
 }
 
 // ==========================================================
@@ -561,6 +567,7 @@ model Arquivo {
   @@index([organizacaoId])
   @@index([eventoId])
   @@index([entityType, entityId])
+  @@index([uploadedById])
 }
 
 // ==========================================================
@@ -585,6 +592,8 @@ model ConviteUsuario {
 
   @@index([organizacaoId])
   @@index([token])
+  @@index([email])
+  @@index([expiresAt])
 }
 
 // ==========================================================
@@ -603,6 +612,7 @@ model PrivacyAcceptance {
   usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId])
+  @@index([tipo])
 }
 
 model CookieConsent {
@@ -633,6 +643,7 @@ model DeletionRequest {
 
   @@index([usuarioId])
   @@index([organizacaoId])
+  @@index([status])
 }
 
 // ==========================================================
@@ -654,4 +665,5 @@ model AuditLog {
   @@index([organizacaoId])
   @@index([usuarioId])
   @@index([criadoEm])
+  @@index([usuarioId, criadoEm])
 }

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { type NextRequest } from "next/server";
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   try {
     formData = await request.formData();
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return Response.json({ error: "Requisição inválida" }, { status: 400 });
   }
 
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
   try {
     storageKey = await uploadFile(orgId, "documentos", buffer, extensao, file.type);
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return Response.json({ error: "Falha ao salvar documento." }, { status: 500 });
   }
 
@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
     ]);
     return Response.json(documentos.map(toDoc), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[documentos GET]", err);
+    logError("", err);
     return Response.json({ error: "Falha ao carregar documentos" }, { status: 500 });
   }
 }

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
+import { UpdateOrganizacaoSchema, parseBody } from "@/lib/schemas";
 import type { ComunidadeConfig } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -39,7 +40,7 @@ export async function GET() {
     };
     return NextResponse.json(config);
   } catch (err) {
-    console.error("[organizacao GET]", err);
+    logError("organizacao GET", err);
     return NextResponse.json({ error: "Falha ao carregar organização" }, { status: 500 });
   }
 }
@@ -51,7 +52,9 @@ export async function PUT(request: Request) {
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   try {
-    const body = await request.json() as Partial<ComunidadeConfig & { onboardingConcluido?: boolean }>;
+    const parsed = parseBody(UpdateOrganizacaoSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
     const updated = await prisma.organizacao.update({
       where: { id: user.organizacaoId },
       data: {
@@ -94,7 +97,7 @@ export async function PUT(request: Request) {
     };
     return NextResponse.json({ ...config, onboardingConcluido: updated.onboardingConcluido });
   } catch (err) {
-    console.error("[organizacao PUT]", err);
+    logError("organizacao PUT", err);
     return NextResponse.json({ error: "Falha ao atualizar organização" }, { status: 500 });
   }
 }

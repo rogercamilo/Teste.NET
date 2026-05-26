@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import type { Formando, ProgressoEtapa } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
@@ -49,7 +49,7 @@ export async function GET(_req: Request, { params }: Params) {
     if (user.role === "formador_comunitario") where.moradaId = user.moradaId ?? null;
 
     const row = await prisma.formando.findFirst({
-      where,
+      where: { ...where, deletedAt: null },
       include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
     });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
@@ -72,7 +72,7 @@ export async function GET(_req: Request, { params }: Params) {
 
     return NextResponse.json(toFormando({ ...rest, totalFormacoes }));
   } catch (err) {
-    console.error("[formandos/:id GET]", err);
+    logError("formandos/:id GET", err);
     return NextResponse.json({ error: "Falha ao carregar formando" }, { status: 500 });
   }
 }
@@ -83,7 +83,7 @@ export async function PUT(request: Request, { params }: Params) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
   try {
-    const existing = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    const existing = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     const body = await request.json() as Partial<Formando>;
 
@@ -137,7 +137,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     logAction("formando_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toFormando(updated));
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar formando" }, { status: 500 }); }
+  } catch (err) { logError("formandos/:id PUT", err); return NextResponse.json({ error: "Falha ao atualizar formando" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -146,10 +146,10 @@ export async function DELETE(request: Request, { params }: Params) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
   try {
-    const existing = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    const existing = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    await prisma.formando.delete({ where: { id } });
+    await prisma.formando.update({ where: { id }, data: { deletedAt: new Date(), ativo: false } });
     logAction("formando_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir formando" }, { status: 500 }); }
+  } catch (err) { logError("formandos/:id DELETE", err); return NextResponse.json({ error: "Falha ao excluir formando" }, { status: 500 }); }
 }

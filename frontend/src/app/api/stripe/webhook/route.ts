@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { logAction } from "@/lib/audit-log";
+import { logAction, logError } from "@/lib/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -33,14 +33,14 @@ export async function POST(req: NextRequest) {
     const rawBody = await getRawBody(req);
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err) {
-    console.error("[stripe/webhook] Falha na verificação:", err);
+    logError("stripe webhook signature", err);
     return NextResponse.json({ error: "Webhook inválido" }, { status: 400 });
   }
 
   try {
     await handleEvent(event);
   } catch (err) {
-    console.error("[stripe/webhook] Erro ao processar evento:", event.type, err);
+    logError("stripe webhook handleEvent", err, { eventType: event.type });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 

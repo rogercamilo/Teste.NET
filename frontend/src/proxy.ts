@@ -1,15 +1,21 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  // Inline styles required by Tailwind; eval by Next.js dev runtime only
+  // HSTS only in production — local HTTP would break with this header
+  ...(isProd ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } : {}),
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Resource-Policy": "same-origin",
   "Content-Security-Policy": [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+    // 'unsafe-eval' is required by Next.js Turbopack dev runtime only — removed in production
+    `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"} https://js.stripe.com`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",

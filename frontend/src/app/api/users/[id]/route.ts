@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { findById, updateUser, deleteUser, toPublic } from "@/lib/users-store";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { isAdminOrAbove } from "@/types";
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -49,7 +49,7 @@ export async function PUT(request: Request, ctx: Ctx) {
     logAction("user_updated", actor.id ?? undefined, getClientIp(request), { targetId: id }, orgId);
     return NextResponse.json(toPublic(updated));
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao atualizar usuário" }, { status: 500 });
   }
 }
@@ -82,7 +82,7 @@ export async function DELETE(request: Request, ctx: Ctx) {
     logAction("user_deleted", actor.id ?? undefined, getClientIp(request), { targetId: id }, orgId);
     return new NextResponse(null, { status: 204 });
   } catch (err) {
-    console.error("[api]", err);
+    logError("", err);
     return NextResponse.json({ error: "Falha ao excluir usuário" }, { status: 500 });
   }
 }

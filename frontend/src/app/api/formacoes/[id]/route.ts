@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import type { Formacao } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -22,11 +22,11 @@ export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
   try {
     const row = await prisma.formacao.findFirst({
-      where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      where: { id, deletedAt: null, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
     });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toFormacao(row));
-  } catch (err) { console.error("[formacoes/:id GET]", err); return NextResponse.json({ error: "Falha ao carregar formação" }, { status: 500 }); }
+  } catch (err) { logError("formacoes/:id GET", err); return NextResponse.json({ error: "Falha ao carregar formação" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -36,13 +36,13 @@ export async function PUT(request: Request, { params }: Params) {
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const { id } = await params;
   try {
-    const existing = await prisma.formacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    const existing = await prisma.formacao.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     const body = await request.json() as Partial<Formacao>;
     const updated = await prisma.formacao.update({ where: { id }, data: { tema: body.tema?.trim(), objetivo: body.objetivo, descricao: body.descricao, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, eixoId: body.eixoId || null, eixoNome: body.eixoNome || null, etapaId: body.etapaId || null, etapaNome: body.etapaNome || null, formadorNome: body.formadorNome, cargaHoraria: body.cargaHoraria, modalidade: body.modalidade, materialApoio: body.materialApoio || null, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null, gradeId: body.gradeId || null, gradeNome: body.gradeNome || null, vezesUtilizada: body.vezesUtilizada } });
     logAction("formacao_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toFormacao(updated));
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao atualizar formação" }, { status: 500 }); }
+  } catch (err) { logError("formacoes/:id PUT", err); return NextResponse.json({ error: "Falha ao atualizar formação" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -52,10 +52,10 @@ export async function DELETE(request: Request, { params }: Params) {
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const { id } = await params;
   try {
-    const existing = await prisma.formacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
+    const existing = await prisma.formacao.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    await prisma.formacao.delete({ where: { id } });
+    await prisma.formacao.update({ where: { id }, data: { deletedAt: new Date() } });
     logAction("formacao_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { console.error("[api]", err); return NextResponse.json({ error: "Falha ao excluir formação" }, { status: 500 }); }
+  } catch (err) { logError("formacoes/:id DELETE", err); return NextResponse.json({ error: "Falha ao excluir formação" }, { status: 500 }); }
 }

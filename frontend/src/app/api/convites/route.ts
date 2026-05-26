@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sendInviteEmail } from "@/lib/email";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
+import { CreateConviteSchema, parseBody } from "@/lib/schemas";
 import type { PerfilUsuario } from "@prisma/client";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -53,22 +54,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json() as {
-      email?: string;
-      nome?: string;
-      perfil?: string;
-      moradaId?: string;
-    };
-
-    const { email, nome, perfil, moradaId } = body;
-    if (!email?.trim() || !nome?.trim()) {
-      return NextResponse.json({ error: "Nome e e-mail são obrigatórios" }, { status: 400 });
-    }
-
-    const ALLOWED_PERFIS = ["formador_comunitario", "formador_geral", "administrador"];
-    if (!perfil || !ALLOWED_PERFIS.includes(perfil)) {
-      return NextResponse.json({ error: "Perfil inválido" }, { status: 400 });
-    }
+    const parsed = parseBody(CreateConviteSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const { email, nome, perfil, moradaId } = parsed.data;
 
     // Verificar se já existe usuário com esse e-mail
     const existing = await prisma.usuario.findFirst({
@@ -142,7 +130,7 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (err) {
-    console.error("[convites] Erro:", err);
+    logError("convites POST", err);
     return NextResponse.json({ error: "Falha ao criar convite" }, { status: 500 });
   }
 }

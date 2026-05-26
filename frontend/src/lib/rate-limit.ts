@@ -110,4 +110,16 @@ export const limiters = {
 
   /** 3 SMTP test emails per user per hour — admin config. */
   smtpTest: (userId: string) => rateLimit(`smtp_test:${userId}`, 3, 60 * 60 * 1000),
+
+  /** 60 write operations per user per minute — general POST/PUT/DELETE protection. */
+  mutation: (userId: string) => rateLimit(`mutation:${userId}`, 60, 60 * 1000),
+
+  /** 5 data exports per user per hour — prevents bulk data harvesting. */
+  export: (userId: string) => rateLimit(`export:${userId}`, 5, 60 * 60 * 1000),
+
+  /** 10 invite acceptances per IP per hour — prevents bulk account creation. */
+  conviteAccept: (ip: string) => rateLimit(`convite_accept:${ip}`, 10, 60 * 60 * 1000),
+
+  /** 3 password change attempts per user per hour. */
+  passwordChange: (userId: string) => rateLimit(`pwd_change:${userId}`, 3, 60 * 60 * 1000),
 };

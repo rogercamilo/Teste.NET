@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { canAddMorada } from "@/lib/plan-limits";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
+import { CreateMoradaSchema, parseBody } from "@/lib/schemas";
+import { limiters } from "@/lib/rate-limit";
 import type { Morada } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -56,7 +58,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toMorada), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    console.error("[moradas GET]", err);
+    logError("moradas GET", err);
     return NextResponse.json({ error: "Falha ao carregar moradas" }, { status: 500 });
   }
 }
@@ -67,9 +69,15 @@ export async function POST(request: Request) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
+  const rl = await limiters.mutation(user.id ?? getClientIp(request));
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
+  }
+
   try {
-    const body = await request.json() as Partial<Morada>;
-    if (!body.nome?.trim()) return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
+    const parsed = parseBody(CreateMoradaSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
 
     const limitCheck = await canAddMorada(user.organizacaoId!);
     if (!limitCheck.allowed) {
@@ -86,12 +94,12 @@ export async function POST(request: Request) {
     const row = await prisma.morada.create({
       data: {
         organizacaoId: user.organizacaoId,
-        nome: body.nome.trim(),
-        localReuniao: body.localReuniao || null,
+        nome: body.nome,
+        localReuniao: body.localReuniao ?? null,
         nivelFormativo: body.nivelFormativo ?? "pre-discipulado",
-        formadorId: body.formadorId || null,
-        planoId: body.planoId || null,
-        gradeId: body.gradeId || null,
+        formadorId: body.formadorId ?? null,
+        planoId: body.planoId ?? null,
+        gradeId: body.gradeId ?? null,
         vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null,
         vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null,
         ativo: body.ativo ?? true,
@@ -100,7 +108,7 @@ export async function POST(request: Request) {
     logAction("morada_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
     return NextResponse.json(toMorada(row), { status: 201 });
   } catch (err) {
-    console.error("[api]", err);
+    logError("moradas POST", err);
     return NextResponse.json({ error: "Falha ao criar morada" }, { status: 500 });
   }
 }
