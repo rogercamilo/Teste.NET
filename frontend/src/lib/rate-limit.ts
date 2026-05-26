@@ -50,6 +50,10 @@ const isUpstashConfigured =
   !!process.env.UPSTASH_REDIS_REST_URL &&
   !!process.env.UPSTASH_REDIS_REST_TOKEN;
 
+if (!isUpstashConfigured && process.env.NODE_ENV === "production") {
+  console.warn("[rate-limit] Upstash não configurado — usando limitador in-memory (ineficaz em múltiplas instâncias). Configure UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN.");
+}
+
 let redis: Redis | null = null;
 const upstashLimiters = new Map<string, Ratelimit>();
 

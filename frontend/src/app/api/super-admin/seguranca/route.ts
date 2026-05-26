@@ -35,7 +35,7 @@ export async function GET() {
           criadoEm: true,
           detalhes: true,
           organizacao: { select: { nome: true } },
-          usuario: { select: { nome: true, email: true } },
+          usuario: { select: { nome: true } },
         },
       }),
       prisma.auditLog.groupBy({
@@ -47,6 +47,7 @@ export async function GET() {
       }),
       prisma.deletionRequest.count({ where: { status: "pendente" } }),
       prisma.deletionRequest.findMany({
+        select: { id: true, tipo: true, status: true, organizacaoId: true, usuarioId: true, solicitadoEm: true, processadoEm: true },
         orderBy: { solicitadoEm: "desc" },
         take: 15,
       }),

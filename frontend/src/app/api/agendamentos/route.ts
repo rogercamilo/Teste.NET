@@ -80,6 +80,12 @@ export async function POST(request: Request) {
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 
+    const formacao = await prisma.formacao.findFirst({
+      where: { id: body.formacaoId, deletedAt: null, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      select: { id: true },
+    });
+    if (!formacao) return NextResponse.json({ error: "Formação não encontrada" }, { status: 404 });
+
     // formadorId is always the authenticated user; formadorNome resolved server-side.
     const formadorId = user.id!;
     const formadorUser = await prisma.usuario.findUnique({

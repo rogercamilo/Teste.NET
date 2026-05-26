@@ -56,9 +56,9 @@ if (
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  // trustHost only when NEXTAUTH_URL is not set (local dev without explicit URL).
-  // In production NEXTAUTH_URL must be configured, which NextAuth uses for host validation.
-  trustHost: !process.env.NEXTAUTH_URL,
+  // trustHost only in non-production when NEXTAUTH_URL is not set (local dev).
+  // In production NEXTAUTH_URL is required; allowing trustHost there would permit Host header injection.
+  trustHost: process.env.NODE_ENV !== "production" && !process.env.NEXTAUTH_URL,
   providers,
   callbacks: {
     ...authConfig.callbacks,
@@ -87,7 +87,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       } else if (token.id && token.primeiroAcesso) {
         // Only query DB while primeiroAcesso is true — once cleared, no further DB round-trip.
-        const dbUser = await findById(token.id as string);
+        const dbUser = await findById(token.id as string, token.organizacaoId as string | undefined);
         if (dbUser) token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
       }
       return token;

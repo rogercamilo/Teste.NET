@@ -43,7 +43,7 @@ export async function GET(request: Request) {
         take: 1000,
       }),
       prisma.formando.findMany({
-        where: { organizacaoId: orgId },
+        where: { organizacaoId: orgId, deletedAt: null },
         select: {
           id: true, nome: true, email: true, telefone: true, dataNascimento: true,
           nivelFormativo: true, ativo: true, moradaId: true, criadoEm: true,

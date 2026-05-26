@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import { randomBytes } from "crypto";
 
 export async function GET() {
@@ -64,6 +65,8 @@ export async function PATCH(request: Request) {
   if (user?.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   const body = await request.json() as { id?: string; status?: string };
   if (!body.id || !["processando", "concluido"].includes(body.status ?? "")) {

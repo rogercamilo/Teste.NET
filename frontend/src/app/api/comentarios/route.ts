@@ -85,7 +85,7 @@ export async function POST(request: Request) {
         formadorId: user.id!,
         formadorNome: body.formadorNome || null,
         texto: body.texto.trim(),
-        tipo: body.tipo ?? "observacao",
+        tipo: ["adesao", "dificuldade", "progresso", "observacao"].includes(body.tipo ?? "") ? (body.tipo ?? "observacao") : "observacao",
       },
     });
     logAction("comentario_created", user.id, getClientIp(request), { formandoId: body.formandoId }, user.organizacaoId);

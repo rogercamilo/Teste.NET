@@ -176,6 +176,29 @@ export const CreateAgendamentoSchema = z.object({
 
 export const UpdateAgendamentoSchema = CreateAgendamentoSchema.partial();
 
+// ── Formação ──────────────────────────────────────────────────────────────────
+
+export const UpdateFormacaoSchema = z.object({
+  tema: nonEmptyString(500).optional(),
+  objetivo: optionalString(2000),
+  descricao: optionalString(2000),
+  nivelFormativo: NivelFormativoEnum.optional(),
+  tipoFormacao: TipoFormacaoEnum.optional(),
+  eixoId: z.string().optional().nullable(),
+  eixoNome: optionalString(255).nullable(),
+  etapaId: z.string().optional().nullable(),
+  etapaNome: optionalString(255).nullable(),
+  formadorNome: optionalString(255),
+  cargaHoraria: z.number().int().min(0).optional(),
+  modalidade: ModalidadeEnum.optional(),
+  materialApoio: optionalString(2000).nullable(),
+  documentoAnexo: optionalString(500).nullable(),
+  documentoAnexoId: optionalString(255).nullable(),
+  gradeId: z.string().optional().nullable(),
+  gradeNome: optionalString(255).nullable(),
+  vezesUtilizada: z.number().int().min(0).optional(),
+});
+
 // ── Helpers de resposta ───────────────────────────────────────────────────────
 
 export function parseBody<T>(

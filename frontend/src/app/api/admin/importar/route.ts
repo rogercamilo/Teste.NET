@@ -49,60 +49,62 @@ export async function POST(request: Request) {
   const results: Record<string, number> = {};
 
   try {
-    // Moradas — batch via $transaction elimina N+1
+    // Moradas — skip IDs already in this org; createMany handles true duplicates
     if (Array.isArray(body.moradas) && body.moradas.length > 0) {
       const validRows = (body.moradas as Record<string, unknown>[]).filter(
         (row) => row.id && row.nome && row.nivelFormativo
       );
       if (validRows.length > 0) {
-        await prisma.$transaction(
-          validRows.map((row) =>
-            prisma.morada.upsert({
-              where: { id: String(row.id) },
-              update: {},
-              create: {
-                id: String(row.id),
-                organizacaoId: orgId,
-                nome: String(row.nome),
-                localReuniao: row.localReuniao ? String(row.localReuniao) : null,
-                nivelFormativo: String(row.nivelFormativo),
-                ativo: row.ativo !== false,
-              },
-            })
-          ),
-          );
+        const ids = validRows.map((r) => String(r.id));
+        const existing = await prisma.morada.findMany({ where: { id: { in: ids }, organizacaoId: orgId }, select: { id: true } });
+        const existingIds = new Set(existing.map((r) => r.id));
+        const toCreate = validRows.filter((r) => !existingIds.has(String(r.id)));
+        if (toCreate.length > 0) {
+          await prisma.morada.createMany({
+            data: toCreate.map((row) => ({
+              id: String(row.id),
+              organizacaoId: orgId,
+              nome: String(row.nome),
+              localReuniao: row.localReuniao ? String(row.localReuniao) : null,
+              nivelFormativo: String(row.nivelFormativo),
+              ativo: row.ativo !== false,
+            })),
+            skipDuplicates: true,
+          });
+        }
       }
       results.moradas = validRows.length;
     }
 
-    // Formandos — batch via $transaction elimina N+1
+    // Formandos — skip IDs already in this org; createMany handles true duplicates
     if (Array.isArray(body.formandos) && body.formandos.length > 0) {
       const validRows = (body.formandos as Record<string, unknown>[]).filter(
         (row) => row.id && row.nome
       );
       if (validRows.length > 0) {
-        await prisma.$transaction(
-          validRows.map((row) =>
-            prisma.formando.upsert({
-              where: { id: String(row.id) },
-              update: {},
-              create: {
-                id: String(row.id),
-                organizacaoId: orgId,
-                nome: String(row.nome),
-                dataNascimento: row.dataNascimento ? new Date(String(row.dataNascimento)) : new Date("2000-01-01"),
-                estadoCivil: row.estadoCivil ? String(row.estadoCivil) : "solteiro",
-                modalidade: row.modalidade ? String(row.modalidade) : "presencial",
-                nivelFormativo: row.nivelFormativo ? String(row.nivelFormativo) : "pre-discipulado",
-                dataIngresso: row.dataIngresso ? new Date(String(row.dataIngresso)) : new Date(),
-                telefone: row.telefone ? String(row.telefone) : "",
-                email: row.email ? String(row.email) : "",
-                ativo: row.ativo !== false,
-                moradaId: row.moradaId ? String(row.moradaId) : null,
-              },
-            })
-          )
-        );
+        const ids = validRows.map((r) => String(r.id));
+        const existing = await prisma.formando.findMany({ where: { id: { in: ids }, organizacaoId: orgId }, select: { id: true } });
+        const existingIds = new Set(existing.map((r) => r.id));
+        const toCreate = validRows.filter((r) => !existingIds.has(String(r.id)));
+        if (toCreate.length > 0) {
+          await prisma.formando.createMany({
+            data: toCreate.map((row) => ({
+              id: String(row.id),
+              organizacaoId: orgId,
+              nome: String(row.nome),
+              dataNascimento: row.dataNascimento ? new Date(String(row.dataNascimento)) : new Date("2000-01-01"),
+              estadoCivil: row.estadoCivil ? String(row.estadoCivil) : "solteiro",
+              modalidade: row.modalidade ? String(row.modalidade) : "presencial",
+              nivelFormativo: row.nivelFormativo ? String(row.nivelFormativo) : "pre-discipulado",
+              dataIngresso: row.dataIngresso ? new Date(String(row.dataIngresso)) : new Date(),
+              telefone: row.telefone ? String(row.telefone) : "",
+              email: row.email ? String(row.email) : "",
+              ativo: row.ativo !== false,
+              moradaId: row.moradaId ? String(row.moradaId) : null,
+            })),
+            skipDuplicates: true,
+          });
+        }
       }
       results.formandos = validRows.length;
     }

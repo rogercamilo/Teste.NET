@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit-log";
 
@@ -22,7 +23,9 @@ export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const authHeader = req.headers.get("authorization");
 
-  if (!secret || authHeader !== `Bearer ${secret}`) {
+  const expected = Buffer.from(`Bearer ${secret ?? ""}`);
+  const provided = Buffer.from(authHeader ?? "");
+  if (!secret || expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

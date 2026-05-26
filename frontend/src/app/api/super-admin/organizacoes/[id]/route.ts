@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import { PlanoAssinatura, type StatusOrganizacao } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -12,6 +13,8 @@ export async function PATCH(request: Request, { params }: Params) {
   if (user?.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   const { id } = await params;
 
@@ -99,6 +102,8 @@ export async function DELETE(request: Request, { params }: Params) {
   if (user?.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
+  const rlDel = await limiters.mutation(user.id ?? "unknown");
+  if (!rlDel.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   const { id } = await params;
 

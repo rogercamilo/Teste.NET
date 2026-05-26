@@ -11,7 +11,8 @@ function ViewerContent() {
 
   const arquivoId = params.get("arquivoId") ?? "";
   const nome = params.get("nome") ?? "documento";
-  const origem = params.get("origem") ?? "/";
+  const rawOrigem = params.get("origem") ?? "/";
+  const origem = rawOrigem.startsWith("/") && !rawOrigem.startsWith("//") ? rawOrigem : "/";
 
   const isPdf = nome.toLowerCase().endsWith(".pdf");
   const fileUrl = arquivoId ? `/api/arquivos/${arquivoId}` : "";

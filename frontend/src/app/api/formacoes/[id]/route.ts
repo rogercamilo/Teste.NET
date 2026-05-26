@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import type { Formacao } from "@/types";
+import { UpdateFormacaoSchema, parseBody } from "@/lib/schemas";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 type Params = { params: Promise<{ id: string }> };
@@ -41,8 +42,10 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.formacao.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    const body = await request.json() as Partial<Formacao>;
-    const updated = await prisma.formacao.update({ where: { id }, data: { tema: body.tema?.trim(), objetivo: body.objetivo, descricao: body.descricao, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, eixoId: body.eixoId || null, eixoNome: body.eixoNome || null, etapaId: body.etapaId || null, etapaNome: body.etapaNome || null, formadorNome: body.formadorNome, cargaHoraria: body.cargaHoraria, modalidade: body.modalidade, materialApoio: body.materialApoio || null, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null, gradeId: body.gradeId || null, gradeNome: body.gradeNome || null, vezesUtilizada: body.vezesUtilizada } });
+    const parsed = parseBody(UpdateFormacaoSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
+    const updated = await prisma.formacao.update({ where: { id }, data: { tema: body.tema, objetivo: body.objetivo, descricao: body.descricao, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, eixoId: body.eixoId ?? null, eixoNome: body.eixoNome ?? null, etapaId: body.etapaId ?? null, etapaNome: body.etapaNome ?? null, formadorNome: body.formadorNome, cargaHoraria: body.cargaHoraria, modalidade: body.modalidade, materialApoio: body.materialApoio ?? null, documentoAnexo: body.documentoAnexo ?? null, documentoAnexoId: body.documentoAnexoId ?? null, gradeId: body.gradeId ?? null, gradeNome: body.gradeNome ?? null, vezesUtilizada: body.vezesUtilizada } });
     logAction("formacao_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toFormacao(updated));
   } catch (err) { logError("formacoes/:id PUT", err); return NextResponse.json({ error: "Falha ao atualizar formação" }, { status: 500 }); }

@@ -37,7 +37,13 @@ export async function PUT(request: Request, { params }: Params) {
     const existing = await prisma.presencaFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     const body = await request.json() as Partial<PresencaFormacao>;
-    const updated = await prisma.presencaFormacao.update({ where: { id }, data: { presente: body.presente, justificativa: body.justificativa || null } });
+    const updated = await prisma.presencaFormacao.update({
+      where: { id },
+      data: {
+        presente: typeof body.presente === "boolean" ? body.presente : existing.presente,
+        justificativa: body.justificativa ?? null,
+      },
+    });
     logAction("presenca_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toPresenca(updated));
   } catch (err) { logError("presencas/[id] PUT", err); return NextResponse.json({ error: "Falha ao atualizar presença" }, { status: 500 }); }

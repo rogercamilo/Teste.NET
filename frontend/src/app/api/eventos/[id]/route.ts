@@ -37,9 +37,21 @@ export async function PUT(request: Request, { params }: Params) {
     const existing = await prisma.eventoFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     const body = await request.json() as Partial<EventoFormando>;
+    const VALID_TIPOS: ReadonlySet<string> = new Set(["avaliacao-adesao", "solicitacao-desligamento", "desligamento", "licenca"]);
+    const VALID_NOTAS: ReadonlySet<string> = new Set(["otima", "boa", "regular", "insuficiente"]);
+    const VALID_TIPO_DESLIGAMENTO: ReadonlySet<string> = new Set(["voluntario", "compulsorio"]);
+    if (body.tipo !== undefined && !VALID_TIPOS.has(body.tipo)) {
+      return NextResponse.json({ error: "Tipo de evento inválido" }, { status: 400 });
+    }
+    if (body.notaAdesao !== undefined && body.notaAdesao !== null && !VALID_NOTAS.has(body.notaAdesao)) {
+      return NextResponse.json({ error: "Nota de adesão inválida" }, { status: 400 });
+    }
+    if (body.tipoDesligamento !== undefined && body.tipoDesligamento !== null && !VALID_TIPO_DESLIGAMENTO.has(body.tipoDesligamento)) {
+      return NextResponse.json({ error: "Tipo de desligamento inválido" }, { status: 400 });
+    }
     const updated = await prisma.eventoFormando.update({
       where: { id },
-      data: { tipo: body.tipo, periodoInicio: body.periodoInicio ? new Date(body.periodoInicio) : null, periodoFim: body.periodoFim ? new Date(body.periodoFim) : null, notaAdesao: body.notaAdesao || null, textoAvaliacao: body.textoAvaliacao || null, motivo: body.motivo || null, tipoDesligamento: body.tipoDesligamento || null, dataEfetiva: body.dataEfetiva ? new Date(body.dataEfetiva) : null, checklistDevolveuEstatuto: body.checklistDevolveuEstatuto ?? null, checklistDevolveuSacramental: body.checklistDevolveuSacramental ?? null, checklistApresentouCarta: body.checklistApresentouCarta ?? null, checklistAcompanhadoModerador: body.checklistAcompanhadoModerador ?? null, dataInicioLicenca: body.dataInicioLicenca ? new Date(body.dataInicioLicenca) : null, dataFimLicenca: body.dataFimLicenca ? new Date(body.dataFimLicenca) : null },
+      data: { tipo: body.tipo, periodoInicio: body.periodoInicio ? new Date(body.periodoInicio) : null, periodoFim: body.periodoFim ? new Date(body.periodoFim) : null, notaAdesao: body.notaAdesao ?? null, textoAvaliacao: body.textoAvaliacao ?? null, motivo: body.motivo ?? null, tipoDesligamento: body.tipoDesligamento ?? null, dataEfetiva: body.dataEfetiva ? new Date(body.dataEfetiva) : null, checklistDevolveuEstatuto: body.checklistDevolveuEstatuto ?? null, checklistDevolveuSacramental: body.checklistDevolveuSacramental ?? null, checklistApresentouCarta: body.checklistApresentouCarta ?? null, checklistAcompanhadoModerador: body.checklistAcompanhadoModerador ?? null, dataInicioLicenca: body.dataInicioLicenca ? new Date(body.dataInicioLicenca) : null, dataFimLicenca: body.dataFimLicenca ? new Date(body.dataFimLicenca) : null },
     });
     logAction("evento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toEvento(updated));
