@@ -1,9 +1,11 @@
 /**
  * SMTP configuration — stored per-tenant in ConfiguracaoOrg.smtpConfig (PostgreSQL).
  * Falls back to SMTP_* environment variables when no DB record exists.
+ * The `pass` field is encrypted at rest using AES-256-GCM (APP_ENCRYPTION_KEY).
  * NEVER import this module in client components — uses Prisma (Node.js only).
  */
 import { prisma } from "@/lib/prisma";
+import { encryptField, decryptField } from "@/lib/crypto";
 
 export interface SmtpConfig {
   host: string;
@@ -33,7 +35,7 @@ function parseSmtpJson(raw: unknown): SmtpConfig {
     port: r.port ?? env.port,
     secure: r.secure ?? env.secure,
     user: r.user ?? env.user,
-    pass: r.pass ?? env.pass,
+    pass: r.pass ? decryptField(r.pass) : env.pass,
     from: r.from ?? env.from,
   };
 }
@@ -52,10 +54,14 @@ export async function loadSmtpConfig(organizacaoId: string): Promise<SmtpConfig>
 }
 
 export async function saveSmtpConfig(organizacaoId: string, config: SmtpConfig): Promise<void> {
+  const toStore = {
+    ...config,
+    pass: config.pass ? encryptField(config.pass) : config.pass,
+  };
   await prisma.configuracaoOrg.upsert({
     where: { organizacaoId },
-    create: { organizacaoId, smtpConfig: config as object },
-    update: { smtpConfig: config as object },
+    create: { organizacaoId, smtpConfig: toStore as object },
+    update: { smtpConfig: toStore as object },
   });
 }
 

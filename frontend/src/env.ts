@@ -58,6 +58,13 @@ const schema = z
       .optional(),
     UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 
+    // Field-level encryption key — optional but strongly recommended in production
+    // Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    APP_ENCRYPTION_KEY: z
+      .string()
+      .regex(/^[0-9a-fA-F]{64}$/, "APP_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)")
+      .optional(),
+
     // Stripe — optional
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),

@@ -121,6 +121,7 @@ No client-side state library. The app is server-first:
 | `lib/users-store.ts` | User CRUD, password hashing (scrypt), authentication |
 | `lib/tenant-context.ts` | `getOrganizacaoId()`, `assertTenant()` helpers |
 | `lib/audit-log.ts` | `logAction()` — structured audit trail with IP anonymization |
+| `lib/crypto.ts` | AES-256-GCM field-level encryption (`encryptField`/`decryptField`) — requires `APP_ENCRYPTION_KEY` |
 | `lib/email.ts` | Nodemailer send functions |
 | `lib/rate-limit.ts` | In-memory rate limiting for auth endpoints |
 | `types/index.ts` | All shared types + business logic constants (stage requirements, labels, colors) |
@@ -135,6 +136,10 @@ NEXTAUTH_URL=http://localhost:3000
 DATABASE_URL=postgresql://formativo:formativo_dev@localhost:5432/formacao_comunitaria
 DEFAULT_ORG_ID=org_default
 
+# Field-level encryption key (strongly recommended in production)
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+APP_ENCRYPTION_KEY=<64-hex-chars>
+
 # Optional — Google OAuth (omit if not needed)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -147,6 +152,10 @@ SMTP_USER=
 SMTP_PASS=
 SMTP_FROM=
 ```
+
+> `APP_ENCRYPTION_KEY` encrypts sensitive DB fields at rest (e.g. SMTP password).
+> Without it the app runs but credentials are stored in plaintext.
+> Existing plaintext values are read correctly and re-encrypted on next save.
 
 Seed-specific (override defaults):
 ```bash
