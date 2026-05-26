@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { sendAccountDeletionEmail } from "@/lib/email";
-import { createHash } from "crypto";
+import { randomBytes } from "crypto";
 
 type SessionUser = { id?: string; email?: string; organizacaoId?: string; role?: string };
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   });
 
   // Soft delete: anonimiza PII e desativa conta
-  const emailHash = createHash("sha256").update(usuario.email).digest("hex").slice(0, 16);
+  const emailHash = randomBytes(8).toString("hex");
   await prisma.usuario.update({
     where: { id: actor.id },
     data: {

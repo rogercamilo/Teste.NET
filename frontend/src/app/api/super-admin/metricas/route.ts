@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logError } from "@/lib/audit-log";
 
 // Preços de referência para MRR estimado (R$/mês por organização)
 const MRR_PRICE: Record<string, number> = {
@@ -86,7 +87,7 @@ export async function GET() {
       ultimasOrgs,
     });
   } catch (err) {
-    console.error("[super-admin metricas GET]", err);
+    logError("super-admin/metricas GET", err);
     return NextResponse.json({ error: "Falha ao carregar métricas" }, { status: 500 });
   }
 }

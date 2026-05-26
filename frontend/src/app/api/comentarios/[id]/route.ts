@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import type { ComentarioFormando } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -22,13 +23,15 @@ export async function GET(_req: Request, { params }: Params) {
     const row = await prisma.comentarioFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toComentario(row));
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao carregar comentário" }, { status: 500 }); }
+  } catch (err) { logError("comentarios/[id] GET", err); return NextResponse.json({ error: "Falha ao carregar comentário" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
   try {
     const existing = await prisma.comentarioFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
@@ -37,13 +40,15 @@ export async function PUT(request: Request, { params }: Params) {
     const updated = await prisma.comentarioFormando.update({ where: { id }, data: { texto: body.texto?.trim(), tipo: body.tipo } });
     logAction("comentario_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toComentario(updated));
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao atualizar comentário" }, { status: 500 }); }
+  } catch (err) { logError("comentarios/[id] PUT", err); return NextResponse.json({ error: "Falha ao atualizar comentário" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
   try {
     const existing = await prisma.comentarioFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
@@ -51,5 +56,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.comentarioFormando.delete({ where: { id } });
     logAction("comentario_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao excluir comentário" }, { status: 500 }); }
+  } catch (err) { logError("comentarios/[id] DELETE", err); return NextResponse.json({ error: "Falha ao excluir comentário" }, { status: 500 }); }
 }

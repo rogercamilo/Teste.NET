@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { loadSmtpConfig, isSmtpReady } from "@/lib/smtp-config";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import nodemailer from "nodemailer";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
@@ -41,7 +43,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const to = testEmail?.trim() || config.user;
+    const trimmed = testEmail?.trim();
+    const to = trimmed && EMAIL_RE.test(trimmed) ? trimmed : config.user;
     const from = config.from || config.user;
 
     const transporter = nodemailer.createTransport({
@@ -71,7 +74,7 @@ export async function POST(request: Request) {
     logAction("email_test_sent", user.id, getClientIp(request), { to });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    logError("smtp/test", err);
+    return NextResponse.json({ error: "Falha ao enviar e-mail de teste. Verifique as configurações SMTP." }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logError } from "@/lib/audit-log";
 
 export async function GET() {
   const session = await auth();
@@ -62,7 +63,7 @@ export async function GET() {
       logsCount24h,
     });
   } catch (err) {
-    console.error("[super-admin/seguranca GET]", err);
+    logError("super-admin/seguranca GET", err);
     return NextResponse.json({ error: "Falha ao carregar dados de segurança" }, { status: 500 });
   }
 }

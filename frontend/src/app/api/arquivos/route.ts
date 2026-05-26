@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       { headers: paginationHeaders(total, pagination) }
     );
   } catch (err) {
-    logError("", err);
+    logError("arquivos", err);
     return Response.json({ error: "Falha ao carregar arquivos" }, { status: 500 });
   }
 }
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
   try {
     formData = await request.formData();
   } catch (err) {
-    logError("", err);
+    logError("arquivos", err);
     return Response.json({ error: "Requisição inválida" }, { status: 400 });
   }
 
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
   try {
     storageKey = await uploadFile(orgId, "arquivos", buffer, extensao, file.type);
   } catch (err) {
-    logError("", err);
+    logError("arquivos", err);
     return Response.json({ error: "Falha ao salvar arquivo." }, { status: 500 });
   }
 

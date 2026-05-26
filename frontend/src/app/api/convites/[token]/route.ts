@@ -106,7 +106,7 @@ export async function POST(request: Request, { params }: Params) {
       if (err.message === "EXPIRED") return NextResponse.json({ error: "Convite expirado" }, { status: 410 });
       if (err.message === "EMAIL_EXISTS") return NextResponse.json({ error: "Já existe um usuário com este e-mail" }, { status: 409 });
     }
-    logError("", err);
+    logError("convites/[token]", err);
     return NextResponse.json({ error: "Falha ao aceitar convite" }, { status: 500 });
   }
 }

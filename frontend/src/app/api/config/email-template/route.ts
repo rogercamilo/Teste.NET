@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { loadEmailTemplate, saveEmailTemplate, DEFAULT_EMAIL_TEMPLATE } from "@/lib/email-template";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 
@@ -40,7 +40,8 @@ export async function PUT(request: Request) {
     logAction("email_template_changed", user.id, getClientIp(request), {}, user.organizacaoId);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    logError("email-template PUT", err);
+    return NextResponse.json({ error: "Erro ao salvar template. Tente novamente." }, { status: 500 });
   }
 }
 

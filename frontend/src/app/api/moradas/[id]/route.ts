@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import type { Morada } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -22,7 +23,7 @@ export async function GET(_req: Request, { params }: Params) {
     const row = await prisma.morada.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toMorada(row));
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao carregar morada" }, { status: 500 }); }
+  } catch (err) { logError("moradas/[id] GET", err); return NextResponse.json({ error: "Falha ao carregar morada" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -30,6 +31,8 @@ export async function PUT(request: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
   try {
     const existing = await prisma.morada.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
@@ -49,7 +52,7 @@ export async function PUT(request: Request, { params }: Params) {
     });
     logAction("morada_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toMorada(updated));
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao atualizar morada" }, { status: 500 }); }
+  } catch (err) { logError("moradas/[id] PUT", err); return NextResponse.json({ error: "Falha ao atualizar morada" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -57,6 +60,8 @@ export async function DELETE(request: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
   try {
     const existing = await prisma.morada.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
@@ -64,5 +69,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.morada.delete({ where: { id } });
     logAction("morada_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao excluir morada" }, { status: 500 }); }
+  } catch (err) { logError("moradas/[id] DELETE", err); return NextResponse.json({ error: "Falha ao excluir morada" }, { status: 500 }); }
 }

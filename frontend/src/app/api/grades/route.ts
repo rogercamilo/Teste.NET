@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toGrade), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    logError("", err);
+    logError("grades", err);
     return NextResponse.json({ error: "Falha ao carregar grades" }, { status: 500 });
   }
 }
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     logAction("grade_created", user.id, getClientIp(request), { planoId: body.planoId }, user.organizacaoId);
     return NextResponse.json(toGrade(grade), { status: 201 });
   } catch (err) {
-    logError("", err);
+    logError("grades", err);
     return NextResponse.json({ error: "Falha ao criar grade" }, { status: 500 });
   }
 }

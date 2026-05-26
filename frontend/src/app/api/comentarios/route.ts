@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json(rows.map(toComentario), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
-    logError("", err);
+    logError("comentarios", err);
     return NextResponse.json({ error: "Falha ao carregar comentários" }, { status: 500 });
   }
 }
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     logAction("comentario_created", user.id, getClientIp(request), { formandoId: body.formandoId }, user.organizacaoId);
     return NextResponse.json(toComentario(row), { status: 201 });
   } catch (err) {
-    logError("", err);
+    logError("comentarios", err);
     return NextResponse.json({ error: "Falha ao criar comentário" }, { status: 500 });
   }
 }

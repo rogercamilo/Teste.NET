@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { loadSmtpConfig, saveSmtpConfig, isSmtpReady } from "@/lib/smtp-config";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       configured: isSmtpReady(config),
     });
   } catch (err) {
-    logError("", err);
+    logError("config/smtp", err);
     return NextResponse.json({ error: "Falha ao carregar configuração SMTP" }, { status: 500 });
   }
 }
@@ -56,7 +56,7 @@ export async function PUT(request: Request) {
     logAction("smtp_config_changed", user.id, getClientIp(request), {}, user.organizacaoId);
     return NextResponse.json({ ok: true, configured: isSmtpReady(updated) });
   } catch (err) {
-    logError("", err);
+    logError("config/smtp", err);
     return NextResponse.json({ error: "Falha ao salvar configuração SMTP" }, { status: 500 });
   }
 }

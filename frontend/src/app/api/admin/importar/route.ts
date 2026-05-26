@@ -7,6 +7,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
+
+const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 
@@ -27,11 +30,19 @@ export async function POST(request: Request) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Apenas administradores podem importar dados" }, { status: 403 });
 
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
+
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > MAX_PAYLOAD_BYTES) {
+    return NextResponse.json({ error: "Payload excede o limite de 5 MB" }, { status: 413 });
+  }
+
   let body: ImportPayload;
   try {
     body = await request.json() as ImportPayload;
   } catch (err) {
-    logError("", err);
+    logError("admin/importar parse", err);
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
@@ -147,7 +158,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, importados: results });
   } catch (err) {
-    logError("", err);
+    logError("admin/importar", err);
     return NextResponse.json({ error: "Falha durante a importação" }, { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { logError } from "@/lib/audit-log";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -72,7 +72,7 @@ export async function GET() {
         url: inv.hosted_invoice_url ?? null,
       }));
     } catch (err) {
-      logError("", err);
+      logError("stripe/billing-info", err);
       // Return partial data — don't fail the whole request
     }
   }

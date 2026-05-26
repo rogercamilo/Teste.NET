@@ -88,7 +88,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     return NextResponse.json({ id: updated.id, status: updated.status, planoAssinatura: updated.planoAssinatura });
   } catch (err) {
-    logError("", err);
+    logError("super-admin/organizacoes/[id] PATCH", err);
     return NextResponse.json({ error: "Falha ao atualizar organização" }, { status: 500 });
   }
 }
@@ -111,11 +111,11 @@ export async function DELETE(request: Request, { params }: Params) {
     });
     await prisma.organizacao.delete({ where: { id } });
 
-    logAction("organizacao_deleted", user.id ?? undefined, getClientIp(request), { orgId: id, nome: org.nome });
+    logAction("organizacao_deleted", user.id ?? undefined, getClientIp(request), { orgId: id, nome: org.nome }, id);
 
     return new NextResponse(null, { status: 204 });
   } catch (err) {
-    logError("", err);
+    logError("super-admin/organizacoes/delete", err);
     return NextResponse.json({ error: "Falha ao excluir organização" }, { status: 500 });
   }
 }

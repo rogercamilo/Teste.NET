@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { findById, updateUser, deleteUser, toPublic } from "@/lib/users-store";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import { isAdminOrAbove } from "@/types";
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -14,6 +15,11 @@ export async function PUT(request: Request, ctx: Ctx) {
 
   if (!actor) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdminOrAbove(actor.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+
+  const rlPut = await limiters.mutation(actor.id ?? "unknown");
+  if (!rlPut.allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
+  }
 
   try {
     const { id } = await ctx.params;
@@ -49,7 +55,7 @@ export async function PUT(request: Request, ctx: Ctx) {
     logAction("user_updated", actor.id ?? undefined, getClientIp(request), { targetId: id }, orgId);
     return NextResponse.json(toPublic(updated));
   } catch (err) {
-    logError("", err);
+    logError("users/[id] PUT", err);
     return NextResponse.json({ error: "Falha ao atualizar usuário" }, { status: 500 });
   }
 }
@@ -60,6 +66,11 @@ export async function DELETE(request: Request, ctx: Ctx) {
 
   if (!actor) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdminOrAbove(actor.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+
+  const rlDel = await limiters.mutation(actor.id ?? "unknown");
+  if (!rlDel.allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
+  }
 
   try {
     const { id } = await ctx.params;
@@ -82,7 +93,7 @@ export async function DELETE(request: Request, ctx: Ctx) {
     logAction("user_deleted", actor.id ?? undefined, getClientIp(request), { targetId: id }, orgId);
     return new NextResponse(null, { status: 204 });
   } catch (err) {
-    logError("", err);
+    logError("users/[id] DELETE", err);
     return NextResponse.json({ error: "Falha ao excluir usuário" }, { status: 500 });
   }
 }

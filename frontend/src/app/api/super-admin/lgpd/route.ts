@@ -52,7 +52,7 @@ export async function GET() {
       cookieAnaliticos,
     });
   } catch (err) {
-    console.error("[super-admin/lgpd GET]", err);
+    logError("super-admin/lgpd GET", err);
     return NextResponse.json({ error: "Falha ao carregar dados LGPD" }, { status: 500 });
   }
 }

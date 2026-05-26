@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { logError } from "@/lib/audit-log";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -103,7 +103,7 @@ export async function GET() {
       })),
     });
   } catch (err) {
-    logError("", err);
+    logError("super-admin/servicos", err);
     return NextResponse.json({ error: "Falha ao carregar dados de serviços" }, { status: 500 });
   }
 }

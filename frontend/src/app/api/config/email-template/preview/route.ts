@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { buildEmailHtml, loadEmailTemplate } from "@/lib/email-template";
+import { logError } from "@/lib/audit-log";
 import type { EmailTemplate, TemplateVars } from "@/lib/email-template";
 
 type SessionUser = { id?: string; role?: string; organizacaoId?: string };
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    logError("email-template/preview", err);
+    return NextResponse.json({ error: "Erro ao gerar preview. Tente novamente." }, { status: 500 });
   }
 }

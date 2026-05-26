@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/users-store";
 import { validatePassword } from "@/lib/password-validation";
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     if (err instanceof Error && err.message === "EMAIL_EXISTS") {
       return NextResponse.json({ error: "E-mail já cadastrado na plataforma" }, { status: 409 });
     }
-    logError("", err);
+    logError("registro", err);
     return NextResponse.json({ error: "Falha ao criar organização" }, { status: 500 });
   }
 }

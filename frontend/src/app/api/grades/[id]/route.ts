@@ -37,7 +37,7 @@ export async function GET(_req: Request, { params }: Params) {
     });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toGrade(row));
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao carregar grade" }, { status: 500 }); }
+  } catch (err) { logError("grades/[id]", err); return NextResponse.json({ error: "Falha ao carregar grade" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -81,7 +81,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     logAction("grade_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toGrade(updated));
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao atualizar grade" }, { status: 500 }); }
+  } catch (err) { logError("grades/[id]", err); return NextResponse.json({ error: "Falha ao atualizar grade" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -96,5 +96,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.gradeFormativa.delete({ where: { id } });
     logAction("grade_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao excluir grade" }, { status: 500 }); }
+  } catch (err) { logError("grades/[id]", err); return NextResponse.json({ error: "Falha ao excluir grade" }, { status: 500 }); }
 }

@@ -36,7 +36,7 @@ export async function GET(_req: Request, { params }: Params) {
     });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toPlano(row));
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao carregar plano" }, { status: 500 }); }
+  } catch (err) { logError("planos/[id]", err); return NextResponse.json({ error: "Falha ao carregar plano" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -67,7 +67,7 @@ export async function PUT(request: Request, { params }: Params) {
     });
     logAction("plano_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toPlano(updated));
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao atualizar plano" }, { status: 500 }); }
+  } catch (err) { logError("planos/[id]", err); return NextResponse.json({ error: "Falha ao atualizar plano" }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -82,5 +82,5 @@ export async function DELETE(request: Request, { params }: Params) {
     await prisma.planoFormativo.delete({ where: { id } });
     logAction("plano_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) { logError("", err); return NextResponse.json({ error: "Falha ao excluir plano" }, { status: 500 }); }
+  } catch (err) { logError("planos/[id]", err); return NextResponse.json({ error: "Falha ao excluir plano" }, { status: 500 }); }
 }

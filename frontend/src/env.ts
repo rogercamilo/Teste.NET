@@ -110,6 +110,15 @@ const schema = z
       });
     }
 
+    // NEXTAUTH_URL required in production for host validation and redirect URL generation
+    if (data.NODE_ENV === "production" && !data.NEXTAUTH_URL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["NEXTAUTH_URL"],
+        message: "NEXTAUTH_URL is required in production",
+      });
+    }
+
     // Upstash required in production — in-memory rate limiting is per-process and bypassed
     // in multi-worker deployments (Vercel, Railway), making login brute-force limits ineffective.
     if (data.NODE_ENV === "production" && (!hasUpstashUrl || !hasUpstashToken)) {
