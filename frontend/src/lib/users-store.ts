@@ -188,8 +188,9 @@ export async function authenticate(
 ): Promise<UserAuth | null> {
   const user = await findByEmail(email, organizacaoId);
   if (!user || !user.ativo || !user.passwordHash) return null;
-  if (!await verifyPassword(password, user.passwordHash)) return null;
-  void upgradeHashIfNeeded(user.id, password, user.passwordHash);
+  const valid = await verifyPassword(password, user.passwordHash);
+  if (!valid) return null;
+  await upgradeHashIfNeeded(user.id, password, user.passwordHash);
   return user;
 }
 
@@ -200,8 +201,9 @@ export async function authenticateGlobal(
 ): Promise<UserAuth | null> {
   const user = await findByEmailGlobal(email);
   if (!user || !user.ativo || !user.passwordHash) return null;
-  if (!await verifyPassword(password, user.passwordHash)) return null;
-  void upgradeHashIfNeeded(user.id, password, user.passwordHash);
+  const valid = await verifyPassword(password, user.passwordHash);
+  if (!valid) return null;
+  await upgradeHashIfNeeded(user.id, password, user.passwordHash);
   return user;
 }
 

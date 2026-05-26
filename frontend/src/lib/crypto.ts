@@ -25,7 +25,10 @@ function getKey(): Buffer | null {
 
 export function encryptField(plaintext: string): string {
   const key = getKey();
-  if (!key) return plaintext;
+  if (!key) {
+    console.warn("[crypto] APP_ENCRYPTION_KEY not set — storing sensitive field as plaintext");
+    return plaintext;
+  }
 
   const iv = randomBytes(12); // 96-bit IV is standard for GCM
   const cipher = createCipheriv(ALGO, key, iv);
@@ -39,7 +42,10 @@ export function decryptField(stored: string): string {
   if (!stored.startsWith(PREFIX)) return stored; // plaintext or no key was set when saved
 
   const key = getKey();
-  if (!key) return stored; // stored encrypted but key not available — return raw
+  if (!key) {
+    console.error("[crypto] Cannot decrypt field: APP_ENCRYPTION_KEY is not set");
+    return stored;
+  }
 
   const payload = stored.slice(PREFIX.length);
   const colonA = payload.indexOf(":");
@@ -50,8 +56,12 @@ export function decryptField(stored: string): string {
   const authTag = Buffer.from(payload.slice(colonA + 1, colonB), "hex");
   const encrypted = Buffer.from(payload.slice(colonB + 1), "hex");
 
-  const decipher = createDecipheriv(ALGO, key, iv);
-  decipher.setAuthTag(authTag);
-
-  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+  try {
+    const decipher = createDecipheriv(ALGO, key, iv);
+    decipher.setAuthTag(authTag);
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+  } catch (err) {
+    // Thrown when auth tag fails (key rotation, data tampering). Caller decides how to handle.
+    throw new Error(`[crypto] Failed to decrypt field — key may have changed: ${String(err)}`);
+  }
 }

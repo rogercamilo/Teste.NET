@@ -47,8 +47,9 @@ export async function loadSmtpConfig(organizacaoId: string): Promise<SmtpConfig>
       select: { smtpConfig: true },
     });
     if (cfg?.smtpConfig) return parseSmtpJson(cfg.smtpConfig);
-  } catch {
-    // DB unavailable during cold start — fall through to env vars
+  } catch (err) {
+    // Covers: DB unavailable at cold start, or decryption failure after key rotation
+    console.error("[smtp-config] Failed to load config from DB, falling back to env vars:", err);
   }
   return fromEnv();
 }
