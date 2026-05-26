@@ -110,14 +110,14 @@ export async function listUsers(
   options?: { skip?: number; take?: number }
 ): Promise<UserAuth[]> {
   const users = await prisma.usuario.findMany({
-    where: { organizacaoId, deletedAt: null },
+    where: { organizacaoId, deletedAt: null, perfil: { not: "super_admin" } },
     ...options,
   });
   return users.map(toUserAuth);
 }
 
 export async function countUsers(organizacaoId: string): Promise<number> {
-  return prisma.usuario.count({ where: { organizacaoId, deletedAt: null } });
+  return prisma.usuario.count({ where: { organizacaoId, deletedAt: null, perfil: { not: "super_admin" } } });
 }
 
 export async function findByEmail(

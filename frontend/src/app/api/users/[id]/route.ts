@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { updateUser, deleteUser, toPublic } from "@/lib/users-store";
+import { findById, updateUser, deleteUser, toPublic } from "@/lib/users-store";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { isAdminOrAbove } from "@/types";
 type Ctx = { params: Promise<{ id: string }> };
@@ -37,6 +37,12 @@ export async function PUT(request: Request, ctx: Ctx) {
     const orgId = actor.organizacaoId;
     if (!orgId) return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
 
+    const target = await findById(id, orgId);
+    if (!target) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
+    if ((target.perfil as string) === "super_admin") {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
+
     const updated = await updateUser(id, { nome, email, perfil, moradaId, ativo, password, organizacaoId: orgId });
     if (!updated) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
 
@@ -62,6 +68,12 @@ export async function DELETE(request: Request, ctx: Ctx) {
 
     if (id === actor.id) {
       return NextResponse.json({ error: "Não é possível excluir a própria conta por esta rota" }, { status: 400 });
+    }
+
+    const target = await findById(id, orgId);
+    if (!target) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
+    if ((target.perfil as string) === "super_admin") {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
     const ok = await deleteUser(id, orgId);
