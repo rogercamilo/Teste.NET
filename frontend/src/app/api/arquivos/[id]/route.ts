@@ -48,7 +48,7 @@ export async function GET(
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": arquivo.tipo,
-      "Content-Disposition": `inline; filename="${encodeURIComponent(arquivo.nome)}"`,
+      "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(arquivo.nome)}`,
       "Content-Length": String(buffer.length),
       "Cache-Control": "private, no-cache",
     },

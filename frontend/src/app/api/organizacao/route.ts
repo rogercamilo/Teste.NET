@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import { UpdateOrganizacaoSchema, parseBody } from "@/lib/schemas";
 import type { ComunidadeConfig } from "@/types";
 
@@ -50,6 +51,8 @@ export async function PUT(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
     const parsed = parseBody(UpdateOrganizacaoSchema, await request.json());

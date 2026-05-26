@@ -96,6 +96,16 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
   }
 
+  const nome = file.name.trim();
+  if (!nome || nome.length > 255) {
+    return Response.json({ error: "Nome de arquivo inválido." }, { status: 422 });
+  }
+
+  const VALID_ENTITY_TYPES = new Set(["formando", "formacao", "morada", "grade", "plano"]);
+  if (!VALID_ENTITY_TYPES.has(entityType)) {
+    return Response.json({ error: "Tipo de entidade inválido." }, { status: 422 });
+  }
+
   const extensao = ALLOWED_TYPES[file.type];
   if (!extensao) {
     return Response.json(
@@ -137,7 +147,7 @@ export async function POST(request: NextRequest) {
   const arquivo = await prisma.arquivo.create({
     data: {
       organizacaoId: orgId,
-      nome: file.name,
+      nome,
       tamanho: file.size,
       tipo: file.type,
       extensao,

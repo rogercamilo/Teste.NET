@@ -7,8 +7,16 @@ import { limiters } from "@/lib/rate-limit";
 
 type Params = { params: Promise<{ token: string }> };
 
-export async function GET(_request: Request, { params }: Params) {
+const TOKEN_RE = /^[0-9a-f-]{32,36}$/i;
+
+export async function GET(request: Request, { params }: Params) {
   const { token } = await params;
+  const ip = getClientIp(request);
+
+  const rl = await limiters.conviteAccept(ip);
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
+
+  if (!TOKEN_RE.test(token)) return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
 
   const convite = await prisma.conviteUsuario.findFirst({
     where: { token },
@@ -38,6 +46,8 @@ export async function POST(request: Request, { params }: Params) {
   if (!rl.allowed) {
     return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
   }
+
+  if (!TOKEN_RE.test(token)) return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
 
   try {
     const body = await request.json() as { senha?: string; nome?: string };

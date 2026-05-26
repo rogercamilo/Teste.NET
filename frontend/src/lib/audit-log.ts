@@ -124,7 +124,9 @@ export function logError(
       level: "error",
       tag,
       message: err instanceof Error ? err.message : String(err),
-      ...(err instanceof Error && err.stack ? { stack: err.stack.split("\n").slice(0, 5) } : {}),
+      ...(err instanceof Error && err.stack && process.env.NODE_ENV !== "production"
+        ? { stack: err.stack.split("\n").slice(0, 5) }
+        : {}),
       ...context,
     })
   );

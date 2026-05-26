@@ -126,7 +126,7 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json(
-      { id: convite.id, token: convite.token, emailSent: emailResult.sent, inviteUrl },
+      { id: convite.id, emailSent: emailResult.sent },
       { status: 201 }
     );
   } catch (err) {

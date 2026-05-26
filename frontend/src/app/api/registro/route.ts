@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     );
   } catch (err) {
     if (err instanceof Error && err.message === "EMAIL_EXISTS") {
-      return NextResponse.json({ error: "E-mail já cadastrado na plataforma" }, { status: 409 });
+      return NextResponse.json({ error: "Não foi possível completar o cadastro. Verifique os dados e tente novamente." }, { status: 409 });
     }
     logError("registro", err);
     return NextResponse.json({ error: "Falha ao criar organização" }, { status: 500 });

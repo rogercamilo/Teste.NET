@@ -5,6 +5,8 @@
  */
 import type { NextAuthConfig } from "next-auth";
 
+const isProd = process.env.NODE_ENV === "production";
+
 export const authConfig = {
   pages: {
     signIn: "/login",
@@ -13,6 +15,16 @@ export const authConfig = {
   session: {
     strategy: "jwt",
     maxAge: 8 * 60 * 60, // 8 h
+  },
+  cookies: {
+    sessionToken: {
+      options: {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        secure: isProd,
+        path: "/",
+      },
+    },
   },
   providers: [],
   callbacks: {

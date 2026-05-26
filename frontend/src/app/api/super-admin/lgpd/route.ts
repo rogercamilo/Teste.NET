@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
-import { createHash } from "crypto";
+import { randomBytes } from "crypto";
 
 export async function GET() {
   const session = await auth();
@@ -77,23 +77,37 @@ export async function PATCH(request: Request) {
     if (body.status === "concluido" && req.tipo === "organizacao" && req.organizacaoId) {
       const orgId = req.organizacaoId;
       await prisma.$transaction(async (tx) => {
-        const usuarios = await tx.usuario.findMany({
-          where: { organizacaoId: orgId, deletedAt: null },
-          select: { id: true, email: true },
-        });
-        for (const u of usuarios) {
-          const emailHash = createHash("sha256").update(u.email).digest("hex").slice(0, 16);
-          await tx.usuario.update({
-            where: { id: u.id },
+        // Process in batches to avoid transaction timeout on large orgs
+        let cursor: string | undefined;
+        do {
+          const batch = await tx.usuario.findMany({
+            where: { organizacaoId: orgId, deletedAt: null },
+            select: { id: true },
+            take: 200,
+            ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+            orderBy: { id: "asc" },
+          });
+          if (batch.length === 0) break;
+          await tx.usuario.updateMany({
+            where: { id: { in: batch.map((u) => u.id) } },
             data: {
               nome: "Usuário Removido",
-              email: `removido_${emailHash}@excluido.local`,
               passwordHash: null,
               ativo: false,
               deletedAt: new Date(),
             },
           });
-        }
+          // Anonymize emails individually since each needs a unique random hash
+          for (const u of batch) {
+            const emailHash = randomBytes(8).toString("hex");
+            await tx.usuario.update({
+              where: { id: u.id },
+              data: { email: `removido_${emailHash}@excluido.local` },
+            });
+          }
+          cursor = batch[batch.length - 1].id;
+          if (batch.length < 200) break;
+        } while (true);
         await tx.organizacao.update({
           where: { id: orgId },
           data: { status: "CANCELADO" },

@@ -36,6 +36,9 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.comentarioFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (user.role === "formador_comunitario" && existing.formadorId !== user.id) {
+      return NextResponse.json({ error: "Sem permissão para editar comentários de outros formadores" }, { status: 403 });
+    }
     const body = await request.json() as Partial<ComentarioFormando>;
     const updated = await prisma.comentarioFormando.update({ where: { id }, data: { texto: body.texto?.trim(), tipo: body.tipo } });
     logAction("comentario_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
@@ -53,6 +56,9 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const existing = await prisma.comentarioFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (user.role === "formador_comunitario" && existing.formadorId !== user.id) {
+      return NextResponse.json({ error: "Sem permissão para excluir comentários de outros formadores" }, { status: 403 });
+    }
     await prisma.comentarioFormando.delete({ where: { id } });
     logAction("comentario_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });

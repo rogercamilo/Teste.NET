@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -32,6 +33,8 @@ export async function PUT(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
   try {
     const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
@@ -50,6 +53,8 @@ export async function DELETE(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
   try {
     const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });

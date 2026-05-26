@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import { sendAccountDeletionEmail } from "@/lib/email";
 import { randomBytes } from "crypto";
 
@@ -11,6 +12,9 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   const actor = session?.user as SessionUser | undefined;
   if (!actor?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+  const rl = await limiters.passwordChange(actor.id);
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
 
   // super_admin não pode autoexcluir pela plataforma
   if (actor.role === "super_admin") {

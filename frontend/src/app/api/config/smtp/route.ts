@@ -2,6 +2,7 @@
 import { auth } from "@/auth";
 import { loadSmtpConfig, saveSmtpConfig, isSmtpReady } from "@/lib/smtp-config";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 
@@ -37,6 +38,8 @@ export async function PUT(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
     const body = await request.json() as {

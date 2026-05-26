@@ -92,6 +92,12 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+
+    // formador_comunitario só pode editar formandos da própria morada
+    if (user.role === "formador_comunitario" && existing.moradaId !== (user.moradaId ?? null)) {
+      return NextResponse.json({ error: "Sem permissão para editar formandos de outra morada" }, { status: 403 });
+    }
+
     const raw = await request.json() as Record<string, unknown>;
     // Explicit whitelist — prevents mass assignment of fields like organizacaoId, deletedAt
     const body: Partial<Formando> = {
@@ -107,11 +113,16 @@ export async function PUT(request: Request, { params }: Params) {
       motivoInatividade: raw.motivoInatividade as Formando["motivoInatividade"] | undefined,
       foto: typeof raw.foto === "string" ? raw.foto : undefined,
       turmaId: typeof raw.turmaId === "string" ? raw.turmaId : undefined,
-      moradaId: typeof raw.moradaId === "string" ? raw.moradaId : undefined,
+      moradaId: typeof raw.moradaId === "string" ? raw.moradaId : (raw.moradaId === null ? null : undefined),
       totalFormacoes: typeof raw.totalFormacoes === "number" ? raw.totalFormacoes : undefined,
       formacoesRealizadas: typeof raw.formacoesRealizadas === "number" ? raw.formacoesRealizadas : undefined,
       progressoEtapas: Array.isArray(raw.progressoEtapas) ? raw.progressoEtapas as Formando["progressoEtapas"] : undefined,
     };
+
+    if (body.moradaId) {
+      const morada = await prisma.morada.findFirst({ where: { id: body.moradaId, organizacaoId: user.organizacaoId } });
+      if (!morada) return NextResponse.json({ error: "Morada não encontrada" }, { status: 400 });
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       await tx.formando.update({

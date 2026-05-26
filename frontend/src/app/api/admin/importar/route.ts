@@ -33,14 +33,13 @@ export async function POST(request: Request) {
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
-  const contentLength = Number(request.headers.get("content-length") ?? 0);
-  if (contentLength > MAX_PAYLOAD_BYTES) {
-    return NextResponse.json({ error: "Payload excede o limite de 5 MB" }, { status: 413 });
-  }
-
   let body: ImportPayload;
   try {
-    body = await request.json() as ImportPayload;
+    const rawText = await request.text();
+    if (Buffer.byteLength(rawText, "utf8") > MAX_PAYLOAD_BYTES) {
+      return NextResponse.json({ error: "Payload excede o limite de 5 MB" }, { status: 413 });
+    }
+    body = JSON.parse(rawText) as ImportPayload;
   } catch (err) {
     logError("admin/importar parse", err);
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
