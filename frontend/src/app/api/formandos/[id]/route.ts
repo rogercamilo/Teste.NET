@@ -181,6 +181,8 @@ export async function DELETE(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
   try {
     const existing = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });

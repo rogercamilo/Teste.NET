@@ -20,6 +20,7 @@ export async function GET() {
       cookieAnaliticos,
     ] = await Promise.all([
       prisma.deletionRequest.findMany({
+        select: { id: true, tipo: true, status: true, organizacaoId: true, usuarioId: true, solicitadoEm: true, processadoEm: true },
         orderBy: { solicitadoEm: "desc" },
         take: 50,
       }),

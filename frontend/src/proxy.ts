@@ -50,7 +50,7 @@ export default auth(function proxy(req) {
     "/api/health",
     "/api/public/",
     "/api/registro",
-    "/api/convites/",
+    "/api/convites/",      // Only GET+POST /api/convites/[token] are public (invite lookup/accept). List/create/delete at /api/convites are auth-protected.
     "/api/cookies/",
     "/api/stripe/webhook",
     "/api/auth/signin",

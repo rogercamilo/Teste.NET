@@ -54,6 +54,13 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
   }
 
+  if (!user.organizacaoId) return Response.json({ error: "Sessão inválida" }, { status: 401 });
+
+  const nome = file.name.trim();
+  if (!nome || nome.length > 255) {
+    return Response.json({ error: "Nome de arquivo inválido." }, { status: 422 });
+  }
+
   const extensao = ALLOWED_TYPES[file.type];
   if (!extensao) {
     return Response.json(
@@ -75,7 +82,15 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 422 });
   }
 
-  const orgId = user.organizacaoId ?? "default";
+  const orgId = user.organizacaoId;
+
+  // Validate that formando and agendamento belong to this org (tenant isolation)
+  const [formando, agendamento] = await Promise.all([
+    prisma.formando.findFirst({ where: { id: formandoId, organizacaoId: orgId, deletedAt: null } }),
+    prisma.agendamento.findFirst({ where: { id: eventoId, organizacaoId: orgId } }),
+  ]);
+  if (!formando) return Response.json({ error: "Formando não encontrado" }, { status: 404 });
+  if (!agendamento) return Response.json({ error: "Evento não encontrado" }, { status: 404 });
 
   let storageKey: string;
   try {
@@ -88,7 +103,7 @@ export async function POST(request: NextRequest) {
   const documento = await prisma.arquivo.create({
     data: {
       organizacaoId: orgId,
-      nome: file.name,
+      nome,
       tamanho: file.size,
       tipo: file.type,
       extensao,

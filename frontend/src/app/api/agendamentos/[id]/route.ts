@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
+import { UpdateAgendamentoSchema, parseBody } from "@/lib/schemas";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 type Params = { params: Promise<{ id: string }> };
@@ -39,10 +40,12 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    const body = await request.json() as Partial<Agendamento>;
+    const parsed = parseBody(UpdateAgendamentoSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
     const updated = await prisma.agendamento.update({
       where: { id },
-      data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, formadorNome: body.formadorNome, dataInicio: body.dataInicio ? new Date(body.dataInicio) : undefined, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local || null, linkOnline: body.linkOnline || null, status: body.status, participantes: body.participantes, observacoes: body.observacoes || null },
+      data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, dataInicio: body.dataInicio ? new Date(body.dataInicio) : undefined, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null },
     });
     logAction("agendamento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toAg(updated));
