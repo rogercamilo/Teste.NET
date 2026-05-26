@@ -6,6 +6,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { encryptField, decryptField } from "@/lib/crypto";
+import { logError } from "@/lib/audit-log";
 
 export interface SmtpConfig {
   host: string;
@@ -48,8 +49,7 @@ export async function loadSmtpConfig(organizacaoId: string): Promise<SmtpConfig>
     });
     if (cfg?.smtpConfig) return parseSmtpJson(cfg.smtpConfig);
   } catch (err) {
-    // Covers: DB unavailable at cold start, or decryption failure after key rotation
-    console.error("[smtp-config] Failed to load config from DB, falling back to env vars:", err);
+    logError("smtp-config/load", err);
   }
   return fromEnv();
 }

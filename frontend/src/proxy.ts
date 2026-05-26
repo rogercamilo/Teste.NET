@@ -20,13 +20,14 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
       // 'unsafe-eval' is only needed for Turbopack in dev.
       `script-src 'nonce-${nonce}' 'strict-dynamic'${isProd ? "" : " 'unsafe-eval'"} https://js.stripe.com 'unsafe-inline'`,
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https:",
+      "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "frame-src https://js.stripe.com",
-      "connect-src 'self' https://api.stripe.com",
+      "frame-src https://js.stripe.com https://hooks.stripe.com",
+      "connect-src 'self' https://api.stripe.com https://*.stripe.com",
       "worker-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",
+      "form-action 'self'",
     ].join("; "),
   };
 }
