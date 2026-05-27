@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useGrades, useFormacoes, usePlanos, useUsuarios, useEtapaLabels } from "@/lib/data-store";
-import { extractDocumentFields } from "@/lib/doc-extract";
 import {
   MODALIDADE_LABELS,
   type NivelFormativo,
@@ -125,7 +124,6 @@ export default function GradeFormPage({ id }: { id?: string }) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [eixosComFormacoes, setEixosComFormacoes] = useState<EixoComFormacoes[]>([]);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
-  const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
   const formInitialized = useRef(false);
   const eixosInitialized = useRef(false);
@@ -252,49 +250,12 @@ export default function GradeFormPage({ id }: { id?: string }) {
     );
   }
 
-  async function handleDocumentoInput(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleDocumentoInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setExtracting(true);
-    try {
-      const { objetivos, fundamentacao } = await extractDocumentFields(file);
-      setDocumentoFile(file);
-      setForm((prev) => {
-        const next = { ...prev, documentoNome: file.name, documentoId: "" };
-        const willFillObjetivos = !!objetivos && !prev.objetivos.trim();
-        const willFillFundamentacao = !!fundamentacao && !prev.fundamentacao.trim();
-        if (willFillObjetivos) next.objetivos = objetivos;
-        if (willFillFundamentacao) next.fundamentacao = fundamentacao;
-        const filled = [
-          willFillObjetivos && "Objetivos",
-          willFillFundamentacao && "Fundamentação",
-        ]
-          .filter(Boolean)
-          .join(" e ");
-        if (filled) {
-          toast.success(`Campos preenchidos a partir do documento: ${filled}`);
-        } else if (objetivos || fundamentacao) {
-          const pending = { objetivos, fundamentacao };
-          toast("Conteúdo encontrado no documento", {
-            description: "Os campos já estão preenchidos. Deseja substituir?",
-            action: {
-              label: "Substituir",
-              onClick: () =>
-                setForm((p) => ({
-                  ...p,
-                  objetivos: pending.objetivos || p.objetivos,
-                  fundamentacao: pending.fundamentacao || p.fundamentacao,
-                })),
-            },
-          });
-        } else {
-          toast.info("Documento selecionado. Será salvo ao confirmar.");
-        }
-        return next;
-      });
-    } finally {
-      setExtracting(false);
-    }
+    setDocumentoFile(file);
+    setForm((prev) => ({ ...prev, documentoNome: file.name, documentoId: "" }));
+    toast.success("Documento selecionado. Será salvo ao confirmar.");
   }
 
   function removerDocumento() {
@@ -585,12 +546,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
           )}
 
           <div className="grid gap-1.5">
-            <Label className="flex items-center gap-2">
-              Documento da grade
-              {extracting && (
-                <span className="text-xs text-primary animate-pulse">Lendo documento…</span>
-              )}
-            </Label>
+            <Label>Documento da grade</Label>
             {form.documentoNome ? (
               <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/40">
                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -607,13 +563,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
                 </button>
               </div>
             ) : (
-              <label
-                className={`flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-muted/20 transition-colors ${
-                  extracting
-                    ? "opacity-50 cursor-not-allowed"
-                    : "cursor-pointer hover:bg-muted/40"
-                }`}
-              >
+              <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors">
                 <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground">
                   Selecionar PDF ou Word (.pdf, .docx, .doc)
@@ -622,7 +572,6 @@ export default function GradeFormPage({ id }: { id?: string }) {
                   type="file"
                   accept=".pdf,.docx,.doc"
                   className="hidden"
-                  disabled={extracting}
                   onChange={handleDocumentoInput}
                 />
               </label>
@@ -822,7 +771,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
         >
           Cancelar
         </Button>
-        <Button onClick={handleSave} disabled={saving || extracting}>
+        <Button onClick={handleSave} disabled={saving}>
           {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando…</> : isEditing ? "Salvar alterações" : "Criar grade"}
         </Button>
       </div>

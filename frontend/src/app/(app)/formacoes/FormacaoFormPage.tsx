@@ -63,7 +63,6 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
   const etapaLabels = useEtapaLabels();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
-  const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
   const initialized = useRef(false);
   const isEditing = !!id;
@@ -92,17 +91,12 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  async function handleDocumentoInput(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleDocumentoInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setExtracting(true);
-    try {
-      setDocumentoFile(file);
-      setForm((prev) => ({ ...prev, documentoNome: file.name, documentoId: "" }));
-      toast.success("Documento selecionado. Será salvo ao confirmar.");
-    } finally {
-      setExtracting(false);
-    }
+    setDocumentoFile(file);
+    setForm((prev) => ({ ...prev, documentoNome: file.name, documentoId: "" }));
+    toast.success("Documento selecionado. Será salvo ao confirmar.");
   }
 
   function removerDocumento() {
@@ -281,10 +275,7 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
           </div>
 
           <div className="grid gap-1.5">
-            <Label className="flex items-center gap-2">
-              Documento da formação
-              {extracting && <span className="text-xs text-primary animate-pulse">Anexando…</span>}
-            </Label>
+            <Label>Documento da formação</Label>
             {form.documentoNome ? (
               <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/40">
                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -297,10 +288,10 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
                 </button>
               </div>
             ) : (
-              <label className={`flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-muted/20 transition-colors ${extracting ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/40"}`}>
+              <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors">
                 <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
-                <input type="file" accept=".pdf,.docx,.doc" className="hidden" disabled={extracting} onChange={handleDocumentoInput} />
+                <input type="file" accept=".pdf,.docx,.doc" className="hidden" onChange={handleDocumentoInput} />
               </label>
             )}
           </div>
@@ -310,7 +301,7 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
           <Button variant="outline" onClick={() => router.push(isEditing ? `/formacoes/${id}` : "/formacoes")} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving || extracting}>
+          <Button onClick={handleSave} disabled={saving}>
             {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando…</> : isEditing ? "Salvar alterações" : "Criar formação"}
           </Button>
         </div>
