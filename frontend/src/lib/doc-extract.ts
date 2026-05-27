@@ -1,19 +1,10 @@
-/**
- * Client-side text extraction from PDF and DOCX files.
- * Uses pdfjs-dist (PDF) and mammoth (DOCX) via dynamic imports
- * so neither library is bundled into the initial page load.
- */
-
-async function extractTextFromPdf(dataUrl: string): Promise<string> {
+async function extractTextFromPdf(buffer: ArrayBuffer): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+  // Cache-bust worker URL with the installed library version so old workers are
+  // never reused after a pdfjs-dist package update.
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs?v=${pdfjsLib.version}`;
 
-  const base64 = dataUrl.split(",")[1];
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
   const maxPages = Math.min(pdf.numPages, 5);
   const parts: string[] = [];
 
@@ -30,13 +21,9 @@ async function extractTextFromPdf(dataUrl: string): Promise<string> {
   return parts.join("\n\n");
 }
 
-async function extractTextFromDocx(dataUrl: string): Promise<string> {
+async function extractTextFromDocx(buffer: ArrayBuffer): Promise<string> {
   const mammoth = await import("mammoth");
-  const base64 = dataUrl.split(",")[1];
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  const result = await mammoth.extractRawText({ arrayBuffer: bytes.buffer as ArrayBuffer });
+  const result = await mammoth.extractRawText({ arrayBuffer: buffer });
   return result.value;
 }
 
@@ -117,40 +104,28 @@ export function parseFormativeContent(text: string): {
 export interface ExtractedFields {
   objetivos: string;
   fundamentacao: string;
-  dataUrl: string;
 }
 
-/**
- * Reads a File, extracts its text content, and returns both the
- * base64 data URL (for storage / viewing) and the parsed form fields.
- */
 export async function extractDocumentFields(
   file: File
 ): Promise<ExtractedFields> {
-  // Read as data URL (needed for storage and PDF viewer)
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target!.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
+  const buffer = await file.arrayBuffer();
   const lower = file.name.toLowerCase();
   let rawText = "";
 
   try {
     if (lower.endsWith(".pdf")) {
-      rawText = await extractTextFromPdf(dataUrl);
+      rawText = await extractTextFromPdf(buffer);
     } else if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
-      rawText = await extractTextFromDocx(dataUrl);
+      rawText = await extractTextFromDocx(buffer);
     }
-  } catch {
-    // Extraction failed — caller receives empty strings and can proceed without pre-fill
+  } catch (err) {
+    console.warn("[doc-extract] extração de texto falhou:", err instanceof Error ? err.message : err);
   }
 
   const { objetivos, fundamentacao } = rawText
     ? parseFormativeContent(rawText)
     : { objetivos: "", fundamentacao: "" };
 
-  return { objetivos, fundamentacao, dataUrl };
+  return { objetivos, fundamentacao };
 }

@@ -6,6 +6,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Download,
+  Eye,
   FileText,
   Search,
   Trash2,
@@ -35,6 +36,7 @@ import {
 import { toast } from "sonner";
 import type { DocumentoMeta } from "@/lib/documentos-store";
 import { Pagination } from "@/components/ui/pagination";
+import { DocumentoViewer } from "@/components/documentos/DocumentoViewer";
 
 const TIPO_EVENTO_LABELS: Record<string, string> = {
   "solicitacao-desligamento": "Solicitação de Desligamento",
@@ -60,6 +62,7 @@ export default function DocumentosPage() {
   const [search, setSearch] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos");
   const [page, setPage] = useState(1);
+  const [viewer, setViewer] = useState<{ open: boolean; doc: DocumentoMeta | null }>({ open: false, doc: null });
 
   const loadDocumentos = useCallback(async () => {
     setLoading(true);
@@ -202,10 +205,22 @@ export default function DocumentosPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {doc.tipo === "application/pdf" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Visualizar"
+                            onClick={() => setViewer({ open: true, doc })}
+                          >
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        )}
                         <a
                           href={`/api/documentos/${doc.id}`}
                           download={doc.nome}
                           className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent transition-colors"
+                          title="Baixar"
                         >
                           <Download className="h-4 w-4 text-muted-foreground" />
                         </a>
@@ -230,6 +245,13 @@ export default function DocumentosPage() {
       {!loading && filtered.length > 0 && (
         <Pagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
       )}
+
+      <DocumentoViewer
+        open={viewer.open}
+        onOpenChange={(open) => setViewer((v) => ({ ...v, open }))}
+        nome={viewer.doc?.nome ?? ""}
+        arquivoUrl={viewer.doc ? `/api/documentos/${viewer.doc.id}` : ""}
+      />
     </div>
   );
 }

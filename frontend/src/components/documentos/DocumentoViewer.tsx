@@ -1,60 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 
 interface DocumentoViewerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nome: string;
-  dataUrl: string;
+  arquivoUrl: string;
 }
 
-function dataUrlToBlobUrl(dataUrl: string): string {
-  try {
-    const [header, base64] = dataUrl.split(",");
-    const mimeMatch = header.match(/:(.*?);/);
-    if (!mimeMatch || !base64) return dataUrl;
-    const mimeType = mimeMatch[1];
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: mimeType });
-    return URL.createObjectURL(blob);
-  } catch {
-    return dataUrl;
-  }
-}
-
-export function DocumentoViewer({ open, onOpenChange, nome, dataUrl }: DocumentoViewerProps) {
-  const [blobUrl, setBlobUrl] = useState("");
-  const isPdf =
-    dataUrl.includes("application/pdf") || nome.toLowerCase().endsWith(".pdf");
-
-  useEffect(() => {
-    if (open && dataUrl) {
-      const url = dataUrlToBlobUrl(dataUrl);
-      setBlobUrl(url);
-      return () => {
-        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
-      };
-    }
-  }, [open, dataUrl]);
-
-  function handleDownload() {
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = nome;
-    a.click();
-  }
+export function DocumentoViewer({ open, onOpenChange, nome, arquivoUrl }: DocumentoViewerProps) {
+  const isPdf = nome.toLowerCase().endsWith(".pdf");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,20 +25,19 @@ export function DocumentoViewer({ open, onOpenChange, nome, dataUrl }: Documento
             <FileText className="h-4 w-4 text-primary shrink-0" />
             <DialogTitle className="text-sm font-medium truncate">{nome}</DialogTitle>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownload}
-            className="h-7 shrink-0 gap-1.5 mr-7"
+          <a
+            href={arquivoUrl}
+            download={nome}
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium border border-border bg-background hover:bg-muted transition-colors mr-7 shrink-0"
           >
             <Download className="h-3.5 w-3.5" />
             Baixar
-          </Button>
+          </a>
         </div>
 
-        {isPdf && blobUrl ? (
+        {isPdf ? (
           <iframe
-            src={blobUrl}
+            src={arquivoUrl}
             className="flex-1 w-full border-0"
             title={nome}
           />
@@ -93,10 +53,14 @@ export function DocumentoViewer({ open, onOpenChange, nome, dataUrl }: Documento
                 Faça o download para abrir o arquivo.
               </p>
             </div>
-            <Button onClick={handleDownload} className="gap-2">
+            <a
+              href={arquivoUrl}
+              download={nome}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
               <Download className="h-4 w-4" />
               Baixar arquivo
-            </Button>
+            </a>
           </div>
         )}
       </DialogContent>

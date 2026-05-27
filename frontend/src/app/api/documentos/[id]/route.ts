@@ -47,6 +47,10 @@ export async function GET(
   ) {
     const { getFileUrl } = await import("@/lib/storage");
     const url = await getFileUrl(doc.storageKey, doc.id);
+    const expectedPrefix = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+    if (!url.startsWith(expectedPrefix)) {
+      return Response.json({ error: "URL de redirecionamento inválida" }, { status: 500 });
+    }
     return Response.redirect(url, 302);
   }
 
@@ -60,7 +64,7 @@ export async function GET(
   return new Response(new Uint8Array(fileBuffer), {
     headers: {
       "Content-Type": doc.tipo,
-      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(doc.nome)}`,
+      "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(doc.nome)}`,
       "Content-Length": String(doc.tamanho),
       "Cache-Control": "private, no-cache",
     },

@@ -6,9 +6,14 @@ import { type NextRequest } from "next/server";
 
 type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
-function canAccess(arquivo: { uploadedById: string | null; organizacaoId: string }, user: SessionUser): boolean {
+// Leitura: isolamento de tenant é garantido pelo WHERE clause — qualquer membro da org pode ler
+function canRead(): boolean {
+  return true;
+}
+
+function canDelete(arquivo: { uploadedById: string | null }, user: SessionUser): boolean {
   if (user.role === "administrador" || user.role === "formador_geral") return true;
-  return arquivo.uploadedById === user.id && arquivo.organizacaoId === user.organizacaoId;
+  return arquivo.uploadedById === user.id;
 }
 
 export async function GET(
@@ -25,7 +30,7 @@ export async function GET(
   });
 
   if (!arquivo) return new Response("Arquivo não encontrado", { status: 404 });
-  if (!canAccess(arquivo, user)) return new Response("Sem permissão", { status: 403 });
+  if (!canRead()) return new Response("Sem permissão", { status: 403 });
 
   // R2: redireciona para pre-signed URL gerada em tempo real
   if (
@@ -73,7 +78,7 @@ export async function DELETE(
   });
 
   if (!arquivo) return Response.json({ error: "Arquivo não encontrado" }, { status: 404 });
-  if (!canAccess(arquivo, user)) return Response.json({ error: "Sem permissão" }, { status: 403 });
+  if (!canDelete(arquivo, user)) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
   await deleteFile(arquivo.storageKey);
   await prisma.arquivo.delete({ where: { id } });

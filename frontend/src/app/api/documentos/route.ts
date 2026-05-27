@@ -11,7 +11,7 @@ const ALLOWED_TYPES: Record<string, string> = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
 };
 
-const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
 type SessionUser = {
   id?: string;
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (file.size > MAX_SIZE) {
-    return Response.json({ error: "Arquivo excede o limite de 5 MB." }, { status: 422 });
+    return Response.json({ error: "Arquivo excede o limite de 10 MB." }, { status: 422 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
