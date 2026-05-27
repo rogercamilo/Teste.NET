@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useGrades, useFormacoes, useEtapaLabels, db } from "@/lib/data-store";
+import { useGrades, useFormacoes, usePlanos, useUsuarios, useEtapaLabels } from "@/lib/data-store";
 import { extractDocumentFields } from "@/lib/doc-extract";
 import {
   MODALIDADE_LABELS,
@@ -118,40 +118,47 @@ export default function GradeFormPage({ id }: { id?: string }) {
   const isFormadorGeral = role === "formador_geral";
 
   const [grades, setGrades] = useGrades();
-  const [, setFormacoes] = useFormacoes();
+  const [allFormacoes, setFormacoes] = useFormacoes();
+  const [allPlanos] = usePlanos();
+  const [allUsuarios] = useUsuarios();
   const etapaLabels = useEtapaLabels();
-  const [allPlanos] = useState(() => db.planos.load());
-  const [allUsuarios] = useState(() => db.usuarios.load());
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [eixosComFormacoes, setEixosComFormacoes] = useState<EixoComFormacoes[]>([]);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const initialized = useRef(false);
+  const formInitialized = useRef(false);
+  const eixosInitialized = useRef(false);
   const isEditing = !!id;
 
   useEffect(() => {
-    if (!id || initialized.current) return;
+    if (!id) return;
     const g = grades.find((x) => x.id === id);
     if (!g) return;
-    setForm({
-      nome: g.nome,
-      planoId: g.planoId,
-      nivelFormativo: g.nivelFormativo,
-      vigenciaInicio: g.vigenciaInicio,
-      vigenciaFim: g.vigenciaFim,
-      versao: g.versao,
-      eixos: g.eixos.map((e) => e.nome).join("; "),
-      objetivos: g.objetivos ?? "",
-      fundamentacao: g.fundamentacao ?? "",
-      documentoNome: g.documentoAnexo ?? "",
-      documentoId: g.documentoAnexoId ?? "",
-    });
 
-    if (isFormadorGeral) {
+    // Inicializar formulário — só na primeira vez
+    if (!formInitialized.current) {
+      setForm({
+        nome: g.nome,
+        planoId: g.planoId,
+        nivelFormativo: g.nivelFormativo,
+        vigenciaInicio: g.vigenciaInicio,
+        vigenciaFim: g.vigenciaFim,
+        versao: g.versao,
+        eixos: g.eixos.map((e) => e.nome).join("; "),
+        objetivos: g.objetivos ?? "",
+        fundamentacao: g.fundamentacao ?? "",
+        documentoNome: g.documentoAnexo ?? "",
+        documentoId: g.documentoAnexoId ?? "",
+      });
+      formInitialized.current = true;
+    }
+
+    // Inicializar eixos — aguarda planos carregarem (pode vir depois do grade)
+    if (isFormadorGeral && !eixosInitialized.current && allPlanos.length > 0) {
       const plano = allPlanos.find((p) => p.id === g.planoId);
       if (plano && plano.eixos.length > 0) {
-        const existingFormacoes = db.formacoes.load().filter((f) => f.gradeId === id);
+        const existingFormacoes = allFormacoes.filter((f) => f.gradeId === id);
         setEixosComFormacoes(
           plano.eixos.map((ep) => ({
             eixoPlano: ep,
@@ -170,10 +177,12 @@ export default function GradeFormPage({ id }: { id?: string }) {
           }))
         );
       }
+      eixosInitialized.current = true;
+    } else if (!isFormadorGeral) {
+      eixosInitialized.current = true;
     }
-
-    initialized.current = true;
-  }, [id, grades]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, grades, allPlanos, allFormacoes]);
 
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));

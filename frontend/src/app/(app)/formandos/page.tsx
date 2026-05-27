@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useFormandos, useComunidade, useTermos, useEtapaLabels, db } from "@/lib/data-store";
+import { useFormandos, useMoradas, useGrades, useComunidade, useTermos, useEtapaLabels } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   MODALIDADE_LABELS,
@@ -124,8 +124,8 @@ export default function FormandosPage() {
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const termoMorada = comunidade.termoMorada?.trim() || "Morada";
   const etapaLabels = useEtapaLabels();
-  const [allMoradas, setAllMoradas] = useState<Morada[]>(() => db.moradas.load());
-  const [allGrades] = useState<GradeFormativa[]>(() => db.grades.load());
+  const [allMoradas, setAllMoradas] = useMoradas();
+  const [allGrades] = useGrades();
   const PAGE_SIZE = 10;
   const [search, setSearch] = useState("");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
@@ -263,7 +263,6 @@ export default function FormandosPage() {
       const updated: Morada = await res.json();
       const updatedMoradas = allMoradas.map((m) => (m.id === updated.id ? updated : m));
       setAllMoradas(updatedMoradas);
-      db.moradas.save(updatedMoradas);
       // Refresh formandos so totalFormacoes reflects the newly linked grade
       setFormandos((prev) => [...prev]);
       setLinkGradeState(null);

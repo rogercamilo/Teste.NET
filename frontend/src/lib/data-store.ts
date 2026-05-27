@@ -1,11 +1,11 @@
 /**
  * API-backed persistence layer.
  * Hooks load from the REST API on mount and sync writes back via CRUD endpoints.
- * The `db` object provides a synchronous in-memory cache for non-reactive reads
- * (e.g. `db.moradas.load()` in useState initialisers); it is populated when hooks load.
+ * The `db` object provides a synchronous in-memory cache for non-reactive reads;
+ * it is populated when hooks load. Fonte de verdade exclusiva: API/PostgreSQL.
  *
- * D2.6: localStorage removido completamente. Fonte de verdade é a API/PostgreSQL.
- * Fallback de desenvolvimento: mock-data (apenas enquanto a API não responde).
+ * D2.6: localStorage removido completamente.
+ * D2.7: mock-data removido como fallback — arrays vazios evitam dados fantasma.
  */
 import { useState, useEffect, useRef } from "react";
 import type {
@@ -23,19 +23,6 @@ import type {
   ComunidadeConfig,
   NivelFormativo,
 } from "@/types";
-import {
-  mockAgendamentos,
-  mockEventosFormando,
-  mockFormacoes,
-  mockPlanos,
-  mockGrades,
-  mockHistorico,
-  mockMoradas,
-  mockFormandos,
-  mockComentarios,
-  mockPresencas,
-  mockUsuarios,
-} from "./mock-data";
 
 // ---------------------------------------------------------------------------
 // In-memory cache — shared between hooks and db object
@@ -53,17 +40,17 @@ function makeDbEntity<T>(entity: string, fallback: T[]) {
 }
 
 export const db = {
-  agendamentos: makeDbEntity<Agendamento>("agendamentos", mockAgendamentos),
-  formacoes: makeDbEntity<Formacao>("formacoes", mockFormacoes),
-  planos: makeDbEntity<PlanoFormativo>("planos", mockPlanos),
-  grades: makeDbEntity<GradeFormativa>("grades", mockGrades),
-  moradas: makeDbEntity<Morada>("moradas", mockMoradas),
-  formandos: makeDbEntity<Formando>("formandos", mockFormandos),
-  historico: makeDbEntity<HistoricoFormando>("historico", mockHistorico),
-  comentarios: makeDbEntity<ComentarioFormando>("comentarios", mockComentarios),
-  presencas: makeDbEntity<PresencaFormacao>("presencas", mockPresencas),
-  usuarios: makeDbEntity<Usuario>("usuarios", mockUsuarios),
-  eventosFormando: makeDbEntity<EventoFormando>("eventosFormando", mockEventosFormando),
+  agendamentos: makeDbEntity<Agendamento>("agendamentos", []),
+  formacoes: makeDbEntity<Formacao>("formacoes", []),
+  planos: makeDbEntity<PlanoFormativo>("planos", []),
+  grades: makeDbEntity<GradeFormativa>("grades", []),
+  moradas: makeDbEntity<Morada>("moradas", []),
+  formandos: makeDbEntity<Formando>("formandos", []),
+  historico: makeDbEntity<HistoricoFormando>("historico", []),
+  comentarios: makeDbEntity<ComentarioFormando>("comentarios", []),
+  presencas: makeDbEntity<PresencaFormacao>("presencas", []),
+  usuarios: makeDbEntity<Usuario>("usuarios", []),
+  eventosFormando: makeDbEntity<EventoFormando>("eventosFormando", []),
 };
 
 // ---------------------------------------------------------------------------

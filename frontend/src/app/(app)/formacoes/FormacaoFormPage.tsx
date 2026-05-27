@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useFormacoes, useEtapaLabels, db } from "@/lib/data-store";
+import { useFormacoes, useEtapaLabels, useUsuarios } from "@/lib/data-store";
 import {
   MODALIDADE_LABELS,
   TIPO_FORMACAO_LABELS,
@@ -24,8 +24,6 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Loader2, Paperclip, Upload, X } from "lucide-react";
 import { toast } from "sonner";
-
-const formadores = db.usuarios.load().filter((u) => u.ativo);
 
 type FormState = {
   tema: string;
@@ -60,6 +58,8 @@ const EMPTY_FORM: FormState = {
 export default function FormacaoFormPage({ id }: { id?: string }) {
   const router = useRouter();
   const [formacoes, setFormacoes] = useFormacoes();
+  const [allUsuarios] = useUsuarios();
+  const formadores = allUsuarios.filter((u) => u.ativo);
   const etapaLabels = useEtapaLabels();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);

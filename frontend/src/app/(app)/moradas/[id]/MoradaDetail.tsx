@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   mockAgendamentos,
 } from "@/lib/mock-data";
-import { usePresencas, useComentarios, useFormandos, useComunidade, db } from "@/lib/data-store";
+import { usePresencas, useComentarios, useFormandos, useMoradas, usePlanos, useGrades, useUsuarios, useComunidade, db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -137,14 +137,22 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const isAdmin = userRole === "administrador";
   const isFC = userRole === "formador_comunitario";
 
-  const [morada, setMorada] = useState<Morada | undefined>(() =>
-    db.moradas.load().find((m) => m.id === id)
-  );
+  const [allMoradas] = useMoradas();
+  const [allPlanos] = usePlanos();
+  const [allGrades] = useGrades();
+  const [allUsuarios] = useUsuarios();
+  const [morada, setMorada] = useState<Morada | undefined>(undefined);
   const [allFormandos, setAllFormandos] = useFormandos();
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
-  const [allPlanos] = useState(() => db.planos.load());
-  const [allGrades] = useState(() => db.grades.load());
+
+  // Inicializa a morada a partir do cache reativo (não substitui edições locais)
+  useEffect(() => {
+    if (!morada && allMoradas.length > 0) {
+      setMorada(allMoradas.find((m) => m.id === id));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allMoradas, id]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ nome: "", localReuniao: "" });
@@ -185,7 +193,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     );
   }
 
-  const formador = db.usuarios.load().find((u) => u.id === morada.formadorId);
+  const formador = allUsuarios.find((u) => u.id === morada.formadorId);
   const plano = allPlanos.find((p) => p.id === morada.planoId);
   const grade = allGrades.find((g) => g.id === morada.gradeId);
   const formandosDaMorada = allFormandos.filter((f) => f.moradaId === morada.id);
@@ -272,7 +280,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     setMorada((prev) => {
       if (!prev) return prev;
       const updated = { ...prev, nome: editForm.nome.trim(), localReuniao: editForm.localReuniao.trim() || undefined };
-      const all = db.moradas.load().map((m) => (m.id === updated.id ? updated : m));
+      const all = allMoradas.map((m) => (m.id === updated.id ? updated : m));
       db.moradas.save(all);
       return updated;
     });
@@ -416,7 +424,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         vigenciaInicio: novaEtapaForm.vigenciaInicio,
         vigenciaFim: novaEtapaForm.vigenciaFim,
       };
-      const all = db.moradas.load().map((m) => (m.id === updated.id ? updated : m));
+      const all = allMoradas.map((m) => (m.id === updated.id ? updated : m));
       db.moradas.save(all);
       return updated;
     });

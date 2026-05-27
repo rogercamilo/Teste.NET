@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMoradas, useFormandos, useComunidade, db } from "@/lib/data-store";
+import { useMoradas, useFormandos, usePlanos, useGrades, useUsuarios, useComunidade } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -78,18 +78,17 @@ const EMPTY_FORM: FormState = {
   vigenciaFim: "",
 };
 
-const formadores = db.usuarios.load().filter((u) => u.perfil === "formador_comunitario" && u.ativo);
-
 const PAGE_SIZE = 10;
 
 export default function MoradasClient() {
   const [moradas, setMoradas] = useMoradas();
-  const [, setFormandos] = useFormandos();
+  const [allFormandos, setFormandos] = useFormandos();
+  const [allPlanos] = usePlanos();
+  const [allGrades] = useGrades();
+  const [allUsuarios] = useUsuarios();
   const [comunidade] = useComunidade();
   const termoMorada = comunidade.termoMorada?.trim() || "Morada";
-  const [allFormandos] = useState(() => db.formandos.load());
-  const [allPlanos] = useState(() => db.planos.load());
-  const [allGrades] = useState(() => db.grades.load());
+  const formadores = allUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -231,7 +230,7 @@ export default function MoradasClient() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((morada) => {
-          const formador = db.usuarios.load().find((u) => u.id === morada.formadorId);
+          const formador = allUsuarios.find((u) => u.id === morada.formadorId);
           const plano = allPlanos.find((p) => p.id === morada.planoId);
           const grade = allGrades.find((g) => g.id === morada.gradeId);
           const totalFormandos = allFormandos.filter((f) => f.moradaId === morada.id).length;
