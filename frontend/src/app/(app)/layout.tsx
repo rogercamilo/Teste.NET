@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
+import { ComunidadeProvider } from "@/components/layout/ComunidadeProvider";
 import { ThemeApplier } from "@/components/layout/ThemeApplier";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import PrimeiroAcessoModal from "@/components/PrimeiroAcessoModal";
@@ -48,33 +49,35 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
-      <ThemeApplier themeKey={orgBranding.temaCor} />
-      <PrimeiroAcessoModal primeiroAcesso={primeiroAcesso} />
-      <AppSidebar user={user} nomePlataforma={orgBranding.nomePlataforma} />
-      <SidebarInset>
-        <AppTopbar />
-        <QuotaWarningBanner role={user.role} />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
-          {children}
-        </main>
-        <footer className="shrink-0 border-t border-border/60 bg-card/50 px-4 md:px-6 py-2.5">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-xs text-muted-foreground">
-            <p>
-              {sessionUser.role !== "super_admin" && (orgBranding.nomePlataforma || orgBranding.nome)
-                ? <>{orgBranding.nomePlataforma || orgBranding.nome} · <span className="opacity-60">powered by Formatio</span></>
-                : <>© {new Date().getFullYear()} Formatio</>
-              }
-              {" "}— Todos os direitos reservados.
-            </p>
-            <span className="hidden sm:inline opacity-40">·</span>
-            <div className="flex gap-3">
-              <a href="/privacidade" target="_blank" className="hover:text-foreground transition-colors">Privacidade</a>
-              <a href="/termos" target="_blank" className="hover:text-foreground transition-colors">Termos</a>
-              <CookiePreferencesLink />
+      <ComunidadeProvider>
+        <ThemeApplier themeKey={orgBranding.temaCor} />
+        <PrimeiroAcessoModal primeiroAcesso={primeiroAcesso} />
+        <AppSidebar user={user} nomePlataforma={orgBranding.nomePlataforma} />
+        <SidebarInset>
+          <AppTopbar />
+          <QuotaWarningBanner role={user.role} />
+          <main className="flex-1 overflow-auto p-4 md:p-6">
+            {children}
+          </main>
+          <footer className="shrink-0 border-t border-border/60 bg-card/50 px-4 md:px-6 py-2.5">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-xs text-muted-foreground">
+              <p>
+                {sessionUser.role !== "super_admin" && (orgBranding.nomePlataforma || orgBranding.nome)
+                  ? <>{orgBranding.nomePlataforma || orgBranding.nome} · <span className="opacity-60">powered by Formatio</span></>
+                  : <>© {new Date().getFullYear()} Formatio</>
+                }
+                {" "}— Todos os direitos reservados.
+              </p>
+              <span className="hidden sm:inline opacity-40">·</span>
+              <div className="flex gap-3">
+                <a href="/privacidade" target="_blank" className="hover:text-foreground transition-colors">Privacidade</a>
+                <a href="/termos" target="_blank" className="hover:text-foreground transition-colors">Termos</a>
+                <CookiePreferencesLink />
+              </div>
             </div>
-          </div>
-        </footer>
-      </SidebarInset>
+          </footer>
+        </SidebarInset>
+      </ComunidadeProvider>
     </SidebarProvider>
   );
 }

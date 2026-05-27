@@ -7,7 +7,8 @@
  * D2.6: localStorage removido completamente.
  * D2.7: mock-data removido como fallback — arrays vazios evitam dados fantasma.
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
+import { ComunidadeContext } from "@/components/layout/ComunidadeProvider";
 import type {
   Agendamento,
   EventoFormando,
@@ -204,36 +205,10 @@ export function useEventosFormando(): [EventoFormando[], Setter<EventoFormando>]
 }
 
 // ---------------------------------------------------------------------------
-// ComunidadeConfig — backed by /api/organizacao
+// ComunidadeConfig — backed by /api/organizacao via shared ComunidadeContext
 // ---------------------------------------------------------------------------
-const DEFAULT_COMUNIDADE: ComunidadeConfig = {
-  nome: "",
-  descricao: "",
-  endereco: "",
-  missao: "",
-  anoFundacao: "",
-};
-
 export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => void] {
-  const [s, ss] = useState<ComunidadeConfig>(DEFAULT_COMUNIDADE);
-
-  useEffect(() => {
-    fetch("/api/organizacao")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: ComunidadeConfig | null) => { if (data) ss({ ...DEFAULT_COMUNIDADE, ...data }); })
-      .catch(() => {});
-  }, []);
-
-  const save = (c: ComunidadeConfig) => {
-    ss(c);
-    fetch("/api/organizacao", {
-      method: "PUT",
-      headers: JSON_HEADERS,
-      body: JSON.stringify(c),
-    }).catch(() => {});
-  };
-
-  return [s, save];
+  return useContext(ComunidadeContext);
 }
 
 // ---------------------------------------------------------------------------
