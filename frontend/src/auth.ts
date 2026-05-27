@@ -69,9 +69,10 @@ if (
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  // trustHost only in non-production when NEXTAUTH_URL is not set (local dev).
-  // In production NEXTAUTH_URL is required; allowing trustHost there would permit Host header injection.
-  trustHost: process.env.NODE_ENV !== "production" && !process.env.NEXTAUTH_URL,
+  // trustHost em desenvolvimento — em produção a validação de host é feita via NEXTAUTH_URL.
+  // Em produção, trustHost: false força o NextAuth a validar o header Host contra NEXTAUTH_URL,
+  // prevenindo Host header injection.
+  trustHost: process.env.NODE_ENV !== "production",
   providers,
   callbacks: {
     ...authConfig.callbacks,
