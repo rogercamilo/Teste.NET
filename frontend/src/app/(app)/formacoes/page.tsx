@@ -37,7 +37,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ImportModal, type ImportResult } from "@/components/import/ImportModal";
 import {
   BookOpen,
   Clock,
@@ -51,7 +50,6 @@ import {
   Plus,
   Search,
   Trash2,
-  Upload,
   User,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -70,29 +68,6 @@ const NIVEIS_ORDEM: NivelFormativo[] = [
   "formacao-permanente",
 ];
 
-const formacoesFields = [
-  { key: "tema", label: "Tema da Formação", required: true, example: "Identidade em Cristo" },
-  { key: "objetivo", label: "Objetivo", required: true, example: "Apresentar ao formando..." },
-  { key: "nivelFormativo", label: "Etapa Formativa", required: true, example: "discipulado" },
-  { key: "formadorNome", label: "Formador Responsável", required: true, example: "Maria Silva" },
-  { key: "cargaHoraria", label: "Carga Horária (h)", required: true, example: "2" },
-  { key: "modalidade", label: "Modalidade", required: false, example: "presencial" },
-  { key: "eixoNome", label: "Eixo", required: false, example: "Identidade" },
-  { key: "descricao", label: "Descrição", required: false, example: "Reflexão sobre..." },
-];
-
-async function importarFormacoes(data: Record<string, string>[]): Promise<ImportResult> {
-  await new Promise((r) => setTimeout(r, 1500));
-  const errors = data
-    .map((row, i) => {
-      if (!row.tema) return { row: i + 2, message: "Tema é obrigatório" };
-      if (!row.cargaHoraria || isNaN(Number(row.cargaHoraria)))
-        return { row: i + 2, message: "Carga horária deve ser um número" };
-      return null;
-    })
-    .filter(Boolean) as { row: number; message: string }[];
-  return { success: data.length - errors.length, errors };
-}
 
 export default function FormacoesPage() {
   const router = useRouter();
@@ -109,7 +84,6 @@ export default function FormacoesPage() {
   const [search, setSearch] = useState("");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
   const [gradeFilter, setGradeFilter] = useState<string>("todas");
-  const [importOpen, setImportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Formacao | null>(null);
   const [pagesByNivel, setPagesByNivel] = useState<Partial<Record<NivelFormativo, number>>>({});
@@ -183,25 +157,11 @@ export default function FormacoesPage() {
           </p>
         </div>
         {canEdit && (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-              <Upload className="h-4 w-4 mr-1.5" />
-              Importar XLS
-            </Button>
-            <Button size="sm" onClick={() => router.push("/formacoes/novo")}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              Nova Formação
-            </Button>
-          </div>
+          <Button size="sm" onClick={() => router.push("/formacoes/novo")}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Nova Formação
+          </Button>
         )}
-        <ImportModal
-          open={importOpen}
-          onOpenChange={setImportOpen}
-          title="Importar Formações"
-          description="Importe formações a partir de uma planilha .xlsx, .xls ou .csv"
-          systemFields={formacoesFields}
-          onImport={importarFormacoes}
-        />
       </div>
 
       {/* Stats — shown only for formador_geral and administrador */}

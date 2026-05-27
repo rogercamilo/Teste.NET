@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
@@ -6,6 +6,11 @@ import { authenticateGlobal, findByEmailGlobal, findById } from "@/lib/users-sto
 import { authConfig } from "@/auth.config";
 import { limiters } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/audit-log";
+import { verifyTotpToken } from "@/lib/totp";
+
+class MFARequiredError extends CredentialsSignin {
+  code = "MFARequired";
+}
 
 const providers: NextAuthConfig["providers"] = [
   Credentials({
@@ -13,6 +18,7 @@ const providers: NextAuthConfig["providers"] = [
     credentials: {
       email: { label: "E-mail", type: "email" },
       password: { label: "Senha", type: "password" },
+      totp: { label: "Código MFA", type: "text" },
     },
     async authorize(credentials, request) {
       if (!credentials?.email || !credentials?.password) return null;
@@ -27,6 +33,12 @@ const providers: NextAuthConfig["providers"] = [
       );
       if (!user) return null;
 
+      if (user.mfaEnabled === true) {
+        const totpCode = credentials.totp as string | undefined;
+        if (!totpCode) throw new MFARequiredError();
+        if (!user.mfaSecret || !await verifyTotpToken(totpCode, user.mfaSecret)) return null;
+      }
+
       return {
         id: user.id,
         name: user.nome,
@@ -35,6 +47,7 @@ const providers: NextAuthConfig["providers"] = [
         moradaId: user.moradaId ?? null,
         organizacaoId: user.organizacaoId,
         primeiroAcesso: user.primeiroAcesso ?? false,
+        passwordChangedAt: user.passwordChangedAt?.getTime() ?? null,
       };
     },
   }),
@@ -72,9 +85,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.moradaId = dbUser.moradaId ?? null;
             token.organizacaoId = dbUser.organizacaoId;
             token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
+            token.passwordChangedAt = dbUser.passwordChangedAt?.getTime() ?? null;
           } else {
             // Google user sem registo na BD → acesso negado
-            // Apenas utilizadores convidados por e-mail podem aceder (D0.4)
             throw new Error("Utilizador não autorizado. Solicite um convite para aceder à plataforma.");
           }
         } else {
@@ -84,16 +97,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.organizacaoId = (user as { organizacaoId?: string }).organizacaoId ?? null;
           token.primeiroAcesso =
             (user as { primeiroAcesso?: boolean }).primeiroAcesso ?? false;
+          token.passwordChangedAt =
+            (user as { passwordChangedAt?: number | null }).passwordChangedAt ?? null;
         }
-      } else if (token.id && token.primeiroAcesso) {
-        // Only query DB while primeiroAcesso is true — throttled to once per 30 s to avoid a DB
-        // hit on every request for accounts that were provisioned but never completed first login.
+      } else if (token.id) {
+        // Periodically re-validate the token against the DB (throttled to 30s intervals).
+        // Checks: primeiroAcesso flag, and whether the password was changed after token issuance.
         const now = Date.now();
-        const lastCheck = (token._primeiroAcessoCheckedAt as number | undefined) ?? 0;
+        const lastCheck = (token._lastDbCheck as number | undefined) ?? 0;
         if (now - lastCheck > 30_000) {
           const dbUser = await findById(token.id as string, token.organizacaoId as string | undefined);
-          if (dbUser) token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
-          token._primeiroAcessoCheckedAt = now;
+          if (!dbUser) return null; // User deleted — invalidate session
+
+          // Invalidate if password was changed after this token was issued
+          const tokenIssuedAt = (token.iat as number) * 1000;
+          if (dbUser.passwordChangedAt && dbUser.passwordChangedAt.getTime() > tokenIssuedAt) {
+            return null;
+          }
+
+          token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
+          token._lastDbCheck = now;
         }
       }
       return token;

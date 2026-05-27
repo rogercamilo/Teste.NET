@@ -20,6 +20,9 @@ export interface UserAuth {
   ativo: boolean;
   criadoEm: string;
   primeiroAcesso?: boolean;
+  mfaEnabled?: boolean;
+  mfaSecret?: string;
+  passwordChangedAt?: Date;
 }
 
 export type UserPublic = Omit<UserAuth, "passwordHash">;
@@ -108,6 +111,9 @@ function toUserAuth(u: {
   ativo: boolean;
   criadoEm: Date;
   primeiroAcesso: boolean;
+  mfaEnabled: boolean;
+  mfaSecret: string | null;
+  passwordChangedAt: Date | null;
 }): UserAuth {
   return {
     id: u.id,
@@ -120,6 +126,9 @@ function toUserAuth(u: {
     ativo: u.ativo,
     criadoEm: u.criadoEm.toISOString().split("T")[0],
     primeiroAcesso: u.primeiroAcesso,
+    mfaEnabled: u.mfaEnabled,
+    mfaSecret: u.mfaSecret ?? undefined,
+    passwordChangedAt: u.passwordChangedAt ?? undefined,
   };
 }
 
@@ -261,7 +270,9 @@ export async function updateUser(
       ...(rest.moradaId !== undefined && { moradaId: rest.moradaId ?? null }),
       ...(rest.ativo !== undefined && { ativo: rest.ativo }),
       ...(rest.primeiroAcesso !== undefined && { primeiroAcesso: rest.primeiroAcesso }),
-      ...(newPasswordHash ? { passwordHash: newPasswordHash } : {}),
+      ...(rest.mfaEnabled !== undefined && { mfaEnabled: rest.mfaEnabled }),
+      ...(rest.mfaSecret !== undefined && { mfaSecret: rest.mfaSecret ?? null }),
+      ...(newPasswordHash ? { passwordHash: newPasswordHash, passwordChangedAt: new Date() } : {}),
     },
   });
   return toUserAuth(updated);
@@ -280,6 +291,6 @@ export async function deleteUser(
 
 export function toPublic(u: UserAuth): UserPublic {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { passwordHash: _, ...pub } = u;
+  const { passwordHash: _, mfaSecret: __, ...pub } = u;
   return pub;
 }

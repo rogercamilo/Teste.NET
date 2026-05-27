@@ -112,11 +112,14 @@ model Usuario {
   passwordHash   String?
   perfil         PerfilUsuario
   moradaId       String?
-  ativo          Boolean       @default(true)
-  primeiroAcesso Boolean       @default(false)
-  deletedAt      DateTime?
-  criadoEm      DateTime      @default(now())
-  atualizadoEm  DateTime      @updatedAt
+  ativo             Boolean       @default(true)
+  primeiroAcesso    Boolean       @default(false)
+  mfaSecret         String?       @db.Text
+  mfaEnabled        Boolean       @default(false)
+  passwordChangedAt DateTime?
+  deletedAt         DateTime?
+  criadoEm         DateTime      @default(now())
+  atualizadoEm     DateTime      @updatedAt
 
   organizacao    Organizacao   @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   // Morada à qual este usuário está vinculado (formador_comunitario)

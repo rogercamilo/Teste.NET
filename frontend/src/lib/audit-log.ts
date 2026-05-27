@@ -72,6 +72,8 @@ export type AuditAction =
   | "organizacao_cortesia_revogada"
   | "dados_exportados"
   | "organizacao_exportada"
+  | "mfa_enabled"
+  | "mfa_disabled"
   | "privacy_accepted"
   | "terms_accepted"
   | "audit_log_purged"

@@ -114,6 +114,15 @@ const schema = z
       });
     }
 
+    // APP_ENCRYPTION_KEY required in production — field-level encryption protects SMTP credentials and other secrets at rest
+    if (data.NODE_ENV === "production" && !data.APP_ENCRYPTION_KEY) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["APP_ENCRYPTION_KEY"],
+        message: "APP_ENCRYPTION_KEY is required in production for field-level encryption",
+      });
+    }
+
     // NEXTAUTH_URL required in production for host validation and redirect URL generation
     if (data.NODE_ENV === "production" && !data.NEXTAUTH_URL) {
       ctx.addIssue({
