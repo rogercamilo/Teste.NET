@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useComunidade, useTermos, useEtapaLabels, db } from "@/lib/data-store";
+import { useComunidade, useTermos, useEtapaLabels, useMoradas, db } from "@/lib/data-store";
 import { passwordErrorMessage } from "@/lib/password-validation";
 import type { UserPublic } from "@/lib/users-store";
 import {
@@ -679,7 +679,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
   const etapaLabels = useEtapaLabels();
   const [usuarios, setUsuarios] = useState<UserPublic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [allMoradas] = useState(() => db.moradas.load());
+  const [allMoradas] = useMoradas();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
