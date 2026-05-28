@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, ShieldCheck } from "lucide-react";
+import type { PublicBranding } from "@/lib/public-branding";
 
-export default function LoginForm() {
+export default function LoginForm({ branding }: { branding: PublicBranding }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawCallbackUrl = searchParams.get("callbackUrl") ?? "";
@@ -25,8 +26,7 @@ export default function LoginForm() {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const communityName = "Formatio";
-  const communityDesc = "Plataforma pedagógica para gestão e acompanhamento da jornada formativa comunitária.";
+  const communityName = branding.nomePlataforma ?? branding.nome;
 
   const errorMessages: Record<string, string> = {
     CredentialsSignin: "E-mail ou senha inválidos.",
@@ -77,16 +77,28 @@ export default function LoginForm() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80 opacity-90" />
         <div className="relative z-10 flex flex-col items-center text-center text-primary-foreground max-w-sm">
           <div className="mb-8">
-            <img
-              src="/brand/formatio-symbol-mono-white.svg"
-              alt="Formatio"
-              width={80}
-              height={80}
-              className="mx-auto"
-            />
+            {branding.logoUrl ? (
+              <div className="mx-auto bg-white/20 backdrop-blur-sm rounded-2xl p-4 inline-flex items-center justify-center">
+                <img
+                  src={branding.logoUrl}
+                  alt={communityName}
+                  className="max-h-16 max-w-[160px] object-contain"
+                />
+              </div>
+            ) : (
+              <img
+                src="/brand/formatio-symbol-mono-white.svg"
+                alt="Formatio"
+                width={80}
+                height={80}
+                className="mx-auto"
+              />
+            )}
           </div>
           <h1 className="text-3xl font-bold leading-tight mb-3">{communityName}</h1>
-          <p className="text-sm text-white/60 leading-relaxed mt-2">{communityDesc}</p>
+          <p className="text-sm text-white/60 leading-relaxed mt-2">
+            Plataforma de gestão formativa comunitária.
+          </p>
         </div>
 
         <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-white/5 -translate-y-1/3 translate-x-1/3" />
@@ -98,13 +110,21 @@ export default function LoginForm() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center justify-center mb-8 lg:hidden">
-            <img
-              src="/brand/formatio-symbol.svg"
-              alt="Formatio"
-              width={40}
-              height={40}
-              className="mr-2.5 shrink-0"
-            />
+            {branding.logoUrl ? (
+              <img
+                src={branding.logoUrl}
+                alt={communityName}
+                className="h-8 max-w-[100px] object-contain mr-2.5 shrink-0"
+              />
+            ) : (
+              <img
+                src="/brand/formatio-symbol.svg"
+                alt="Formatio"
+                width={40}
+                height={40}
+                className="mr-2.5 shrink-0"
+              />
+            )}
             <p className="font-semibold text-foreground text-sm leading-tight">{communityName}</p>
           </div>
 

@@ -1,9 +1,11 @@
 import { ThemeApplier } from "@/components/layout/ThemeApplier";
+import { getPublicBranding } from "@/lib/public-branding";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const branding = await getPublicBranding();
   return (
     <>
-      <ThemeApplier />
+      <ThemeApplier themeKey={branding.temaCor} />
       {children}
     </>
   );
