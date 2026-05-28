@@ -143,7 +143,15 @@ export const UpdateOrganizacaoSchema = z.object({
   termoPrimeirasPromessas: nonEmptyString(100).optional(),
   termoFormacaoPermanente: nonEmptyString(100).optional(),
   nomePlataforma: optionalString(100).nullable(),
-  logoUrl: z.string().url("URL inválida").max(2048).refine((v) => v.startsWith("https://"), { message: "logoUrl deve usar HTTPS" }).optional().nullable(),
+  logoUrl: z
+    .string()
+    .max(2_000_000, "Logo muito grande (máximo ~1.5 MB em base64)")
+    .refine(
+      (v) => v.startsWith("data:image/") || v.startsWith("https://"),
+      { message: "logoUrl deve ser uma data URL de imagem ou URL HTTPS" }
+    )
+    .optional()
+    .nullable(),
   temaCor: z.string().max(50).optional(),
   onboardingConcluido: z.boolean().optional(),
 });
