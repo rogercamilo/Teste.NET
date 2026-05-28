@@ -7,7 +7,7 @@ const isProd = process.env.NODE_ENV === "production";
 function buildSecurityHeaders(nonce: string): Record<string, string> {
   return {
     "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
+    "X-Frame-Options": "SAMEORIGIN",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
     ...(isProd ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } : {}),
@@ -22,7 +22,7 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "frame-src https://js.stripe.com https://hooks.stripe.com",
+      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "connect-src 'self' https://api.stripe.com https://*.stripe.com",
       "worker-src 'self'",
       "object-src 'none'",
