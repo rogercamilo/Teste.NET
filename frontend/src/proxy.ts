@@ -22,7 +22,7 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+      "frame-src 'self' https://*.r2.cloudflarestorage.com https://js.stripe.com https://hooks.stripe.com",
       "connect-src 'self' https://api.stripe.com https://*.stripe.com",
       "worker-src 'self'",
       "object-src 'none'",

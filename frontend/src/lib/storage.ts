@@ -80,6 +80,9 @@ async function getR2Client(): Promise<S3Client> {
   _r2Client = new S3Client({
     region: "auto",
     endpoint: `https://${process.env.R2_ACCOUNT_ID!}.r2.cloudflarestorage.com`,
+    // R2 requires path-style URLs; without this the SDK generates virtual-hosted URLs
+    // (https://<bucket>.<account-id>.r2.cloudflarestorage.com) which break pre-signed URL validation
+    forcePathStyle: true,
     credentials: {
       accessKeyId: process.env.R2_ACCESS_KEY_ID!,
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
