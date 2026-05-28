@@ -206,8 +206,8 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
                             <Eye className="h-4 w-4 mr-2" />
                             Visualizar
                           </DropdownMenuItem>
-                          {plano.documentoAnexo && (
-                            <DropdownMenuItem onClick={() => router.push(`/viewer?id=${plano.id}&nome=${encodeURIComponent(plano.documentoAnexo!)}&origem=/planos`)}>
+                          {plano.documentoAnexo && plano.documentoAnexoId && (
+                            <DropdownMenuItem onClick={() => router.push(`/viewer?arquivoId=${plano.documentoAnexoId}&nome=${encodeURIComponent(plano.documentoAnexo!)}&origem=/planos`)}>
                               <FileText className="h-4 w-4 mr-2" />
                               Ver documento
                             </DropdownMenuItem>

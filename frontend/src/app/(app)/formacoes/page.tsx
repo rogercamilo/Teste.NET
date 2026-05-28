@@ -271,7 +271,7 @@ export default function FormacoesPage() {
                         onEdit={() => router.push(`/formacoes/${formacao.id}/editar`)}
                         onViewDoc={() =>
                           router.push(
-                            `/viewer?id=${formacao.id}&nome=${encodeURIComponent(formacao.documentoAnexo!)}&origem=/formacoes`
+                            `/viewer?arquivoId=${formacao.documentoAnexoId}&nome=${encodeURIComponent(formacao.documentoAnexo!)}&origem=/formacoes`
                           )
                         }
                         onDelete={(e) => openDelete(formacao, e)}
@@ -349,7 +349,7 @@ function FormacaoCard({ formacao, canEdit, onView, onEdit, onViewDoc, onDelete }
                     <Eye className="h-4 w-4 mr-2" />
                     Visualizar
                   </DropdownMenuItem>
-                  {formacao.documentoAnexo && (
+                  {formacao.documentoAnexo && formacao.documentoAnexoId && (
                     <DropdownMenuItem onClick={onViewDoc}>
                       <FileText className="h-4 w-4 mr-2" />
                       Ver documento

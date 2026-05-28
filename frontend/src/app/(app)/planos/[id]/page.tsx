@@ -202,7 +202,7 @@ export default function PlanoDetalhePage() {
           </div>
         )}
 
-        {plano.documentoAnexo && (
+        {plano.documentoAnexo && plano.documentoAnexoId && (
           <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2.5">
             <div className="flex items-center gap-2 min-w-0">
               <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

@@ -183,8 +183,8 @@ export default function GradesPage() {
                           <Eye className="h-4 w-4 mr-2" />
                           Visualizar
                         </DropdownMenuItem>
-                        {grade.documentoAnexo && (
-                          <DropdownMenuItem onClick={() => router.push(`/viewer?id=${grade.id}&nome=${encodeURIComponent(grade.documentoAnexo!)}&origem=/grades`)}>
+                        {grade.documentoAnexo && grade.documentoAnexoId && (
+                          <DropdownMenuItem onClick={() => router.push(`/viewer?arquivoId=${grade.documentoAnexoId}&nome=${encodeURIComponent(grade.documentoAnexo!)}&origem=/grades`)}>
                             <FileText className="h-4 w-4 mr-2" />
                             Ver documento
                           </DropdownMenuItem>
