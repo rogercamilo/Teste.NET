@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteFile, readLocalFile, localFileExists } from "@/lib/storage";
 import { logAction, getClientIp } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 import { type NextRequest } from "next/server";
 
 type SessionUser = { id?: string; role?: string; moradaId?: string | null; organizacaoId?: string };
@@ -78,8 +79,12 @@ export async function DELETE(
   const session = await auth();
   if (!session?.user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
-  const { id } = await params;
   const user = session.user as SessionUser;
+
+  const rl = await limiters.mutation(user.id ?? "unknown");
+  if (!rl.allowed) return Response.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
+
+  const { id } = await params;
 
   const doc = await prisma.arquivo.findFirst({
     where: { id, organizacaoId: user.organizacaoId },

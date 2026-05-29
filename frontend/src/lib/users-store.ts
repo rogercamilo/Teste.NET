@@ -7,6 +7,7 @@
 import { prisma } from "@/lib/prisma";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
 import argon2 from "argon2";
+import { encryptField, decryptField } from "@/lib/crypto";
 import type { PerfilUsuario } from "@prisma/client";
 
 export interface UserAuth {
@@ -127,7 +128,9 @@ function toUserAuth(u: {
     criadoEm: u.criadoEm.toISOString().split("T")[0],
     primeiroAcesso: u.primeiroAcesso,
     mfaEnabled: u.mfaEnabled,
-    mfaSecret: u.mfaSecret ?? undefined,
+    mfaSecret: u.mfaSecret
+      ? (() => { try { return decryptField(u.mfaSecret!); } catch { return undefined; } })()
+      : undefined,
     passwordChangedAt: u.passwordChangedAt ?? undefined,
   };
 }
@@ -271,7 +274,9 @@ export async function updateUser(
       ...(rest.ativo !== undefined && { ativo: rest.ativo }),
       ...(rest.primeiroAcesso !== undefined && { primeiroAcesso: rest.primeiroAcesso }),
       ...(rest.mfaEnabled !== undefined && { mfaEnabled: rest.mfaEnabled }),
-      ...(rest.mfaSecret !== undefined && { mfaSecret: rest.mfaSecret ?? null }),
+      ...(rest.mfaSecret !== undefined && {
+        mfaSecret: rest.mfaSecret ? encryptField(rest.mfaSecret) : null,
+      }),
       ...(newPasswordHash ? { passwordHash: newPasswordHash, passwordChangedAt: new Date() } : {}),
     },
   });
