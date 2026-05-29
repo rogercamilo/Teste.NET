@@ -82,7 +82,7 @@ export default function PrivacidadeTab({ userEmail, isAdmin, isSuperAdmin = fals
       const data = await res.json() as { error?: string };
       if (!res.ok) { toast.error(data.error ?? "Erro ao excluir conta"); setDeleting(false); return; }
       toast.success("Conta encerrada. Você será desconectado.");
-      setTimeout(() => signOut({ callbackUrl: isSuperAdmin ? "/" : "/login" }), 1500);
+      setTimeout(() => signOut({ callbackUrl: isSuperAdmin ? "/acesso-plataforma" : "/login" }), 1500);
     } catch {
       toast.error("Falha de conexão");
       setDeleting(false);
