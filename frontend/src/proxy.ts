@@ -43,6 +43,7 @@ export default auth(function proxy(req) {
   // Prefix matches
   const publicPrefixes = [
     "/login",
+    "/acesso-plataforma",
     "/registro",
     "/convite",
     "/privacidade",
@@ -76,7 +77,16 @@ export default auth(function proxy(req) {
   }
 
   if (isLoggedIn && pathname === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(
+      new URL(role === "super_admin" ? "/super-admin/dashboard" : "/dashboard", req.url)
+    );
+  }
+
+  // Redireciona usuários autenticados que acessam a página exclusiva de acesso
+  if (isLoggedIn && pathname.startsWith("/acesso-plataforma")) {
+    return NextResponse.redirect(
+      new URL(role === "super_admin" ? "/super-admin/dashboard" : "/dashboard", req.url)
+    );
   }
 
   // Protege /super-admin — apenas super_admin pode acessar

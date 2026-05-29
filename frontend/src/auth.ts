@@ -19,6 +19,7 @@ const providers: NextAuthConfig["providers"] = [
       email: { label: "E-mail", type: "email" },
       password: { label: "Senha", type: "password" },
       totp: { label: "Código MFA", type: "text" },
+      loginSource: { label: "Fonte", type: "text" },
     },
     async authorize(credentials, request) {
       if (!credentials?.email || !credentials?.password) return null;
@@ -32,6 +33,11 @@ const providers: NextAuthConfig["providers"] = [
         credentials.password as string
       );
       if (!user) return null;
+
+      // super_admin só pode acessar pela página exclusiva de acesso à plataforma
+      const isSuperAdminSource = credentials.loginSource === "super_admin";
+      if (user.perfil === "super_admin" && !isSuperAdminSource) return null;
+      if (user.perfil !== "super_admin" && isSuperAdminSource) return null;
 
       if (user.mfaEnabled === true) {
         const totpCode = credentials.totp as string | undefined;

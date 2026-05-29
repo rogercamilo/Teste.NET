@@ -15,7 +15,7 @@ export interface UserAuth {
   nome: string;
   email: string;
   passwordHash?: string;
-  perfil: "administrador" | "formador_geral" | "formador_comunitario";
+  perfil: PerfilUsuario;
   moradaId?: string;
   ativo: boolean;
   criadoEm: string;
