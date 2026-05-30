@@ -8,7 +8,7 @@
  */
 
 import { randomBytes } from "crypto";
-import { join, resolve } from "path";
+import { join, resolve, sep } from "path";
 import { readFile, writeFile, mkdir, unlink, access } from "fs/promises";
 import type { S3Client } from "@aws-sdk/client-s3";
 
@@ -60,7 +60,7 @@ async function deleteLocal(storageKey: string): Promise<void> {
 
 function safeLocalPath(storageKey: string): string {
   const fullPath = resolve(join(LOCAL_ROOT, storageKey));
-  if (!fullPath.startsWith(LOCAL_ROOT)) throw new Error("Path traversal detected");
+  if (!fullPath.startsWith(LOCAL_ROOT + sep)) throw new Error("Path traversal detected");
   return fullPath;
 }
 

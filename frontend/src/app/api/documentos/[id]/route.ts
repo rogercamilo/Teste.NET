@@ -67,7 +67,7 @@ export async function GET(
     headers: {
       "Content-Type": doc.tipo,
       "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(doc.nome)}`,
-      "Content-Length": String(doc.tamanho),
+      "Content-Length": String(fileBuffer.length),
       "Cache-Control": "private, no-cache",
     },
   });

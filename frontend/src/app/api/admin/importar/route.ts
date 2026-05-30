@@ -31,13 +31,14 @@ interface ImportPayload {
   eventos?: unknown[];
 }
 
-function isAdmin(role?: string) { return role === "administrador"; }
+// Importação restrita a administrador — formador_geral não tem acesso a esta operação destrutiva
+function isOnlyAdmin(role?: string) { return role === "administrador"; }
 
 export async function POST(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdmin(user.role)) return NextResponse.json({ error: "Apenas administradores podem importar dados" }, { status: 403 });
+  if (!isOnlyAdmin(user.role)) return NextResponse.json({ error: "Apenas administradores podem importar dados" }, { status: 403 });
 
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
