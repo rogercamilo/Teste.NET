@@ -7,7 +7,7 @@ import nodemailer from "nodemailer";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-import { isAdmin as isAdmin, SessionUser } from "@/lib/auth-helpers";
+import { isAdmin, SessionUser } from "@/lib/auth-helpers";
 
 export async function POST(request: Request) {
   const session = await auth();

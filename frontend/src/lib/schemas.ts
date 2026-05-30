@@ -345,7 +345,7 @@ export const CreatePlanoSchema = UpdatePlanoSchema.extend({
 
 // ── Evento Formando (update) ──────────────────────────────────────────────────
 
-export const UpdateEventoSchema = CreateEventoSchema.omit({ formandoId: true });
+export const UpdateEventoSchema = CreateEventoSchema.omit({ formandoId: true }).partial();
 
 // ── Grade Formativa ───────────────────────────────────────────────────────────
 

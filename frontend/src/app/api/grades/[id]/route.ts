@@ -54,29 +54,30 @@ export async function PUT(request: Request, { params }: Params) {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      // Delete existing eixos (cascades to etapas)
-      await tx.eixo.deleteMany({ where: { gradeId: id } });
-
       await tx.gradeFormativa.update({
         where: { id },
         data: { nome: body.nome ?? existing.nome, planoId: body.planoId, planoNome: body.planoNome, nivelFormativo: body.nivelFormativo, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : undefined, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : undefined, versao: body.versao, totalFormacoes: body.totalFormacoes, objetivos: body.objetivos || null, fundamentacao: body.fundamentacao || null, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null, ativo: body.ativo },
       });
 
-      const eixoEntries = await Promise.all(
-        (body.eixos ?? []).map((eixo) =>
-          tx.eixo
-            .create({ data: { gradeId: id, nome: eixo.nome, descricao: eixo.descricao, ordem: eixo.ordem, cor: eixo.cor || null }, select: { id: true } })
-            .then((e) => [eixo.id, e.id] as [string, string])
-        )
-      );
-      const eixoIdMap = new Map(eixoEntries);
-      await Promise.all(
-        (body.etapas ?? []).map((etapa) => {
-          const newEixoId = eixoIdMap.get(etapa.eixoId);
-          if (!newEixoId) return Promise.resolve(null);
-          return tx.etapa.create({ data: { eixoId: newEixoId, nome: etapa.nome, descricao: etapa.descricao, ordem: etapa.ordem, cargaHoraria: etapa.cargaHoraria } });
-        })
-      );
+      if (body.eixos !== undefined) {
+        // Rebuild eixos+etapas only when explicitly provided
+        await tx.eixo.deleteMany({ where: { gradeId: id } });
+        const eixoEntries = await Promise.all(
+          body.eixos.map((eixo) =>
+            tx.eixo
+              .create({ data: { gradeId: id, nome: eixo.nome, descricao: eixo.descricao, ordem: eixo.ordem, cor: eixo.cor || null }, select: { id: true } })
+              .then((e) => [eixo.id, e.id] as [string, string])
+          )
+        );
+        const eixoIdMap = new Map(eixoEntries);
+        await Promise.all(
+          (body.etapas ?? []).map((etapa) => {
+            const newEixoId = eixoIdMap.get(etapa.eixoId);
+            if (!newEixoId) return Promise.resolve(null);
+            return tx.etapa.create({ data: { eixoId: newEixoId, nome: etapa.nome, descricao: etapa.descricao, ordem: etapa.ordem, cargaHoraria: etapa.cargaHoraria } });
+          })
+        );
+      }
 
       return tx.gradeFormativa.findUniqueOrThrow({ where: { id }, include: { eixos: { include: { etapas: true } } } });
     });

@@ -4,7 +4,7 @@ import { buildEmailHtml, loadEmailTemplate } from "@/lib/email-template";
 import { logError } from "@/lib/audit-log";
 import type { EmailTemplate, TemplateVars } from "@/lib/email-template";
 
-import { isAdmin as isAdmin, SessionUser } from "@/lib/auth-helpers";
+import { isAdmin, SessionUser } from "@/lib/auth-helpers";
 
 export async function POST(request: Request) {
   const session = await auth();
