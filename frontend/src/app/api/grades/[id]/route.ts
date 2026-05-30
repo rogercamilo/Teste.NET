@@ -12,21 +12,7 @@ const MAX_ETAPAS = 200;
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
-type PrismaGrade = { id: string; organizacaoId: string | null; nome: string; planoId: string; planoNome: string; nivelFormativo: string; vigenciaInicio: Date; vigenciaFim: Date; versao: string; totalFormacoes: number; objetivos: string | null; fundamentacao: string | null; documentoAnexo: string | null; documentoAnexoId: string | null; ativo: boolean; criadoEm: Date; eixos: { id: string; gradeId: string; nome: string; descricao: string; ordem: number; cor: string | null; etapas: { id: string; eixoId: string; nome: string; descricao: string; ordem: number; cargaHoraria: number }[] }[] };
-
-function toGrade(g: PrismaGrade): GradeFormativa {
-  return {
-    id: g.id, nome: g.nome, planoId: g.planoId, planoNome: g.planoNome,
-    nivelFormativo: g.nivelFormativo as GradeFormativa["nivelFormativo"],
-    vigenciaInicio: g.vigenciaInicio.toISOString().split("T")[0], vigenciaFim: g.vigenciaFim.toISOString().split("T")[0],
-    versao: g.versao,
-    eixos: g.eixos.map((e): Eixo => ({ id: e.id, nome: e.nome, descricao: e.descricao, gradeId: e.gradeId, ordem: e.ordem, cor: e.cor ?? undefined })),
-    etapas: g.eixos.flatMap((e) => e.etapas.map((t): Etapa => ({ id: t.id, nome: t.nome, descricao: t.descricao, eixoId: t.eixoId, ordem: t.ordem, cargaHoraria: t.cargaHoraria }))),
-    totalFormacoes: g.totalFormacoes, objetivos: g.objetivos ?? undefined, fundamentacao: g.fundamentacao ?? undefined,
-    documentoAnexo: g.documentoAnexo ?? undefined, documentoAnexoId: g.documentoAnexoId ?? undefined,
-    ativo: g.ativo, criadoEm: g.criadoEm.toISOString(),
-  };
-}
+import { toGrade } from "@/lib/converters";
 
 export async function GET(_req: Request, { params }: Params) {
   const session = await auth();

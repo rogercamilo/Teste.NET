@@ -9,11 +9,7 @@ import type { ComentarioFormando } from "@/types";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
-type Row = { id: string; organizacaoId: string; formandoId: string; formandoNome: string; formadorId: string; formadorNome: string | null; texto: string; tipo: string; criadoEm: Date };
-
-function toComentario(c: Row): ComentarioFormando {
-  return { id: c.id, formandoId: c.formandoId, formandoNome: c.formandoNome, formadorId: c.formadorId, formadorNome: c.formadorNome ?? undefined, texto: c.texto, tipo: c.tipo as ComentarioFormando["tipo"], criadoEm: c.criadoEm.toISOString() };
-}
+import { toComentario } from "@/lib/converters";
 
 export async function GET(_req: Request, { params }: Params) {
   const session = await auth();

@@ -8,25 +8,7 @@ import type { PresencaFormacao } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
-type PrismaPresenca = {
-  id: string; organizacaoId: string; agendamentoId: string; formacaoTema: string;
-  data: Date; formandoId: string; formandoNome: string; nivelFormativo: string;
-  presente: boolean; justificativa: string | null;
-};
-
-function toPresenca(p: PrismaPresenca): PresencaFormacao {
-  return {
-    id: p.id,
-    agendamentoId: p.agendamentoId,
-    formacaoTema: p.formacaoTema,
-    data: p.data.toISOString().split("T")[0],
-    formandoId: p.formandoId,
-    formandoNome: p.formandoNome,
-    nivelFormativo: p.nivelFormativo as PresencaFormacao["nivelFormativo"],
-    presente: p.presente,
-    justificativa: p.justificativa ?? undefined,
-  };
-}
+import { toPresenca } from "@/lib/converters";
 
 export async function GET(request: Request) {
   const session = await auth();

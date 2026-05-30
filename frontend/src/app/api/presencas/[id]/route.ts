@@ -9,11 +9,7 @@ import type { PresencaFormacao } from "@/types";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
-type Row = { id: string; organizacaoId: string; agendamentoId: string; formacaoTema: string; data: Date; formandoId: string; formandoNome: string; nivelFormativo: string; presente: boolean; justificativa: string | null };
-
-function toPresenca(p: Row): PresencaFormacao {
-  return { id: p.id, agendamentoId: p.agendamentoId, formacaoTema: p.formacaoTema, data: p.data.toISOString().split("T")[0], formandoId: p.formandoId, formandoNome: p.formandoNome, nivelFormativo: p.nivelFormativo as PresencaFormacao["nivelFormativo"], presente: p.presente, justificativa: p.justificativa ?? undefined };
-}
+import { toPresenca } from "@/lib/converters";
 
 export async function GET(_req: Request, { params }: Params) {
   const session = await auth();

@@ -9,11 +9,7 @@ import { UpdateFormacaoSchema, parseBody, isValidId } from "@/lib/schemas";
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
-type Row = { id: string; organizacaoId: string | null; tema: string; objetivo: string; descricao: string; nivelFormativo: string; tipoFormacao: string; eixoId: string | null; eixoNome: string | null; etapaId: string | null; etapaNome: string | null; formadorId: string | null; formadorNome: string; cargaHoraria: number; modalidade: string; materialApoio: string | null; documentoAnexo: string | null; documentoAnexoId: string | null; gradeId: string | null; gradeNome: string | null; vezesUtilizada: number; criadoEm: Date };
-
-function toFormacao(f: Row): Formacao {
-  return { id: f.id, tema: f.tema, objetivo: f.objetivo, descricao: f.descricao, nivelFormativo: f.nivelFormativo as Formacao["nivelFormativo"], tipoFormacao: f.tipoFormacao as Formacao["tipoFormacao"], eixoId: f.eixoId ?? undefined, eixoNome: f.eixoNome ?? undefined, etapaId: f.etapaId ?? undefined, etapaNome: f.etapaNome ?? undefined, formadorId: f.formadorId ?? "", formadorNome: f.formadorNome, cargaHoraria: f.cargaHoraria, modalidade: f.modalidade as Formacao["modalidade"], materialApoio: f.materialApoio ?? undefined, documentoAnexo: f.documentoAnexo ?? undefined, documentoAnexoId: f.documentoAnexoId ?? undefined, gradeId: f.gradeId ?? undefined, gradeNome: f.gradeNome ?? undefined, vezesUtilizada: f.vezesUtilizada, criadoEm: f.criadoEm.toISOString() };
-}
+import { toFormacao } from "@/lib/converters";
 
 export async function GET(_req: Request, { params }: Params) {
   const session = await auth();

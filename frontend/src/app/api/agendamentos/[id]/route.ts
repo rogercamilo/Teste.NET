@@ -9,11 +9,7 @@ import { UpdateAgendamentoSchema, parseBody, isValidId } from "@/lib/schemas";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
-type Row = { id: string; organizacaoId: string; formacaoId: string; formacaoTema: string; nivelFormativo: string; tipoFormacao: string; formadorId: string; formadorNome: string; dataInicio: Date; dataFim: Date; local: string | null; linkOnline: string | null; status: string; participantes: number; observacoes: string | null; googleCalendarEventId: string | null; criadoEm: Date };
-
-function toAg(a: Row): Agendamento {
-  return { id: a.id, formacaoId: a.formacaoId, formacaoTema: a.formacaoTema, nivelFormativo: a.nivelFormativo as Agendamento["nivelFormativo"], tipoFormacao: a.tipoFormacao as Agendamento["tipoFormacao"], formadorId: a.formadorId, formadorNome: a.formadorNome, dataInicio: a.dataInicio.toISOString(), dataFim: a.dataFim.toISOString(), local: a.local ?? undefined, linkOnline: a.linkOnline ?? undefined, status: a.status as Agendamento["status"], participantes: a.participantes, observacoes: a.observacoes ?? undefined, googleCalendarEventId: a.googleCalendarEventId ?? undefined, criadoEm: a.criadoEm.toISOString() };
-}
+import { toAgendamento as toAg } from "@/lib/converters";
 
 export async function GET(_req: Request, { params }: Params) {
   const session = await auth();

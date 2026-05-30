@@ -17,21 +17,7 @@ type PrismaMorada = {
 };
 
 
-function toMorada(m: PrismaMorada): Morada {
-  return {
-    id: m.id,
-    nome: m.nome,
-    localReuniao: m.localReuniao ?? undefined,
-    nivelFormativo: m.nivelFormativo as Morada["nivelFormativo"],
-    formadorId: m.formadorId ?? undefined,
-    planoId: m.planoId ?? undefined,
-    gradeId: m.gradeId ?? undefined,
-    vigenciaInicio: m.vigenciaInicio?.toISOString().split("T")[0],
-    vigenciaFim: m.vigenciaFim?.toISOString().split("T")[0],
-    ativo: m.ativo,
-    criadoEm: m.criadoEm.toISOString(),
-  };
-}
+import { toMorada } from "@/lib/converters";
 
 export async function GET(request: Request) {
   const session = await auth();

@@ -9,20 +9,7 @@ import type { PlanoFormativo, EixoPlano } from "@/types";
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
-type PrismaPlano = { id: string; organizacaoId: string | null; nome: string; objetivos: string; fundamentacao: string; nivelFormativo: string; vigenciaInicio: Date; vigenciaFim: Date; status: string; documentoAnexo: string | null; documentoAnexoId: string | null; criadoEm: Date; atualizadoEm: Date; eixos: { id: string; nome: string; objetivo: string; intervaloEncontros: string; cargaHoraria: number; areaFormacao: string }[] };
-
-function toPlano(p: PrismaPlano): PlanoFormativo {
-  return {
-    id: p.id, nome: p.nome, objetivos: p.objetivos, fundamentacao: p.fundamentacao,
-    nivelFormativo: p.nivelFormativo as PlanoFormativo["nivelFormativo"],
-    eixos: p.eixos.map((e): EixoPlano => ({ id: e.id, nome: e.nome, objetivo: e.objetivo, intervaloEncontros: e.intervaloEncontros, cargaHoraria: e.cargaHoraria, areaFormacao: e.areaFormacao })),
-    vigenciaInicio: p.vigenciaInicio.toISOString().split("T")[0],
-    vigenciaFim: p.vigenciaFim.toISOString().split("T")[0],
-    status: p.status as PlanoFormativo["status"],
-    documentoAnexo: p.documentoAnexo ?? undefined, documentoAnexoId: p.documentoAnexoId ?? undefined,
-    criadoEm: p.criadoEm.toISOString(), atualizadoEm: p.atualizadoEm.toISOString(),
-  };
-}
+import { toPlano } from "@/lib/converters";
 
 export async function GET(_req: Request, { params }: Params) {
   const session = await auth();

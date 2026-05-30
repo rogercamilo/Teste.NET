@@ -9,38 +9,7 @@ import type { EventoFormando } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
-type PrismaEvento = {
-  id: string; organizacaoId: string; formandoId: string; formadorId: string;
-  tipo: string; periodoInicio: Date | null; periodoFim: Date | null;
-  notaAdesao: string | null; textoAvaliacao: string | null; motivo: string | null;
-  tipoDesligamento: string | null; dataEfetiva: Date | null;
-  checklistDevolveuEstatuto: boolean | null; checklistDevolveuSacramental: boolean | null;
-  checklistApresentouCarta: boolean | null; checklistAcompanhadoModerador: boolean | null;
-  dataInicioLicenca: Date | null; dataFimLicenca: Date | null; criadoEm: Date;
-};
-
-function toEvento(e: PrismaEvento): EventoFormando {
-  return {
-    id: e.id,
-    formandoId: e.formandoId,
-    formadorId: e.formadorId,
-    tipo: e.tipo as EventoFormando["tipo"],
-    criadoEm: e.criadoEm.toISOString(),
-    periodoInicio: e.periodoInicio?.toISOString().split("T")[0],
-    periodoFim: e.periodoFim?.toISOString().split("T")[0],
-    notaAdesao: e.notaAdesao as EventoFormando["notaAdesao"] ?? undefined,
-    textoAvaliacao: e.textoAvaliacao ?? undefined,
-    motivo: e.motivo ?? undefined,
-    tipoDesligamento: e.tipoDesligamento as EventoFormando["tipoDesligamento"] ?? undefined,
-    dataEfetiva: e.dataEfetiva?.toISOString().split("T")[0],
-    checklistDevolveuEstatuto: e.checklistDevolveuEstatuto ?? undefined,
-    checklistDevolveuSacramental: e.checklistDevolveuSacramental ?? undefined,
-    checklistApresentouCarta: e.checklistApresentouCarta ?? undefined,
-    checklistAcompanhadoModerador: e.checklistAcompanhadoModerador ?? undefined,
-    dataInicioLicenca: e.dataInicioLicenca?.toISOString().split("T")[0],
-    dataFimLicenca: e.dataFimLicenca?.toISOString().split("T")[0],
-  };
-}
+import { toEvento } from "@/lib/converters";
 
 export async function GET(request: Request) {
   const session = await auth();

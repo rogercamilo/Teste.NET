@@ -10,47 +10,7 @@ import type { Formando, ProgressoEtapa } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
-type PrismaFormando = {
-  id: string; organizacaoId: string; nome: string; dataNascimento: Date;
-  estadoCivil: string; modalidade: string; nivelFormativo: string;
-  dataIngresso: Date; telefone: string; email: string; ativo: boolean;
-  motivoInatividade: string | null; foto: string | null; turmaId: string | null;
-  moradaId: string | null; totalFormacoes: number; formacoesRealizadas: number;
-  progressoEtapas: {
-    id: string; formandoId: string; nivelFormativo: string;
-    formacoesComunitariasRealizadas: number; retirosComunitariosRealizados: number;
-    retirosPessoaisRealizados: number; iniciouEm: Date | null; concluiuEm: Date | null;
-  }[];
-};
-
-function toFormando(f: PrismaFormando): Formando {
-  return {
-    id: f.id,
-    nome: f.nome,
-    dataNascimento: f.dataNascimento.toISOString().split("T")[0],
-    estadoCivil: f.estadoCivil as Formando["estadoCivil"],
-    modalidade: f.modalidade as Formando["modalidade"],
-    nivelFormativo: f.nivelFormativo as Formando["nivelFormativo"],
-    dataIngresso: f.dataIngresso.toISOString().split("T")[0],
-    telefone: f.telefone,
-    email: f.email,
-    ativo: f.ativo,
-    motivoInatividade: f.motivoInatividade as Formando["motivoInatividade"] ?? undefined,
-    foto: f.foto ?? undefined,
-    turmaId: f.turmaId ?? undefined,
-    moradaId: f.moradaId ?? undefined,
-    totalFormacoes: f.totalFormacoes,
-    formacoesRealizadas: f.formacoesRealizadas,
-    progressoEtapas: f.progressoEtapas.map((p): ProgressoEtapa => ({
-      nivel: p.nivelFormativo as ProgressoEtapa["nivel"],
-      formacoesComunitariasRealizadas: p.formacoesComunitariasRealizadas,
-      retirosComunitariosRealizados: p.retirosComunitariosRealizados,
-      retirosPessoaisRealizados: p.retirosPessoaisRealizados,
-      iniciouEm: p.iniciouEm?.toISOString().split("T")[0],
-      concluiuEm: p.concluiuEm?.toISOString().split("T")[0],
-    })),
-  };
-}
+import { toFormando } from "@/lib/converters";
 
 export async function GET(request: Request) {
   const session = await auth();
