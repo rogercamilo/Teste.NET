@@ -5,7 +5,7 @@ import type { NextAuthConfig } from "next-auth";
 import { authenticateGlobal, findByEmailGlobal, findById } from "@/lib/users-store";
 import { authConfig } from "@/auth.config";
 import { limiters } from "@/lib/rate-limit";
-import { getClientIp } from "@/lib/audit-log";
+import { getClientIp, logAction } from "@/lib/audit-log";
 import { verifyTotpToken } from "@/lib/totp";
 
 class MFARequiredError extends CredentialsSignin {
@@ -32,17 +32,29 @@ const providers: NextAuthConfig["providers"] = [
         credentials.email as string,
         credentials.password as string
       );
-      if (!user) return null;
+      if (!user) {
+        logAction("login_failure", undefined, ip, { email: credentials.email as string });
+        return null;
+      }
 
       // super_admin só pode acessar pela página exclusiva de acesso à plataforma
       const isSuperAdminSource = credentials.loginSource === "super_admin";
-      if (user.perfil === "super_admin" && !isSuperAdminSource) return null;
-      if (user.perfil !== "super_admin" && isSuperAdminSource) return null;
+      if (user.perfil === "super_admin" && !isSuperAdminSource) {
+        logAction("login_failure", user.id, ip, { reason: "source_mismatch" }, user.organizacaoId);
+        return null;
+      }
+      if (user.perfil !== "super_admin" && isSuperAdminSource) {
+        logAction("login_failure", user.id, ip, { reason: "source_mismatch" }, user.organizacaoId);
+        return null;
+      }
 
       if (user.mfaEnabled === true) {
         const totpCode = credentials.totp as string | undefined;
         if (!totpCode) throw new MFARequiredError();
-        if (!user.mfaSecret || !await verifyTotpToken(totpCode, user.mfaSecret)) return null;
+        if (!user.mfaSecret || !await verifyTotpToken(totpCode, user.mfaSecret)) {
+          logAction("login_failure", user.id, ip, { reason: "invalid_mfa" }, user.organizacaoId);
+          return null;
+        }
       }
 
       return {

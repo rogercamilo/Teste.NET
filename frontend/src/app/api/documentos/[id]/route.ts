@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { deleteFile, readLocalFile, localFileExists } from "@/lib/storage";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { isValidId } from "@/lib/schemas";
 import { type NextRequest } from "next/server";
 
 type SessionUser = { id?: string; role?: string; moradaId?: string | null; organizacaoId?: string };
@@ -30,6 +31,7 @@ export async function GET(
   if (!session?.user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
   const user = session.user as SessionUser;
 
   const doc = await prisma.arquivo.findFirst({
@@ -85,6 +87,7 @@ export async function DELETE(
   if (!rl.allowed) return Response.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
 
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
   const doc = await prisma.arquivo.findFirst({
     where: { id, organizacaoId: user.organizacaoId },

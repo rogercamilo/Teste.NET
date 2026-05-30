@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { UpdateFormandoSchema, parseBody } from "@/lib/schemas";
+import { UpdateFormandoSchema, parseBody, isValidId } from "@/lib/schemas";
 import type { Formando, ProgressoEtapa } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
@@ -47,6 +47,7 @@ export async function GET(_req: Request, { params }: Params) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   try {
     const { id } = await params;
+    if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
     const where: Record<string, unknown> = { id, organizacaoId: user.organizacaoId };
     if (user.role === "formador_comunitario") where.moradaId = user.moradaId ?? null;
 
@@ -84,6 +85,7 @@ export async function PUT(request: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
   const rl = await limiters.mutation(user.id!);
   if (!rl.allowed) {
@@ -168,6 +170,7 @@ export async function DELETE(request: Request, { params }: Params) {
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
   try {
     const existing = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });

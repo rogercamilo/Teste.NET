@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { isValidId } from "@/lib/schemas";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 type Params = { params: Promise<{ id: string }> };
@@ -19,6 +20,7 @@ export async function POST(request: Request, { params }: Params) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
 
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
   const original = await prisma.formacao.findFirst({
     where: { id, OR: [{ isGlobal: true }, { organizacaoId: user.organizacaoId }] },

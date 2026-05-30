@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { UpdatePlanoSchema, parseBody } from "@/lib/schemas";
+import { UpdatePlanoSchema, parseBody, isValidId } from "@/lib/schemas";
 import type { PlanoFormativo, EixoPlano } from "@/types";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
@@ -31,6 +31,7 @@ export async function GET(_req: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
   try {
     const row = await prisma.planoFormativo.findFirst({
       where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
@@ -49,6 +50,7 @@ export async function PUT(request: Request, { params }: Params) {
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
   try {
     const existing = await prisma.planoFormativo.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
@@ -84,6 +86,7 @@ export async function DELETE(request: Request, { params }: Params) {
   const rlDel = await limiters.mutation(user.id ?? "unknown");
   if (!rlDel.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
   try {
     const existing = await prisma.planoFormativo.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });

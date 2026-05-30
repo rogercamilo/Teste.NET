@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
-import { UpdateAgendamentoSchema, parseBody } from "@/lib/schemas";
+import { UpdateAgendamentoSchema, parseBody, isValidId } from "@/lib/schemas";
 
 type SU = { id?: string; role?: string; organizacaoId?: string };
 type Params = { params: Promise<{ id: string }> };
@@ -21,6 +21,7 @@ export async function GET(_req: Request, { params }: Params) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   try {
     const { id } = await params;
+    if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
     const row = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toAg(row));
@@ -37,6 +38,7 @@ export async function PUT(request: Request, { params }: Params) {
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
   try {
     const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
@@ -59,6 +61,7 @@ export async function DELETE(request: Request, { params }: Params) {
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
   try {
     const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });

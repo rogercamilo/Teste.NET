@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { findById, updateUser, deleteUser, toPublic } from "@/lib/users-store";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { isValidId } from "@/lib/schemas";
 import { isAdminOrAbove } from "@/types";
 type Ctx = { params: Promise<{ id: string }> };
 

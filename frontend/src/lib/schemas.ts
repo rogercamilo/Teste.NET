@@ -306,6 +306,12 @@ export const RegistroSchema = z.object({
   aceitouTermos: z.boolean().optional(),
 });
 
+// ── Validação de IDs ─────────────────────────────────────────────────────────
+
+export function isValidId(id: string): boolean {
+  return /^[a-zA-Z0-9_-]{1,50}$/.test(id);
+}
+
 // ── Helpers de resposta ───────────────────────────────────────────────────────
 
 export function parseBody<T>(

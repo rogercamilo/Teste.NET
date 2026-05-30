@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { isValidId } from "@/lib/schemas";
 import { PlanoAssinatura, type StatusOrganizacao } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -17,6 +18,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
   try {
     const body = await request.json() as {
@@ -106,6 +108,7 @@ export async function DELETE(request: Request, { params }: Params) {
   if (!rlDel.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
   try {
     const org = await prisma.organizacao.findUnique({ where: { id } });
@@ -133,6 +136,7 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   const { id } = await params;
+  if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
   const [org, logs] = await Promise.all([
     prisma.organizacao.findUnique({ where: { id } }),
