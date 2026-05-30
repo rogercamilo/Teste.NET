@@ -5,6 +5,8 @@ import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isValidId } from "@/lib/schemas";
 import { PlanoAssinatura, type StatusOrganizacao } from "@prisma/client";
+import { generateRandomPassword, hashPassword } from "@/lib/users-store";
+import { sendCredentialResetEmail } from "@/lib/email";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -26,10 +28,11 @@ export async function PATCH(request: Request, { params }: Params) {
       plano?: string;
       cortesiaExpiresAt?: string | null;
       cortesiaMotivo?: string;
+      justificativa?: string;
     };
     const { acao, plano } = body;
 
-    const validAcoes = ["suspender", "reativar", "cancelar", "cortesia", "revogar-cortesia"] as const;
+    const validAcoes = ["suspender", "reativar", "cancelar", "cortesia", "revogar-cortesia", "reset-credenciais"] as const;
     const validPlanos: PlanoAssinatura[] = ["GRATUITO", "ESSENCIAL", "PROFISSIONAL"];
 
     if (acao && !(validAcoes as readonly string[]).includes(acao)) {
@@ -69,6 +72,54 @@ export async function PATCH(request: Request, { params }: Params) {
       });
       logAction("organizacao_cortesia_revogada", user.id ?? undefined, getClientIp(request), { orgId: id }, id);
       return NextResponse.json({ ok: true });
+    }
+
+    // ── Reset de credenciais ──────────────────────────────────────────────────
+    if (acao === "reset-credenciais") {
+      const justificativa = body.justificativa?.trim();
+      if (!justificativa || justificativa.length < 10) {
+        return NextResponse.json({ error: "Justificativa obrigatória (mínimo 10 caracteres)." }, { status: 400 });
+      }
+
+      const admins = await prisma.usuario.findMany({
+        where: { organizacaoId: id, perfil: "administrador", ativo: true },
+        select: { id: true, nome: true, email: true },
+      });
+      if (admins.length === 0) {
+        return NextResponse.json({ error: "Nenhum administrador ativo encontrado nesta organização." }, { status: 404 });
+      }
+
+      const tempPassword = generateRandomPassword();
+      const newHash = await hashPassword(tempPassword);
+
+      await prisma.usuario.updateMany({
+        where: { organizacaoId: id, perfil: "administrador", ativo: true },
+        data: { passwordHash: newHash, primeiroAcesso: true },
+      });
+
+      logAction("admin_credentials_reset", user.id ?? undefined, getClientIp(request), {
+        orgId: id,
+        justificativa,
+        affectedUserIds: admins.map((a) => a.id),
+        affectedCount: admins.length,
+      }, id);
+
+      await Promise.allSettled(
+        admins.map((admin) =>
+          sendCredentialResetEmail({
+            organizacaoId: id,
+            nome: admin.nome,
+            email: admin.email,
+            tempPassword,
+            orgNome: org.nome,
+          })
+        )
+      );
+
+      return NextResponse.json({
+        usuarios: admins.map((a) => ({ nome: a.nome, email: a.email })),
+        senhaTemporaria: tempPassword,
+      });
     }
 
     // ── Status / Plano ────────────────────────────────────────────────────────

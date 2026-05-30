@@ -77,7 +77,8 @@ export type AuditAction =
   | "privacy_accepted"
   | "terms_accepted"
   | "audit_log_purged"
-  | "deletion_request_processed";
+  | "deletion_request_processed"
+  | "admin_credentials_reset";
 
 export interface AuditEntry {
   timestamp: string;
