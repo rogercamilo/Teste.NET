@@ -37,6 +37,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Webhook inválido" }, { status: 400 });
   }
 
+  // Idempotência: registra o event.id antes de processar — rejeita replays silenciosamente
+  try {
+    await prisma.processedWebhookEvent.create({ data: { id: event.id } });
+  } catch (e) {
+    if ((e as { code?: string }).code === "P2002") {
+      return NextResponse.json({ received: true });
+    }
+    throw e;
+  }
+
   try {
     await handleEvent(event);
   } catch (err) {

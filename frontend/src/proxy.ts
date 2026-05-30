@@ -83,6 +83,16 @@ export default auth(function proxy(req) {
         { status: 403, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    if (req.headers.get("content-type")?.includes("application/json")) {
+      const contentLength = req.headers.get("content-length");
+      if (contentLength && parseInt(contentLength, 10) > 256 * 1024) {
+        return new NextResponse(
+          JSON.stringify({ error: "Payload muito grande" }),
+          { status: 413, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
   }
 
   if (!isLoggedIn && !isPublic) {

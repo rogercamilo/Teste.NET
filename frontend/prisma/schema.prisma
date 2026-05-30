@@ -653,6 +653,11 @@ model DeletionRequest {
 // AUDIT LOG
 // ==========================================================
 
+model ProcessedWebhookEvent {
+  id          String   @id  // Stripe event ID (evt_xxx) — garante idempotência
+  processedAt DateTime @default(now())
+}
+
 model AuditLog {
   id            String   @id @default(cuid())
   organizacaoId String?
