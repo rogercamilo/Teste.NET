@@ -75,8 +75,8 @@ export default function PrimeiroAcessoModal({ primeiroAcesso }: Props) {
         <div className="flex items-start gap-2.5 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
           <ShieldCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
           <p className="text-xs text-primary/80">
-            Esta é a sua primeira entrada no sistema. Por segurança, crie uma senha pessoal
-            antes de continuar.
+            Por segurança, é necessário definir uma nova senha pessoal antes de continuar.
+            Você não poderá acessar a plataforma sem concluir esta etapa.
           </p>
         </div>
 

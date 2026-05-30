@@ -94,7 +94,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
       await prisma.usuario.updateMany({
         where: { organizacaoId: id, perfil: "administrador", ativo: true },
-        data: { passwordHash: newHash, primeiroAcesso: true },
+        data: { passwordHash: newHash, primeiroAcesso: true, passwordChangedAt: new Date() },
       });
 
       logAction("admin_credentials_reset", user.id ?? undefined, getClientIp(request), {
