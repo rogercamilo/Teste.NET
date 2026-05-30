@@ -72,6 +72,19 @@ export default auth(function proxy(req) {
     publicPrefixes.some((p) => pathname.startsWith(p)) ||
     isPublicConviteToken;
 
+  // CSRF: rejeita requisições de mutação vindas de origens diferentes da aplicação.
+  // Stripe webhook usa verificação de assinatura própria; NextAuth tem proteção CSRF nativa.
+  const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method ?? "");
+  if (isMutation && !pathname.startsWith("/api/stripe/webhook") && !pathname.startsWith("/api/auth/")) {
+    const origin = req.headers.get("origin");
+    if (origin !== null && origin !== req.nextUrl.origin) {
+      return new NextResponse(
+        JSON.stringify({ error: "Origem da requisição inválida" }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }
+
   if (!isLoggedIn && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));
   }

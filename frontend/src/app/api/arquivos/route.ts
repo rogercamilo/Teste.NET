@@ -7,6 +7,18 @@ import { canUpload } from "@/lib/plan-limits";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { type NextRequest } from "next/server";
 
+async function checkEntityInOrg(entityType: string, entityId: string, orgId: string): Promise<boolean> {
+  const q = { where: { id: entityId, organizacaoId: orgId }, select: { id: true } };
+  switch (entityType) {
+    case "formando": return !!(await prisma.formando.findFirst(q));
+    case "formacao": return !!(await prisma.formacao.findFirst(q));
+    case "morada": return !!(await prisma.morada.findFirst(q));
+    case "grade": return !!(await prisma.gradeFormativa.findFirst(q));
+    case "plano": return !!(await prisma.planoFormativo.findFirst(q));
+    default: return false;
+  }
+}
+
 const ALLOWED_TYPES: Record<string, string> = {
   "application/pdf": ".pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
@@ -120,6 +132,10 @@ export async function POST(request: NextRequest) {
 
   if (!user.organizacaoId) return Response.json({ error: "Não autenticado" }, { status: 401 });
   const orgId = user.organizacaoId;
+
+  if (!(await checkEntityInOrg(entityType, entityId, orgId))) {
+    return Response.json({ error: "Entidade não encontrada" }, { status: 404 });
+  }
 
   const buffer = Buffer.from(await file.arrayBuffer());
 

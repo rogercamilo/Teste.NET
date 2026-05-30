@@ -114,7 +114,7 @@ export async function POST(request: Request, { params }: Params) {
       if (err.message === "NOT_FOUND") return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
       if (err.message === "ALREADY_ACCEPTED") return NextResponse.json({ error: "Convite já foi aceito" }, { status: 410 });
       if (err.message === "EXPIRED") return NextResponse.json({ error: "Convite expirado" }, { status: 410 });
-      if (err.message === "EMAIL_EXISTS") return NextResponse.json({ error: "Já existe um usuário com este e-mail" }, { status: 409 });
+      if (err.message === "EMAIL_EXISTS") return NextResponse.json({ error: "Não foi possível completar o cadastro. Verifique os dados e tente novamente." }, { status: 409 });
     }
     logError("convites/[token]", err);
     return NextResponse.json({ error: "Falha ao aceitar convite" }, { status: 500 });
