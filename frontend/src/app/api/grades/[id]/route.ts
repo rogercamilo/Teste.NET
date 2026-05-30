@@ -9,10 +9,8 @@ import type { GradeFormativa, Eixo, Etapa } from "@/types";
 const MAX_EIXOS = 50;
 const MAX_ETAPAS = 200;
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
-
-function isAdmin(role?: string) { return role === "administrador" || role === "formador_geral"; }
 
 type PrismaGrade = { id: string; organizacaoId: string | null; nome: string; planoId: string; planoNome: string; nivelFormativo: string; vigenciaInicio: Date; vigenciaFim: Date; versao: string; totalFormacoes: number; objetivos: string | null; fundamentacao: string | null; documentoAnexo: string | null; documentoAnexoId: string | null; ativo: boolean; criadoEm: Date; eixos: { id: string; gradeId: string; nome: string; descricao: string; ordem: number; cor: string | null; etapas: { id: string; eixoId: string; nome: string; descricao: string; ordem: number; cargaHoraria: number }[] }[] };
 

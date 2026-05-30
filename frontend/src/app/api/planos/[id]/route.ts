@@ -6,10 +6,8 @@ import { limiters } from "@/lib/rate-limit";
 import { UpdatePlanoSchema, parseBody, isValidId } from "@/lib/schemas";
 import type { PlanoFormativo, EixoPlano } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
-
-function isAdmin(role?: string) { return role === "administrador" || role === "formador_geral"; }
 
 type PrismaPlano = { id: string; organizacaoId: string | null; nome: string; objetivos: string; fundamentacao: string; nivelFormativo: string; vigenciaInicio: Date; vigenciaFim: Date; status: string; documentoAnexo: string | null; documentoAnexoId: string | null; criadoEm: Date; atualizadoEm: Date; eixos: { id: string; nome: string; objetivo: string; intervaloEncontros: string; cargaHoraria: number; areaFormacao: string }[] };
 

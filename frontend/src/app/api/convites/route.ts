@@ -8,11 +8,7 @@ import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateConviteSchema, parseBody } from "@/lib/schemas";
 import type { PerfilUsuario } from "@prisma/client";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
-
-function isAdminOrAbove(role?: string) {
-  return role === "administrador" || role === "formador_geral" || role === "super_admin";
-}
+import { isAdminOrAbove, SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function GET(request: Request) {
   const session = await auth();

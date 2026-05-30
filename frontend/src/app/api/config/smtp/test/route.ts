@@ -7,11 +7,7 @@ import nodemailer from "nodemailer";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type SessionUser = { id?: string; role?: string; organizacaoId?: string };
-
-function isAdminOrAbove(role: string | undefined): boolean {
-  return role === "administrador" || role === "formador_geral";
-}
+import { isAdmin as isAdminOrAbove, SessionUser } from "@/lib/auth-helpers";
 
 export async function POST(request: Request) {
   const session = await auth();

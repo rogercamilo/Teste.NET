@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { stripe, STRIPE_PRICES, isStripeEnabled } from "@/lib/stripe";
 import { logAction, getClientIp } from "@/lib/audit-log";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function POST(req: NextRequest) {
   const session = await auth();

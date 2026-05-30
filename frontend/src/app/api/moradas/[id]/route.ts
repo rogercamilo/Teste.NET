@@ -6,11 +6,9 @@ import { limiters } from "@/lib/rate-limit";
 import type { Morada } from "@/types";
 import { UpdateMoradaSchema, parseBody, isValidId } from "@/lib/schemas";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 type Row = { id: string; organizacaoId: string; nome: string; localReuniao: string | null; nivelFormativo: string; formadorId: string | null; planoId: string | null; gradeId: string | null; vigenciaInicio: Date | null; vigenciaFim: Date | null; ativo: boolean; criadoEm: Date };
-
-function isAdmin(role?: string) { return role === "administrador" || role === "formador_geral"; }
 function toMorada(m: Row): Morada {
   return { id: m.id, nome: m.nome, localReuniao: m.localReuniao ?? undefined, nivelFormativo: m.nivelFormativo as Morada["nivelFormativo"], formadorId: m.formadorId ?? undefined, planoId: m.planoId ?? undefined, gradeId: m.gradeId ?? undefined, vigenciaInicio: m.vigenciaInicio?.toISOString().split("T")[0], vigenciaFim: m.vigenciaFim?.toISOString().split("T")[0], ativo: m.ativo, criadoEm: m.criadoEm.toISOString() };
 }

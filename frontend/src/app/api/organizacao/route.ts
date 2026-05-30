@@ -6,9 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import { UpdateOrganizacaoSchema, parseBody } from "@/lib/schemas";
 import type { ComunidadeConfig } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
-
-function isAdmin(role?: string) { return role === "administrador" || role === "formador_geral"; }
+import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function GET() {
   const session = await auth();

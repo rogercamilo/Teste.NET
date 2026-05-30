@@ -6,7 +6,7 @@ import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { limiters } from "@/lib/rate-limit";
 import type { PresencaFormacao } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 type PrismaPresenca = {
   id: string; organizacaoId: string; agendamentoId: string; formacaoTema: string;

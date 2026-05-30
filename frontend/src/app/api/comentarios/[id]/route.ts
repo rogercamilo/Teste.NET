@@ -6,7 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import { UpdateComentarioSchema, parseBody, isValidId } from "@/lib/schemas";
 import type { ComentarioFormando } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
 type Row = { id: string; organizacaoId: string; formandoId: string; formandoNome: string; formadorId: string; formadorNome: string | null; texto: string; tipo: string; criadoEm: Date };

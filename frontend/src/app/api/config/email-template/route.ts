@@ -5,11 +5,7 @@ import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { EmailTemplateSchema, parseBody } from "@/lib/schemas";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
-
-function isAdminOrAbove(role: string | undefined): boolean {
-  return role === "administrador" || role === "formador_geral";
-}
+import { isAdmin as isAdminOrAbove, SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function GET(request: Request) {
   const session = await auth();

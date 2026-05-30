@@ -5,10 +5,8 @@ import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isValidId } from "@/lib/schemas";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
-
-function isAdmin(role?: string) { return role === "administrador" || role === "formador_geral"; }
 
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();

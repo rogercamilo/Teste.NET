@@ -8,7 +8,7 @@ import { CreateMoradaSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { Morada } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 type PrismaMorada = {
   id: string; organizacaoId: string; nome: string; localReuniao: string | null;
   nivelFormativo: string; formadorId: string | null; planoId: string | null;
@@ -16,9 +16,6 @@ type PrismaMorada = {
   ativo: boolean; criadoEm: Date;
 };
 
-function isAdmin(role?: string) {
-  return role === "administrador" || role === "formador_geral";
-}
 
 function toMorada(m: PrismaMorada): Morada {
   return {

@@ -6,10 +6,8 @@ import { limiters } from "@/lib/rate-limit";
 import type { Formacao } from "@/types";
 import { UpdateFormacaoSchema, parseBody, isValidId } from "@/lib/schemas";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
-
-function isAdmin(role?: string) { return role === "administrador" || role === "formador_geral"; }
 
 type Row = { id: string; organizacaoId: string | null; tema: string; objetivo: string; descricao: string; nivelFormativo: string; tipoFormacao: string; eixoId: string | null; eixoNome: string | null; etapaId: string | null; etapaNome: string | null; formadorId: string | null; formadorNome: string; cargaHoraria: number; modalidade: string; materialApoio: string | null; documentoAnexo: string | null; documentoAnexoId: string | null; gradeId: string | null; gradeNome: string | null; vezesUtilizada: number; criadoEm: Date };
 

@@ -7,7 +7,7 @@ import { limiters } from "@/lib/rate-limit";
 import { CreateEventoSchema, parseBody } from "@/lib/schemas";
 import type { EventoFormando } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 type PrismaEvento = {
   id: string; organizacaoId: string; formandoId: string; formadorId: string;

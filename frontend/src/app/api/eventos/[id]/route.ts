@@ -6,7 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import { isValidId } from "@/lib/schemas";
 import type { EventoFormando } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
 type Row = { id: string; organizacaoId: string; formandoId: string; formadorId: string; tipo: string; periodoInicio: Date | null; periodoFim: Date | null; notaAdesao: string | null; textoAvaliacao: string | null; motivo: string | null; tipoDesligamento: string | null; dataEfetiva: Date | null; checklistDevolveuEstatuto: boolean | null; checklistDevolveuSacramental: boolean | null; checklistApresentouCarta: boolean | null; checklistAcompanhadoModerador: boolean | null; dataInicioLicenca: Date | null; dataFimLicenca: Date | null; criadoEm: Date };

@@ -7,11 +7,7 @@ import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateFormacaoSchema, parseBody } from "@/lib/schemas";
 import type { Formacao } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
-
-function isAdmin(role?: string) {
-  return role === "administrador" || role === "formador_geral";
-}
+import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 
 type PrismaFormacao = {
   id: string; organizacaoId: string | null; tema: string; objetivo: string;

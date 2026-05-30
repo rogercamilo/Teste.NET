@@ -6,7 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import { isValidId } from "@/lib/schemas";
 import type { PresencaFormacao } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
 type Row = { id: string; organizacaoId: string; agendamentoId: string; formacaoTema: string; data: Date; formandoId: string; formandoNome: string; nivelFormativo: string; presente: boolean; justificativa: string | null };

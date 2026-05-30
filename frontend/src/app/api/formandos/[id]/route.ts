@@ -6,7 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import { UpdateFormandoSchema, parseBody, isValidId } from "@/lib/schemas";
 import type { Formando, ProgressoEtapa } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
 type PrismaFormando = {

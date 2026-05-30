@@ -8,7 +8,7 @@ import { CreateFormandoSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { Formando, ProgressoEtapa } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 type PrismaFormando = {
   id: string; organizacaoId: string; nome: string; dataNascimento: Date;

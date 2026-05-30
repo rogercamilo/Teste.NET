@@ -4,11 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 
-type SessionUser = { id?: string; role?: string; organizacaoId?: string };
-
-function isAdminOrAbove(role: string | undefined) {
-  return role === "administrador" || role === "formador_geral" || role === "super_admin";
-}
+import { isAdminOrAbove, SessionUser } from "@/lib/auth-helpers";
 
 export async function GET(request: Request) {
   const session = await auth();

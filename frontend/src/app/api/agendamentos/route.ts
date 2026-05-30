@@ -7,7 +7,7 @@ import { CreateAgendamentoSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 type PrismaAg = {
   id: string; organizacaoId: string; formacaoId: string; formacaoTema: string;
