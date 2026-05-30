@@ -447,7 +447,7 @@ model PresencaFormacao {
   formando       Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
 
   @@unique([agendamentoId, formandoId])
-  @@index([organizacaoId])
+  @@index([organizacaoId, formandoId])
   @@index([formandoId])
 }
 
@@ -470,7 +470,7 @@ model ComentarioFormando {
   formando      Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
   formador      Usuario     @relation(fields: [formadorId], references: [id])
 
-  @@index([organizacaoId])
+  @@index([organizacaoId, formandoId])
   @@index([formandoId])
 }
 
@@ -504,7 +504,7 @@ model EventoFormando {
   formador                      Usuario     @relation(fields: [formadorId], references: [id])
   documentos                    Arquivo[]
 
-  @@index([organizacaoId])
+  @@index([organizacaoId, formandoId])
   @@index([formandoId])
 }
 
