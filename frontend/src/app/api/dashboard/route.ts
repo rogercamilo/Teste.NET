@@ -32,11 +32,11 @@ export async function GET() {
     agendamentosEvolucao,
     proximasRaw,
   ] = await Promise.all([
-    prisma.formando.count({ where: { organizacaoId: orgId } }),
-    prisma.formando.count({ where: { organizacaoId: orgId, ativo: true } }),
+    prisma.formando.count({ where: { organizacaoId: orgId, deletedAt: null } }),
+    prisma.formando.count({ where: { organizacaoId: orgId, ativo: true, deletedAt: null } }),
     prisma.formando.groupBy({
       by: ["nivelFormativo"],
-      where: { organizacaoId: orgId },
+      where: { organizacaoId: orgId, deletedAt: null },
       _count: { nivelFormativo: true },
     }),
     prisma.agendamento.count({

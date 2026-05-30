@@ -52,11 +52,11 @@ export async function GET(
   }
 
   // Local: serve o arquivo diretamente do disco
-  if (!localFileExists(arquivo.storageKey)) {
+  if (!await localFileExists(arquivo.storageKey)) {
     return new Response("Arquivo não encontrado no servidor", { status: 404 });
   }
 
-  const buffer = readLocalFile(arquivo.storageKey);
+  const buffer = await readLocalFile(arquivo.storageKey);
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": arquivo.tipo,

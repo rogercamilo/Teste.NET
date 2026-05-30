@@ -72,7 +72,7 @@ export async function canAddFormando(orgId: string): Promise<LimitCheckResult> {
   const limits = getLimits(org.planoAssinatura);
   if (limits.formandos === Infinity) return { allowed: true };
 
-  const current = await prisma.formando.count({ where: { organizacaoId: orgId } });
+  const current = await prisma.formando.count({ where: { organizacaoId: orgId, deletedAt: null } });
   const percentUsed = Math.round((current / limits.formandos) * 100);
 
   if (current >= limits.formandos) {
@@ -135,7 +135,7 @@ export async function getUsage(orgId: string) {
 
   const [moradasCount, formandosCount, storageResult] = await Promise.all([
     prisma.morada.count({ where: { organizacaoId: orgId } }),
-    prisma.formando.count({ where: { organizacaoId: orgId } }),
+    prisma.formando.count({ where: { organizacaoId: orgId, deletedAt: null } }),
     prisma.arquivo.aggregate({ where: { organizacaoId: orgId }, _sum: { tamanho: true } }),
   ]);
 

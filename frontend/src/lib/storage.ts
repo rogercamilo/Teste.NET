@@ -9,7 +9,7 @@
 
 import { randomBytes } from "crypto";
 import { join, resolve } from "path";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
+import { readFile, writeFile, mkdir, unlink, access } from "fs/promises";
 import type { S3Client } from "@aws-sdk/client-s3";
 
 const LOCAL_ROOT = join(process.cwd(), "data", "uploads");
@@ -32,9 +32,9 @@ function generateKey(orgId: string, subpath: string, ext: string): string {
 // Local storage (desenvolvimento)
 // ---------------------------------------------------------------------------
 
-function ensureLocalDir(storageKey: string): void {
+async function ensureLocalDir(storageKey: string): Promise<void> {
   const dir = join(LOCAL_ROOT, storageKey.split("/").slice(0, -1).join("/"));
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  await mkdir(dir, { recursive: true });
 }
 
 async function uploadLocal(
@@ -44,14 +44,18 @@ async function uploadLocal(
   ext: string
 ): Promise<string> {
   const key = generateKey(orgId, subpath, ext);
-  ensureLocalDir(key);
-  writeFileSync(join(LOCAL_ROOT, key), buffer);
+  await ensureLocalDir(key);
+  await writeFile(join(LOCAL_ROOT, key), buffer);
   return key;
 }
 
 async function deleteLocal(storageKey: string): Promise<void> {
   const fullPath = join(LOCAL_ROOT, storageKey);
-  if (existsSync(fullPath)) unlinkSync(fullPath);
+  try {
+    await unlink(fullPath);
+  } catch {
+    // file already gone — nothing to do
+  }
 }
 
 function safeLocalPath(storageKey: string): string {
@@ -60,12 +64,17 @@ function safeLocalPath(storageKey: string): string {
   return fullPath;
 }
 
-export function readLocalFile(storageKey: string): Buffer {
-  return readFileSync(safeLocalPath(storageKey));
+export async function readLocalFile(storageKey: string): Promise<Buffer> {
+  return readFile(safeLocalPath(storageKey));
 }
 
-export function localFileExists(storageKey: string): boolean {
-  return existsSync(safeLocalPath(storageKey));
+export async function localFileExists(storageKey: string): Promise<boolean> {
+  try {
+    await access(safeLocalPath(storageKey));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
