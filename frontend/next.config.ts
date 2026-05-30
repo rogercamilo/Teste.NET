@@ -21,6 +21,5 @@ export default sentryEnabled
       widenClientFileUpload: true,
       sourcemaps: { disable: process.env.NODE_ENV !== "production" },
       disableLogger: true,
-      automaticVercelMonitors: false,
     })
   : nextConfig;
