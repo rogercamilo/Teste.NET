@@ -20,6 +20,5 @@ export default sentryEnabled
       silent: !process.env.CI,
       widenClientFileUpload: true,
       sourcemaps: { disable: process.env.NODE_ENV !== "production" },
-      disableLogger: true,
     })
   : nextConfig;
