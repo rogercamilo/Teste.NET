@@ -9,6 +9,7 @@ import type { PlanoFormativo, EixoPlano } from "@/types";
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toPlano } from "@/lib/converters";
+import { parseBody, CreatePlanoSchema } from "@/lib/schemas";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -46,8 +47,9 @@ export async function POST(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const body = await request.json() as Partial<PlanoFormativo>;
-    if (!body.nome?.trim()) return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
+    const parsedBody = parseBody(CreatePlanoSchema, await request.json());
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const body = parsedBody.data;
 
     const row = await prisma.planoFormativo.create({
       data: {

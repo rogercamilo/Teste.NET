@@ -9,6 +9,7 @@ import type { GradeFormativa, Eixo, Etapa } from "@/types";
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toGrade } from "@/lib/converters";
+import { parseBody, CreateGradeSchema } from "@/lib/schemas";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -47,8 +48,9 @@ export async function POST(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const body = await request.json() as Partial<GradeFormativa>;
-    if (!body.planoId) return NextResponse.json({ error: "planoId é obrigatório" }, { status: 400 });
+    const parsedBody = parseBody(CreateGradeSchema, await request.json());
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const body = parsedBody.data;
 
     const grade = await prisma.$transaction(async (tx) => {
       const created = await tx.gradeFormativa.create({

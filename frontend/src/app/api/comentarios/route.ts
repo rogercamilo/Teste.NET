@@ -9,6 +9,7 @@ import type { ComentarioFormando } from "@/types";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toComentario } from "@/lib/converters";
+import { parseBody, CreateComentarioSchema } from "@/lib/schemas";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -50,29 +51,28 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json() as Partial<ComentarioFormando>;
-    if (!body.formandoId || !body.texto?.trim()) {
-      return NextResponse.json({ error: "formandoId e texto são obrigatórios" }, { status: 400 });
-    }
+    const parsedBody = parseBody(CreateComentarioSchema, await request.json());
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const { formandoId, texto, tipo, formadorNome } = parsedBody.data;
 
     const moradaFilter = user.role === "formador_comunitario" ? { moradaId: user.moradaId ?? null } : {};
     const formando = await prisma.formando.findFirst({
-      where: { id: body.formandoId, organizacaoId: user.organizacaoId, ...moradaFilter },
+      where: { id: formandoId, organizacaoId: user.organizacaoId, ...moradaFilter },
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 
     const row = await prisma.comentarioFormando.create({
       data: {
         organizacaoId: user.organizacaoId,
-        formandoId: body.formandoId,
+        formandoId,
         formandoNome: formando.nome,
         formadorId: user.id!,
-        formadorNome: body.formadorNome || null,
-        texto: body.texto.trim(),
-        tipo: ["adesao", "dificuldade", "progresso", "observacao"].includes(body.tipo ?? "") ? (body.tipo ?? "observacao") : "observacao",
+        formadorNome: formadorNome || null,
+        texto,
+        tipo: tipo ?? "observacao",
       },
     });
-    logAction("comentario_created", user.id, getClientIp(request), { formandoId: body.formandoId }, user.organizacaoId);
+    logAction("comentario_created", user.id, getClientIp(request), { formandoId }, user.organizacaoId);
     return NextResponse.json(toComentario(row), { status: 201 });
   } catch (err) {
     logError("comentarios", err);

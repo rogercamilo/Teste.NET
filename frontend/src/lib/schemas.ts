@@ -312,6 +312,79 @@ export function isValidId(id: string): boolean {
   return /^[a-zA-Z0-9_-]{1,50}$/.test(id);
 }
 
+// ── Comentário (create) ───────────────────────────────────────────────────────
+
+export const CreateComentarioSchema = z.object({
+  formandoId: z.string().min(1, "formandoId obrigatório"),
+  texto: z.string().min(1, "Texto obrigatório").max(5000, "Máximo 5000 caracteres").trim(),
+  tipo: TipoComentarioEnum.optional(),
+  formadorNome: optionalString(255).nullable(),
+});
+
+// ── Presença ──────────────────────────────────────────────────────────────────
+
+export const CreatePresencaSchema = z.object({
+  agendamentoId: z.string().min(1, "agendamentoId obrigatório"),
+  formandoId: z.string().min(1, "formandoId obrigatório"),
+  formacaoTema: optionalString(500),
+  data: isoDate.optional(),
+  presente: z.boolean().optional(),
+  justificativa: optionalString(1000).nullable(),
+});
+
+export const UpdatePresencaSchema = z.object({
+  presente: z.boolean().optional(),
+  justificativa: optionalString(1000).nullable(),
+});
+
+// ── Plano (create) ────────────────────────────────────────────────────────────
+
+export const CreatePlanoSchema = UpdatePlanoSchema.extend({
+  nome: nonEmptyString(500),
+});
+
+// ── Evento Formando (update) ──────────────────────────────────────────────────
+
+export const UpdateEventoSchema = CreateEventoSchema.omit({ formandoId: true });
+
+// ── Grade Formativa ───────────────────────────────────────────────────────────
+
+const EixoGradeSchema = z.object({
+  id: z.string(),
+  nome: nonEmptyString(500),
+  descricao: optionalString(2000).default(""),
+  ordem: z.number().int().min(0),
+  cor: optionalString(50).nullable(),
+});
+
+const EtapaGradeSchema = z.object({
+  eixoId: z.string(),
+  nome: nonEmptyString(500),
+  descricao: optionalString(2000).default(""),
+  ordem: z.number().int().min(0),
+  cargaHoraria: z.number().int().min(0),
+});
+
+export const CreateGradeSchema = z.object({
+  planoId: z.string().min(1, "planoId obrigatório"),
+  nome: nonEmptyString(500),
+  planoNome: optionalString(500).default(""),
+  nivelFormativo: NivelFormativoEnum.optional(),
+  vigenciaInicio: isoDate.optional(),
+  vigenciaFim: isoDate.optional(),
+  versao: optionalString(50).default("1.0"),
+  totalFormacoes: z.number().int().min(0).optional(),
+  objetivos: optionalString(2000).nullable(),
+  fundamentacao: optionalString(2000).nullable(),
+  documentoAnexo: optionalString(500).nullable(),
+  documentoAnexoId: optionalString(255).nullable(),
+  ativo: z.boolean().optional(),
+  eixos: z.array(EixoGradeSchema).optional(),
+  etapas: z.array(EtapaGradeSchema).optional(),
+});
+
+export const UpdateGradeSchema = CreateGradeSchema.partial();
+
 // ── Helpers de resposta ───────────────────────────────────────────────────────
 
 export function parseBody<T>(

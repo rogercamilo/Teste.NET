@@ -9,6 +9,7 @@ import type { PresencaFormacao } from "@/types";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toPresenca } from "@/lib/converters";
+import { parseBody, CreatePresencaSchema } from "@/lib/schemas";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -52,10 +53,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json() as Partial<PresencaFormacao>;
-    if (!body.agendamentoId || !body.formandoId) {
-      return NextResponse.json({ error: "agendamentoId e formandoId são obrigatórios" }, { status: 400 });
-    }
+    const parsedBody = parseBody(CreatePresencaSchema, await request.json());
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const body = parsedBody.data;
 
     const agendamento = await prisma.agendamento.findFirst({
       where: { id: body.agendamentoId, organizacaoId: user.organizacaoId },

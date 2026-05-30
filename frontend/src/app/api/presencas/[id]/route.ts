@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { isValidId } from "@/lib/schemas";
+import { isValidId, parseBody, UpdatePresencaSchema } from "@/lib/schemas";
 import type { PresencaFormacao } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
@@ -44,12 +44,13 @@ export async function PUT(request: Request, { params }: Params) {
         return NextResponse.json({ error: "Sem permissão para editar esta presença" }, { status: 403 });
       }
     }
-    const body = await request.json() as Partial<PresencaFormacao>;
+    const parsedBody = parseBody(UpdatePresencaSchema, await request.json());
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const updated = await prisma.presencaFormacao.update({
       where: { id },
       data: {
-        presente: typeof body.presente === "boolean" ? body.presente : existing.presente,
-        justificativa: body.justificativa ?? null,
+        presente: parsedBody.data.presente ?? existing.presente,
+        justificativa: parsedBody.data.justificativa ?? null,
       },
     });
     logAction("presenca_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
