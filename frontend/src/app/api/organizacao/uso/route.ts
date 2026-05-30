@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getUsage } from "@/lib/plan-limits";
-
-type SU = { organizacaoId?: string };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function GET() {
   const session = await auth();

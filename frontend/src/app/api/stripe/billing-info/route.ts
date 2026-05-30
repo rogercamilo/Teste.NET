@@ -3,8 +3,7 @@ import { logError } from "@/lib/audit-log";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe, isStripeEnabled } from "@/lib/stripe";
-
-type SU = { organizacaoId?: string };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function GET() {
   const session = await auth();

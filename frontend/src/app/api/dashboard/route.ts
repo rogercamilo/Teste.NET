@@ -6,8 +6,7 @@ import { ptBR } from "date-fns/locale";
 import type { DashboardStats, NivelFormativo, Agendamento } from "@/types";
 
 import { toAgendamento as toAg } from "@/lib/converters";
-
-type SU = { organizacaoId?: string };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function GET() {
   const session = await auth();

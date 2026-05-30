@@ -25,18 +25,32 @@ export interface LimitCheckResult {
   percentUsed?: number;
 }
 
-export async function canAddMorada(orgId: string): Promise<LimitCheckResult> {
+// ── Helper interno ────────────────────────────────────────────────────────────
+
+type OrgAccess =
+  | { ok: true; planoAssinatura: PlanoAssinatura }
+  | { ok: false; reason: string };
+
+async function fetchOrgForLimits(orgId: string): Promise<OrgAccess> {
   const org = await prisma.organizacao.findUnique({
     where: { id: orgId },
     select: { planoAssinatura: true, status: true, trialExpiresAt: true },
   });
-  if (!org) return { allowed: false, reason: "Organização não encontrada" };
+  if (!org) return { ok: false, reason: "Organização não encontrada" };
   if (org.status === "SUSPENSO" || org.status === "CANCELADO") {
-    return { allowed: false, reason: "Conta suspensa ou cancelada" };
+    return { ok: false, reason: "Conta suspensa ou cancelada" };
   }
   if (org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt < new Date()) {
-    return { allowed: false, reason: "Período de avaliação expirado" };
+    return { ok: false, reason: "Período de avaliação expirado" };
   }
+  return { ok: true, planoAssinatura: org.planoAssinatura };
+}
+
+// ── Verificações de limite ────────────────────────────────────────────────────
+
+export async function canAddMorada(orgId: string): Promise<LimitCheckResult> {
+  const org = await fetchOrgForLimits(orgId);
+  if (!org.ok) return { allowed: false, reason: org.reason };
 
   const limits = getLimits(org.planoAssinatura);
   if (limits.moradas === Infinity) return { allowed: true };
@@ -57,17 +71,8 @@ export async function canAddMorada(orgId: string): Promise<LimitCheckResult> {
 }
 
 export async function canAddFormando(orgId: string): Promise<LimitCheckResult> {
-  const org = await prisma.organizacao.findUnique({
-    where: { id: orgId },
-    select: { planoAssinatura: true, status: true, trialExpiresAt: true },
-  });
-  if (!org) return { allowed: false, reason: "Organização não encontrada" };
-  if (org.status === "SUSPENSO" || org.status === "CANCELADO") {
-    return { allowed: false, reason: "Conta suspensa ou cancelada" };
-  }
-  if (org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt < new Date()) {
-    return { allowed: false, reason: "Período de avaliação expirado" };
-  }
+  const org = await fetchOrgForLimits(orgId);
+  if (!org.ok) return { allowed: false, reason: org.reason };
 
   const limits = getLimits(org.planoAssinatura);
   if (limits.formandos === Infinity) return { allowed: true };
@@ -88,17 +93,8 @@ export async function canAddFormando(orgId: string): Promise<LimitCheckResult> {
 }
 
 export async function canUpload(orgId: string, sizeBytes: number): Promise<LimitCheckResult> {
-  const org = await prisma.organizacao.findUnique({
-    where: { id: orgId },
-    select: { planoAssinatura: true, status: true, trialExpiresAt: true },
-  });
-  if (!org) return { allowed: false, reason: "Organização não encontrada" };
-  if (org.status === "SUSPENSO" || org.status === "CANCELADO") {
-    return { allowed: false, reason: "Conta suspensa ou cancelada" };
-  }
-  if (org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt < new Date()) {
-    return { allowed: false, reason: "Período de avaliação expirado" };
-  }
+  const org = await fetchOrgForLimits(orgId);
+  if (!org.ok) return { allowed: false, reason: org.reason };
 
   const limits = getLimits(org.planoAssinatura);
   if (limits.storageBytes === Infinity) return { allowed: true };

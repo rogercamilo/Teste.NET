@@ -4,9 +4,8 @@ import { deleteFile, readLocalFile, localFileExists } from "@/lib/storage";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isValidId } from "@/lib/schemas";
+import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
-
-type SessionUser = { id?: string; role?: string; organizacaoId?: string };
 
 // Leitura: isolamento de tenant é garantido pelo WHERE clause — qualquer membro da org pode ler
 function canRead(): boolean {

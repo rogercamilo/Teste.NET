@@ -3,8 +3,7 @@ import { logError } from "@/lib/audit-log";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
-
-type SU = { role?: string };
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 const ORG_SELECT = {
   id: true,

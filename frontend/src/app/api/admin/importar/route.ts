@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { NivelFormativoEnum, EstadoCivilEnum, ModalidadeEnum, TipoComentarioEnum } from "@/lib/schemas";
+import { SessionUser as SU } from "@/lib/auth-helpers";
 
 const NIVEL_FORMATIVO_VALUES = NivelFormativoEnum.options;
 const ESTADO_CIVIL_VALUES = EstadoCivilEnum.options;
@@ -20,8 +21,6 @@ function validEnum<T extends string>(value: unknown, values: readonly T[], fallb
 }
 
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
-
-type SU = { id?: string; role?: string; organizacaoId?: string };
 
 interface ImportPayload {
   moradas?: unknown[];

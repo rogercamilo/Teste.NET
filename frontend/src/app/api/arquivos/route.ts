@@ -5,6 +5,7 @@ import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { canUpload } from "@/lib/plan-limits";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
+import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
 
 async function checkEntityInOrg(entityType: string, entityId: string, orgId: string): Promise<boolean> {
@@ -27,7 +28,6 @@ const ALLOWED_TYPES: Record<string, string> = {
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
-type SessionUser = { id?: string; role?: string; name?: string | null; organizacaoId?: string };
 
 export async function GET(request: NextRequest) {
   const session = await auth();

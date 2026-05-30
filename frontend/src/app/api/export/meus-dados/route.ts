@@ -3,8 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-
-type SessionUser = { id?: string; organizacaoId?: string };
+import { SessionUser } from "@/lib/auth-helpers";
 
 export async function GET(request: Request) {
   const session = await auth();

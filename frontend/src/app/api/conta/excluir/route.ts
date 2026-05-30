@@ -5,8 +5,7 @@ import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { sendAccountDeletionEmail } from "@/lib/email";
 import { randomBytes } from "crypto";
-
-type SessionUser = { id?: string; email?: string; organizacaoId?: string; role?: string };
+import { SessionUser } from "@/lib/auth-helpers";
 
 export async function POST(req: NextRequest) {
   const session = await auth();

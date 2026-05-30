@@ -4,6 +4,7 @@ import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
+import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -13,13 +14,6 @@ const ALLOWED_TYPES: Record<string, string> = {
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
-type SessionUser = {
-  id?: string;
-  role?: string;
-  moradaId?: string | null;
-  name?: string | null;
-  organizacaoId?: string;
-};
 
 export async function POST(request: NextRequest) {
   const session = await auth();
