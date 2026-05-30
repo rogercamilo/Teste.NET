@@ -12,6 +12,11 @@ import { SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toFormando } from "@/lib/converters";
 
+// Safety cap for non-paginated requests — prevents runaway queries on large datasets.
+// Clients using the data-store always load all records; this protects server memory.
+// The pagination path (parsePagination) is unaffected.
+const UNBOUNDED_CAP = 1000;
+
 export async function GET(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
@@ -40,7 +45,7 @@ export async function GET(request: Request) {
           prisma.formando.findMany({ ...findManyArgs, skip: pagination.skip, take: pagination.take }),
           prisma.formando.count({ where }),
         ])
-      : [await prisma.formando.findMany(findManyArgs), null];
+      : [await prisma.formando.findMany({ ...findManyArgs, take: UNBOUNDED_CAP }), null];
 
     const gradeIds = [...new Set(
       rows.map((r) => r.morada?.gradeId).filter((id): id is string => !!id)

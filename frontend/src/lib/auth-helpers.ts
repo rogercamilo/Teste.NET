@@ -7,8 +7,4 @@ export type SessionUser = {
   moradaId?: string | null;
 };
 
-export function isAdmin(role?: string): boolean {
-  return role === "administrador" || role === "formador_geral";
-}
-
-export { isAdminOrAbove } from "@/types";
+export { isAdmin, isAdminOrAbove } from "@/types";

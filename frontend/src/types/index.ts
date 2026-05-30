@@ -365,6 +365,10 @@ export function isSuperAdmin(role: string | undefined): boolean {
   return role === "super_admin";
 }
 
+export function isAdmin(role: string | undefined): boolean {
+  return role === "administrador" || role === "formador_geral";
+}
+
 export function isAdminOrAbove(role: string | undefined): boolean {
   return role === "administrador" || role === "formador_geral" || role === "super_admin";
 }
