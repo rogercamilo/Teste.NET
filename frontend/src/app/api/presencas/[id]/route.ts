@@ -39,11 +39,14 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.presencaFormacao.findFirst({
       where: { id, organizacaoId: user.organizacaoId },
-      include: { formando: { select: { moradaId: true } } },
+      ...(user.role === "formador_comunitario" && { include: { formando: { select: { moradaId: true } } } }),
     });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    if (user.role === "formador_comunitario" && (!user.moradaId || existing.formando.moradaId !== user.moradaId)) {
-      return NextResponse.json({ error: "Sem permissão para editar esta presença" }, { status: 403 });
+    if (user.role === "formador_comunitario") {
+      const formando = existing as typeof existing & { formando: { moradaId: string | null } };
+      if (!user.moradaId || formando.formando.moradaId !== user.moradaId) {
+        return NextResponse.json({ error: "Sem permissão para editar esta presença" }, { status: 403 });
+      }
     }
     const body = await request.json() as Partial<PresencaFormacao>;
     const updated = await prisma.presencaFormacao.update({
@@ -69,11 +72,14 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const existing = await prisma.presencaFormacao.findFirst({
       where: { id, organizacaoId: user.organizacaoId },
-      include: { formando: { select: { moradaId: true } } },
+      ...(user.role === "formador_comunitario" && { include: { formando: { select: { moradaId: true } } } }),
     });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    if (user.role === "formador_comunitario" && (!user.moradaId || existing.formando.moradaId !== user.moradaId)) {
-      return NextResponse.json({ error: "Sem permissão para excluir esta presença" }, { status: 403 });
+    if (user.role === "formador_comunitario") {
+      const formando = existing as typeof existing & { formando: { moradaId: string | null } };
+      if (!user.moradaId || formando.formando.moradaId !== user.moradaId) {
+        return NextResponse.json({ error: "Sem permissão para excluir esta presença" }, { status: 403 });
+      }
     }
     await prisma.presencaFormacao.delete({ where: { id } });
     logAction("presenca_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);

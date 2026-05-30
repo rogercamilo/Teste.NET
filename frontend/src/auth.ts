@@ -137,6 +137,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
           token.moradaId = dbUser.moradaId ?? null;
           token.role = dbUser.perfil;
+          token.organizacaoId = dbUser.organizacaoId;
           token._lastDbCheck = now;
         }
       }

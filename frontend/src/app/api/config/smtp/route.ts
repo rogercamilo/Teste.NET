@@ -4,13 +4,13 @@ import { loadSmtpConfig, saveSmtpConfig, isSmtpReady } from "@/lib/smtp-config";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 
-import { isAdmin as isAdminOrAbove, SessionUser as SU } from "@/lib/auth-helpers";
+import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function GET(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   try {
     const config = await loadSmtpConfig(user.organizacaoId);
@@ -33,7 +33,7 @@ export async function PUT(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdminOrAbove(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
