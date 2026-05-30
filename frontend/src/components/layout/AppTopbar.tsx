@@ -1,5 +1,7 @@
 "use client";
 
+import { Fragment } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,31 +13,98 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useTermos } from "@/lib/data-store";
 
+type BreadcrumbSegment = { label: string; href: string };
+
+const NAMED_ACTIONS = new Set(["novo", "nova", "editar"]);
+
+function buildBreadcrumbs(pathname: string, morada: string): BreadcrumbSegment[] {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length === 0) return [{ label: "Dashboard", href: "/dashboard" }];
+
+  const root = parts[0];
+
+  const simpleRoutes: Record<string, string> = {
+    dashboard: "Dashboard",
+    agenda: "Agenda",
+    configuracoes: "Configurações",
+    viewer: "Visualizador",
+  };
+
+  if (simpleRoutes[root]) {
+    return [{ label: simpleRoutes[root], href: `/${root}` }];
+  }
+
+  if (root === "super-admin") {
+    const base: BreadcrumbSegment[] = [
+      { label: "Administração", href: "/super-admin" },
+      { label: "Super Admin", href: "/super-admin" },
+    ];
+    if (parts.length > 1) {
+      base.push({ label: "Cockpit", href: "/super-admin/dashboard" });
+    }
+    return base;
+  }
+
+  const sectionMap: Record<string, { parent: string; parentHref: string; label: string }> = {
+    planos:     { parent: "Pedagógico",        parentHref: "/planos",    label: "Planos Formativos"   },
+    grades:     { parent: "Pedagógico",        parentHref: "/planos",    label: "Grades Formativas"   },
+    formacoes:  { parent: "Pedagógico",        parentHref: "/formacoes", label: "Formações"           },
+    formandos:  { parent: "Gestão",            parentHref: "/formandos", label: "Formandos"           },
+    moradas:    { parent: "Gestão",            parentHref: "/moradas",   label: "Moradas"             },
+    documentos: { parent: "Gestão",            parentHref: "/moradas",   label: "Documentos"          },
+    presenca:   { parent: `Minha ${morada}`,   parentHref: "/presenca",  label: "Gestão de Presença"  },
+    comentarios:{ parent: `Minha ${morada}`,   parentHref: "/presenca",  label: "Comentários"         },
+  };
+
+  const subLabels: Record<string, Record<string, string>> = {
+    planos:    { novo: "Novo Plano",     editar: "Editar Plano"     },
+    grades:    { novo: "Nova Grade",     editar: "Editar Grade"     },
+    formacoes: { novo: "Nova Formação",  editar: "Editar Formação"  },
+    moradas:   { nova: "Nova Morada"                                },
+  };
+
+  const section = sectionMap[root];
+  if (!section) {
+    return [{ label: root.charAt(0).toUpperCase() + root.slice(1), href: `/${root}` }];
+  }
+
+  const crumbs: BreadcrumbSegment[] = [
+    { label: section.parent, href: section.parentHref },
+    { label: section.label,  href: `/${root}`          },
+  ];
+
+  if (parts.length === 1) return crumbs;
+
+  const seg2 = parts[1];
+
+  if (NAMED_ACTIONS.has(seg2)) {
+    const label = subLabels[root]?.[seg2] ?? seg2.charAt(0).toUpperCase() + seg2.slice(1);
+    crumbs.push({ label, href: pathname });
+  } else {
+    // Dynamic [id] segment
+    if (parts.length === 2) {
+      crumbs.push({ label: "Detalhes", href: pathname });
+    } else {
+      // /resource/[id]/editar
+      const sub = parts[2];
+      const label = subLabels[root]?.[sub] ?? sub.charAt(0).toUpperCase() + sub.slice(1);
+      crumbs.push({ label: "Detalhes",  href: `/${root}/${seg2}` });
+      crumbs.push({ label,              href: pathname             });
+    }
+  }
+
+  return crumbs;
+}
+
 export function AppTopbar() {
   const pathname = usePathname();
   const { morada } = useTermos();
-  const basePath = "/" + (pathname.split("/")[1] || "dashboard");
 
-  const pageTitles: Record<string, { title: string; parent?: string; parentHref?: string }> = {
-    "/dashboard": { title: "Dashboard" },
-    "/agenda": { title: "Agenda" },
-    "/planos": { title: "Planos Formativos", parent: "Pedagógico" },
-    "/grades": { title: "Grades Formativas", parent: "Pedagógico" },
-    "/formacoes": { title: "Formações", parent: "Pedagógico" },
-    "/formandos": { title: "Formandos", parent: "Pessoas" },
-    "/presenca": { title: "Gestão de Presença", parent: `Minha ${morada}` },
-    "/comentarios": { title: "Comentários", parent: `Minha ${morada}` },
-    "/configuracoes": { title: "Configurações" },
-    "/super-admin": { title: "Super Admin", parent: "Administração" },
-    "/super-admin/dashboard": { title: "Cockpit", parent: "Administração" },
-  };
-
-  const pageInfo = pageTitles[pathname] ?? pageTitles[basePath] ?? { title: "Página" };
+  const breadcrumbs = buildBreadcrumbs(pathname, morada);
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 bg-background/80 backdrop-blur-sm border-b border-border/60 px-4">
@@ -44,21 +113,26 @@ export function AppTopbar() {
 
       <Breadcrumb>
         <BreadcrumbList>
-          {pageInfo.parent && (
-            <>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink className="text-muted-foreground text-sm">
-                  {pageInfo.parent}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-            </>
-          )}
-          <BreadcrumbItem>
-            <BreadcrumbPage className="text-sm font-medium">
-              {pageInfo.title}
-            </BreadcrumbPage>
-          </BreadcrumbItem>
+          {breadcrumbs.map((crumb, index) => {
+            const isLast = index === breadcrumbs.length - 1;
+            return (
+              <Fragment key={`${crumb.href}-${index}`}>
+                {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
+                <BreadcrumbItem className={!isLast ? "hidden md:block" : undefined}>
+                  <BreadcrumbLink
+                    render={<Link href={crumb.href} />}
+                    className={
+                      isLast
+                        ? "text-sm font-medium text-foreground hover:text-foreground"
+                        : "text-muted-foreground text-sm"
+                    }
+                  >
+                    {crumb.label}
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              </Fragment>
+            );
+          })}
         </BreadcrumbList>
       </Breadcrumb>
 
