@@ -6,7 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import { isValidId } from "@/lib/schemas";
 import type { PresencaFormacao } from "@/types";
 
-type SU = { id?: string; role?: string; organizacaoId?: string };
+type SU = { id?: string; role?: string; organizacaoId?: string; moradaId?: string | null };
 type Params = { params: Promise<{ id: string }> };
 
 type Row = { id: string; organizacaoId: string; agendamentoId: string; formacaoTema: string; data: Date; formandoId: string; formandoNome: string; nivelFormativo: string; presente: boolean; justificativa: string | null };
@@ -39,6 +39,10 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.presencaFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (user.role === "formador_comunitario") {
+      const formando = await prisma.formando.findFirst({ where: { id: existing.formandoId, moradaId: user.moradaId ?? null } });
+      if (!formando) return NextResponse.json({ error: "Sem permissão para editar esta presença" }, { status: 403 });
+    }
     const body = await request.json() as Partial<PresencaFormacao>;
     const updated = await prisma.presencaFormacao.update({
       where: { id },
@@ -63,6 +67,10 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const existing = await prisma.presencaFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (user.role === "formador_comunitario") {
+      const formando = await prisma.formando.findFirst({ where: { id: existing.formandoId, moradaId: user.moradaId ?? null } });
+      if (!formando) return NextResponse.json({ error: "Sem permissão para excluir esta presença" }, { status: 403 });
+    }
     await prisma.presencaFormacao.delete({ where: { id } });
     logAction("presenca_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });

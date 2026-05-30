@@ -39,6 +39,9 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.eventoFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (user.role === "formador_comunitario" && existing.formadorId !== user.id) {
+      return NextResponse.json({ error: "Sem permissão para editar eventos de outros formadores" }, { status: 403 });
+    }
     const body = await request.json() as Partial<EventoFormando>;
     const VALID_TIPOS: ReadonlySet<string> = new Set(["avaliacao-adesao", "solicitacao-desligamento", "desligamento", "licenca"]);
     const VALID_NOTAS: ReadonlySet<string> = new Set(["otima", "boa", "regular", "insuficiente"]);
@@ -72,6 +75,9 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const existing = await prisma.eventoFormando.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (user.role === "formador_comunitario" && existing.formadorId !== user.id) {
+      return NextResponse.json({ error: "Sem permissão para excluir eventos de outros formadores" }, { status: 403 });
+    }
     await prisma.eventoFormando.delete({ where: { id } });
     logAction("evento_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
