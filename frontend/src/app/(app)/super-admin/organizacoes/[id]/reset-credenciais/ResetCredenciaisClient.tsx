@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, KeyRound, CheckCircle2, Copy } from "lucide-react";
+import { ArrowLeft, KeyRound, CheckCircle2, Copy, Users } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 
@@ -61,77 +62,95 @@ export default function ResetCredenciaisClient({ org, admins }: { org: Org; admi
   // ── Estado de sucesso ────────────────────────────────────────────────────────
   if (result) {
     return (
-      <div className="max-w-xl mx-auto space-y-6 py-2">
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4">
-          <CheckCircle2 className="h-6 w-6 text-emerald-600 shrink-0" />
-          <div>
-            <p className="font-semibold text-emerald-800">Acesso resetado com sucesso</p>
-            <p className="text-sm text-emerald-700 mt-0.5">
-              {result.usuario.nome} · {result.usuario.email}
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 space-y-3">
-          <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Senha Temporária</p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 font-mono text-base font-bold tracking-widest text-amber-900 bg-white border border-amber-200 rounded px-3 py-2.5 select-all">
-              {result.senhaTemporaria}
-            </code>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                navigator.clipboard.writeText(result.senhaTemporaria).then(() =>
-                  toast.success("Senha copiada!")
-                )
-              }
-            >
-              <Copy className="h-4 w-4 mr-1.5" />Copiar
-            </Button>
-          </div>
-          <p className="text-xs font-medium text-amber-700">
-            ⚠ Guarde esta senha agora — ela não será exibida novamente.
+      <div className="space-y-5 animate-in-fast">
+        <div>
+          <h1 className="text-base font-semibold flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-amber-600" />
+            Reset de Credenciais
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Organização: <strong>{org.nome}</strong>
           </p>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          Um e-mail de notificação foi enviado ao administrador. O próximo acesso exigirá troca imediata de senha.
-        </p>
+        <Card className="border-0 shadow-sm">
+          <CardContent className="pt-5 px-4 pb-4 space-y-4">
+            <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">Acesso resetado com sucesso</p>
+                <p className="text-xs text-emerald-700 mt-0.5 flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 shrink-0" />
+                  {result.usuario.nome} · {result.usuario.email}
+                </p>
+              </div>
+            </div>
 
-        <Link href="/super-admin">
-          <Button variant="outline" className="gap-2">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2.5">
+              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Senha Temporária</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 font-mono text-sm font-bold tracking-widest text-amber-900 bg-white border border-amber-200 rounded px-3 py-2 select-all">
+                  {result.senhaTemporaria}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    navigator.clipboard.writeText(result.senhaTemporaria).then(() =>
+                      toast.success("Senha copiada!")
+                    )
+                  }
+                >
+                  <Copy className="h-4 w-4 mr-1.5" />Copiar
+                </Button>
+              </div>
+              <p className="text-xs font-medium text-amber-700">
+                ⚠ Guarde esta senha agora — ela não será exibida novamente.
+              </p>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Um e-mail de notificação foi enviado ao administrador. O próximo acesso exigirá troca imediata de senha.
+            </p>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end">
+          <Link
+            href="/super-admin"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
+          >
             <ArrowLeft className="h-4 w-4" />Voltar ao Super Admin
-          </Button>
-        </Link>
+          </Link>
+        </div>
       </div>
     );
   }
 
   // ── Formulário ───────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-xl mx-auto space-y-6 py-2">
+    <div className="space-y-5 animate-in-fast">
 
       {/* Header */}
       <div>
         <Link
           href="/super-admin"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "mb-3 -ml-1 text-muted-foreground")}
         >
-          <ArrowLeft className="h-3.5 w-3.5" />Voltar ao Super Admin
+          <ArrowLeft className="h-4 w-4 mr-1" />Super Admin
         </Link>
         <h1 className="text-base font-semibold flex items-center gap-2">
-          <KeyRound className="h-5 w-5 text-amber-600" />
+          <KeyRound className="h-4 w-4 text-amber-600" />
           Reset de Credenciais
         </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Organização: <strong>{org.nome}</strong>
         </p>
       </div>
 
       {/* Aviso */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-        <p className="font-medium mb-1">O que será feito:</p>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
+        <p className="text-xs font-medium mb-1">O que será feito:</p>
         <ul className="list-disc list-inside space-y-0.5 text-amber-700 text-xs">
           <li>Uma senha temporária será gerada para o administrador selecionado</li>
           <li>O acesso será bloqueado até a troca de senha no próximo login</li>
@@ -141,18 +160,19 @@ export default function ResetCredenciaisClient({ org, admins }: { org: Org; admi
       </div>
 
       {/* Gridlist de admins */}
-      <div className="space-y-3">
-        <p className="text-sm font-medium">
-          Administrador <span className="text-destructive">*</span>
-        </p>
-
-        {admins.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-            Nenhum administrador ativo encontrado nesta organização.
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2">
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-medium">
+            Administrador <span className="text-destructive">*</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 space-y-2">
+          {admins.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+              Nenhum administrador ativo encontrado nesta organização.
+            </div>
+          ) : (
+            <>
               {paged.map((admin) => (
                 <button
                   key={admin.id}
@@ -177,56 +197,66 @@ export default function ResetCredenciaisClient({ org, admins }: { org: Org; admi
                   )}
                 </button>
               ))}
-            </div>
 
-            {admins.length > PAGE_SIZE && (
-              <Pagination
-                total={admins.length}
-                page={page}
-                pageSize={PAGE_SIZE}
-                onPageChange={(p) => { setPage(p); setSelectedId(""); }}
-              />
-            )}
-          </>
-        )}
-      </div>
+              {admins.length > PAGE_SIZE && (
+                <div className="pt-1">
+                  <Pagination
+                    total={admins.length}
+                    page={page}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={(p) => { setPage(p); setSelectedId(""); }}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Justificativa */}
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium">
-          Justificativa <span className="text-destructive">*</span>
-          <span className="text-muted-foreground font-normal ml-1">(mínimo 10 caracteres)</span>
-        </label>
-        <textarea
-          className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          rows={3}
-          placeholder="Ex: Solicitação via chamado #123 — admin sem acesso após troca de dispositivo"
-          value={justificativa}
-          onChange={(e) => setJustificativa(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground text-right">
-          {justificativa.trim().length}/10 mínimo
-        </p>
-      </div>
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-medium">
+            Justificativa <span className="text-destructive">*</span>
+            <span className="text-muted-foreground font-normal ml-1 text-xs">(mínimo 10 caracteres)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <textarea
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            rows={3}
+            placeholder="Ex: Solicitação via chamado #123 — admin sem acesso após troca de dispositivo"
+            value={justificativa}
+            onChange={(e) => setJustificativa(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground text-right mt-1">
+            {justificativa.trim().length}/10 mínimo
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Ações */}
-      <div className="flex items-center justify-between pt-1">
-        <Link href="/super-admin">
-          <Button variant="outline">Cancelar</Button>
+      <div className="flex items-center justify-between">
+        <Link
+          href="/super-admin"
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        >
+          Cancelar
         </Link>
         <Button
+          size="sm"
           className="bg-amber-600 hover:bg-amber-700 text-white"
           disabled={!selectedId || justificativa.trim().length < 10 || loading}
           onClick={handleSubmit}
         >
           {loading ? (
             <span className="flex items-center gap-2">
-              <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
               Processando...
             </span>
           ) : (
             <>
-              <KeyRound className="h-4 w-4 mr-1.5" />Resetar acesso
+              <KeyRound className="h-3.5 w-3.5 mr-1.5" />Resetar acesso
             </>
           )}
         </Button>
