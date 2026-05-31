@@ -46,6 +46,7 @@ export interface Morada {
   gradeId?: string;
   vigenciaInicio?: string;
   vigenciaFim?: string;
+  imagemUrl?: string;
   ativo: boolean;
   criadoEm: string;
 }

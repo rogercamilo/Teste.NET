@@ -117,6 +117,7 @@ export const CreateMoradaSchema = z.object({
   gradeId: z.string().optional().nullable(),
   vigenciaInicio: isoDate.optional().nullable(),
   vigenciaFim: isoDate.optional().nullable(),
+  imagemUrl: z.string().optional().nullable(),
   ativo: z.boolean().optional(),
 });
 

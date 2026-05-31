@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   mockAgendamentos,
 } from "@/lib/mock-data";
@@ -56,6 +56,7 @@ import {
   ArrowLeft,
   BookOpen,
   Calendar,
+  Camera,
   CheckCircle2,
   ClipboardList,
   Flag,
@@ -183,6 +184,10 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [encerrarOpen, setEncerrarOpen] = useState(false);
   const [encerrarLoading, setEncerrarLoading] = useState(false);
   const [novaEtapaLoading, setNovaEtapaLoading] = useState(false);
+
+  // Imagem da morada
+  const [imagemLoading, setImagemLoading] = useState(false);
+  const imagemInputRef = useRef<HTMLInputElement>(null);
 
   if (!morada) {
     return (
@@ -444,6 +449,31 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     toast.success("Nova etapa formativa iniciada!");
   }
 
+  async function handleImagemUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Apenas imagens são permitidas (PNG, JPG, WebP).");
+    if (file.size > 1 * 1024 * 1024) return toast.error("A imagem deve ter no máximo 1 MB.");
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target?.result as string;
+      setImagemLoading(true);
+      const res = await fetch(`/api/moradas/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imagemUrl: base64 }),
+      });
+      setImagemLoading(false);
+      if (!res.ok) return toast.error("Erro ao salvar imagem.");
+      const updated = await res.json();
+      setMorada(updated);
+      db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
+      toast.success("Imagem atualizada!");
+    };
+    reader.readAsDataURL(file);
+  }
+
   const presentes = formandosDaMorada.filter((f) => getPresenca(f.id)).length;
   const ausentes = formandosDaMorada.length - presentes;
 
@@ -459,8 +489,40 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-2xl">
-            {NIVEL_ICONS[morada.nivelFormativo] ?? "🏠"}
+          <div className="relative shrink-0 group/imagem">
+            <div
+              className={cn(
+                "h-14 w-14 rounded-xl overflow-hidden flex items-center justify-center text-2xl",
+                morada.imagemUrl ? "bg-muted" : "bg-primary/10",
+                (isFC || isAdmin) && "cursor-pointer"
+              )}
+              onClick={() => (isFC || isAdmin) && imagemInputRef.current?.click()}
+              title={(isFC || isAdmin) ? "Clique para alterar a imagem" : undefined}
+            >
+              {morada.imagemUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={morada.imagemUrl} alt={morada.nome} className="h-full w-full object-cover" />
+              ) : (
+                NIVEL_ICONS[morada.nivelFormativo] ?? "🏠"
+              )}
+              {(isFC || isAdmin) && (
+                <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/imagem:opacity-100 transition-opacity flex items-center justify-center">
+                  {imagemLoading
+                    ? <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                    : <Camera className="h-5 w-5 text-white" />
+                  }
+                </div>
+              )}
+            </div>
+            {(isFC || isAdmin) && (
+              <input
+                ref={imagemInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImagemUpload}
+              />
+            )}
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">

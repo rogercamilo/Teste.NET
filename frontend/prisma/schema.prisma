@@ -157,6 +157,7 @@ model Morada {
   gradeId        String?
   vigenciaInicio DateTime?
   vigenciaFim    DateTime?
+  imagemUrl      String?   @db.Text
   ativo          Boolean   @default(true)
   criadoEm      DateTime  @default(now())
   atualizadoEm  DateTime  @updatedAt

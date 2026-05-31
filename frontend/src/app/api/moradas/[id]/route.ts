@@ -41,12 +41,13 @@ export async function PUT(request: Request, { params }: Params) {
       if ((user as { moradaId?: string | null }).moradaId !== id) {
         return NextResponse.json({ error: "Sem permissão para editar esta morada" }, { status: 403 });
       }
-      const body = await request.json() as { nome?: string; localReuniao?: string | null };
+      const body = await request.json() as { nome?: string; localReuniao?: string | null; imagemUrl?: string | null };
       const updated = await prisma.morada.update({
         where: { id },
         data: {
           ...(body.nome !== undefined && { nome: body.nome }),
           ...(body.localReuniao !== undefined && { localReuniao: body.localReuniao ?? null }),
+          ...(body.imagemUrl !== undefined && { imagemUrl: body.imagemUrl ?? null }),
         },
       });
       logAction("morada_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
@@ -70,7 +71,7 @@ export async function PUT(request: Request, { params }: Params) {
     const updated = await prisma.$transaction(async (tx) => {
       const result = await tx.morada.update({
         where: { id },
-        data: { nome: body.nome, localReuniao: body.localReuniao ?? null, nivelFormativo: body.nivelFormativo, formadorId: body.formadorId ?? null, planoId: body.planoId ?? null, gradeId: body.gradeId ?? null, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null, ativo: body.ativo },
+        data: { nome: body.nome, localReuniao: body.localReuniao ?? null, nivelFormativo: body.nivelFormativo, formadorId: body.formadorId ?? null, planoId: body.planoId ?? null, gradeId: body.gradeId ?? null, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null, imagemUrl: body.imagemUrl ?? null, ativo: body.ativo },
       });
       if (formadorChanged) {
         if (existing.formadorId) {

@@ -67,7 +67,7 @@ export type PrismaMorada = {
   id: string; organizacaoId: string; nome: string; localReuniao: string | null;
   nivelFormativo: string; formadorId: string | null; planoId: string | null;
   gradeId: string | null; vigenciaInicio: Date | null; vigenciaFim: Date | null;
-  ativo: boolean; criadoEm: Date;
+  imagemUrl: string | null; ativo: boolean; criadoEm: Date;
 };
 
 export type PrismaPlano = {
@@ -202,6 +202,7 @@ export function toMorada(m: PrismaMorada): Morada {
     gradeId: m.gradeId ?? undefined,
     vigenciaInicio: m.vigenciaInicio?.toISOString().split("T")[0],
     vigenciaFim: m.vigenciaFim?.toISOString().split("T")[0],
+    imagemUrl: m.imagemUrl ?? undefined,
     ativo: m.ativo, criadoEm: m.criadoEm.toISOString(),
   };
 }
