@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import {
   Building2, Users, ShieldAlert, RefreshCw, MoreHorizontal,
   TrendingUp, TrendingDown, AlertTriangle, Gift, Ban, BadgeCheck,
   DollarSign, Activity, Minus, Scale, FileText, CheckCircle2, Clock,
-  Shield, KeyRound, Copy, type LucideIcon,
+  Shield, KeyRound, type LucideIcon,
 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 
@@ -68,12 +69,7 @@ interface LgpdData {
   cookieAnaliticos: number;
 }
 
-interface ResetResult {
-  usuarios: { nome: string; email: string }[];
-  senhaTemporaria: string;
-}
-
-type DialogAcao = "suspender" | "reativar" | "cancelar" | "plano" | "excluir" | "cortesia" | "revogar-cortesia" | "reset-credenciais" | null;
+type DialogAcao = "suspender" | "reativar" | "cancelar" | "plano" | "excluir" | "cortesia" | "revogar-cortesia" | null;
 type Tab = "organizacoes" | "financeiro" | "cortesias" | "lgpd";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -104,6 +100,7 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
 
 export default function SuperAdminClient() {
   const PAGE_SIZE = 10;
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("organizacoes");
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [metricas, setMetricas] = useState<Metricas | null>(null);
@@ -121,21 +118,12 @@ export default function SuperAdminClient() {
   const [novoPlano, setNovoPlano] = useState<string>("");
   const [cortesiaMotivo, setCortesiaMotivo] = useState("");
   const [cortesiaExpiry, setCortesiaExpiry] = useState("");
-  const [resetJustificativa, setResetJustificativa] = useState("");
-  const [resetResult, setResetResult] = useState<ResetResult | null>(null);
-  const [resetAdmins, setResetAdmins] = useState<{ id: string; nome: string; email: string }[]>([]);
-  const [resetSelectedUserId, setResetSelectedUserId] = useState("");
-  const [resetAdminsLoading, setResetAdminsLoading] = useState(false);
 
   const closeDialog = () => {
     setDialogAcao(null);
     setSelectedOrg(null);
     setCortesiaMotivo("");
     setCortesiaExpiry("");
-    setResetJustificativa("");
-    setResetResult(null);
-    setResetAdmins([]);
-    setResetSelectedUserId("");
   };
 
   const load = useCallback(async () => {
@@ -162,18 +150,6 @@ export default function SuperAdminClient() {
   useEffect(() => {
     if (tab === "lgpd" && !lgpdLoaded) loadLgpd();
   }, [tab, lgpdLoaded, loadLgpd]);
-
-  useEffect(() => {
-    if (dialogAcao !== "reset-credenciais" || !selectedOrg) return;
-    setResetAdminsLoading(true);
-    fetch(`/api/super-admin/organizacoes/${selectedOrg.id}`)
-      .then((r) => r.json())
-      .then((data: { admins?: { id: string; nome: string; email: string }[] }) => {
-        setResetAdmins(data.admins ?? []);
-      })
-      .catch(() => setResetAdmins([]))
-      .finally(() => setResetAdminsLoading(false));
-  }, [dialogAcao, selectedOrg]);
 
   async function executeAction(orgId: string, acao: string, extra?: Record<string, unknown>) {
     setActionLoading(orgId);
@@ -243,29 +219,6 @@ export default function SuperAdminClient() {
     } finally {
       setActionLoading(null);
       closeDialog();
-    }
-  }
-
-  async function resetCredenciais() {
-    if (!selectedOrg || resetJustificativa.trim().length < 10 || !resetSelectedUserId) return;
-    setActionLoading(selectedOrg.id);
-    try {
-      const res = await fetch(`/api/super-admin/organizacoes/${selectedOrg.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "reset-credenciais", usuarioId: resetSelectedUserId, justificativa: resetJustificativa.trim() }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { error?: string };
-        toast.error(data.error ?? "Falha ao resetar credenciais.");
-        return;
-      }
-      const data = await res.json() as ResetResult;
-      setResetResult(data);
-    } catch {
-      toast.error("Erro de rede. Tente novamente.");
-    } finally {
-      setActionLoading(null);
     }
   }
 
@@ -462,7 +415,7 @@ export default function SuperAdminClient() {
                               </DropdownMenuItem>
                             )}
 
-                            <DropdownMenuItem onClick={() => { setSelectedOrg(org); setDialogAcao("reset-credenciais"); }}>
+                            <DropdownMenuItem onClick={() => router.push(`/super-admin/organizacoes/${org.id}/reset-credenciais`)}>
                               <KeyRound className="h-4 w-4 mr-2" />Resetar acesso de admin
                             </DropdownMenuItem>
 
@@ -1051,143 +1004,6 @@ export default function SuperAdminClient() {
               Excluir permanentemente
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={dialogAcao === "reset-credenciais"} onOpenChange={closeDialog}>
-        <DialogContent>
-          {!resetResult ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <KeyRound className="h-5 w-5 text-amber-600" />
-                  Resetar acesso de administrador
-                </DialogTitle>
-                <DialogDescription>
-                  Organização: <strong>{selectedOrg?.nome}</strong>
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-2">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  <p className="font-medium mb-1">O que será feito:</p>
-                  <ul className="list-disc list-inside space-y-0.5 text-amber-700">
-                    <li>Uma senha temporária será gerada para o administrador selecionado</li>
-                    <li>O acesso será bloqueado até a troca de senha no próximo login</li>
-                    <li>Um e-mail de notificação será enviado ao administrador</li>
-                    <li>Esta ação ficará registrada no log de auditoria</li>
-                  </ul>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">
-                    Administrador <span className="text-destructive">*</span>
-                  </label>
-                  {resetAdminsLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                      <RefreshCw className="h-4 w-4 animate-spin" />Carregando administradores...
-                    </div>
-                  ) : resetAdmins.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">Nenhum administrador ativo encontrado.</p>
-                  ) : (
-                    <Select value={resetSelectedUserId} onValueChange={(v) => v && setResetSelectedUserId(v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o administrador..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {resetAdmins.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>
-                            <span className="font-medium">{a.nome}</span>
-                            <span className="text-muted-foreground ml-2 text-xs">{a.email}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">
-                    Justificativa <span className="text-destructive">*</span>
-                    <span className="text-muted-foreground font-normal ml-1">(mínimo 10 caracteres)</span>
-                  </label>
-                  <textarea
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    rows={3}
-                    placeholder="Ex: Solicitação via chamado #123 — admin sem acesso após troca de dispositivo"
-                    value={resetJustificativa}
-                    onChange={(e) => setResetJustificativa(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {resetJustificativa.trim().length}/10 mínimo
-                  </p>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
-                <Button
-                  className="bg-amber-600 hover:bg-amber-700 text-white"
-                  disabled={!resetSelectedUserId || resetJustificativa.trim().length < 10 || actionLoading === selectedOrg?.id}
-                  onClick={resetCredenciais}
-                >
-                  {actionLoading === selectedOrg?.id
-                    ? <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />
-                    : <KeyRound className="h-4 w-4 mr-1.5" />}
-                  Resetar acesso
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-emerald-700">
-                  <CheckCircle2 className="h-5 w-5" />
-                  Acesso resetado com sucesso
-                </DialogTitle>
-                <DialogDescription>
-                  Senha temporária gerada para {resetResult.usuarios.length} administrador{resetResult.usuarios.length > 1 ? "es" : ""} de <strong>{selectedOrg?.nome}</strong>.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-2">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Usuários afetados</p>
-                  {resetResult.usuarios.map((u) => (
-                    <div key={u.email} className="flex items-center gap-2 text-sm py-0.5">
-                      <Users className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="font-medium">{u.nome}</span>
-                      <span className="text-muted-foreground">{u.email}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-2">Senha Temporária</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 font-mono text-base font-bold tracking-widest text-amber-900 bg-white border border-amber-200 rounded px-3 py-2 select-all">
-                      {resetResult.senhaTemporaria}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0"
-                      onClick={() => {
-                        navigator.clipboard.writeText(resetResult.senhaTemporaria).then(() => {
-                          toast.success("Senha copiada!");
-                        });
-                      }}
-                    >
-                      <Copy className="h-4 w-4 mr-1.5" />Copiar
-                    </Button>
-                  </div>
-                  <p className="text-xs text-amber-700 mt-2 font-medium">
-                    ⚠ Guarde esta senha agora — ela não será exibida novamente.
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Um e-mail de notificação foi enviado a cada administrador. O próximo acesso exigirá troca imediata de senha.
-                </p>
-              </div>
-              <DialogFooter>
-                <Button onClick={closeDialog}>Fechar</Button>
-              </DialogFooter>
-            </>
-          )}
         </DialogContent>
       </Dialog>
 

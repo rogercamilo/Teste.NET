@@ -43,8 +43,10 @@ function buildBreadcrumbs(pathname: string, morada: string): BreadcrumbSegment[]
       { label: "Administração", href: "/super-admin" },
       { label: "Super Admin", href: "/super-admin" },
     ];
-    if (parts.length > 1) {
+    if (parts[1] === "dashboard") {
       base.push({ label: "Cockpit", href: "/super-admin/dashboard" });
+    } else if (parts[1] === "organizacoes" && parts[3] === "reset-credenciais") {
+      base.push({ label: "Reset de Credenciais", href: pathname });
     }
     return base;
   }
