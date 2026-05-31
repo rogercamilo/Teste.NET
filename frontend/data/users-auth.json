@@ -4,7 +4,7 @@
     "nome": "Roger",
     "email": "rogercmdb@gmail.com",
     "passwordHash": "7d343eb7d542d68a3b9e90a95db2b3df:60cf67c343e56f8a221a0f47471c079a475c2928e1e7251f5f46398653896b88aad558a0cb43a33b769807295ffa23ac4992a6b87f18773a41e84d6c2bb299b0",
-    "perfil": "formador_geral",
+    "perfil": "administrador",
     "ativo": true,
     "criadoEm": "2024-01-10",
     "primeiroAcesso": false
