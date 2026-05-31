@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isAdmin } from "@/types";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
 import { ComunidadeProvider } from "@/components/layout/ComunidadeProvider";
@@ -35,7 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     });
     if (org) {
       orgBranding = { ...orgBranding, ...org };
-      if (!org.onboardingConcluido) redirect("/onboarding");
+      if (!org.onboardingConcluido && isAdmin(sessionUser.role)) redirect("/onboarding");
     }
   }
 

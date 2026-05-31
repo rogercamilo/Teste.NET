@@ -87,7 +87,7 @@ export default function PlanoFormPage({ id }: { id?: string }) {
       ...prev,
       eixos: [
         ...prev.eixos,
-        { id: `ep${Date.now()}`, nome: "", objetivo: "", intervaloEncontros: "", cargaHoraria: 2, areaFormacao: "" },
+        { id: `ep${Date.now()}`, nome: "", objetivo: "", intervaloEncontros: "", cargaHoraria: 2, areaFormacao: "", ordem: prev.eixos.length },
       ],
     }));
   }

@@ -88,7 +88,7 @@ export interface PlanoFormativo {
   objetivos: string;
   fundamentacao: string;
   eixos: EixoPlano[];
-  retiros: RetiroPlano[];
+  retiros?: RetiroPlano[];
   nivelFormativo: NivelFormativo;
   vigenciaInicio?: string;
   vigenciaFim?: string;
@@ -129,7 +129,7 @@ export interface EixoPlano {
   intervaloEncontros: string;
   cargaHoraria: number;
   areaFormacao: string;
-  ordem: number;
+  ordem?: number;
 }
 
 export interface Etapa {
