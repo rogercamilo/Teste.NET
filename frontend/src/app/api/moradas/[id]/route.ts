@@ -27,7 +27,8 @@ export async function PUT(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  const isFC = user.role === "formador_comunitario";
+  if (!isAdmin(user.role) && !isFC) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
@@ -35,6 +36,23 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.morada.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    // FC só pode editar a sua própria morada e apenas nome/localReuniao
+    if (isFC) {
+      if ((user as { moradaId?: string | null }).moradaId !== id) {
+        return NextResponse.json({ error: "Sem permissão para editar esta morada" }, { status: 403 });
+      }
+      const body = await request.json() as { nome?: string; localReuniao?: string | null };
+      const updated = await prisma.morada.update({
+        where: { id },
+        data: {
+          ...(body.nome !== undefined && { nome: body.nome }),
+          ...(body.localReuniao !== undefined && { localReuniao: body.localReuniao ?? null }),
+        },
+      });
+      logAction("morada_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
+      return NextResponse.json(toMorada(updated));
+    }
+
     const parsed = parseBody(UpdateMoradaSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;

@@ -93,7 +93,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2.5 px-2 py-1">
+        <div className="flex items-center gap-2.5 px-2">
           {isSuperAdmin ? (
             <img
               src="/brand/formatio-symbol.svg"

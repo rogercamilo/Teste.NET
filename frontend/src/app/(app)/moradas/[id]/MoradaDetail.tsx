@@ -58,6 +58,7 @@ import {
   Calendar,
   CheckCircle2,
   ClipboardList,
+  Flag,
   Home,
   Mail,
   MapPin,
@@ -176,11 +177,12 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
 
   // Nova Etapa Formativa state
   const [novaEtapaOpen, setNovaEtapaOpen] = useState(false);
-  const [novaEtapaForm, setNovaEtapaForm] = useState({
-    nivelFormativo: "" as NivelFormativo | "",
-    vigenciaInicio: "",
-    vigenciaFim: "",
-  });
+  const [novaEtapaForm, setNovaEtapaForm] = useState({ vigenciaInicio: "" });
+
+  // Encerrar Etapa Formativa state
+  const [encerrarOpen, setEncerrarOpen] = useState(false);
+  const [encerrarLoading, setEncerrarLoading] = useState(false);
+  const [novaEtapaLoading, setNovaEtapaLoading] = useState(false);
 
   if (!morada) {
     return (
@@ -275,15 +277,17 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     setEditOpen(true);
   }
 
-  function handleEditSave() {
+  async function handleEditSave() {
     if (!editForm.nome.trim()) return toast.error("Nome é obrigatório.");
-    setMorada((prev) => {
-      if (!prev) return prev;
-      const updated = { ...prev, nome: editForm.nome.trim(), localReuniao: editForm.localReuniao.trim() || undefined };
-      const all = allMoradas.map((m) => (m.id === updated.id ? updated : m));
-      db.moradas.save(all);
-      return updated;
+    const res = await fetch(`/api/moradas/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: editForm.nome.trim(), localReuniao: editForm.localReuniao.trim() || null }),
     });
+    if (!res.ok) return toast.error("Erro ao salvar. Tente novamente.");
+    const updated = await res.json();
+    setMorada(updated);
+    db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
     setEditOpen(false);
     toast.success("Morada atualizada!");
   }
@@ -398,36 +402,44 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     toast.success(`${termoFormando} excluído.`);
   }
 
+  // Encerrar Etapa Formativa
+  async function handleEncerrarEtapa() {
+    setEncerrarLoading(true);
+    const res = await fetch(`/api/moradas/${id}/encerrar-etapa`, { method: "POST" });
+    setEncerrarLoading(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as { error?: string };
+      return toast.error(err.error ?? "Erro ao encerrar etapa.");
+    }
+    const updated = await res.json();
+    setMorada(updated);
+    db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
+    setEncerrarOpen(false);
+    toast.success("Etapa encerrada com sucesso!");
+  }
+
   // Nova Etapa Formativa
   function openNovaEtapa() {
-    const nextNivel = nextEtapaOptions[0];
-    setNovaEtapaForm({
-      nivelFormativo: nextNivel,
-      vigenciaInicio: "",
-      vigenciaFim: "",
-    });
+    setNovaEtapaForm({ vigenciaInicio: "" });
     setNovaEtapaOpen(true);
   }
 
-  function handleSaveNovaEtapa() {
-    if (!novaEtapaForm.nivelFormativo) return toast.error("Selecione a etapa formativa.");
+  async function handleSaveNovaEtapa() {
     if (!novaEtapaForm.vigenciaInicio) return toast.error("Data de início é obrigatória.");
-    if (!novaEtapaForm.vigenciaFim) return toast.error("Data de término é obrigatória.");
-    if (novaEtapaForm.vigenciaFim <= novaEtapaForm.vigenciaInicio)
-      return toast.error("Data de término deve ser posterior à data de início.");
-
-    setMorada((prev) => {
-      if (!prev) return prev;
-      const updated: Morada = {
-        ...prev,
-        nivelFormativo: novaEtapaForm.nivelFormativo as NivelFormativo,
-        vigenciaInicio: novaEtapaForm.vigenciaInicio,
-        vigenciaFim: novaEtapaForm.vigenciaFim,
-      };
-      const all = allMoradas.map((m) => (m.id === updated.id ? updated : m));
-      db.moradas.save(all);
-      return updated;
+    setNovaEtapaLoading(true);
+    const res = await fetch(`/api/moradas/${id}/nova-etapa`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vigenciaInicio: novaEtapaForm.vigenciaInicio }),
     });
+    setNovaEtapaLoading(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as { error?: string };
+      return toast.error(err.error ?? "Erro ao iniciar nova etapa.");
+    }
+    const updated = await res.json();
+    setMorada(updated);
+    db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
     setNovaEtapaOpen(false);
     toast.success("Nova etapa formativa iniciada!");
   }
@@ -483,11 +495,25 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             )}
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={openNovaEtapa} className="gap-1.5">
-              <TrendingUp className="h-4 w-4" />
-              Nova Etapa
-            </Button>
-            {isAdmin && (
+            {(isFC || isAdmin) && !morada.vigenciaFim && currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
+              <Button variant="outline" size="sm" onClick={() => setEncerrarOpen(true)} className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50">
+                <Flag className="h-4 w-4" />
+                Encerrar Etapa
+              </Button>
+            )}
+            {(isFC || isAdmin) && currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
+              <Button
+                variant="outline" size="sm"
+                onClick={openNovaEtapa}
+                disabled={!morada.vigenciaFim}
+                className="gap-1.5"
+                title={!morada.vigenciaFim ? "Encerre a etapa atual antes de avançar" : undefined}
+              >
+                <TrendingUp className="h-4 w-4" />
+                Nova Etapa
+              </Button>
+            )}
+            {(isFC || isAdmin) && (
               <Button variant="outline" size="sm" onClick={openEdit}>
                 <Pencil className="h-4 w-4 mr-1.5" />
                 Editar
@@ -1032,6 +1058,31 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         </DialogContent>
       </Dialog>
 
+      {/* Encerrar Etapa Formativa Dialog */}
+      <Dialog open={encerrarOpen} onOpenChange={setEncerrarOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Encerrar Etapa Formativa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+              <p className="font-medium mb-1">Etapa a encerrar:</p>
+              <p>{NIVEL_ICONS[morada.nivelFormativo]} {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Esta ação registará a data de encerramento da etapa atual na morada e em todos os formandos associados. Após o encerramento, o botão <span className="font-medium text-foreground">Nova Etapa</span> ficará disponível.
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEncerrarOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEncerrarEtapa} disabled={encerrarLoading} className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white">
+              <Flag className="h-4 w-4" />
+              {encerrarLoading ? "Encerrando..." : "Confirmar Encerramento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Nova Etapa Formativa Dialog */}
       <Dialog open={novaEtapaOpen} onOpenChange={setNovaEtapaOpen}>
         <DialogContent className="sm:max-w-md">
@@ -1040,52 +1091,26 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-              Etapa atual:{" "}
-              <span className="font-medium text-foreground">
-                {NIVEL_ICONS[morada.nivelFormativo]} {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}
-              </span>
+              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{NIVEL_ICONS[morada.nivelFormativo]} {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}</span></p>
+              <p className="mt-1">Próxima etapa: <span className="font-medium text-foreground">{NIVEL_ICONS[nextEtapaOptions[0]] ?? ""} {NIVEL_FORMATIVO_LABELS[nextEtapaOptions[0]]}</span></p>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Ao confirmar, declaro que não há pendências administrativas, formativas ou documentais neste grupo formativo e que estamos prontos para avançar.
+            </p>
             <div className="grid gap-1.5">
-              <Label>Nova Etapa <span className="text-destructive">*</span></Label>
-              <Select
-                value={novaEtapaForm.nivelFormativo}
-                onValueChange={(v) => v && setNovaEtapaForm((p) => ({ ...p, nivelFormativo: v as NivelFormativo }))}
-                items={Object.fromEntries(nextEtapaOptions.map((n) => [n, `${NIVEL_ICONS[n]} ${NIVEL_FORMATIVO_LABELS[n]}`]))}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione a etapa..." /></SelectTrigger>
-                <SelectContent>
-                  {nextEtapaOptions.map((n) => (
-                    <SelectItem key={n} value={n}>
-                      {NIVEL_ICONS[n]} {NIVEL_FORMATIVO_LABELS[n]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Início da Vigência <span className="text-destructive">*</span></Label>
-                <Input
-                  type="date"
-                  value={novaEtapaForm.vigenciaInicio}
-                  onChange={(e) => setNovaEtapaForm((p) => ({ ...p, vigenciaInicio: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Término da Vigência <span className="text-destructive">*</span></Label>
-                <Input
-                  type="date"
-                  value={novaEtapaForm.vigenciaFim}
-                  onChange={(e) => setNovaEtapaForm((p) => ({ ...p, vigenciaFim: e.target.value }))}
-                />
-              </div>
+              <Label>Data de início da nova etapa <span className="text-destructive">*</span></Label>
+              <Input
+                type="date"
+                value={novaEtapaForm.vigenciaInicio}
+                onChange={(e) => setNovaEtapaForm({ vigenciaInicio: e.target.value })}
+              />
             </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setNovaEtapaOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveNovaEtapa} className="gap-1.5">
+            <Button onClick={handleSaveNovaEtapa} disabled={novaEtapaLoading} className="gap-1.5">
               <TrendingUp className="h-4 w-4" />
-              Iniciar Etapa
+              {novaEtapaLoading ? "Iniciando..." : "Confirmar e Avançar"}
             </Button>
           </DialogFooter>
         </DialogContent>
