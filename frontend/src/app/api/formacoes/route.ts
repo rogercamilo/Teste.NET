@@ -72,6 +72,8 @@ export async function POST(request: Request) {
         documentoAnexoId: body.documentoAnexoId || null,
         gradeId: body.gradeId || null,
         gradeNome: body.gradeNome || null,
+        numero: body.numero ?? null,
+        observacoesFormador: body.observacoesFormador || null,
         vezesUtilizada: body.vezesUtilizada ?? 0,
       },
     });

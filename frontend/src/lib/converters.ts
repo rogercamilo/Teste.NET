@@ -1,7 +1,7 @@
 import type {
   Agendamento, ComentarioFormando, EventoFormando, Formacao,
   Formando, ProgressoEtapa, GradeFormativa, Eixo, Etapa,
-  Morada, PlanoFormativo, EixoPlano, PresencaFormacao,
+  Morada, PlanoFormativo, EixoPlano, RetiroPlano, PresencaFormacao,
 } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -11,6 +11,7 @@ import type {
 export type PrismaAgendamento = {
   id: string; organizacaoId: string; formacaoId: string; formacaoTema: string;
   nivelFormativo: string; tipoFormacao: string; formadorId: string; formadorNome: string;
+  moradaId: string | null;
   dataInicio: Date; dataFim: Date; local: string | null; linkOnline: string | null;
   status: string; participantes: number; observacoes: string | null;
   googleCalendarEventId: string | null; criadoEm: Date;
@@ -37,7 +38,9 @@ export type PrismaFormacao = {
   etapaId: string | null; etapaNome: string | null; formadorId: string | null; formadorNome: string;
   cargaHoraria: number; modalidade: string; materialApoio: string | null;
   documentoAnexo: string | null; documentoAnexoId: string | null;
-  gradeId: string | null; gradeNome: string | null; vezesUtilizada: number; criadoEm: Date;
+  gradeId: string | null; gradeNome: string | null;
+  numero: number | null; observacoesFormador: string | null;
+  vezesUtilizada: number; criadoEm: Date;
 };
 
 export type PrismaFormando = {
@@ -59,6 +62,7 @@ export type PrismaGrade = {
   documentoAnexo: string | null; documentoAnexoId: string | null; ativo: boolean; criadoEm: Date;
   eixos: {
     id: string; gradeId: string; nome: string; descricao: string; ordem: number; cor: string | null;
+    eixoPlanoId: string | null;
     etapas: { id: string; eixoId: string; nome: string; descricao: string; ordem: number; cargaHoraria: number }[];
   }[];
 };
@@ -74,7 +78,8 @@ export type PrismaPlano = {
   id: string; organizacaoId: string | null; nome: string; objetivos: string; fundamentacao: string;
   nivelFormativo: string; vigenciaInicio: Date; vigenciaFim: Date; status: string;
   documentoAnexo: string | null; documentoAnexoId: string | null; criadoEm: Date; atualizadoEm: Date;
-  eixos: { id: string; nome: string; objetivo: string; intervaloEncontros: string; cargaHoraria: number; areaFormacao: string }[];
+  eixos: { id: string; nome: string; nomeEtapa: string | null; objetivo: string; intervaloEncontros: string; cargaHoraria: number; areaFormacao: string; ordem: number }[];
+  retiros: { id: string; planoId: string; tipo: string; numero: number; tema: string; trechoBiblico: string | null; objetivo: string; quandoRealizar: string; cargaHoraria: number }[];
 };
 
 export type PrismaPresenca = {
@@ -93,6 +98,7 @@ export function toAgendamento(a: PrismaAgendamento): Agendamento {
     nivelFormativo: a.nivelFormativo as Agendamento["nivelFormativo"],
     tipoFormacao: a.tipoFormacao as Agendamento["tipoFormacao"],
     formadorId: a.formadorId, formadorNome: a.formadorNome,
+    moradaId: a.moradaId ?? undefined,
     dataInicio: a.dataInicio.toISOString(), dataFim: a.dataFim.toISOString(),
     local: a.local ?? undefined, linkOnline: a.linkOnline ?? undefined,
     status: a.status as Agendamento["status"], participantes: a.participantes,
@@ -142,6 +148,7 @@ export function toFormacao(f: PrismaFormacao): Formacao {
     materialApoio: f.materialApoio ?? undefined, documentoAnexo: f.documentoAnexo ?? undefined,
     documentoAnexoId: f.documentoAnexoId ?? undefined,
     gradeId: f.gradeId ?? undefined, gradeNome: f.gradeNome ?? undefined,
+    numero: f.numero ?? undefined, observacoesFormador: f.observacoesFormador ?? undefined,
     vezesUtilizada: f.vezesUtilizada, criadoEm: f.criadoEm.toISOString(),
   };
 }
@@ -179,7 +186,7 @@ export function toGrade(g: PrismaGrade): GradeFormativa {
     versao: g.versao,
     eixos: g.eixos.map((e): Eixo => ({
       id: e.id, nome: e.nome, descricao: e.descricao, gradeId: e.gradeId,
-      ordem: e.ordem, cor: e.cor ?? undefined,
+      ordem: e.ordem, cor: e.cor ?? undefined, eixoPlanoId: e.eixoPlanoId ?? undefined,
     })),
     etapas: g.eixos.flatMap((e) =>
       e.etapas.map((t): Etapa => ({
@@ -212,9 +219,14 @@ export function toPlano(p: PrismaPlano): PlanoFormativo {
     id: p.id, nome: p.nome, objetivos: p.objetivos, fundamentacao: p.fundamentacao,
     nivelFormativo: p.nivelFormativo as PlanoFormativo["nivelFormativo"],
     eixos: p.eixos.map((e): EixoPlano => ({
-      id: e.id, nome: e.nome, objetivo: e.objetivo,
+      id: e.id, nome: e.nome, nomeEtapa: e.nomeEtapa ?? undefined, objetivo: e.objetivo,
       intervaloEncontros: e.intervaloEncontros, cargaHoraria: e.cargaHoraria,
-      areaFormacao: e.areaFormacao,
+      areaFormacao: e.areaFormacao, ordem: e.ordem,
+    })),
+    retiros: p.retiros.map((r): RetiroPlano => ({
+      id: r.id, planoId: r.planoId, tipo: r.tipo as RetiroPlano["tipo"],
+      numero: r.numero, tema: r.tema, trechoBiblico: r.trechoBiblico ?? undefined,
+      objetivo: r.objetivo, quandoRealizar: r.quandoRealizar, cargaHoraria: r.cargaHoraria,
     })),
     vigenciaInicio: p.vigenciaInicio.toISOString().split("T")[0],
     vigenciaFim: p.vigenciaFim.toISOString().split("T")[0],

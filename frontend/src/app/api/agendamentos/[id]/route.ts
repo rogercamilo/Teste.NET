@@ -43,7 +43,7 @@ export async function PUT(request: Request, { params }: Params) {
     const body = parsed.data;
     const updated = await prisma.agendamento.update({
       where: { id },
-      data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, dataInicio: body.dataInicio ? new Date(body.dataInicio) : undefined, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null },
+      data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, moradaId: body.moradaId !== undefined ? (body.moradaId ?? null) : undefined, dataInicio: body.dataInicio ? new Date(body.dataInicio) : undefined, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null },
     });
     logAction("agendamento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toAg(updated));

@@ -76,6 +76,7 @@ export async function POST(request: Request) {
         tipoFormacao: body.tipoFormacao ?? "comunitaria",
         formadorId,
         formadorNome,
+        moradaId: body.moradaId ?? user.moradaId ?? null,
         dataInicio: new Date(body.dataInicio),
         dataFim: new Date(body.dataFim ?? body.dataInicio),
         local: body.local ?? null,

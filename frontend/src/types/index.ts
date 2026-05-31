@@ -17,7 +17,7 @@ export type PlanoAssinatura = "GRATUITO" | "ESSENCIAL" | "PROFISSIONAL";
 export type StatusOrganizacao = "TRIAL" | "ATIVO" | "SUSPENSO" | "CANCELADO";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
 export type TipoCompromisso = "individual" | "geral";
-export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoal";
+export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoal" | "atividade-extra";
 
 export interface ProgressoEtapa {
   nivel: NivelFormativo;
@@ -88,6 +88,7 @@ export interface PlanoFormativo {
   objetivos: string;
   fundamentacao: string;
   eixos: EixoPlano[];
+  retiros: RetiroPlano[];
   nivelFormativo: NivelFormativo;
   vigenciaInicio?: string;
   vigenciaFim?: string;
@@ -105,15 +106,30 @@ export interface Eixo {
   gradeId: string;
   ordem: number;
   cor?: string;
+  eixoPlanoId?: string;
+}
+
+export interface RetiroPlano {
+  id: string;
+  planoId: string;
+  tipo: "comunitario" | "pessoal";
+  numero: number;
+  tema: string;
+  trechoBiblico?: string;
+  objetivo: string;
+  quandoRealizar: string;
+  cargaHoraria: number;
 }
 
 export interface EixoPlano {
   id: string;
   nome: string;
+  nomeEtapa?: string;
   objetivo: string;
   intervaloEncontros: string;
   cargaHoraria: number;
   areaFormacao: string;
+  ordem: number;
 }
 
 export interface Etapa {
@@ -163,10 +179,10 @@ export interface Formacao {
   materialApoio?: string;
   documentoAnexo?: string;
   documentoAnexoId?: string;
-  /** ID da grade formativa que originou esta formação (se criada via grade) */
   gradeId?: string;
-  /** Nome da grade formativa (para exibição) */
   gradeNome?: string;
+  numero?: number;
+  observacoesFormador?: string;
   vezesUtilizada: number;
   criadoEm: string;
 }
@@ -185,6 +201,7 @@ export interface Agendamento {
   linkOnline?: string;
   status: StatusFormacao;
   participantes: number;
+  moradaId?: string;
   observacoes?: string;
   googleCalendarEventId?: string;
   criadoEm: string;
@@ -399,6 +416,7 @@ export const TIPO_FORMACAO_LABELS: Record<TipoFormacao, string> = {
   comunitaria: "Formação Comunitária",
   "retiro-comunitario": "Retiro Comunitário",
   "retiro-pessoal": "Retiro Pessoal",
+  "atividade-extra": "Atividade Extra",
 };
 
 export const REQUISITOS_ETAPAS: Record<NivelFormativo, RequisitosEtapa> = {

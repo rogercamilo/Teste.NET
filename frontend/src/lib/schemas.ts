@@ -31,6 +31,7 @@ export const TipoFormacaoEnum = z.enum([
   "comunitaria",
   "retiro-comunitario",
   "retiro-pessoal",
+  "atividade-extra",
 ]);
 
 export const MotivoInatividadeEnum = z.enum([
@@ -173,6 +174,7 @@ export const CreateAgendamentoSchema = z.object({
   formacaoTema: optionalString(500).default(""),
   nivelFormativo: NivelFormativoEnum.optional(),
   tipoFormacao: TipoFormacaoEnum.optional(),
+  moradaId: z.string().optional().nullable(),
   dataInicio: isoDatetime,
   dataFim: isoDatetime.optional(),
   local: optionalString(500).nullable(),
@@ -205,6 +207,8 @@ export const UpdateFormacaoSchema = z.object({
   documentoAnexoId: optionalString(255).nullable(),
   gradeId: z.string().optional().nullable(),
   gradeNome: optionalString(255).nullable(),
+  numero: z.number().int().min(1).optional().nullable(),
+  observacoesFormador: optionalString(5000).nullable(),
   vezesUtilizada: z.number().int().min(0).optional(),
 });
 
@@ -220,10 +224,22 @@ export const StatusPlanoEnum = z.enum(["rascunho", "em-revisao", "ativo", "arqui
 
 export const EixoPlanoSchema = z.object({
   nome: nonEmptyString(255),
+  nomeEtapa: optionalString(255),
   objetivo: optionalString(2000).default(""),
   intervaloEncontros: optionalString(100).default(""),
   cargaHoraria: z.number().int().min(0).default(0),
   areaFormacao: optionalString(255).default(""),
+  ordem: z.number().int().min(0).default(0),
+});
+
+export const RetiroPlanoSchema = z.object({
+  tipo: z.enum(["comunitario", "pessoal"]),
+  numero: z.number().int().min(1),
+  tema: nonEmptyString(500),
+  trechoBiblico: optionalString(500),
+  objetivo: optionalString(2000).default(""),
+  quandoRealizar: nonEmptyString(255),
+  cargaHoraria: z.number().int().min(0).default(0),
 });
 
 export const UpdatePlanoSchema = z.object({
@@ -237,6 +253,7 @@ export const UpdatePlanoSchema = z.object({
   documentoAnexo: optionalString(500).nullable(),
   documentoAnexoId: optionalString(255).nullable(),
   eixos: z.array(EixoPlanoSchema).optional(),
+  retiros: z.array(RetiroPlanoSchema).optional(),
 });
 
 // ── Evento Formando ───────────────────────────────────────────────────────────
@@ -356,6 +373,7 @@ const EixoGradeSchema = z.object({
   descricao: optionalString(2000).default(""),
   ordem: z.number().int().min(0),
   cor: optionalString(50).nullable(),
+  eixoPlanoId: z.string().optional().nullable(),
 });
 
 const EtapaGradeSchema = z.object({

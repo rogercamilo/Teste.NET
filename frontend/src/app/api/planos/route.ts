@@ -23,12 +23,12 @@ export async function GET(request: Request) {
     const orderBy = { criadoEm: "desc" as const };
 
     if (!pagination) {
-      const rows = await prisma.planoFormativo.findMany({ where, include: { eixos: true }, orderBy });
+      const rows = await prisma.planoFormativo.findMany({ where, include: { eixos: true, retiros: true }, orderBy });
       return NextResponse.json(rows.map(toPlano));
     }
 
     const [rows, total] = await Promise.all([
-      prisma.planoFormativo.findMany({ where, include: { eixos: true }, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.planoFormativo.findMany({ where, include: { eixos: true, retiros: true }, orderBy, skip: pagination.skip, take: pagination.take }),
       prisma.planoFormativo.count({ where }),
     ]);
     return NextResponse.json(rows.map(toPlano), { headers: paginationHeaders(total, pagination) });
@@ -66,14 +66,27 @@ export async function POST(request: Request) {
         eixos: {
           create: (body.eixos ?? []).map((e) => ({
             nome: e.nome,
+            nomeEtapa: e.nomeEtapa || null,
             objetivo: e.objetivo,
             intervaloEncontros: e.intervaloEncontros,
             cargaHoraria: e.cargaHoraria,
             areaFormacao: e.areaFormacao,
+            ordem: e.ordem,
+          })),
+        },
+        retiros: {
+          create: (body.retiros ?? []).map((r) => ({
+            tipo: r.tipo,
+            numero: r.numero,
+            tema: r.tema,
+            trechoBiblico: r.trechoBiblico || null,
+            objetivo: r.objetivo,
+            quandoRealizar: r.quandoRealizar,
+            cargaHoraria: r.cargaHoraria,
           })),
         },
       },
-      include: { eixos: true },
+      include: { eixos: true, retiros: true },
     });
     logAction("plano_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
     return NextResponse.json(toPlano(row), { status: 201 });

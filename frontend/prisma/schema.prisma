@@ -167,6 +167,7 @@ model Morada {
   plano          PlanoFormativo? @relation(fields: [planoId], references: [id])
   grade          GradeFormativa? @relation(fields: [gradeId], references: [id])
   formandos      Formando[]
+  agendamentos   Agendamento[]
   // Usuários vinculados a esta morada (formadores_comunitarios)
   usuarios       Usuario[]      @relation("UsuarioMorada")
 
@@ -259,8 +260,30 @@ model PlanoFormativo {
   eixos            EixoPlano[]
   gradesFormativas GradeFormativa[]
   moradas          Morada[]
+  retiros          RetiroPlano[]
 
   @@index([organizacaoId])
+}
+
+// ==========================================================
+// RETIRO PLANO (1:N de PlanoFormativo)
+// tipo: "comunitario" | "pessoal"
+// ==========================================================
+
+model RetiroPlano {
+  id             String @id @default(cuid())
+  planoId        String
+  tipo           String
+  numero         Int
+  tema           String
+  trechoBiblico  String?
+  objetivo       String
+  quandoRealizar String
+  cargaHoraria   Int    @default(0)
+
+  plano          PlanoFormativo @relation(fields: [planoId], references: [id], onDelete: Cascade)
+
+  @@index([planoId])
 }
 
 // ==========================================================
@@ -271,12 +294,15 @@ model EixoPlano {
   id                 String @id @default(cuid())
   planoId            String
   nome               String
+  nomeEtapa          String?
   objetivo           String
   intervaloEncontros String
   cargaHoraria       Int
   areaFormacao       String
+  ordem              Int    @default(0)
 
   plano              PlanoFormativo @relation(fields: [planoId], references: [id], onDelete: Cascade)
+  eixosGrade         Eixo[]
 
   @@index([planoId])
 }
@@ -319,17 +345,20 @@ model GradeFormativa {
 // ==========================================================
 
 model Eixo {
-  id        String @id @default(cuid())
-  gradeId   String
-  nome      String
-  descricao String
-  ordem     Int    @default(0)
-  cor       String?
+  id          String  @id @default(cuid())
+  gradeId     String
+  nome        String
+  descricao   String
+  ordem       Int     @default(0)
+  cor         String?
+  eixoPlanoId String?
 
-  grade     GradeFormativa @relation(fields: [gradeId], references: [id], onDelete: Cascade)
-  etapas    Etapa[]
+  grade       GradeFormativa @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  eixoPlano   EixoPlano?     @relation(fields: [eixoPlanoId], references: [id], onDelete: SetNull)
+  etapas      Etapa[]
 
   @@index([gradeId])
+  @@index([eixoPlanoId])
 }
 
 // ==========================================================
@@ -376,6 +405,8 @@ model Formacao {
   documentoAnexoId String?
   gradeId          String?
   gradeNome        String?
+  numero           Int?
+  observacoesFormador String?
   vezesUtilizada   Int       @default(0)
   deletedAt        DateTime?
   criadoEm        DateTime  @default(now())
@@ -402,6 +433,7 @@ model Agendamento {
   tipoFormacao          String    // TipoFormacao
   formadorId            String
   formadorNome          String
+  moradaId              String?
   dataInicio            DateTime
   dataFim               DateTime
   local                 String?
@@ -417,11 +449,13 @@ model Agendamento {
   organizacao           Organizacao  @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   formacao              Formacao     @relation(fields: [formacaoId], references: [id])
   formador              Usuario      @relation(fields: [formadorId], references: [id])
+  morada                Morada?      @relation(fields: [moradaId], references: [id], onDelete: SetNull)
   presencas             PresencaFormacao[]
 
   @@index([organizacaoId])
   @@index([dataInicio])
   @@index([status])
+  @@index([moradaId])
   @@index([organizacaoId, status, dataInicio])
   @@index([deletedAt])
 }

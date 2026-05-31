@@ -65,7 +65,7 @@ export async function PUT(request: Request, { params }: Params) {
         const eixoEntries = await Promise.all(
           body.eixos.map((eixo) =>
             tx.eixo
-              .create({ data: { gradeId: id, nome: eixo.nome, descricao: eixo.descricao, ordem: eixo.ordem, cor: eixo.cor || null }, select: { id: true } })
+              .create({ data: { gradeId: id, nome: eixo.nome, descricao: eixo.descricao, ordem: eixo.ordem, cor: eixo.cor || null, eixoPlanoId: eixo.eixoPlanoId || null }, select: { id: true } })
               .then((e) => [eixo.id, e.id] as [string, string])
           )
         );

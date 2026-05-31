@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: Params) {
   try {
     const row = await prisma.planoFormativo.findFirst({
       where: { id, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-      include: { eixos: true },
+      include: { eixos: true, retiros: true },
     });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toPlano(row));
@@ -45,6 +45,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     const updated = await prisma.$transaction(async (tx) => {
       await tx.eixoPlano.deleteMany({ where: { planoId: id } });
+      await tx.retiroPlano.deleteMany({ where: { planoId: id } });
       return tx.planoFormativo.update({
         where: { id },
         data: {
@@ -53,9 +54,22 @@ export async function PUT(request: Request, { params }: Params) {
           vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : undefined,
           vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : undefined,
           status: body.status, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null,
-          eixos: { create: (body.eixos ?? []).map((e) => ({ nome: e.nome, objetivo: e.objetivo, intervaloEncontros: e.intervaloEncontros, cargaHoraria: e.cargaHoraria, areaFormacao: e.areaFormacao })) },
+          eixos: {
+            create: (body.eixos ?? []).map((e) => ({
+              nome: e.nome, nomeEtapa: e.nomeEtapa || null, objetivo: e.objetivo,
+              intervaloEncontros: e.intervaloEncontros, cargaHoraria: e.cargaHoraria,
+              areaFormacao: e.areaFormacao, ordem: e.ordem,
+            })),
+          },
+          retiros: {
+            create: (body.retiros ?? []).map((r) => ({
+              tipo: r.tipo, numero: r.numero, tema: r.tema,
+              trechoBiblico: r.trechoBiblico || null, objetivo: r.objetivo,
+              quandoRealizar: r.quandoRealizar, cargaHoraria: r.cargaHoraria,
+            })),
+          },
         },
-        include: { eixos: true },
+        include: { eixos: true, retiros: true },
       });
     });
     logAction("plano_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
