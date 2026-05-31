@@ -96,7 +96,11 @@ export async function PUT(request: Request, { params }: Params) {
     });
     logAction("morada_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toMorada(updated));
-  } catch (err) { logError("moradas/[id] PUT", err); return NextResponse.json({ error: "Falha ao atualizar morada" }, { status: 500 }); }
+  } catch (err) {
+    logError("moradas/[id] PUT", err);
+    const detail = process.env.NODE_ENV !== "production" && err instanceof Error ? err.message : undefined;
+    return NextResponse.json({ error: "Falha ao atualizar morada", ...(detail && { detail }) }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: Request, { params }: Params) {
