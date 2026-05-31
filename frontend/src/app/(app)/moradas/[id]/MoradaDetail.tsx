@@ -186,7 +186,10 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [novaEtapaLoading, setNovaEtapaLoading] = useState(false);
 
   // Imagem da morada
+  const [imagemDialogOpen, setImagemDialogOpen] = useState(false);
+  const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const [imagemLoading, setImagemLoading] = useState(false);
+  const [imagemDragOver, setImagemDragOver] = useState(false);
   const imagemInputRef = useRef<HTMLInputElement>(null);
 
   if (!morada) {
@@ -449,29 +452,42 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     toast.success("Nova etapa formativa iniciada!");
   }
 
-  async function handleImagemUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  function processImagemFile(file: File) {
     if (!file.type.startsWith("image/")) return toast.error("Apenas imagens são permitidas (PNG, JPG, WebP).");
     if (file.size > 1 * 1024 * 1024) return toast.error("A imagem deve ter no máximo 1 MB.");
     const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const base64 = ev.target?.result as string;
-      setImagemLoading(true);
-      const res = await fetch(`/api/moradas/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagemUrl: base64 }),
-      });
-      setImagemLoading(false);
-      if (!res.ok) return toast.error("Erro ao salvar imagem.");
-      const updated = await res.json();
-      setMorada(updated);
-      db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
-      toast.success("Imagem atualizada!");
-    };
+    reader.onload = (ev) => setImagemPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
+  }
+
+  function handleImagemFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) processImagemFile(file);
+  }
+
+  function handleImagemDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setImagemDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processImagemFile(file);
+  }
+
+  async function salvarImagem(imagemUrl: string | null) {
+    setImagemLoading(true);
+    const res = await fetch(`/api/moradas/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imagemUrl }),
+    });
+    setImagemLoading(false);
+    if (!res.ok) return toast.error("Erro ao salvar imagem.");
+    const updated = await res.json();
+    setMorada(updated);
+    db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
+    setImagemDialogOpen(false);
+    setImagemPreview(null);
+    toast.success(imagemUrl ? "Imagem atualizada!" : "Imagem removida.");
   }
 
   const presentes = formandosDaMorada.filter((f) => getPresenca(f.id)).length;
@@ -496,7 +512,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                 morada.imagemUrl ? "bg-muted" : "bg-primary/10",
                 (isFC || isAdmin) && "cursor-pointer"
               )}
-              onClick={() => (isFC || isAdmin) && imagemInputRef.current?.click()}
+              onClick={() => (isFC || isAdmin) && setImagemDialogOpen(true)}
               title={(isFC || isAdmin) ? "Clique para alterar a imagem" : undefined}
             >
               {morada.imagemUrl ? (
@@ -507,22 +523,10 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
               )}
               {(isFC || isAdmin) && (
                 <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/imagem:opacity-100 transition-opacity flex items-center justify-center">
-                  {imagemLoading
-                    ? <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                    : <Camera className="h-5 w-5 text-white" />
-                  }
+                  <Camera className="h-5 w-5 text-white" />
                 </div>
               )}
             </div>
-            {(isFC || isAdmin) && (
-              <input
-                ref={imagemInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImagemUpload}
-              />
-            )}
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -1342,6 +1346,87 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDeleteFormandoOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleDeleteFormando}>Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Imagem da Morada Dialog */}
+      <Dialog open={imagemDialogOpen} onOpenChange={(open) => { setImagemDialogOpen(open); if (!open) setImagemPreview(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Imagem de identificação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Área de drop / preview */}
+            <div
+              className={cn(
+                "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors cursor-pointer overflow-hidden",
+                imagemDragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/30",
+                (imagemPreview || morada.imagemUrl) ? "h-48" : "h-36"
+              )}
+              onClick={() => imagemInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setImagemDragOver(true); }}
+              onDragLeave={() => setImagemDragOver(false)}
+              onDrop={handleImagemDrop}
+            >
+              {imagemPreview || morada.imagemUrl ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imagemPreview ?? morada.imagemUrl!}
+                    alt="Pré-visualização"
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+                    <Camera className="h-6 w-6 text-white" />
+                    <span className="text-xs text-white font-medium">Trocar imagem</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground pointer-events-none select-none">
+                  <Camera className="h-8 w-8 opacity-40" />
+                  <p className="text-sm font-medium">Clique ou arraste uma imagem</p>
+                  <p className="text-xs opacity-60">PNG, JPG, WebP · máx. 1 MB</p>
+                </div>
+              )}
+            </div>
+            <input
+              ref={imagemInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImagemFileInput}
+            />
+            {imagemPreview && (
+              <p className="text-xs text-muted-foreground text-center">
+                Pré-visualização — clique em <span className="font-medium text-foreground">Salvar</span> para confirmar.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 flex-wrap">
+            {morada.imagemUrl && !imagemPreview && (
+              <Button
+                variant="outline"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30 mr-auto"
+                onClick={() => salvarImagem(null)}
+                disabled={imagemLoading}
+              >
+                Remover imagem
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => { setImagemDialogOpen(false); setImagemPreview(null); }}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => salvarImagem(imagemPreview!)}
+              disabled={!imagemPreview || imagemLoading}
+              className="gap-1.5"
+            >
+              {imagemLoading
+                ? <><div className="h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Salvando...</>
+                : "Salvar"
+              }
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
