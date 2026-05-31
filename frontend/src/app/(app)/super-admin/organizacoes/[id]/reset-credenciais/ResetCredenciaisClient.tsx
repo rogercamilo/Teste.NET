@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, KeyRound, CheckCircle2, Copy, Users } from "lucide-react";
+import { ArrowLeft, KeyRound, CheckCircle2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,6 @@ interface Admin { id: string; nome: string; email: string }
 interface Org   { id: string; nome: string; status: string }
 
 interface ResetResult {
-  senhaTemporaria: string;
   usuario: { nome: string; email: string };
 }
 
@@ -50,8 +49,8 @@ export default function ResetCredenciaisClient({ org, admins }: { org: Org; admi
         toast.error(data.error ?? "Falha ao resetar credenciais.");
         return;
       }
-      const data = await res.json() as { usuarios: { nome: string; email: string }[]; senhaTemporaria: string };
-      setResult({ senhaTemporaria: data.senhaTemporaria, usuario: data.usuarios[0] });
+      const data = await res.json() as { usuarios: { nome: string; email: string }[] };
+      setResult({ usuario: data.usuarios[0] });
     } catch {
       toast.error("Erro de rede. Tente novamente.");
     } finally {
@@ -74,7 +73,7 @@ export default function ResetCredenciaisClient({ org, admins }: { org: Org; admi
         </div>
 
         <Card className="border-0 shadow-sm">
-          <CardContent className="pt-5 px-4 pb-4 space-y-4">
+          <CardContent className="pt-5 px-4 pb-4 space-y-3">
             <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
               <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
               <div>
@@ -85,32 +84,8 @@ export default function ResetCredenciaisClient({ org, admins }: { org: Org; admi
                 </p>
               </div>
             </div>
-
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2.5">
-              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Senha Temporária</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 font-mono text-sm font-bold tracking-widest text-amber-900 bg-white border border-amber-200 rounded px-3 py-2 select-all">
-                  {result.senhaTemporaria}
-                </code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    navigator.clipboard.writeText(result.senhaTemporaria).then(() =>
-                      toast.success("Senha copiada!")
-                    )
-                  }
-                >
-                  <Copy className="h-4 w-4 mr-1.5" />Copiar
-                </Button>
-              </div>
-              <p className="text-xs font-medium text-amber-700">
-                ⚠ Guarde esta senha agora — ela não será exibida novamente.
-              </p>
-            </div>
-
             <p className="text-xs text-muted-foreground">
-              Um e-mail de notificação foi enviado ao administrador. O próximo acesso exigirá troca imediata de senha.
+              A senha temporária foi enviada por e-mail diretamente ao administrador. O próximo acesso exigirá troca imediata de senha.
             </p>
           </CardContent>
         </Card>
