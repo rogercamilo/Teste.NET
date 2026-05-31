@@ -74,19 +74,25 @@ export async function POST(request: Request) {
       if (!formador) return NextResponse.json({ error: "Formador não encontrado" }, { status: 400 });
     }
 
-    const row = await prisma.morada.create({
-      data: {
-        organizacaoId: user.organizacaoId,
-        nome: body.nome,
-        localReuniao: body.localReuniao ?? null,
-        nivelFormativo: body.nivelFormativo ?? "pre-discipulado",
-        formadorId: body.formadorId ?? null,
-        planoId: body.planoId ?? null,
-        gradeId: body.gradeId ?? null,
-        vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null,
-        vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null,
-        ativo: body.ativo ?? true,
-      },
+    const row = await prisma.$transaction(async (tx) => {
+      const created = await tx.morada.create({
+        data: {
+          organizacaoId: user.organizacaoId!,
+          nome: body.nome,
+          localReuniao: body.localReuniao ?? null,
+          nivelFormativo: body.nivelFormativo ?? "pre-discipulado",
+          formadorId: body.formadorId ?? null,
+          planoId: body.planoId ?? null,
+          gradeId: body.gradeId ?? null,
+          vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null,
+          vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null,
+          ativo: body.ativo ?? true,
+        },
+      });
+      if (body.formadorId) {
+        await tx.usuario.update({ where: { id: body.formadorId }, data: { moradaId: created.id } });
+      }
+      return created;
     });
     logAction("morada_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
     return NextResponse.json(toMorada(row), { status: 201 });

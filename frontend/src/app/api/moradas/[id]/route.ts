@@ -46,9 +46,23 @@ export async function PUT(request: Request, { params }: Params) {
       if (!formador) return NextResponse.json({ error: "Formador não encontrado" }, { status: 400 });
     }
 
-    const updated = await prisma.morada.update({
-      where: { id },
-      data: { nome: body.nome, localReuniao: body.localReuniao ?? null, nivelFormativo: body.nivelFormativo, formadorId: body.formadorId ?? null, planoId: body.planoId ?? null, gradeId: body.gradeId ?? null, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null, ativo: body.ativo },
+    const newFormadorId = body.formadorId ?? null;
+    const formadorChanged = "formadorId" in body && newFormadorId !== existing.formadorId;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.morada.update({
+        where: { id },
+        data: { nome: body.nome, localReuniao: body.localReuniao ?? null, nivelFormativo: body.nivelFormativo, formadorId: body.formadorId ?? null, planoId: body.planoId ?? null, gradeId: body.gradeId ?? null, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null, ativo: body.ativo },
+      });
+      if (formadorChanged) {
+        if (existing.formadorId) {
+          await tx.usuario.update({ where: { id: existing.formadorId }, data: { moradaId: null } });
+        }
+        if (newFormadorId) {
+          await tx.usuario.update({ where: { id: newFormadorId }, data: { moradaId: id } });
+        }
+      }
+      return result;
     });
     logAction("morada_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toMorada(updated));
