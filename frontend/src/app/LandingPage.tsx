@@ -30,14 +30,9 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
 
         <div className="hidden md:flex items-center gap-3">
           {isNewOrg ? (
-            <>
-              <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors px-3 py-1.5">
-                Entrar
-              </Link>
-              <Link href="/registro" className="text-sm font-medium bg-white text-slate-950 hover:bg-slate-100 transition-colors px-4 py-2 rounded-lg">
-                Cadastre-se
-              </Link>
-            </>
+            <Link href="/registro" className="text-sm font-medium bg-white text-slate-950 hover:bg-slate-100 transition-colors px-4 py-2 rounded-lg">
+              Cadastre-se
+            </Link>
           ) : (
             <Link href="/login" className="text-sm font-medium bg-white text-slate-950 hover:bg-slate-100 transition-colors px-4 py-2 rounded-lg">
               Fazer Login
@@ -62,12 +57,9 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
           ))}
           <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
             {isNewOrg ? (
-              <>
-                <Link href="/login" className="text-sm text-slate-400 hover:text-white py-1">Entrar</Link>
-                <Link href="/registro" className="text-sm font-medium bg-white text-slate-950 text-center px-4 py-2 rounded-lg">
-                  Cadastre-se
-                </Link>
-              </>
+              <Link href="/registro" className="text-sm font-medium bg-white text-slate-950 text-center px-4 py-2 rounded-lg">
+                Cadastre-se
+              </Link>
             ) : (
               <Link href="/login" className="text-sm font-medium bg-white text-slate-950 text-center px-4 py-2 rounded-lg">
                 Fazer Login
@@ -553,15 +545,10 @@ function FinalCTA({ isNewOrg }: { isNewOrg: boolean }) {
               <p className="text-slate-400 mb-8 max-w-lg mx-auto">
                 Crie sua conta gratuitamente em 2 minutos. Nenhum cartão de crédito necessário.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link href="/registro" className="flex items-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm">
-                  Cadastre-se gratuitamente
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors px-4 py-3.5">
-                  Já tenho uma conta →
-                </Link>
-              </div>
+              <Link href="/registro" className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm">
+                Cadastre-se gratuitamente
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </>
           ) : (
             <>
