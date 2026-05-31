@@ -10,7 +10,7 @@ import {
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
 
-function Nav() {
+function Nav({ isNewOrg }: { isNewOrg: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
@@ -29,15 +29,20 @@ function Nav() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors px-3 py-1.5">
-            Entrar
-          </Link>
-          <Link
-            href="/registro"
-            className="text-sm font-medium bg-white text-slate-950 hover:bg-slate-100 transition-colors px-4 py-2 rounded-lg"
-          >
-            Começar grátis
-          </Link>
+          {isNewOrg ? (
+            <>
+              <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors px-3 py-1.5">
+                Entrar
+              </Link>
+              <Link href="/registro" className="text-sm font-medium bg-white text-slate-950 hover:bg-slate-100 transition-colors px-4 py-2 rounded-lg">
+                Cadastre-se
+              </Link>
+            </>
+          ) : (
+            <Link href="/login" className="text-sm font-medium bg-white text-slate-950 hover:bg-slate-100 transition-colors px-4 py-2 rounded-lg">
+              Fazer Login
+            </Link>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -56,11 +61,18 @@ function Nav() {
             </a>
           ))}
           <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
-            <Link href="/login" className="text-sm text-slate-400 hover:text-white py-1">Entrar</Link>
-            <Link href="/registro"
-              className="text-sm font-medium bg-white text-slate-950 text-center px-4 py-2 rounded-lg">
-              Começar grátis
-            </Link>
+            {isNewOrg ? (
+              <>
+                <Link href="/login" className="text-sm text-slate-400 hover:text-white py-1">Entrar</Link>
+                <Link href="/registro" className="text-sm font-medium bg-white text-slate-950 text-center px-4 py-2 rounded-lg">
+                  Cadastre-se
+                </Link>
+              </>
+            ) : (
+              <Link href="/login" className="text-sm font-medium bg-white text-slate-950 text-center px-4 py-2 rounded-lg">
+                Fazer Login
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -70,7 +82,7 @@ function Nav() {
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
-function Hero() {
+function Hero({ isNewOrg }: { isNewOrg: boolean }) {
   return (
     <section className="relative min-h-screen bg-slate-950 flex items-center overflow-hidden">
       {/* Grid background */}
@@ -97,13 +109,23 @@ function Hero() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            href="/registro"
-            className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm w-full sm:w-auto justify-center"
-          >
-            Criar conta gratuita
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          {isNewOrg ? (
+            <Link
+              href="/registro"
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm w-full sm:w-auto justify-center"
+            >
+              Cadastre-se gratuitamente
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm w-full sm:w-auto justify-center"
+            >
+              Fazer Login
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
           <a
             href="#recursos"
             className="flex items-center gap-2 px-6 py-3 border border-white/20 text-slate-300 hover:border-white/40 hover:text-white font-medium rounded-xl transition-colors text-sm w-full sm:w-auto justify-center"
@@ -113,7 +135,9 @@ function Hero() {
         </div>
 
         <p className="mt-6 text-xs text-slate-500">
-          Grátis para sempre com 1 Grupo de formação e até 30 formandos. Sem prazo de expiração.
+          {isNewOrg
+            ? "Grátis para sempre com 1 Grupo de formação e até 30 formandos. Sem prazo de expiração."
+            : "Entre com suas credenciais para acessar a plataforma."}
         </p>
 
         {/* Dashboard preview */}
@@ -516,32 +540,43 @@ function FAQ() {
 
 // ── Final CTA ─────────────────────────────────────────────────────────────────
 
-function FinalCTA() {
+function FinalCTA({ isNewOrg }: { isNewOrg: boolean }) {
   return (
     <section className="bg-slate-950 py-24">
       <div className="max-w-3xl mx-auto px-4 text-center">
         <div className="rounded-3xl border border-primary/20 bg-gradient-to-b from-primary/10 to-transparent p-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Pronto para organizar sua comunidade?
-          </h2>
-          <p className="text-slate-400 mb-8 max-w-lg mx-auto">
-            Crie sua conta gratuitamente em 2 minutos. Nenhum cartão de crédito necessário.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/registro"
-              className="flex items-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm"
-            >
-              Criar conta gratuita
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/login"
-              className="text-sm text-slate-400 hover:text-white transition-colors px-4 py-3.5"
-            >
-              Já tenho uma conta →
-            </Link>
-          </div>
+          {isNewOrg ? (
+            <>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Pronto para organizar sua comunidade?
+              </h2>
+              <p className="text-slate-400 mb-8 max-w-lg mx-auto">
+                Crie sua conta gratuitamente em 2 minutos. Nenhum cartão de crédito necessário.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link href="/registro" className="flex items-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm">
+                  Cadastre-se gratuitamente
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors px-4 py-3.5">
+                  Já tenho uma conta →
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Bem-vindo(a) de volta
+              </h2>
+              <p className="text-slate-400 mb-8 max-w-lg mx-auto">
+                Entre com suas credenciais para continuar a jornada formativa da sua comunidade.
+              </p>
+              <Link href="/login" className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm">
+                Fazer Login
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </section>
@@ -605,17 +640,17 @@ function Footer() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function LandingPage() {
+export default function LandingPage({ isNewOrg }: { isNewOrg: boolean }) {
   return (
     <div className="font-sans antialiased">
-      <Nav />
-      <Hero />
+      <Nav isNewOrg={isNewOrg} />
+      <Hero isNewOrg={isNewOrg} />
       <TrustBar />
       <Features />
       <HowItWorks />
       <Pricing />
       <FAQ />
-      <FinalCTA />
+      <FinalCTA isNewOrg={isNewOrg} />
       <Footer />
     </div>
   );

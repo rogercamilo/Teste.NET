@@ -126,8 +126,11 @@ export const UpdateMoradaSchema = CreateMoradaSchema.partial();
 
 // ── Organização ───────────────────────────────────────────────────────────────
 
+export const PlanoAssinaturaEnum = z.enum(["GRATUITO", "ESSENCIAL", "PROFISSIONAL"]);
+
 export const UpdateOrganizacaoSchema = z.object({
   nome: nonEmptyString(255).optional(),
+  planoAssinatura: PlanoAssinaturaEnum.optional(),
   descricao: optionalString(2000).nullable(),
   endereco: optionalString(500).nullable(),
   missao: optionalString(2000).nullable(),

@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Building2, Settings, Home, CheckCircle2, ChevronRight } from "lucide-react";
+import {
+  AlertCircle, Building2, Settings, Home, CheckCircle2,
+  ChevronRight, Palette, Upload, X, Check,
+} from "lucide-react";
+import { THEME_PALETTES, applyThemePalette } from "@/lib/themes";
 
 interface OrgData {
   id: string;
@@ -15,6 +19,9 @@ interface OrgData {
   endereco: string | null;
   missao: string | null;
   anoFundacao: string | null;
+  logoUrl: string | null;
+  temaCor: string;
+  planoAssinatura: string;
   termoMorada: string;
   termoFormando: string;
   termoFormador: string;
@@ -26,8 +33,38 @@ interface OrgData {
 
 const STEPS = [
   { id: 1, label: "Organização", icon: Building2 },
-  { id: 2, label: "Terminologia", icon: Settings },
-  { id: 3, label: "Primeira Morada", icon: Home },
+  { id: 2, label: "Visual", icon: Palette },
+  { id: 3, label: "Plano", icon: CheckCircle2 },
+  { id: 4, label: "Configurações", icon: Settings },
+  { id: 5, label: "Primeiro Grupo", icon: Home },
+];
+
+const PLANOS = [
+  {
+    key: "GRATUITO",
+    nome: "Gratuito",
+    preco: "R$ 0",
+    periodo: "/mês",
+    desc: "Para começar sem compromisso.",
+    recursos: ["1 Grupo de formação", "Até 30 formandos", "500 MB de armazenamento"],
+  },
+  {
+    key: "ESSENCIAL",
+    nome: "Essencial",
+    preco: "R$ 49",
+    periodo: "/mês",
+    desc: "Para comunidades em crescimento.",
+    recursos: ["3 Grupos de formação", "Até 150 formandos", "2 GB de armazenamento", "E-mail personalizado"],
+    destaque: true,
+  },
+  {
+    key: "PROFISSIONAL",
+    nome: "Profissional",
+    preco: "R$ 149",
+    periodo: "/mês",
+    desc: "Para organizações de grande porte.",
+    recursos: ["Grupos ilimitados", "Formandos ilimitados", "Armazenamento ilimitado", "Suporte dedicado"],
+  },
 ];
 
 export default function OnboardingWizard({ org }: { org: OrgData }) {
@@ -35,15 +72,23 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 1
+  // Step 1 — org info
   const [nome, setNome] = useState(org.nome);
   const [descricao, setDescricao] = useState(org.descricao ?? "");
   const [endereco, setEndereco] = useState(org.endereco ?? "");
   const [missao, setMissao] = useState(org.missao ?? "");
   const [anoFundacao, setAnoFundacao] = useState(org.anoFundacao ?? "");
 
-  // Step 2
+  // Step 2 — visual identity
+  const [logo, setLogo] = useState<string | null>(org.logoUrl);
+  const [themeKey, setThemeKey] = useState(org.temaCor ?? "azul");
+
+  // Step 3 — plan
+  const [plano, setPlano] = useState(org.planoAssinatura ?? "GRATUITO");
+
+  // Step 4 — terminology
   const [termoMorada, setTermoMorada] = useState(org.termoMorada);
   const [termoFormando, setTermoFormando] = useState(org.termoFormando);
   const [termoFormador, setTermoFormador] = useState(org.termoFormador);
@@ -52,10 +97,23 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
   const [termoPrimeirasPromessas, setTermoPrimeirasPromessas] = useState(org.termoPrimeirasPromessas);
   const [termoFormacaoPermanente, setTermoFormacaoPermanente] = useState(org.termoFormacaoPermanente);
 
-  // Step 3
+  // Step 5 — first morada
   const [moradaNome, setMoradaNome] = useState("");
   const [moradaLocalReuniao, setMoradaLocalReuniao] = useState("");
   const [moradaNivel, setMoradaNivel] = useState("pre-discipulado");
+
+  function handleLogoFile(file: File) {
+    if (!file.type.startsWith("image/")) { setError("Selecione um arquivo de imagem."); return; }
+    if (file.size > 1.5 * 1024 * 1024) { setError("Logo muito grande. Máximo 1,5 MB."); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => setLogo(e.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  function handleThemeSelect(key: string) {
+    setThemeKey(key);
+    applyThemePalette(key);
+  }
 
   async function saveStep1() {
     const res = await fetch("/api/organizacao", {
@@ -70,6 +128,24 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
     const res = await fetch("/api/organizacao", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logoUrl: logo ?? null, temaCor: themeKey }),
+    });
+    if (!res.ok) throw new Error("Falha ao salvar identidade visual");
+  }
+
+  async function saveStep3() {
+    const res = await fetch("/api/organizacao", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planoAssinatura: plano }),
+    });
+    if (!res.ok) throw new Error("Falha ao salvar plano");
+  }
+
+  async function saveStep4() {
+    const res = await fetch("/api/organizacao", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         termoMorada, termoFormando, termoFormador,
         termoPreDiscipulado, termoDiscipulado, termoPrimeirasPromessas, termoFormacaoPermanente,
@@ -78,8 +154,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
     if (!res.ok) throw new Error("Falha ao salvar terminologia");
   }
 
-  async function saveStep3() {
-    // Mark onboarding as done first to prevent duplicate moradas if the user retries
+  async function saveStep5() {
     const flagRes = await fetch("/api/organizacao", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -95,7 +170,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
       });
       if (!res.ok) {
         const data = await res.json() as { error?: string };
-        throw new Error(data.error ?? "Falha ao criar morada");
+        throw new Error(data.error ?? "Falha ao criar grupo de formação");
       }
     }
   }
@@ -113,6 +188,12 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
         setStep(3);
       } else if (step === 3) {
         await saveStep3();
+        setStep(4);
+      } else if (step === 4) {
+        await saveStep4();
+        setStep(5);
+      } else if (step === 5) {
+        await saveStep5();
         router.push("/dashboard");
         router.refresh();
       }
@@ -140,7 +221,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
             const isDone = s.id < step;
             return (
               <div key={s.id} className="flex items-center">
-                <div className={`flex flex-col items-center gap-1.5 ${i > 0 ? "" : ""}`}>
+                <div className="flex flex-col items-center gap-1.5">
                   <div className={`h-9 w-9 rounded-full flex items-center justify-center transition-colors
                     ${isDone ? "bg-emerald-500 text-white" : isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                     {isDone ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-4 w-4" />}
@@ -150,7 +231,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`h-px w-16 mx-2 mb-5 transition-colors ${isDone ? "bg-emerald-500" : "bg-border"}`} />
+                  <div className={`h-px w-10 mx-1 mb-5 transition-colors ${isDone ? "bg-emerald-500" : "bg-border"}`} />
                 )}
               </div>
             );
@@ -166,6 +247,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
             </div>
           )}
 
+          {/* Step 1 — Org info */}
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="font-semibold text-foreground">Sobre a organização</h2>
@@ -194,110 +276,206 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
             </div>
           )}
 
+          {/* Step 2 — Visual identity */}
           {step === 2 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <h2 className="font-semibold text-foreground">Terminologia da comunidade</h2>
+                <h2 className="font-semibold text-foreground">Identidade visual</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Personalize os nomes exibidos na plataforma para refletir a linguagem da sua comunidade.
-                  Deixe em branco para usar os termos padrão.
+                  Configure o logo e a cor do tema que aparecerão na plataforma.
                 </p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="termoMorada">
-                  Grupo de formação{" "}
-                  <span className="font-normal text-muted-foreground">(Ex: "Morada", "Célula")</span>
-                </Label>
-                <Input id="termoMorada" value={termoMorada} onChange={(e) => setTermoMorada(e.target.value)} placeholder="Morada" className="h-10" />
-                <p className="text-xs text-muted-foreground">Ex.: Grupo, Célula, Casa, Comunidade</p>
+              {/* Logo */}
+              <div className="space-y-2">
+                <Label>Logo da organização</Label>
+                <div
+                  className="relative border-2 border-dashed border-border rounded-xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => logoInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleLogoFile(f); }}
+                >
+                  {logo ? (
+                    <div className="flex items-center gap-3 w-full">
+                      <img src={logo} alt="Logo preview" className="h-12 max-w-[120px] object-contain rounded" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground font-medium">Logo carregado</p>
+                        <p className="text-xs text-muted-foreground">Clique para trocar</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setLogo(null); }}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground text-center">
+                        Arraste o logo ou <span className="text-primary">clique para selecionar</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">PNG, JPG, SVG · Máximo 1,5 MB</p>
+                    </>
+                  )}
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoFile(f); }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Opcional — pode adicionar depois em Configurações.</p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="termoFormando">
-                  Membro do grupo{" "}
-                  <span className="font-normal text-muted-foreground">(Ex: "Formando", "Participante")</span>
-                </Label>
-                <Input id="termoFormando" value={termoFormando} onChange={(e) => setTermoFormando(e.target.value)} placeholder="Formando" className="h-10" />
-                <p className="text-xs text-muted-foreground">Ex.: Membro, Participante, Discípulo, Jovem</p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="termoFormador">
-                  Responsável pelo grupo{" "}
-                  <span className="font-normal text-muted-foreground">(Ex: "Formador Comunitário", "Líder")</span>
-                </Label>
-                <Input id="termoFormador" value={termoFormador} onChange={(e) => setTermoFormador(e.target.value)} placeholder="Formador Comunitário" className="h-10" />
-                <p className="text-xs text-muted-foreground">Ex.: Líder, Coordenador, Responsável</p>
-              </div>
-
-              <div className="border-t border-border pt-4">
-                <p className="text-xs font-medium text-foreground">Etapas do percurso formativo</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Como sua comunidade denomina cada etapa da jornada formativa.
-                  Deixe em branco para usar os nomes padrão.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="termoPreDiscipulado">
-                    1.ª etapa{" "}
-                    <span className="font-normal text-muted-foreground">(Ex: "Pré-Discipulado")</span>
-                  </Label>
-                  <Input id="termoPreDiscipulado" value={termoPreDiscipulado} onChange={(e) => setTermoPreDiscipulado(e.target.value)} placeholder="Pré-Discipulado" className="h-10" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="termoDiscipulado">
-                    2.ª etapa{" "}
-                    <span className="font-normal text-muted-foreground">(Ex: "Discipulado")</span>
-                  </Label>
-                  <Input id="termoDiscipulado" value={termoDiscipulado} onChange={(e) => setTermoDiscipulado(e.target.value)} placeholder="Discipulado" className="h-10" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="termoPrimeirasPromessas">
-                    3.ª etapa{" "}
-                    <span className="font-normal text-muted-foreground">(Ex: "Primeiras Promessas")</span>
-                  </Label>
-                  <Input id="termoPrimeirasPromessas" value={termoPrimeirasPromessas} onChange={(e) => setTermoPrimeirasPromessas(e.target.value)} placeholder="Primeiras Promessas" className="h-10" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="termoFormacaoPermanente">
-                    4.ª etapa{" "}
-                    <span className="font-normal text-muted-foreground">(Ex: "Formação Permanente")</span>
-                  </Label>
-                  <Input id="termoFormacaoPermanente" value={termoFormacaoPermanente} onChange={(e) => setTermoFormacaoPermanente(e.target.value)} placeholder="Formação Permanente" className="h-10" />
+              {/* Theme color */}
+              <div className="space-y-2">
+                <Label>Cor do tema</Label>
+                <div className="flex flex-wrap gap-3">
+                  {THEME_PALETTES.map((palette) => (
+                    <button
+                      key={palette.key}
+                      type="button"
+                      onClick={() => handleThemeSelect(palette.key)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                        themeKey === palette.key
+                          ? "border-primary bg-primary/5 text-foreground"
+                          : "border-border text-muted-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      <span
+                        className="h-4 w-4 rounded-full shrink-0"
+                        style={{ backgroundColor: palette.preview }}
+                      />
+                      {palette.label}
+                      {themeKey === palette.key && <Check className="h-3.5 w-3.5 text-primary ml-0.5" />}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           )}
 
+          {/* Step 3 — Plan */}
           {step === 3 && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="font-semibold text-foreground">Escolha seu plano</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Você pode alterar o plano a qualquer momento em Configurações.
+                </p>
+              </div>
+              <div className="space-y-3">
+                {PLANOS.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setPlano(p.key)}
+                    className={`w-full text-left rounded-xl border p-4 transition-colors ${
+                      plano === p.key
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-foreground">{p.nome}</span>
+                          {p.destaque && (
+                            <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-medium">
+                              Popular
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-baseline gap-0.5 mt-0.5">
+                          <span className="text-lg font-bold text-foreground">{p.preco}</span>
+                          <span className="text-xs text-muted-foreground">{p.periodo}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{p.desc}</p>
+                        <ul className="mt-2 space-y-0.5">
+                          {p.recursos.map((r) => (
+                            <li key={r} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Check className="h-3 w-3 text-emerald-500 shrink-0" />
+                              {r}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className={`mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                        plano === p.key ? "border-primary bg-primary" : "border-border"
+                      }`}>
+                        {plano === p.key && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 4 — Terminology */}
+          {step === 4 && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="font-semibold text-foreground">Terminologia da comunidade</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Personalize os nomes exibidos na plataforma. Deixe em branco para usar os termos padrão.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="termoMorada">Grupo de formação <span className="font-normal text-muted-foreground">(Ex: "Morada", "Célula")</span></Label>
+                <Input id="termoMorada" value={termoMorada} onChange={(e) => setTermoMorada(e.target.value)} placeholder="Morada" className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="termoFormando">Membro do grupo <span className="font-normal text-muted-foreground">(Ex: "Formando")</span></Label>
+                <Input id="termoFormando" value={termoFormando} onChange={(e) => setTermoFormando(e.target.value)} placeholder="Formando" className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="termoFormador">Responsável pelo grupo <span className="font-normal text-muted-foreground">(Ex: "Formador Comunitário")</span></Label>
+                <Input id="termoFormador" value={termoFormador} onChange={(e) => setTermoFormador(e.target.value)} placeholder="Formador Comunitário" className="h-10" />
+              </div>
+              <div className="border-t border-border pt-3">
+                <p className="text-xs font-medium text-foreground mb-3">Etapas do percurso formativo</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="termoPreDiscipulado">1.ª etapa</Label>
+                    <Input id="termoPreDiscipulado" value={termoPreDiscipulado} onChange={(e) => setTermoPreDiscipulado(e.target.value)} placeholder="Pré-Discipulado" className="h-10" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="termoDiscipulado">2.ª etapa</Label>
+                    <Input id="termoDiscipulado" value={termoDiscipulado} onChange={(e) => setTermoDiscipulado(e.target.value)} placeholder="Discipulado" className="h-10" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="termoPrimeirasPromessas">3.ª etapa</Label>
+                    <Input id="termoPrimeirasPromessas" value={termoPrimeirasPromessas} onChange={(e) => setTermoPrimeirasPromessas(e.target.value)} placeholder="Primeiras Promessas" className="h-10" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="termoFormacaoPermanente">4.ª etapa</Label>
+                    <Input id="termoFormacaoPermanente" value={termoFormacaoPermanente} onChange={(e) => setTermoFormacaoPermanente(e.target.value)} placeholder="Formação Permanente" className="h-10" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5 — First morada */}
+          {step === 5 && (
             <div className="space-y-4">
               <div>
                 <h2 className="font-semibold text-foreground">Criar primeiro grupo de formação</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Opcional — você pode adicionar seus grupos depois em Gestão → Grupos de formação.
+                  Opcional — pode adicionar seus grupos depois em Gestão → Grupos de formação.
                 </p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="moradaNome">Nome do grupo de formação</Label>
-                <Input
-                  id="moradaNome"
-                  placeholder="Ex: Morada São João"
-                  value={moradaNome}
-                  onChange={(e) => setMoradaNome(e.target.value)}
-                  className="h-10"
-                />
+                <Input id="moradaNome" placeholder="Ex: Morada São João" value={moradaNome} onChange={(e) => setMoradaNome(e.target.value)} className="h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="moradaLocalReuniao">Local de reunião</Label>
-                <Input
-                  id="moradaLocalReuniao"
-                  placeholder="Ex: Paróquia São João, Salão 2"
-                  value={moradaLocalReuniao}
-                  onChange={(e) => setMoradaLocalReuniao(e.target.value)}
-                  className="h-10"
-                />
+                <Input id="moradaLocalReuniao" placeholder="Ex: Paróquia São João, Salão 2" value={moradaLocalReuniao} onChange={(e) => setMoradaLocalReuniao(e.target.value)} className="h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="moradaNivel">Etapa formativa</Label>
@@ -319,7 +497,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
           <div className="flex items-center justify-between mt-6">
             <Button
               variant="ghost"
-              onClick={() => { setError(null); setStep(s => s - 1); }}
+              onClick={() => { setError(null); setStep((s) => s - 1); }}
               disabled={step === 1 || loading}
             >
               Voltar
@@ -328,19 +506,19 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  {step === 3 ? "Finalizando..." : "Salvando..."}
+                  {step === 5 ? "Finalizando..." : "Salvando..."}
                 </span>
               ) : (
                 <>
-                  {step === 3 ? "Concluir e ir para o Dashboard" : "Próximo"}
-                  {step < 3 && <ChevronRight className="h-4 w-4" />}
+                  {step === 5 ? "Concluir e ir para o Dashboard" : "Próximo"}
+                  {step < 5 && <ChevronRight className="h-4 w-4" />}
                 </>
               )}
             </Button>
           </div>
         </div>
 
-        {step < 3 && (
+        {step < 5 && (
           <p className="text-center text-xs text-muted-foreground mt-4">
             Pode configurar esses detalhes depois em Configurações.
           </p>

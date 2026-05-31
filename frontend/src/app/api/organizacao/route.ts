@@ -74,6 +74,7 @@ export async function PUT(request: Request) {
         nomePlataforma: body.nomePlataforma?.trim() || null,
         logoUrl: body.logoUrl !== undefined ? (body.logoUrl || null) : undefined,
         temaCor: body.temaCor || undefined,
+        ...(body.planoAssinatura ? { planoAssinatura: body.planoAssinatura } : {}),
         ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
       select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },

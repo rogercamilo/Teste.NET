@@ -15,7 +15,7 @@ export default async function OnboardingPage() {
       anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true,
       termoPreDiscipulado: true, termoDiscipulado: true,
       termoPrimeirasPromessas: true, termoFormacaoPermanente: true,
-      onboardingConcluido: true,
+      onboardingConcluido: true, logoUrl: true, temaCor: true, planoAssinatura: true,
     },
   });
 
