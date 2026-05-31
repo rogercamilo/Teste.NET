@@ -6,10 +6,14 @@ import { ptBR } from "date-fns/locale";
 import { DashboardClient } from "./DashboardClient";
 import type { DashboardStats, NivelFormativo, TipoFormacao, StatusFormacao, PerfilUsuario } from "@/types";
 
+// PerfilUsuario enum values from Prisma
+const PERFIL_FC = "formador_comunitario" as const;
+
 async function getDashboardData(
   organizacaoId: string,
   moradaId: string | null = null,
   userId: string | null = null,
+  perfil: PerfilUsuario = "formador_comunitario",
 ): Promise<DashboardStats> {
   const now = new Date();
   const thisMonthStart = startOfMonth(now);
@@ -91,7 +95,7 @@ async function getDashboardData(
   const totalDecididas = realizadasMes + canceladasMes;
   const taxaRealizacao = totalDecididas > 0 ? Math.round((realizadasMes / totalDecididas) * 100) : 0;
 
-  return {
+  const baseStats: DashboardStats = {
     totalAgendadas: agendadasMes,
     totalRealizadas: realizadasMes,
     totalCanceladas: canceladasMes,
@@ -119,6 +123,102 @@ async function getDashboardData(
       criadoEm: a.criadoEm.toISOString(),
     })),
   };
+
+  // ── FC: presença e acompanhamento ─────────────────────────────────────────
+  if (perfil === PERFIL_FC && moradaId) {
+    const threeMonthsAgo = subMonths(now, 3);
+    const [formandosDaMorada, presencas90d] = await Promise.all([
+      prisma.formando.findMany({
+        where: { organizacaoId, moradaId, ativo: true },
+        select: { id: true, nome: true, nivelFormativo: true },
+        orderBy: { nome: "asc" },
+      }),
+      prisma.presencaFormacao.findMany({
+        where: { organizacaoId, data: { gte: threeMonthsAgo }, formando: { moradaId } },
+        select: { formandoId: true, presente: true },
+      }),
+    ]);
+
+    const presMap = new Map<string, { total: number; com: number }>();
+    for (const p of presencas90d) {
+      const e = presMap.get(p.formandoId) ?? { total: 0, com: 0 };
+      e.total++;
+      if (p.presente) e.com++;
+      presMap.set(p.formandoId, e);
+    }
+
+    const formandosPresenca = formandosDaMorada.map((f) => {
+      const p = presMap.get(f.id);
+      const totalSessoes = p?.total ?? 0;
+      const sessoesCom = p?.com ?? 0;
+      return {
+        id: f.id, nome: f.nome,
+        nivelFormativo: f.nivelFormativo as NivelFormativo,
+        totalSessoes, sessoesCom,
+        taxa: totalSessoes > 0 ? Math.round((sessoesCom / totalSessoes) * 100) : -1,
+      };
+    });
+
+    const totalS = presencas90d.length;
+    const totalP = presencas90d.filter((p) => p.presente).length;
+
+    return {
+      ...baseStats,
+      taxaPresencaMorada: totalS > 0 ? Math.round((totalP / totalS) * 100) : null,
+      formandosPresenca,
+    };
+  }
+
+  // ── FG/Admin: visão estratégica ───────────────────────────────────────────
+  if (perfil === "formador_geral" || perfil === "administrador") {
+    const [moradasData, formandosAtivosGrp, totalPlanosAtivos, moradasSemPlano, moradasSemGrade, fcsSemMorada] =
+      await Promise.all([
+        prisma.morada.findMany({
+          where: { organizacaoId, ativo: true },
+          select: {
+            id: true, nome: true, nivelFormativo: true, planoId: true, gradeId: true,
+            formador: { select: { nome: true } },
+            _count: { select: { formandos: true } },
+          },
+          orderBy: { nome: "asc" },
+        }),
+        prisma.formando.groupBy({
+          by: ["moradaId"],
+          where: { organizacaoId, ativo: true, moradaId: { not: null } },
+          _count: { id: true },
+        }),
+        prisma.planoFormativo.count({
+          where: { OR: [{ organizacaoId }, { isGlobal: true }], status: "ativo" },
+        }),
+        prisma.morada.count({ where: { organizacaoId, ativo: true, planoId: null } }),
+        prisma.morada.count({ where: { organizacaoId, ativo: true, gradeId: null } }),
+        prisma.usuario.count({
+          where: { organizacaoId, perfil: "formador_comunitario", ativo: true, moradaId: null },
+        }),
+      ]);
+
+    const ativosMap = new Map(formandosAtivosGrp.map((g) => [g.moradaId!, g._count.id]));
+
+    return {
+      ...baseStats,
+      totalMoradas: moradasData.length,
+      totalPlanosAtivos,
+      moradasSemPlano,
+      moradasSemGrade,
+      fcsSemMorada,
+      moradasResumo: moradasData.map((m) => ({
+        id: m.id, nome: m.nome,
+        nivelFormativo: m.nivelFormativo as NivelFormativo,
+        totalFormandos: m._count.formandos,
+        formandosAtivos: ativosMap.get(m.id) ?? 0,
+        temPlano: !!m.planoId,
+        temGrade: !!m.gradeId,
+        formadorNome: m.formador?.nome,
+      })),
+    };
+  }
+
+  return baseStats;
 }
 
 type SU = { organizacaoId?: string; role?: string; id?: string; moradaId?: string | null };
@@ -141,7 +241,7 @@ export default async function DashboardPage() {
 
   const stats = semMorada
     ? null
-    : await getDashboardData(user.organizacaoId, moradaId, user.id ?? null).catch(() => null);
+    : await getDashboardData(user.organizacaoId, moradaId, user.id ?? null, perfil).catch(() => null);
 
   return <DashboardClient stats={stats} perfil={perfil} moradaNome={moradaNome} semMorada={semMorada} />;
 }

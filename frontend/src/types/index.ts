@@ -315,6 +315,26 @@ export interface DashboardStats {
   evolucaoMensal: { mes: string; agendadas: number; realizadas: number }[];
   porNivel: { nivel: NivelFormativo; quantidade: number; percentual: number }[];
   proximasFormacoes: Agendamento[];
+
+  // FC — presença e acompanhamento (últimos 90 dias)
+  taxaPresencaMorada?: number | null;
+  formandosPresenca?: {
+    id: string; nome: string; nivelFormativo: NivelFormativo;
+    totalSessoes: number; sessoesCom: number;
+    taxa: number; // -1 = sem dados
+  }[];
+
+  // FG/Admin — visão estratégica
+  totalMoradas?: number;
+  totalPlanosAtivos?: number;
+  moradasSemPlano?: number;
+  moradasSemGrade?: number;
+  fcsSemMorada?: number;
+  moradasResumo?: {
+    id: string; nome: string; nivelFormativo: NivelFormativo;
+    totalFormandos: number; formandosAtivos: number;
+    temPlano: boolean; temGrade: boolean; formadorNome?: string;
+  }[];
 }
 
 export const NIVEL_FORMATIVO_LABELS: Record<NivelFormativo, string> = {

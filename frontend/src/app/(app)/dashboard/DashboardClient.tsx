@@ -3,6 +3,7 @@
 import {
   NIVEL_FORMATIVO_LABELS,
   STATUS_FORMACAO_LABELS,
+  NIVEL_CORES,
   type NivelFormativo,
   type StatusFormacao,
   type DashboardStats,
@@ -17,13 +18,17 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import {
-  BookOpen, Calendar, CheckCircle2, Clock, Plus,
-  TrendingUp, Users, XCircle, Home,
+  AlertTriangle, BookOpen, Calendar, CheckCircle2, Clock,
+  FileText, GitBranch, Home, Plus, TrendingUp,
+  User, Users, XCircle,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+
+// ── Paleta ─────────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<StatusFormacao, string> = {
   agendada: "bg-blue-100 text-blue-700 border-blue-200",
@@ -47,6 +52,17 @@ const NIVEL_PROGRESS_COLORS: Record<NivelFormativo, string> = {
   "formacao-permanente": "bg-amber-500",
 };
 
+// ── Semáforo ────────────────────────────────────────────────────────────────
+
+function semaforoClasses(taxa: number): { dot: string; bar: string; label: string } {
+  if (taxa === -1) return { dot: "bg-slate-300", bar: "bg-slate-200", label: "Sem dados" };
+  if (taxa >= 75) return { dot: "bg-emerald-500", bar: "bg-emerald-400", label: `${taxa}%` };
+  if (taxa >= 50) return { dot: "bg-amber-400", bar: "bg-amber-400", label: `${taxa}%` };
+  return { dot: "bg-red-500", bar: "bg-red-500", label: `${taxa}%` };
+}
+
+// ── Defaults ───────────────────────────────────────────────────────────────
+
 const EMPTY_STATS: DashboardStats = {
   totalAgendadas: 0, totalRealizadas: 0, totalCanceladas: 0,
   taxaRealizacao: 0, totalFormandos: 0, formandosAtivos: 0,
@@ -60,6 +76,8 @@ const PERFIL_SUBTITULO: Record<PerfilUsuario, string> = {
   super_admin: "Plataforma",
 };
 
+// ── Props ──────────────────────────────────────────────────────────────────
+
 interface Props {
   stats: DashboardStats | null;
   perfil: PerfilUsuario;
@@ -67,12 +85,15 @@ interface Props {
   semMorada?: boolean;
 }
 
-export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada }: Props) {
-  const stats = rawStats ?? EMPTY_STATS;
+// ── Componente principal ───────────────────────────────────────────────────
 
-  const subtitulo = perfil === "formador_comunitario" && moradaNome
-    ? `${moradaNome}`
-    : PERFIL_SUBTITULO[perfil];
+export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada }: Props) {
+  const router = useRouter();
+  const stats = rawStats ?? EMPTY_STATS;
+  const isFC = perfil === "formador_comunitario";
+  const isAdmin = perfil === "formador_geral" || perfil === "administrador";
+
+  const subtitulo = isFC && moradaNome ? moradaNome : PERFIL_SUBTITULO[perfil];
 
   if (semMorada) {
     return (
@@ -99,7 +120,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
 
   return (
     <div className="space-y-6 animate-in-fast">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
@@ -113,22 +134,22 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
             <Calendar className="h-4 w-4 mr-1.5" />
             Ver Agenda
           </Link>
-          <Link href="/formacoes/novo" className={cn(buttonVariants({ size: "sm" }))}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Nova Formação
-          </Link>
+          {!isFC && (
+            <Link href="/formacoes/novo" className={cn(buttonVariants({ size: "sm" }))}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Nova Formação
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* ── KPI row 1 — agendamentos ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-0 shadow-sm bg-card">
           <CardContent className="pt-5 pb-4 px-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Agendadas
-                </p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Agendadas</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.totalAgendadas}</p>
                 <p className="text-xs text-muted-foreground mt-1">Este mês</p>
               </div>
@@ -143,9 +164,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
           <CardContent className="pt-5 pb-4 px-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Realizadas
-                </p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Realizadas</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.totalRealizadas}</p>
                 <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
@@ -163,9 +182,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
           <CardContent className="pt-5 pb-4 px-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Canceladas
-                </p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Canceladas</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.totalCanceladas}</p>
                 <p className="text-xs text-muted-foreground mt-1">No período</p>
               </div>
@@ -181,11 +198,15 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Taxa de Realização
+                  {isFC ? "Presença Geral" : "Taxa de Realização"}
                 </p>
-                <p className="text-3xl font-bold text-foreground mt-1">{stats.taxaRealizacao}%</p>
+                <p className="text-3xl font-bold text-foreground mt-1">
+                  {isFC
+                    ? (stats.taxaPresencaMorada != null ? `${stats.taxaPresencaMorada}%` : "—")
+                    : `${stats.taxaRealizacao}%`}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {stats.formandosAtivos}/{stats.totalFormandos} ativos
+                  {isFC ? "Últimos 90 dias" : `${stats.formandosAtivos}/${stats.totalFormandos} ativos`}
                 </p>
               </div>
               <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -196,7 +217,76 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
         </Card>
       </div>
 
-      {/* Charts Row */}
+      {/* ── FG/Admin KPI row 2 — compliance ── */}
+      {isAdmin && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-0 shadow-sm bg-card">
+            <CardContent className="pt-5 pb-4 px-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Moradas</p>
+                  <p className="text-3xl font-bold text-foreground mt-1">{stats.totalMoradas ?? 0}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{stats.formandosAtivos} formandos ativos</p>
+                </div>
+                <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
+                  <Home className="h-4.5 w-4.5 text-violet-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-card">
+            <CardContent className="pt-5 pb-4 px-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planos Ativos</p>
+                  <p className="text-3xl font-bold text-foreground mt-1">{stats.totalPlanosAtivos ?? 0}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Planos formativos</p>
+                </div>
+                <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <FileText className="h-4.5 w-4.5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className={cn("border-0 shadow-sm", (stats.moradasSemPlano ?? 0) > 0 ? "bg-amber-50" : "bg-card")}>
+            <CardContent className="pt-5 pb-4 px-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sem Plano</p>
+                  <p className={cn("text-3xl font-bold mt-1", (stats.moradasSemPlano ?? 0) > 0 ? "text-amber-600" : "text-foreground")}>
+                    {stats.moradasSemPlano ?? 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Moradas sem plano</p>
+                </div>
+                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", (stats.moradasSemPlano ?? 0) > 0 ? "bg-amber-100" : "bg-muted")}>
+                  <AlertTriangle className={cn("h-4.5 w-4.5", (stats.moradasSemPlano ?? 0) > 0 ? "text-amber-600" : "text-muted-foreground")} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className={cn("border-0 shadow-sm", (stats.fcsSemMorada ?? 0) > 0 ? "bg-amber-50" : "bg-card")}>
+            <CardContent className="pt-5 pb-4 px-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">FCs sem Morada</p>
+                  <p className={cn("text-3xl font-bold mt-1", (stats.fcsSemMorada ?? 0) > 0 ? "text-amber-600" : "text-foreground")}>
+                    {stats.fcsSemMorada ?? 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Formadores sem morada</p>
+                </div>
+                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", (stats.fcsSemMorada ?? 0) > 0 ? "bg-amber-100" : "bg-muted")}>
+                  <User className={cn("h-4.5 w-4.5", (stats.fcsSemMorada ?? 0) > 0 ? "text-amber-600" : "text-muted-foreground")} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Charts row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="border-0 shadow-sm lg:col-span-2">
           <CardHeader className="pb-2">
@@ -219,16 +309,10 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                 <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{
-                    background: "#fff", border: "1px solid #e2e8f0",
-                    borderRadius: "8px", fontSize: "12px",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
+                  contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                 />
-                <Area type="monotone" dataKey="agendadas" name="Agendadas"
-                  stroke="#3B82F6" strokeWidth={2} fill="url(#gradAgendadas)" />
-                <Area type="monotone" dataKey="realizadas" name="Realizadas"
-                  stroke="#10B981" strokeWidth={2} fill="url(#gradRealizadas)" />
+                <Area type="monotone" dataKey="agendadas" name="Agendadas" stroke="#3B82F6" strokeWidth={2} fill="url(#gradAgendadas)" />
+                <Area type="monotone" dataKey="realizadas" name="Realizadas" stroke="#10B981" strokeWidth={2} fill="url(#gradRealizadas)" />
               </AreaChart>
             </ResponsiveContainer>
             <div className="flex gap-4 mt-2 justify-center">
@@ -252,10 +336,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                 <div className="flex justify-center mb-4">
                   <PieChart width={140} height={140}>
                     <Pie
-                      data={stats.porNivel.map((n) => ({
-                        name: NIVEL_FORMATIVO_LABELS[n.nivel],
-                        value: n.quantidade,
-                      }))}
+                      data={stats.porNivel.map((n) => ({ name: NIVEL_FORMATIVO_LABELS[n.nivel], value: n.quantidade }))}
                       cx={65} cy={65} innerRadius={42} outerRadius={60}
                       paddingAngle={3} dataKey="value"
                     >
@@ -268,13 +349,8 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                 <div className="space-y-2.5">
                   {stats.porNivel.map((item) => (
                     <div key={item.nivel} className="flex items-center gap-2">
-                      <div
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ background: NIVEL_CHART_COLORS[item.nivel] }}
-                      />
-                      <span className="text-xs text-muted-foreground flex-1 truncate">
-                        {NIVEL_FORMATIVO_LABELS[item.nivel]}
-                      </span>
+                      <div className="h-2 w-2 rounded-full shrink-0" style={{ background: NIVEL_CHART_COLORS[item.nivel] }} />
+                      <span className="text-xs text-muted-foreground flex-1 truncate">{NIVEL_FORMATIVO_LABELS[item.nivel]}</span>
                       <span className="text-xs font-semibold text-foreground">{item.quantidade}</span>
                       <span className="text-xs text-muted-foreground w-8 text-right">{item.percentual}%</span>
                     </div>
@@ -291,7 +367,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
         </Card>
       </div>
 
-      {/* Bottom Row */}
+      {/* ── Bottom row — próximas + funil/presença ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
@@ -310,17 +386,12 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               </div>
             ) : (
               stats.proximasFormacoes.map((ag) => (
-                <div
-                  key={ag.id}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer"
-                >
+                <div key={ag.id} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer">
                   <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <BookOpen className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate leading-tight">
-                      {ag.formacaoTema}
-                    </p>
+                    <p className="text-sm font-medium text-foreground truncate leading-tight">{ag.formacaoTema}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {format(parseISO(ag.dataInicio), "d 'de' MMM, HH:mm", { locale: ptBR })}
@@ -336,55 +407,233 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
           </CardContent>
         </Card>
 
+        {/* FC: funil formativo */}
+        {!isAdmin && (
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-foreground">Funil Formativo</CardTitle>
+                <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+                  <Users className="h-3.5 w-3.5 mr-1" />
+                  {stats.totalFormandos} formandos
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {stats.porNivel.length === 0 ? (
+                <div className="flex flex-col items-center py-6 text-center">
+                  <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum formando cadastrado</p>
+                </div>
+              ) : (
+                stats.porNivel.map((item) => (
+                  <div key={item.nivel} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-foreground">{NIVEL_FORMATIVO_LABELS[item.nivel]}</span>
+                      <span className="text-muted-foreground">{item.quantidade} · {item.percentual}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${NIVEL_PROGRESS_COLORS[item.nivel]}`}
+                        style={{ width: `${item.percentual}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+              {stats.porNivel.length > 0 && (
+                <div className="pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Taxa de realização geral</span>
+                    <span className="font-semibold text-emerald-600">{stats.taxaRealizacao}%</span>
+                  </div>
+                  <Progress value={stats.taxaRealizacao} className="h-1.5 mt-1.5" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* FG/Admin: painel de formandos por nível + taxa de realização */}
+        {isAdmin && (
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-foreground">Funil Formativo</CardTitle>
+                <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+                  <Users className="h-3.5 w-3.5 mr-1" />
+                  {stats.totalFormandos} formandos
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {stats.porNivel.length === 0 ? (
+                <div className="flex flex-col items-center py-6 text-center">
+                  <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum formando cadastrado</p>
+                </div>
+              ) : (
+                stats.porNivel.map((item) => (
+                  <div key={item.nivel} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-foreground">{NIVEL_FORMATIVO_LABELS[item.nivel]}</span>
+                      <span className="text-muted-foreground">{item.quantidade} · {item.percentual}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${NIVEL_PROGRESS_COLORS[item.nivel]}`}
+                        style={{ width: `${item.percentual}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+              {stats.porNivel.length > 0 && (
+                <div className="pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Taxa de realização geral</span>
+                    <span className="font-semibold text-emerald-600">{stats.taxaRealizacao}%</span>
+                  </div>
+                  <Progress value={stats.taxaRealizacao} className="h-1.5 mt-1.5" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* ── FC: Presença e Acompanhamento ── */}
+      {isFC && (stats.formandosPresenca?.length ?? 0) > 0 && (
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-foreground">Funil Formativo</CardTitle>
-              <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
-                <Users className="h-3.5 w-3.5 mr-1" />
-                {stats.totalFormandos} formandos
+              <div>
+                <CardTitle className="text-sm font-semibold text-foreground">Acompanhamento de Presença</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Últimos 90 dias</p>
+              </div>
+              <Link href="/presenca" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+                Gestão de Presença
               </Link>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {stats.porNivel.length === 0 ? (
-              <div className="flex flex-col items-center py-6 text-center">
-                <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">Nenhum formando cadastrado</p>
-              </div>
-            ) : (
-              stats.porNivel.map((item) => (
-                <div key={item.nivel} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-foreground">
-                      {NIVEL_FORMATIVO_LABELS[item.nivel]}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {item.quantidade} formandos · {item.percentual}%
-                    </span>
-                  </div>
-                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${NIVEL_PROGRESS_COLORS[item.nivel]}`}
-                      style={{ width: `${item.percentual}%` }}
-                    />
+          <CardContent>
+            {/* Alertas — formandos com presença crítica */}
+            {(() => {
+              const criticos = (stats.formandosPresenca ?? []).filter(
+                (f) => f.taxa !== -1 && f.taxa < 50 && f.totalSessoes >= 2
+              );
+              if (criticos.length === 0) return null;
+              return (
+                <div className="mb-4 flex items-start gap-2.5 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
+                  <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-red-700">
+                      {criticos.length} formando{criticos.length > 1 ? "s" : ""} com presença crítica (&lt;50%)
+                    </p>
+                    <p className="text-xs text-red-600 mt-0.5">
+                      {criticos.map((f) => f.nome).join(", ")}
+                    </p>
                   </div>
                 </div>
-              ))
-            )}
+              );
+            })()}
 
-            {stats.porNivel.length > 0 && (
-              <div className="pt-2 border-t border-border/60">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Taxa de realização geral</span>
-                  <span className="font-semibold text-emerald-600">{stats.taxaRealizacao}%</span>
-                </div>
-                <Progress value={stats.taxaRealizacao} className="h-1.5 mt-1.5" />
-              </div>
-            )}
+            <div className="space-y-2.5">
+              {(stats.formandosPresenca ?? []).map((f) => {
+                const s = semaforoClasses(f.taxa);
+                return (
+                  <div key={f.id} className="flex items-center gap-3">
+                    <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${s.dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-foreground truncate">{f.nome}</span>
+                        <span className="text-xs font-semibold text-foreground ml-2 shrink-0">{s.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${s.bar}`}
+                            style={{ width: f.taxa === -1 ? "0%" : `${f.taxa}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0 w-16 text-right">
+                          {f.taxa === -1 ? "—" : `${f.sessoesCom}/${f.totalSessoes} sessões`}
+                        </span>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className={`text-xs shrink-0 ${NIVEL_CORES[f.nivelFormativo]}`}>
+                      {NIVEL_FORMATIVO_LABELS[f.nivelFormativo]}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
-      </div>
+      )}
+
+      {/* ── FG/Admin: Moradas ── */}
+      {isAdmin && (stats.moradasResumo?.length ?? 0) > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">Moradas</h2>
+            <Link href="/moradas" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+              Ver todas
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {(stats.moradasResumo ?? []).map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => router.push(`/moradas/${m.id}`)}
+                className="text-left rounded-xl border border-border/60 bg-card shadow-sm p-4 hover:shadow-md hover:border-border transition-all group"
+              >
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                      {m.nome}
+                    </p>
+                    <Badge variant="outline" className={`mt-1 text-xs ${NIVEL_CORES[m.nivelFormativo]}`}>
+                      {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <span
+                      className={cn("inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium",
+                        m.temPlano ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      )}
+                    >
+                      <FileText className="h-3 w-3" />
+                      {m.temPlano ? "Plano" : "Sem plano"}
+                    </span>
+                    <span
+                      className={cn("inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium",
+                        m.temGrade ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      )}
+                    >
+                      <GitBranch className="h-3 w-3" />
+                      {m.temGrade ? "Grade" : "Sem grade"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {m.formandosAtivos} de {m.totalFormandos} ativos
+                  </span>
+                  {m.formadorNome && (
+                    <span className="flex items-center gap-1 truncate max-w-[40%]">
+                      <User className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{m.formadorNome}</span>
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
