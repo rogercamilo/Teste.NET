@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useGrades, useFormacoes } from "@/lib/data-store";
-import { NIVEL_FORMATIVO_LABELS, NIVEL_CORES, MODALIDADE_LABELS, type Formacao } from "@/types";
+import { useGrades, useFormacoes, usePlanos } from "@/lib/data-store";
+import { NIVEL_FORMATIVO_LABELS, NIVEL_CORES } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,6 @@ import {
   BookOpen,
   Calendar,
   ChevronRight,
-  Clock,
   Eye,
   FileText,
   GitBranch,
@@ -27,7 +26,6 @@ import {
   Paperclip,
   Pencil,
   Trash2,
-  User,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -41,46 +39,6 @@ const EIXO_COLORS = [
   "bg-rose-100 text-rose-700",
 ];
 
-const MODALIDADE_ICON: Record<string, string> = {
-  presencial: "🏛️",
-  online: "💻",
-  hibrida: "🔄",
-};
-
-function FormacaoRow({
-  formacao,
-  onNavigate,
-}: {
-  formacao: Formacao;
-  onNavigate: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onNavigate}
-      className="w-full flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors group"
-    >
-      <span className="text-base shrink-0">{MODALIDADE_ICON[formacao.modalidade]}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
-          {formacao.tema}
-        </p>
-        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <User className="h-3 w-3" />
-            {formacao.formadorNome || "—"}
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {formacao.cargaHoraria}h
-          </span>
-          <span>{MODALIDADE_LABELS[formacao.modalidade]}</span>
-        </div>
-      </div>
-    </button>
-  );
-}
-
 export default function GradeDetalhePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -90,10 +48,21 @@ export default function GradeDetalhePage() {
 
   const [grades, setGrades] = useGrades();
   const [formacoes] = useFormacoes();
+  const [allPlanos] = usePlanos();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const grade = grades.find((g) => g.id === id);
   const linkedFormacoes = formacoes.filter((f) => f.gradeId === id);
+
+  // Resolve eixo.nome → nomeEtapa via plano vinculado
+  const plano = allPlanos.find((p) => p.id === grade?.planoId);
+  const eixoNomeToEtapaMap = new Map<string, string>();
+  if (grade) {
+    grade.eixos.forEach((e) => {
+      const ep = plano?.eixos.find((ep) => ep.id === e.eixoPlanoId);
+      eixoNomeToEtapaMap.set(e.nome, ep?.nomeEtapa ?? e.nome);
+    });
+  }
 
   if (!grade) {
     return (
@@ -241,34 +210,50 @@ export default function GradeDetalhePage() {
         )}
 
         {linkedFormacoes.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Formações desta grade
+              Grade Formativa — {linkedFormacoes.length} formação{linkedFormacoes.length !== 1 ? "ões" : ""}
             </p>
-            {grade.eixos.length > 0 ? (
-              grade.eixos.map((eixo, eixoIdx) => {
-                const porEixo = linkedFormacoes.filter((f) => f.eixoNome === eixo.nome);
-                if (porEixo.length === 0) return null;
-                return (
-                  <div key={eixo.id} className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-2 w-2 rounded-full"
-                        style={{ background: eixo.cor ?? "#3B82F6" }}
-                      />
-                      <span className="text-xs font-medium text-muted-foreground">{eixo.nome}</span>
-                    </div>
-                    {porEixo.map((f) => (
-                      <FormacaoRow key={f.id} formacao={f} onNavigate={() => router.push(`/formacoes/${f.id}`)} />
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 border-b border-border">
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-10">N°</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-32">Etapa</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Tema</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground hidden md:table-cell w-56">Objetivo</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground hidden lg:table-cell w-56">Obs. do formador</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...linkedFormacoes]
+                    .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999))
+                    .map((f, idx) => (
+                      <tr
+                        key={f.id}
+                        className="border-b border-border/40 last:border-0 hover:bg-muted/20 cursor-pointer transition-colors"
+                        onClick={() => router.push(`/formacoes/${f.id}`)}
+                      >
+                        <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground">
+                          {f.numero ?? idx + 1}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="text-xs font-medium text-foreground">
+                            {eixoNomeToEtapaMap.get(f.eixoNome ?? "") ?? f.eixoNome ?? "—"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 font-medium text-foreground text-sm">{f.tema}</td>
+                        <td className="px-3 py-2.5 hidden md:table-cell">
+                          <p className="text-xs text-muted-foreground line-clamp-2">{f.objetivo || "—"}</p>
+                        </td>
+                        <td className="px-3 py-2.5 hidden lg:table-cell">
+                          <p className="text-xs text-muted-foreground line-clamp-2">{f.observacoesFormador || "—"}</p>
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                );
-              })
-            ) : (
-              linkedFormacoes.map((f) => (
-                <FormacaoRow key={f.id} formacao={f} onNavigate={() => router.push(`/formacoes/${f.id}`)} />
-              ))
-            )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

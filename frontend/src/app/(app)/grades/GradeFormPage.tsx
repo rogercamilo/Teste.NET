@@ -31,7 +31,6 @@ import {
   Loader2,
   Paperclip,
   Plus,
-  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -75,6 +74,7 @@ type FormacaoInput = {
   formadorId: string;
   cargaHoraria: string;
   modalidade: Modalidade;
+  observacoesFormador: string;
 };
 
 type EixoComFormacoes = {
@@ -107,6 +107,7 @@ function emptyFormacao(): FormacaoInput {
     formadorId: "",
     cargaHoraria: "2",
     modalidade: "presencial",
+    observacoesFormador: "",
   };
 }
 
@@ -162,6 +163,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
             eixoPlano: ep,
             formacoes: existingFormacoes
               .filter((f) => f.eixoNome === ep.nome)
+              .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999))
               .map((f) => ({
                 tempId: f.id,
                 tema: f.tema,
@@ -170,6 +172,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
                 formadorId: f.formadorId,
                 cargaHoraria: String(f.cargaHoraria),
                 modalidade: f.modalidade,
+                observacoesFormador: f.observacoesFormador ?? "",
               })),
             expanded: true,
           }))
@@ -320,6 +323,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
               gradeId: entId,
               ordem: idx + 1,
               cor: EIXO_HEX[idx % EIXO_HEX.length],
+              eixoPlanoId: ec.eixoPlano.id,
             }))
           : parseEixos(form.eixos, entId);
 
@@ -349,25 +353,31 @@ export default function GradeFormPage({ id }: { id?: string }) {
       };
 
       if (isFormadorGeral && eixosComFormacoes.length > 0) {
+        let globalSeq = 0;
         const novasFormacoes: Formacao[] = eixosComFormacoes.flatMap((ec, idx) =>
-          ec.formacoes.map((f) => ({
-            id: `fm${Date.now()}-${Math.random().toString(36).slice(2)}`,
-            tema: f.tema.trim(),
-            objetivo: f.objetivo.trim(),
-            descricao: f.descricao.trim(),
-            nivelFormativo,
-            eixoId: eixos[idx].id,
-            eixoNome: ec.eixoPlano.nome,
-            formadorId: f.formadorId,
-            formadorNome: allUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
-            cargaHoraria: Number(f.cargaHoraria) || 2,
-            modalidade: f.modalidade,
-            tipoFormacao: "comunitaria" as const,
-            gradeId: entId,
-            gradeNome: form.nome.trim(),
-            vezesUtilizada: 0,
-            criadoEm: today,
-          }))
+          ec.formacoes.map((f) => {
+            globalSeq++;
+            return {
+              id: `fm${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              tema: f.tema.trim(),
+              objetivo: f.objetivo.trim(),
+              descricao: f.descricao.trim(),
+              nivelFormativo,
+              eixoId: eixos[idx].id,
+              eixoNome: ec.eixoPlano.nome,
+              formadorId: f.formadorId,
+              formadorNome: allUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
+              cargaHoraria: Number(f.cargaHoraria) || 2,
+              modalidade: f.modalidade,
+              tipoFormacao: "comunitaria" as const,
+              gradeId: entId,
+              gradeNome: form.nome.trim(),
+              numero: globalSeq,
+              observacoesFormador: f.observacoesFormador.trim() || undefined,
+              vezesUtilizada: 0,
+              criadoEm: today,
+            };
+          })
         );
         setFormacoes((prev) => [
           ...prev.filter((f) => f.gradeId !== entId),
@@ -605,9 +615,14 @@ export default function GradeFormPage({ id }: { id?: string }) {
                     style={{ background: EIXO_HEX[eixoIdx % EIXO_HEX.length] }}
                   />
                   <span className="text-sm font-medium text-foreground truncate">
-                    {ec.eixoPlano.nome}
+                    {ec.eixoPlano.nomeEtapa ?? ec.eixoPlano.nome}
                   </span>
-                  {ec.eixoPlano.objetivo && (
+                  {ec.eixoPlano.nomeEtapa && ec.eixoPlano.nome !== ec.eixoPlano.nomeEtapa && (
+                    <span className="text-xs text-muted-foreground hidden sm:block truncate">
+                      {ec.eixoPlano.nome}
+                    </span>
+                  )}
+                  {!ec.eixoPlano.nomeEtapa && ec.eixoPlano.objetivo && (
                     <span className="text-xs text-muted-foreground hidden sm:block truncate">
                       — {ec.eixoPlano.objetivo}
                     </span>
@@ -633,15 +648,27 @@ export default function GradeFormPage({ id }: { id?: string }) {
                     </p>
                   )}
 
-                  {ec.formacoes.map((formacao, fIdx) => (
+                  {ec.formacoes.map((formacao, fIdx) => {
+                    const globalNum =
+                      eixosComFormacoes
+                        .slice(0, eixoIdx)
+                        .reduce((s, e) => s + e.formacoes.length, 0) +
+                      fIdx +
+                      1;
+                    return (
                     <div
                       key={formacao.tempId}
                       className="rounded-lg border border-border/60 bg-card p-4 space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          Formação {fIdx + 1}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            #{globalNum}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {ec.eixoPlano.nomeEtapa ?? ec.eixoPlano.nome}
+                          </span>
+                        </div>
                         <button
                           type="button"
                           onClick={() => removeFormacao(eixoIdx, formacao.tempId)}
@@ -667,7 +694,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
                         </div>
 
                         <div className="grid gap-1.5">
-                          <Label className="text-xs">Objetivo</Label>
+                          <Label className="text-xs">Objetivo resumido</Label>
                           <Textarea
                             value={formacao.objetivo}
                             onChange={(e) =>
@@ -675,6 +702,18 @@ export default function GradeFormPage({ id }: { id?: string }) {
                             }
                             placeholder="Objetivo desta formação..."
                             className="min-h-[60px] text-sm resize-none"
+                          />
+                        </div>
+
+                        <div className="grid gap-1.5">
+                          <Label className="text-xs">Observações do formador</Label>
+                          <Textarea
+                            value={formacao.observacoesFormador}
+                            onChange={(e) =>
+                              updateFormacao(eixoIdx, formacao.tempId, "observacoesFormador", e.target.value)
+                            }
+                            placeholder="Observações, contexto ou instruções para o formador..."
+                            className="min-h-[56px] text-sm resize-none"
                           />
                         </div>
 
@@ -743,7 +782,8 @@ export default function GradeFormPage({ id }: { id?: string }) {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
 
                   <Button
                     type="button"
