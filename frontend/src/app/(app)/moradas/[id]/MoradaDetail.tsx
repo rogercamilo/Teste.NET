@@ -3,10 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
-import {
-  mockAgendamentos,
-} from "@/lib/mock-data";
-import { usePresencas, useComentarios, useFormandos, useMoradas, usePlanos, useGrades, useUsuarios, useComunidade, db } from "@/lib/data-store";
+import { usePresencas, useComentarios, useFormandos, useMoradas, usePlanos, useGrades, useUsuarios, useAgendamentos, useComunidade, db } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -147,6 +144,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [allUsuarios] = useUsuarios();
   const [morada, setMorada] = useState<Morada | undefined>(undefined);
   const [allFormandos, setAllFormandos] = useFormandos();
+  const [allAgendamentos] = useAgendamentos();
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
 
@@ -216,8 +214,8 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const plano = allPlanos.find((p) => p.id === morada.planoId);
   const grade = allGrades.find((g) => g.id === morada.gradeId);
   const formandosDaMorada = allFormandos.filter((f) => f.moradaId === morada.id);
-  const agendamentosDaMorada = mockAgendamentos.filter(
-    (a) => a.formadorId === morada.formadorId || a.nivelFormativo === morada.nivelFormativo
+  const agendamentosDaMorada = allAgendamentos.filter(
+    (a) => a.moradaId === morada.id
   );
   const realizadas = agendamentosDaMorada.filter(
     (a) => a.status === "realizada" || a.status === "confirmada"
