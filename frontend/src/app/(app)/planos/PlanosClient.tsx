@@ -164,6 +164,8 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
         )}
         {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((plano) => {
           const totalCH = plano.eixos.reduce((acc, e) => acc + e.cargaHoraria, 0);
+          const nRetirosC = (plano.retiros ?? []).filter((r) => r.tipo === "comunitario").length;
+          const nRetirosP = (plano.retiros ?? []).filter((r) => r.tipo === "pessoal").length;
           return (
             <Card key={plano.id} className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group">
               <CardContent className="p-5">
@@ -251,12 +253,19 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
                       <div className="flex flex-wrap gap-1.5 mt-3">
                         {plano.eixos.map((eixo) => (
                           <div key={eixo.id} className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
-                            <span>{eixo.nome}</span>
+                            <span>{eixo.nomeEtapa || eixo.nome}</span>
                             {eixo.areaFormacao && (
                               <span className="text-muted-foreground opacity-70">· {eixo.areaFormacao}</span>
                             )}
                           </div>
                         ))}
+                        {(nRetirosC > 0 || nRetirosP > 0) && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-medium">
+                            {nRetirosC > 0 && <span>{nRetirosC} retiro{nRetirosC !== 1 ? "s" : ""} com.</span>}
+                            {nRetirosC > 0 && nRetirosP > 0 && <span>·</span>}
+                            {nRetirosP > 0 && <span>{nRetirosP} pessoal{nRetirosP !== 1 ? "is" : ""}</span>}
+                          </div>
+                        )}
                       </div>
                     )}
 
