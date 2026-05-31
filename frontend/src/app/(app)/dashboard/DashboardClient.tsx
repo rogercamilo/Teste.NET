@@ -6,6 +6,7 @@ import {
   type NivelFormativo,
   type StatusFormacao,
   type DashboardStats,
+  type PerfilUsuario,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +18,7 @@ import {
 } from "recharts";
 import {
   BookOpen, Calendar, CheckCircle2, Clock, Plus,
-  TrendingUp, Users, XCircle,
+  TrendingUp, Users, XCircle, Home,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,12 +53,49 @@ const EMPTY_STATS: DashboardStats = {
   evolucaoMensal: [], porNivel: [], proximasFormacoes: [],
 };
 
+const PERFIL_SUBTITULO: Record<PerfilUsuario, string> = {
+  formador_comunitario: "Visão da sua morada",
+  formador_geral: "Visão geral da organização",
+  administrador: "Visão geral da organização",
+  super_admin: "Plataforma",
+};
+
 interface Props {
   stats: DashboardStats | null;
+  perfil: PerfilUsuario;
+  moradaNome?: string | null;
+  semMorada?: boolean;
 }
 
-export function DashboardClient({ stats: rawStats }: Props) {
+export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada }: Props) {
   const stats = rawStats ?? EMPTY_STATS;
+
+  const subtitulo = perfil === "formador_comunitario" && moradaNome
+    ? `${moradaNome}`
+    : PERFIL_SUBTITULO[perfil];
+
+  if (semMorada) {
+    return (
+      <div className="space-y-6 animate-in-fast">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Visão da sua morada —{" "}
+            {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+          </p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+            <Home className="h-7 w-7 text-muted-foreground/60" />
+          </div>
+          <h2 className="text-base font-semibold text-foreground mb-1">Sem morada atribuída</h2>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Você ainda não foi associado a uma morada. Entre em contacto com o administrador da sua organização para ser incluído numa morada.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in-fast">
@@ -66,7 +104,7 @@ export function DashboardClient({ stats: rawStats }: Props) {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Visão geral da formação comunitária —{" "}
+            {subtitulo} —{" "}
             {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
