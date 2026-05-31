@@ -1,11 +1,12 @@
-import { ThemeApplier } from "@/components/layout/ThemeApplier";
 import { getPublicBranding } from "@/lib/public-branding";
+import { getThemeInlineCss } from "@/lib/themes";
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const branding = await getPublicBranding();
+  const themeCss = getThemeInlineCss(branding.temaCor);
   return (
     <>
-      <ThemeApplier themeKey={branding.temaCor} />
+      {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
       {children}
     </>
   );

@@ -80,4 +80,13 @@ export function applyThemePalette(key: string): void {
   Object.entries(palette.vars).forEach(([k, v]) => root.style.setProperty(k, v));
 }
 
+/** Returns an inline `:root{…}` CSS string for SSR — eliminates theme flash on first paint. */
+export function getThemeInlineCss(key: string | null | undefined): string {
+  if (!key) return "";
+  const palette = THEME_PALETTES.find((p) => p.key === key);
+  if (!palette) return "";
+  const vars = Object.entries(palette.vars).map(([k, v]) => `${k}:${v}`).join(";");
+  return `:root{${vars}}`;
+}
+
 

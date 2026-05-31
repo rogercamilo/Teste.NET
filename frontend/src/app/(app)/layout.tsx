@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
 import { ComunidadeProvider } from "@/components/layout/ComunidadeProvider";
 import { ThemeApplier } from "@/components/layout/ThemeApplier";
+import { getThemeInlineCss } from "@/lib/themes";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import PrimeiroAcessoModal from "@/components/PrimeiroAcessoModal";
 import CookiePreferencesLink from "@/components/CookiePreferencesLink";
@@ -47,9 +48,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const primeiroAcesso = sessionUser.primeiroAcesso ?? false;
 
+  const themeCss = getThemeInlineCss(orgBranding.temaCor);
+
   return (
     <SidebarProvider>
       <ComunidadeProvider>
+        {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
         <ThemeApplier themeKey={orgBranding.temaCor} />
         <PrimeiroAcessoModal primeiroAcesso={primeiroAcesso} />
         <AppSidebar user={user} nomePlataforma={orgBranding.nomePlataforma} />
