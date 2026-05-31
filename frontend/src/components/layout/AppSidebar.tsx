@@ -142,8 +142,8 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
 
       <SidebarContent>
         {navGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+          <SidebarGroup key={group.label} className="py-1 gap-1">
+            <SidebarGroupLabel className="h-6">{group.label}</SidebarGroupLabel>
             <SidebarMenu>
               {group.items.map((item) => {
                 const isActive =
@@ -155,6 +155,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
                       render={<Link href={item.href} />}
                       isActive={isActive}
                       tooltip={item.title}
+                      size="sm"
                     >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
@@ -189,6 +190,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Sair"
+              size="sm"
               onClick={() => signOut({ callbackUrl: isSuperAdmin ? "/acesso-plataforma" : "/login" })}
             >
               <LogOut className="h-4 w-4" />

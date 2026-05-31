@@ -90,18 +90,18 @@ export const navGroupsFormador: NavGroup[] = [
     ],
   },
   {
+    label: "Minha Morada",
+    items: [
+      { title: "Formandos", href: "/formandos", icon: Users },
+      { title: "Gestão de Presença", href: "/presenca", icon: ClipboardList },
+    ],
+  },
+  {
     label: "Formativo",
     items: [
       { title: "Planos Formativos", href: "/planos", icon: BookOpen },
       { title: "Grades Formativas", href: "/grades", icon: Library },
       { title: "Formações", href: "/formacoes", icon: BookOpen },
-    ],
-  },
-  {
-    label: "Minha Morada",
-    items: [
-      { title: "Formandos", href: "/formandos", icon: Users },
-      { title: "Gestão de Presença", href: "/presenca", icon: ClipboardList },
     ],
   },
   {
