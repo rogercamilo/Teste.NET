@@ -36,6 +36,12 @@ function mkPalette(
 
 export const THEME_PALETTES: ThemePalette[] = [
   mkPalette(
+    "formatio", "Formatio", "#B25433",
+    "oklch(0.55 0.135 36)",
+    "oklch(0.95 0.020 60)",
+    "oklch(0.22 0.022 50)"
+  ),
+  mkPalette(
     "azul", "Azul", "#3b82f6",
     "oklch(0.546 0.245 264.376)",
     "oklch(0.951 0.025 254.624)",

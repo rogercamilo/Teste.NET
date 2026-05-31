@@ -12,7 +12,7 @@ const DEFAULT_BRANDING: PublicBranding = {
   nome: "Formatio",
   nomePlataforma: null,
   logoUrl: null,
-  temaCor: "azul",
+  temaCor: "formatio",
 };
 
 // React.cache() deduplicates calls within a single request (layout + page share one DB hit)

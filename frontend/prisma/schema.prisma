@@ -59,7 +59,7 @@ model Organizacao {
   cortesiaMotivo       String?
   nomePlataforma       String?
   logoUrl              String?           @db.Text
-  temaCor              String            @default("azul")
+  temaCor              String            @default("formatio")
   privacyVersion       String            @default("1.0")
   onboardingConcluido  Boolean           @default(false)
   criadoEm             DateTime          @default(now())

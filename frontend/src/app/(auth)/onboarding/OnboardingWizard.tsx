@@ -83,7 +83,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
 
   // Step 2 — visual identity
   const [logo, setLogo] = useState<string | null>(org.logoUrl);
-  const [themeKey, setThemeKey] = useState(org.temaCor ?? "azul");
+  const [themeKey, setThemeKey] = useState(org.temaCor ?? "formatio");
 
   // Step 3 — plan
   const [plano, setPlano] = useState(org.planoAssinatura ?? "GRATUITO");
