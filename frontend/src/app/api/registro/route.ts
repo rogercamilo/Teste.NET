@@ -47,8 +47,12 @@ export async function POST(request: Request) {
       });
       if (existingUser) throw new Error("EMAIL_EXISTS");
 
+      // Em Phase 2 (single-tenant), força o ID do org para DEFAULT_ORG_ID
+      // para garantir que o tenant seja sempre o mesmo.
+      const defaultOrgId = process.env.DEFAULT_ORG_ID;
       const newOrg = await tx.organizacao.create({
         data: {
+          ...(defaultOrgId ? { id: defaultOrgId } : {}),
           nome: orgNome.trim(),
           status: "TRIAL",
           planoAssinatura: "GRATUITO",
