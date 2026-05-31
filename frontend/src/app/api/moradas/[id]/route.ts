@@ -71,7 +71,18 @@ export async function PUT(request: Request, { params }: Params) {
     const updated = await prisma.$transaction(async (tx) => {
       const result = await tx.morada.update({
         where: { id },
-        data: { nome: body.nome, localReuniao: body.localReuniao ?? null, nivelFormativo: body.nivelFormativo, formadorId: body.formadorId ?? null, planoId: body.planoId ?? null, gradeId: body.gradeId ?? null, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null, imagemUrl: body.imagemUrl ?? null, ativo: body.ativo },
+        data: {
+          ...(body.nome !== undefined && { nome: body.nome }),
+          ...(body.localReuniao !== undefined && { localReuniao: body.localReuniao ?? null }),
+          ...(body.nivelFormativo !== undefined && { nivelFormativo: body.nivelFormativo }),
+          ...(body.formadorId !== undefined && { formadorId: body.formadorId ?? null }),
+          ...(body.planoId !== undefined && { planoId: body.planoId ?? null }),
+          ...(body.gradeId !== undefined && { gradeId: body.gradeId ?? null }),
+          ...(body.vigenciaInicio !== undefined && { vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : null }),
+          ...(body.vigenciaFim !== undefined && { vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : null }),
+          ...(body.imagemUrl !== undefined && { imagemUrl: body.imagemUrl ?? null }),
+          ...(body.ativo !== undefined && { ativo: body.ativo }),
+        },
       });
       if (formadorChanged) {
         if (existing.formadorId) {

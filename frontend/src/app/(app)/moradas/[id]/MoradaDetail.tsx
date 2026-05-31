@@ -488,7 +488,8 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
 
   async function confirmCrop() {
     if (!imagemSrc || !croppedAreaPixels) return;
-    const OUTPUT = 400;
+    // 280×280 JPEG 82% → base64 ~20–80 KB, sempre < 256 KB (limite do proxy)
+    const OUTPUT = 280;
     const image = new Image();
     image.src = imagemSrc;
     await new Promise<void>((resolve) => { image.onload = () => resolve(); });
@@ -502,7 +503,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
       croppedAreaPixels.width, croppedAreaPixels.height,
       0, 0, OUTPUT, OUTPUT
     );
-    const base64 = canvas.toDataURL("image/jpeg", 0.85);
+    const base64 = canvas.toDataURL("image/jpeg", 0.82);
     await salvarImagem(base64);
   }
 
@@ -514,7 +515,10 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
       body: JSON.stringify({ imagemUrl }),
     });
     setImagemLoading(false);
-    if (!res.ok) return toast.error("Erro ao salvar imagem.");
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      return toast.error(body.error ?? "Erro ao salvar imagem.");
+    }
     const updated = await res.json();
     setMorada(updated);
     db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
