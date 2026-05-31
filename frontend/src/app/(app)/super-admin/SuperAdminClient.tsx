@@ -123,6 +123,9 @@ export default function SuperAdminClient() {
   const [cortesiaExpiry, setCortesiaExpiry] = useState("");
   const [resetJustificativa, setResetJustificativa] = useState("");
   const [resetResult, setResetResult] = useState<ResetResult | null>(null);
+  const [resetAdmins, setResetAdmins] = useState<{ id: string; nome: string; email: string }[]>([]);
+  const [resetSelectedUserId, setResetSelectedUserId] = useState("");
+  const [resetAdminsLoading, setResetAdminsLoading] = useState(false);
 
   const closeDialog = () => {
     setDialogAcao(null);
@@ -131,6 +134,8 @@ export default function SuperAdminClient() {
     setCortesiaExpiry("");
     setResetJustificativa("");
     setResetResult(null);
+    setResetAdmins([]);
+    setResetSelectedUserId("");
   };
 
   const load = useCallback(async () => {
@@ -157,6 +162,18 @@ export default function SuperAdminClient() {
   useEffect(() => {
     if (tab === "lgpd" && !lgpdLoaded) loadLgpd();
   }, [tab, lgpdLoaded, loadLgpd]);
+
+  useEffect(() => {
+    if (dialogAcao !== "reset-credenciais" || !selectedOrg) return;
+    setResetAdminsLoading(true);
+    fetch(`/api/super-admin/organizacoes/${selectedOrg.id}`)
+      .then((r) => r.json())
+      .then((data: { admins?: { id: string; nome: string; email: string }[] }) => {
+        setResetAdmins(data.admins ?? []);
+      })
+      .catch(() => setResetAdmins([]))
+      .finally(() => setResetAdminsLoading(false));
+  }, [dialogAcao, selectedOrg]);
 
   async function executeAction(orgId: string, acao: string, extra?: Record<string, unknown>) {
     setActionLoading(orgId);
@@ -230,13 +247,13 @@ export default function SuperAdminClient() {
   }
 
   async function resetCredenciais() {
-    if (!selectedOrg || resetJustificativa.trim().length < 10) return;
+    if (!selectedOrg || resetJustificativa.trim().length < 10 || !resetSelectedUserId) return;
     setActionLoading(selectedOrg.id);
     try {
       const res = await fetch(`/api/super-admin/organizacoes/${selectedOrg.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "reset-credenciais", justificativa: resetJustificativa.trim() }),
+        body: JSON.stringify({ acao: "reset-credenciais", usuarioId: resetSelectedUserId, justificativa: resetJustificativa.trim() }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({})) as { error?: string };
@@ -1054,11 +1071,37 @@ export default function SuperAdminClient() {
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                   <p className="font-medium mb-1">O que será feito:</p>
                   <ul className="list-disc list-inside space-y-0.5 text-amber-700">
-                    <li>Uma senha temporária será gerada para todos os administradores ativos</li>
-                    <li>Todos serão obrigados a trocar a senha no próximo acesso</li>
-                    <li>Um e-mail de notificação será enviado a cada administrador</li>
+                    <li>Uma senha temporária será gerada para o administrador selecionado</li>
+                    <li>O acesso será bloqueado até a troca de senha no próximo login</li>
+                    <li>Um e-mail de notificação será enviado ao administrador</li>
                     <li>Esta ação ficará registrada no log de auditoria</li>
                   </ul>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    Administrador <span className="text-destructive">*</span>
+                  </label>
+                  {resetAdminsLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                      <RefreshCw className="h-4 w-4 animate-spin" />Carregando administradores...
+                    </div>
+                  ) : resetAdmins.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">Nenhum administrador ativo encontrado.</p>
+                  ) : (
+                    <Select value={resetSelectedUserId} onValueChange={(v) => v && setResetSelectedUserId(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o administrador..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {resetAdmins.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            <span className="font-medium">{a.nome}</span>
+                            <span className="text-muted-foreground ml-2 text-xs">{a.email}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">
@@ -1081,7 +1124,7 @@ export default function SuperAdminClient() {
                 <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
                 <Button
                   className="bg-amber-600 hover:bg-amber-700 text-white"
-                  disabled={resetJustificativa.trim().length < 10 || actionLoading === selectedOrg?.id}
+                  disabled={!resetSelectedUserId || resetJustificativa.trim().length < 10 || actionLoading === selectedOrg?.id}
                   onClick={resetCredenciais}
                 >
                   {actionLoading === selectedOrg?.id

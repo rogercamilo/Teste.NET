@@ -29,6 +29,7 @@ export async function PATCH(request: Request, { params }: Params) {
       cortesiaExpiresAt?: string | null;
       cortesiaMotivo?: string;
       justificativa?: string;
+      usuarioId?: string;
     };
     const { acao, plano } = body;
 
@@ -81,43 +82,43 @@ export async function PATCH(request: Request, { params }: Params) {
         return NextResponse.json({ error: "Justificativa obrigatória (mínimo 10 caracteres)." }, { status: 400 });
       }
 
-      const admins = await prisma.usuario.findMany({
-        where: { organizacaoId: id, perfil: "administrador", ativo: true },
+      const usuarioId = body.usuarioId?.trim();
+      if (!usuarioId || !isValidId(usuarioId)) {
+        return NextResponse.json({ error: "Selecione o administrador a ser resetado." }, { status: 400 });
+      }
+
+      const admin = await prisma.usuario.findFirst({
+        where: { id: usuarioId, organizacaoId: id, perfil: "administrador", ativo: true },
         select: { id: true, nome: true, email: true },
       });
-      if (admins.length === 0) {
-        return NextResponse.json({ error: "Nenhum administrador ativo encontrado nesta organização." }, { status: 404 });
+      if (!admin) {
+        return NextResponse.json({ error: "Administrador não encontrado nesta organização." }, { status: 404 });
       }
 
       const tempPassword = generateRandomPassword();
       const newHash = await hashPassword(tempPassword);
 
-      await prisma.usuario.updateMany({
-        where: { organizacaoId: id, perfil: "administrador", ativo: true },
+      await prisma.usuario.update({
+        where: { id: admin.id },
         data: { passwordHash: newHash, primeiroAcesso: true, passwordChangedAt: new Date() },
       });
 
       logAction("admin_credentials_reset", user.id ?? undefined, getClientIp(request), {
         orgId: id,
         justificativa,
-        affectedUserIds: admins.map((a) => a.id),
-        affectedCount: admins.length,
+        affectedUserId: admin.id,
       }, id);
 
-      await Promise.allSettled(
-        admins.map((admin) =>
-          sendCredentialResetEmail({
-            organizacaoId: id,
-            nome: admin.nome,
-            email: admin.email,
-            tempPassword,
-            orgNome: org.nome,
-          })
-        )
-      );
+      await sendCredentialResetEmail({
+        organizacaoId: id,
+        nome: admin.nome,
+        email: admin.email,
+        tempPassword,
+        orgNome: org.nome,
+      });
 
       return NextResponse.json({
-        usuarios: admins.map((a) => ({ nome: a.nome, email: a.email })),
+        usuarios: [{ nome: admin.nome, email: admin.email }],
         senhaTemporaria: tempPassword,
       });
     }
@@ -189,7 +190,7 @@ export async function GET(_request: Request, { params }: Params) {
   const { id } = await params;
   if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
-  const [org, logs] = await Promise.all([
+  const [org, logs, admins] = await Promise.all([
     prisma.organizacao.findUnique({ where: { id } }),
     prisma.auditLog.findMany({
       where: { organizacaoId: id },
@@ -200,9 +201,14 @@ export async function GET(_request: Request, { params }: Params) {
         usuario: { select: { nome: true, email: true } },
       },
     }),
+    prisma.usuario.findMany({
+      where: { organizacaoId: id, perfil: "administrador", ativo: true },
+      select: { id: true, nome: true, email: true },
+      orderBy: { nome: "asc" },
+    }),
   ]);
 
   if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
-  return NextResponse.json({ org, logs });
+  return NextResponse.json({ org, logs, admins });
 }
