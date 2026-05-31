@@ -23,6 +23,8 @@ import {
   Clock,
   Eye,
   FileText,
+  Hash,
+  Layers,
   Link,
   Paperclip,
   Pencil,
@@ -103,6 +105,13 @@ export default function FormacaoDetalhePage() {
                     {formacao.eixoNome}
                   </Badge>
                 )}
+                {formacao.gradeNome && (
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <Layers className="h-3 w-3" />
+                    {formacao.gradeNome}
+                    {formacao.numero && <span className="ml-0.5 font-mono">#{formacao.numero}</span>}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -146,6 +155,32 @@ export default function FormacaoDetalhePage() {
           <div className="space-y-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Descrição</p>
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{formacao.descricao}</p>
+          </div>
+        )}
+
+        {formacao.observacoesFormador && (
+          <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Observações do formador</p>
+            <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{formacao.observacoesFormador}</p>
+          </div>
+        )}
+
+        {formacao.gradeNome && (
+          <div className="flex items-center gap-2 text-sm">
+            <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-muted-foreground">Grade:</span>
+            <button
+              type="button"
+              onClick={() => formacao.gradeId && router.push(`/grades/${formacao.gradeId}`)}
+              className="font-medium text-primary hover:underline"
+            >
+              {formacao.gradeNome}
+            </button>
+            {formacao.numero && (
+              <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                <Hash className="h-3 w-3" />{formacao.numero}
+              </span>
+            )}
           </div>
         )}
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useFormacoes, useEtapaLabels, useUsuarios } from "@/lib/data-store";
+import { useFormacoes, useGrades, usePlanos, useEtapaLabels, useUsuarios } from "@/lib/data-store";
 import {
   MODALIDADE_LABELS,
   TIPO_FORMACAO_LABELS,
@@ -34,7 +34,11 @@ type FormState = {
   formadorId: string;
   cargaHoraria: string;
   modalidade: Modalidade;
+  gradeId: string;
+  eixoId: string;
   eixoNome: string;
+  numero: string;
+  observacoesFormador: string;
   materialApoio: string;
   documentoNome: string;
   documentoId: string;
@@ -49,7 +53,11 @@ const EMPTY_FORM: FormState = {
   formadorId: "",
   cargaHoraria: "2",
   modalidade: "presencial",
+  gradeId: "",
+  eixoId: "",
   eixoNome: "",
+  numero: "",
+  observacoesFormador: "",
   materialApoio: "",
   documentoNome: "",
   documentoId: "",
@@ -58,6 +66,8 @@ const EMPTY_FORM: FormState = {
 export default function FormacaoFormPage({ id }: { id?: string }) {
   const router = useRouter();
   const [formacoes, setFormacoes] = useFormacoes();
+  const [allGrades] = useGrades();
+  const [allPlanos] = usePlanos();
   const [allUsuarios] = useUsuarios();
   const formadores = allUsuarios.filter((u) => u.ativo);
   const etapaLabels = useEtapaLabels();
@@ -66,6 +76,19 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
   const [saving, setSaving] = useState(false);
   const initialized = useRef(false);
   const isEditing = !!id;
+
+  // Eixos da grade selecionada, com nomeEtapa resolvido
+  const gradeAtual = allGrades.find((g) => g.id === form.gradeId);
+  const planoAtual = allPlanos.find((p) => p.id === gradeAtual?.planoId);
+  const eixosDaGrade = gradeAtual?.eixos.map((e) => {
+    const ep = planoAtual?.eixos.find((ep) => ep.id === e.eixoPlanoId);
+    return { id: e.id, nome: e.nome, label: ep?.nomeEtapa ?? e.nome };
+  }) ?? [];
+
+  // Próximo número disponível na grade
+  const proximoNumeroNaGrade = form.gradeId
+    ? Math.max(0, ...formacoes.filter((f) => f.gradeId === form.gradeId).map((f) => f.numero ?? 0)) + 1
+    : undefined;
 
   useEffect(() => {
     if (!id || initialized.current) return;
@@ -80,7 +103,11 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
       formadorId: f.formadorId,
       cargaHoraria: String(f.cargaHoraria),
       modalidade: f.modalidade,
+      gradeId: f.gradeId ?? "",
+      eixoId: f.eixoId ?? "",
       eixoNome: f.eixoNome ?? "",
+      numero: f.numero ? String(f.numero) : "",
+      observacoesFormador: f.observacoesFormador ?? "",
       materialApoio: f.materialApoio ?? "",
       documentoNome: f.documentoAnexo ?? "",
       documentoId: f.documentoAnexoId ?? "",
@@ -90,6 +117,25 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
 
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  function handleGradeChange(gradeId: string) {
+    const grade = allGrades.find((g) => g.id === gradeId);
+    const nextNum =
+      Math.max(0, ...formacoes.filter((f) => f.gradeId === gradeId).map((f) => f.numero ?? 0)) + 1;
+    setForm((prev) => ({
+      ...prev,
+      gradeId,
+      eixoId: "",
+      eixoNome: "",
+      numero: String(nextNum),
+      nivelFormativo: (grade?.nivelFormativo as NivelFormativo) ?? prev.nivelFormativo,
+    }));
+  }
+
+  function handleEixoChange(eixoId: string) {
+    const eixo = eixosDaGrade.find((e) => e.id === eixoId);
+    setForm((prev) => ({ ...prev, eixoId, eixoNome: eixo?.nome ?? "" }));
+  }
 
   function handleDocumentoInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -142,6 +188,9 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
         documentoAnexoId = undefined;
       }
 
+      const gradeVinculada = allGrades.find((g) => g.id === form.gradeId);
+      const numeroFinal = form.numero ? Number(form.numero) : undefined;
+
       const payload: Formacao = {
         id: entId,
         tema: form.tema.trim(),
@@ -153,7 +202,12 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
         formadorNome: formador?.nome ?? "",
         cargaHoraria: horas,
         modalidade: form.modalidade,
+        gradeId: form.gradeId || undefined,
+        gradeNome: gradeVinculada?.nome || undefined,
+        eixoId: form.eixoId || undefined,
         eixoNome: form.eixoNome.trim() || undefined,
+        numero: numeroFinal,
+        observacoesFormador: form.observacoesFormador.trim() || undefined,
         materialApoio: form.materialApoio.trim() || undefined,
         documentoAnexo,
         documentoAnexoId,
@@ -233,7 +287,23 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
             </div>
           </div>
 
+          <div className="grid gap-1.5">
+            <Label>Formador <span className="text-destructive">*</span></Label>
+            <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)} items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}>
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {formadores.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Carga horária (h) <span className="text-destructive">*</span></Label>
+              <Input type="number" min="1" value={form.cargaHoraria} onChange={(e) => set("cargaHoraria")(e.target.value)} placeholder="2" />
+            </div>
             <div className="grid gap-1.5">
               <Label>Modalidade</Label>
               <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)} items={MODALIDADE_LABELS}>
@@ -245,27 +315,94 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* ── Vínculo com grade formativa ── */}
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vínculo com grade formativa</p>
+
             <div className="grid gap-1.5">
-              <Label>Formador <span className="text-destructive">*</span></Label>
-              <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)} items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <Label>Grade formativa</Label>
+              <Select
+                value={form.gradeId}
+                onValueChange={(v) => v && handleGradeChange(v)}
+                items={Object.fromEntries(allGrades.map((g) => [g.id, g.nome]))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar grade (opcional)..." />
+                </SelectTrigger>
                 <SelectContent>
-                  {formadores.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  {allGrades.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      <span>{g.nome}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">({etapaLabels[g.nivelFormativo]})</span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {form.gradeId && (
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, gradeId: "", eixoId: "", eixoNome: "", numero: "" }))}
+                  className="text-xs text-muted-foreground hover:text-destructive text-left"
+                >
+                  Remover vínculo com grade
+                </button>
+              )}
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Carga horária (h) <span className="text-destructive">*</span></Label>
-              <Input type="number" min="1" value={form.cargaHoraria} onChange={(e) => set("cargaHoraria")(e.target.value)} placeholder="2" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>Etapa (eixo)</Label>
+                {eixosDaGrade.length > 0 ? (
+                  <Select
+                    value={form.eixoId}
+                    onValueChange={(v) => v && handleEixoChange(v)}
+                    items={Object.fromEntries(eixosDaGrade.map((e) => [e.id, e.label]))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar etapa..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {eixosDaGrade.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={form.eixoNome}
+                    onChange={(e) => set("eixoNome")(e.target.value)}
+                    placeholder="Ex.: Identidade"
+                  />
+                )}
+              </div>
+              <div className="grid gap-1.5">
+                <Label>
+                  N° na grade
+                  {proximoNumeroNaGrade !== undefined && !form.numero && (
+                    <span className="ml-1 text-xs text-muted-foreground">(próximo: {proximoNumeroNaGrade})</span>
+                  )}
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={form.numero}
+                  onChange={(e) => set("numero")(e.target.value)}
+                  placeholder={proximoNumeroNaGrade !== undefined ? String(proximoNumeroNaGrade) : "—"}
+                  disabled={!form.gradeId}
+                />
+              </div>
             </div>
+
             <div className="grid gap-1.5">
-              <Label>Eixo</Label>
-              <Input value={form.eixoNome} onChange={(e) => set("eixoNome")(e.target.value)} placeholder="Ex.: Identidade" />
+              <Label>Observações do formador</Label>
+              <Textarea
+                value={form.observacoesFormador}
+                onChange={(e) => set("observacoesFormador")(e.target.value)}
+                placeholder="Contexto, instruções ou notas para quem ministrará esta formação..."
+                className="min-h-[60px] resize-none text-sm"
+              />
             </div>
           </div>
 
