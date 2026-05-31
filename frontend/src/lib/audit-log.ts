@@ -25,6 +25,8 @@ export type AuditAction =
   | "morada_created"
   | "morada_updated"
   | "morada_deleted"
+  | "morada_etapa_encerrada"
+  | "morada_nova_etapa"
   | "formando_created"
   | "formando_updated"
   | "formando_deleted"
