@@ -6,7 +6,7 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Building2 } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import { validatePassword } from "@/lib/password-validation";
 import Link from "next/link";
 
@@ -64,9 +64,13 @@ export default function RegistroForm() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80 opacity-90" />
         <div className="relative z-10 flex flex-col items-center text-center text-primary-foreground max-w-sm">
           <div className="mb-8">
-            <div className="h-20 w-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto">
-              <Building2 className="h-10 w-10 text-white" />
-            </div>
+            <img
+              src="/brand/formatio-symbol-mono-white.svg"
+              alt="Formatio"
+              width={80}
+              height={80}
+              className="mx-auto"
+            />
           </div>
           <h1 className="text-3xl font-bold leading-tight mb-3">
             Formatio
@@ -90,6 +94,18 @@ export default function RegistroForm() {
 
       {/* Right panel */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background overflow-y-auto">
+        {/* Mobile logo */}
+        <div className="flex items-center justify-center mb-8 lg:hidden">
+          <img
+            src="/brand/formatio-symbol.svg"
+            alt="Formatio"
+            width={40}
+            height={40}
+            className="mr-2.5 shrink-0"
+          />
+          <p className="font-semibold text-foreground text-sm leading-tight">Formatio</p>
+        </div>
+
         <div className="w-full max-w-sm py-8">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-foreground">Criar conta</h2>

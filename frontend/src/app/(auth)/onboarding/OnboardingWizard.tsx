@@ -209,8 +209,13 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Configurar plataforma</h1>
-          <p className="text-sm text-muted-foreground mt-1">Siga os passos para começar a usar</p>
+          <img
+            src="/brand/formatio-horizontal.svg"
+            alt="Formatio"
+            className="h-8 mx-auto mb-6"
+          />
+          <h1 className="text-2xl font-bold text-foreground">Vamos configurar sua plataforma</h1>
+          <p className="text-sm text-muted-foreground mt-1">Leva apenas alguns minutos.</p>
         </div>
 
         {/* Steps indicator */}
