@@ -255,7 +255,9 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
                           <div key={eixo.id} className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
                             <span>{eixo.nomeEtapa || eixo.nome}</span>
                             {eixo.areaFormacao && (
-                              <span className="text-muted-foreground opacity-70">· {eixo.areaFormacao}</span>
+                              <span className="text-muted-foreground opacity-70">
+                                · <span className="opacity-70">Área:</span> {eixo.areaFormacao}
+                              </span>
                             )}
                           </div>
                         ))}

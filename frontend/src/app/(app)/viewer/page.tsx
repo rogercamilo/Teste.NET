@@ -18,7 +18,7 @@ function ViewerContent() {
   const fileUrl = arquivoId ? `/api/arquivos/${arquivoId}` : "";
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="-mx-4 -mt-4 md:-mx-6 md:-mt-6 flex flex-col overflow-hidden" style={{ height: "calc(100vh - 3.5rem)" }}>
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-3">
