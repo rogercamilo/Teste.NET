@@ -277,6 +277,7 @@ export const CreateEventoSchema = z.object({
   periodoInicio: isoDate.optional(),
   periodoFim: isoDate.optional(),
   notaAdesao: NotaAdesaoEnum.optional().nullable(),
+  perspectiva: z.enum(["humana", "espiritual", "comunitaria"]).optional().nullable(),
   textoAvaliacao: optionalString(5000).nullable(),
   motivo: optionalString(2000).nullable(),
   tipoDesligamento: TipoDesligamentoEnum.optional().nullable(),

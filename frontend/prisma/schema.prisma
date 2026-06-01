@@ -522,6 +522,7 @@ model EventoFormando {
   periodoInicio                 DateTime?
   periodoFim                    DateTime?
   notaAdesao                    String?   // NotaAdesao
+  perspectiva                   String?   // PerspectivFormativa: humana | espiritual | comunitaria
   textoAvaliacao                String?
   motivo                        String?
   tipoDesligamento              String?   // TipoDesligamento

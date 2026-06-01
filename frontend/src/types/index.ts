@@ -16,6 +16,7 @@ export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comun
 export type PlanoAssinatura = "GRATUITO" | "ESSENCIAL" | "PROFISSIONAL";
 export type StatusOrganizacao = "TRIAL" | "ATIVO" | "SUSPENSO" | "CANCELADO";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
+export type PerspectivFormativa = "humana" | "espiritual" | "comunitaria";
 export type TipoCompromisso = "individual" | "geral";
 export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoal" | "atividade-extra";
 
@@ -269,6 +270,7 @@ export interface EventoFormando {
   periodoInicio?: string;
   periodoFim?: string;
   notaAdesao?: NotaAdesao;
+  perspectiva?: PerspectivFormativa;
   textoAvaliacao?: string;
   /** solicitacao-desligamento / desligamento / licenca */
   motivo?: string;
@@ -322,6 +324,11 @@ export interface DashboardStats {
     id: string; nome: string; nivelFormativo: NivelFormativo;
     totalSessoes: number; sessoesCom: number;
     taxa: number; // -1 = sem dados
+    perspectivas: {
+      humana?: NotaAdesao;
+      espiritual?: NotaAdesao;
+      comunitaria?: NotaAdesao;
+    };
   }[];
 
   // FG/Admin — visão estratégica
@@ -334,6 +341,8 @@ export interface DashboardStats {
     id: string; nome: string; nivelFormativo: NivelFormativo;
     totalFormandos: number; formandosAtivos: number;
     temPlano: boolean; temGrade: boolean; formadorNome?: string;
+    taxaPresenca?: number | null;   // últimos 90 dias, null = sem registros
+    gradeVigente?: boolean;         // false = grade expirada ou sem grade
   }[];
 }
 
@@ -496,6 +505,25 @@ export const NOTA_ADESAO_CORES: Record<NotaAdesao, string> = {
   boa: "bg-blue-100 text-blue-700",
   regular: "bg-amber-100 text-amber-700",
   insuficiente: "bg-red-100 text-red-700",
+};
+
+export const PERSPECTIV_LABELS: Record<PerspectivFormativa, string> = {
+  humana: "Humana",
+  espiritual: "Espiritual",
+  comunitaria: "Comunitária",
+};
+
+export const PERSPECTIV_ICONS: Record<PerspectivFormativa, string> = {
+  humana: "🧠",
+  espiritual: "✝",
+  comunitaria: "🤝",
+};
+
+export const NOTA_ADESAO_DOT: Record<NotaAdesao, string> = {
+  otima: "bg-emerald-500",
+  boa: "bg-blue-500",
+  regular: "bg-amber-400",
+  insuficiente: "bg-red-500",
 };
 
 export const SEQUENCIA_ETAPAS: NivelFormativo[] = [

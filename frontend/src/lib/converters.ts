@@ -25,6 +25,7 @@ export type PrismaComentario = {
 export type PrismaEvento = {
   id: string; organizacaoId: string; formandoId: string; formadorId: string; tipo: string;
   periodoInicio: Date | null; periodoFim: Date | null; notaAdesao: string | null;
+  perspectiva: string | null;
   textoAvaliacao: string | null; motivo: string | null; tipoDesligamento: string | null;
   dataEfetiva: Date | null; checklistDevolveuEstatuto: boolean | null;
   checklistDevolveuSacramental: boolean | null; checklistApresentouCarta: boolean | null;
@@ -124,6 +125,7 @@ export function toEvento(e: PrismaEvento): EventoFormando {
     periodoInicio: e.periodoInicio?.toISOString().split("T")[0],
     periodoFim: e.periodoFim?.toISOString().split("T")[0],
     notaAdesao: e.notaAdesao as EventoFormando["notaAdesao"] ?? undefined,
+    perspectiva: e.perspectiva as EventoFormando["perspectiva"] ?? undefined,
     textoAvaliacao: e.textoAvaliacao ?? undefined, motivo: e.motivo ?? undefined,
     tipoDesligamento: e.tipoDesligamento as EventoFormando["tipoDesligamento"] ?? undefined,
     dataEfetiva: e.dataEfetiva?.toISOString().split("T")[0],

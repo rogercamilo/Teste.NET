@@ -69,6 +69,7 @@ export async function POST(request: Request) {
         periodoInicio: body.periodoInicio ? new Date(body.periodoInicio) : null,
         periodoFim: body.periodoFim ? new Date(body.periodoFim) : null,
         notaAdesao: body.notaAdesao || null,
+        perspectiva: body.perspectiva || null,
         textoAvaliacao: body.textoAvaliacao || null,
         motivo: body.motivo || null,
         tipoDesligamento: body.tipoDesligamento || null,

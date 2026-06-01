@@ -4,10 +4,15 @@ import {
   NIVEL_FORMATIVO_LABELS,
   STATUS_FORMACAO_LABELS,
   NIVEL_CORES,
+  PERSPECTIV_LABELS,
+  NOTA_ADESAO_LABELS,
+  NOTA_ADESAO_DOT,
   type NivelFormativo,
+  type NotaAdesao,
   type StatusFormacao,
   type DashboardStats,
   type PerfilUsuario,
+  type PerspectivFormativa,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -502,6 +507,65 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
         )}
       </div>
 
+      {/* ── FC: Perspectivas Formativas ── */}
+      {isFC && (stats.formandosPresenca?.length ?? 0) > 0 && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold text-foreground">Perspectivas Formativas</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Última avaliação de adesão por perspectiva</p>
+              </div>
+              <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+                <Users className="h-3.5 w-3.5 mr-1" />
+                Ver formandos
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Cabeçalho das colunas */}
+            <div className="grid grid-cols-[1fr_80px_80px_80px] gap-2 mb-2 px-1">
+              <span className="text-xs text-muted-foreground font-medium">Formando</span>
+              {(["humana", "espiritual", "comunitaria"] as PerspectivFormativa[]).map((p) => (
+                <span key={p} className="text-xs text-muted-foreground font-medium text-center">
+                  {PERSPECTIV_LABELS[p]}
+                </span>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              {(stats.formandosPresenca ?? []).map((f) => (
+                <div key={f.id} className="grid grid-cols-[1fr_80px_80px_80px] gap-2 items-center rounded-lg px-1 py-1.5 hover:bg-muted/40 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={`h-2 w-2 rounded-full shrink-0 ${semaforoClasses(f.taxa).dot}`} />
+                    <span className="text-sm text-foreground truncate">{f.nome}</span>
+                  </div>
+                  {(["humana", "espiritual", "comunitaria"] as PerspectivFormativa[]).map((persp) => {
+                    const nota = f.perspectivas?.[persp] as NotaAdesao | undefined;
+                    return (
+                      <div key={persp} className="flex justify-center">
+                        {nota ? (
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+                            nota === "otima" ? "bg-emerald-100 text-emerald-700" :
+                            nota === "boa" ? "bg-blue-100 text-blue-700" :
+                            nota === "regular" ? "bg-amber-100 text-amber-700" :
+                            "bg-red-100 text-red-700"
+                          }`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${NOTA_ADESAO_DOT[nota]}`} />
+                            {NOTA_ADESAO_LABELS[nota]}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/60">—</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── FC: Presença e Acompanhamento ── */}
       {isFC && (stats.formandosPresenca?.length ?? 0) > 0 && (
         <Card className="border-0 shadow-sm">
@@ -599,24 +663,47 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                     </Badge>
                   </div>
                   <div className="flex flex-col gap-1 shrink-0">
-                    <span
-                      className={cn("inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium",
-                        m.temPlano ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                      )}
-                    >
+                    <span className={cn("inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium",
+                      m.temPlano ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                    )}>
                       <FileText className="h-3 w-3" />
                       {m.temPlano ? "Plano" : "Sem plano"}
                     </span>
-                    <span
-                      className={cn("inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium",
-                        m.temGrade ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                      )}
-                    >
+                    <span className={cn("inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium",
+                      m.gradeVigente ? "bg-emerald-100 text-emerald-700"
+                      : m.temGrade ? "bg-amber-100 text-amber-700"
+                      : "bg-red-100 text-red-600"
+                    )}>
                       <GitBranch className="h-3 w-3" />
-                      {m.temGrade ? "Grade" : "Sem grade"}
+                      {m.gradeVigente ? "Grade vigente" : m.temGrade ? "Grade encerrada" : "Sem grade"}
                     </span>
                   </div>
                 </div>
+                {/* Taxa de presença (90 dias) */}
+                {m.taxaPresenca != null && (
+                  <div className="mb-2.5">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">Presença (90 dias)</span>
+                      <span className={cn("font-semibold",
+                        m.taxaPresenca >= 75 ? "text-emerald-600"
+                        : m.taxaPresenca >= 50 ? "text-amber-600"
+                        : "text-red-600"
+                      )}>
+                        {m.taxaPresenca}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={cn("h-full rounded-full transition-all",
+                          m.taxaPresenca >= 75 ? "bg-emerald-500"
+                          : m.taxaPresenca >= 50 ? "bg-amber-400"
+                          : "bg-red-500"
+                        )}
+                        style={{ width: `${m.taxaPresenca}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Users className="h-3 w-3" />

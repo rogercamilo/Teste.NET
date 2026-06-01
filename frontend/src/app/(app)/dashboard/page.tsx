@@ -127,7 +127,7 @@ async function getDashboardData(
   // ── FC: presença e acompanhamento ─────────────────────────────────────────
   if (perfil === PERFIL_FC && moradaId) {
     const threeMonthsAgo = subMonths(now, 3);
-    const [formandosDaMorada, presencas90d] = await Promise.all([
+    const [formandosDaMorada, presencas90d, avaliacoesPerspectiva] = await Promise.all([
       prisma.formando.findMany({
         where: { organizacaoId, moradaId, ativo: true },
         select: { id: true, nome: true, nivelFormativo: true },
@@ -137,7 +137,28 @@ async function getDashboardData(
         where: { organizacaoId, data: { gte: threeMonthsAgo }, formando: { moradaId } },
         select: { formandoId: true, presente: true },
       }),
+      // Última avaliação de adesão por formando × perspectiva
+      prisma.eventoFormando.findMany({
+        where: {
+          organizacaoId,
+          tipo: "avaliacao-adesao",
+          perspectiva: { not: null },
+          formando: { moradaId },
+        },
+        select: { formandoId: true, perspectiva: true, notaAdesao: true, criadoEm: true },
+        orderBy: { criadoEm: "desc" },
+      }),
     ]);
+
+    // Monta mapa: formandoId → { humana, espiritual, comunitaria } com nota mais recente
+    const perspMap = new Map<string, { humana?: string; espiritual?: string; comunitaria?: string }>();
+    for (const ev of avaliacoesPerspectiva) {
+      if (!ev.perspectiva || !ev.notaAdesao) continue;
+      const entry = perspMap.get(ev.formandoId) ?? {};
+      const key = ev.perspectiva as "humana" | "espiritual" | "comunitaria";
+      if (!entry[key]) entry[key] = ev.notaAdesao; // já ordenado desc, pega a mais recente
+      perspMap.set(ev.formandoId, entry);
+    }
 
     const presMap = new Map<string, { total: number; com: number }>();
     for (const p of presencas90d) {
@@ -156,6 +177,7 @@ async function getDashboardData(
         nivelFormativo: f.nivelFormativo as NivelFormativo,
         totalSessoes, sessoesCom,
         taxa: totalSessoes > 0 ? Math.round((sessoesCom / totalSessoes) * 100) : -1,
+        perspectivas: perspMap.get(f.id) ?? {},
       };
     });
 
@@ -171,12 +193,14 @@ async function getDashboardData(
 
   // ── FG/Admin: visão estratégica ───────────────────────────────────────────
   if (perfil === "formador_geral" || perfil === "administrador") {
-    const [moradasData, formandosAtivosGrp, totalPlanosAtivos, moradasSemPlano, moradasSemGrade, fcsSemMorada] =
+    const threeMonthsAgo = subMonths(now, 3);
+    const [moradasData, formandosAtivosGrp, totalPlanosAtivos, moradasSemPlano, moradasSemGrade, fcsSemMorada, presencasPorMorada] =
       await Promise.all([
         prisma.morada.findMany({
           where: { organizacaoId, ativo: true },
           select: {
             id: true, nome: true, nivelFormativo: true, planoId: true, gradeId: true,
+            vigenciaFim: true,
             formador: { select: { nome: true } },
             _count: { select: { formandos: true } },
           },
@@ -195,9 +219,25 @@ async function getDashboardData(
         prisma.usuario.count({
           where: { organizacaoId, perfil: "formador_comunitario", ativo: true, moradaId: null },
         }),
+        // Taxa de presença por morada nos últimos 90 dias (via formando)
+        prisma.presencaFormacao.findMany({
+          where: { organizacaoId, data: { gte: threeMonthsAgo } },
+          select: { presente: true, formando: { select: { moradaId: true } } },
+        }),
       ]);
 
     const ativosMap = new Map(formandosAtivosGrp.map((g) => [g.moradaId!, g._count.id]));
+
+    // Agrega presença por morada em memória
+    const presencaMoradaMap = new Map<string, { total: number; presentes: number }>();
+    for (const p of presencasPorMorada) {
+      const mid = p.formando?.moradaId;
+      if (!mid) continue;
+      const e = presencaMoradaMap.get(mid) ?? { total: 0, presentes: 0 };
+      e.total++;
+      if (p.presente) e.presentes++;
+      presencaMoradaMap.set(mid, e);
+    }
 
     return {
       ...baseStats,
@@ -206,15 +246,24 @@ async function getDashboardData(
       moradasSemPlano,
       moradasSemGrade,
       fcsSemMorada,
-      moradasResumo: moradasData.map((m) => ({
-        id: m.id, nome: m.nome,
-        nivelFormativo: m.nivelFormativo as NivelFormativo,
-        totalFormandos: m._count.formandos,
-        formandosAtivos: ativosMap.get(m.id) ?? 0,
-        temPlano: !!m.planoId,
-        temGrade: !!m.gradeId,
-        formadorNome: m.formador?.nome,
-      })),
+      moradasResumo: moradasData.map((m) => {
+        const pres = presencaMoradaMap.get(m.id);
+        const taxaPresenca = pres && pres.total > 0
+          ? Math.round((pres.presentes / pres.total) * 100)
+          : null;
+        return {
+          id: m.id, nome: m.nome,
+          nivelFormativo: m.nivelFormativo as NivelFormativo,
+          totalFormandos: m._count.formandos,
+          formandosAtivos: ativosMap.get(m.id) ?? 0,
+          temPlano: !!m.planoId,
+          temGrade: !!m.gradeId,
+          formadorNome: m.formador?.nome,
+          taxaPresenca,
+          // grade vigente = tem grade E etapa não foi encerrada (vigenciaFim nula)
+          gradeVigente: !!m.gradeId && !m.vigenciaFim,
+        };
+      }),
     };
   }
 
