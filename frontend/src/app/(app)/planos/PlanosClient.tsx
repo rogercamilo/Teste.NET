@@ -263,11 +263,14 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
                             )}
                           </div>
                         ))}
-                        {(nRetirosC > 0 || nRetirosP > 0) && (
+                        {nRetirosC > 0 && (
                           <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-medium">
-                            {nRetirosC > 0 && <span>{nRetirosC} retiro{nRetirosC !== 1 ? "s" : ""} com.</span>}
-                            {nRetirosC > 0 && nRetirosP > 0 && <span>·</span>}
-                            {nRetirosP > 0 && <span>{nRetirosP} pessoal{nRetirosP !== 1 ? "is" : ""}</span>}
+                            {nRetirosC} Retiro{nRetirosC !== 1 ? "s" : ""} comunitário{nRetirosC !== 1 ? "s" : ""}
+                          </div>
+                        )}
+                        {nRetirosP > 0 && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-medium">
+                            {nRetirosP} Retiro{nRetirosP !== 1 ? "s" : ""} pessoal{nRetirosP !== 1 ? "is" : ""}
                           </div>
                         )}
                       </div>
