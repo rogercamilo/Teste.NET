@@ -187,34 +187,7 @@ export default function PlanoFormPage({ id }: { id?: string }) {
 
     setSaving(true);
     try {
-      const original = isEditing ? planos.find((p) => p.id === id) : undefined;
-
-      let documentoAnexo = form.documentoNome || undefined;
-      let documentoAnexoId = form.documentoId || undefined;
-
-      if (documentoFile) {
-        const fd = new FormData();
-        fd.append("file", documentoFile);
-        fd.append("entityType", "plano");
-        fd.append("entityId", id ?? `p${Date.now()}`);
-        const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
-        if (!uploadRes.ok) {
-          toast.error(`Erro ao enviar documento: ${await uploadRes.text()}`);
-          return;
-        }
-        const uploaded = await uploadRes.json() as { id: string; nome: string };
-        if (original?.documentoAnexoId) {
-          fetch(`/api/arquivos/${original.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-        }
-        documentoAnexo = uploaded.nome;
-        documentoAnexoId = uploaded.id;
-      } else if (!form.documentoNome && original?.documentoAnexoId) {
-        fetch(`/api/arquivos/${original.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-        documentoAnexo = undefined;
-        documentoAnexoId = undefined;
-      }
-
-      const payload = {
+      const basePayload = {
         nome: form.nome.trim(),
         objetivos: form.objetivos.trim(),
         fundamentacao: form.fundamentacao.trim(),
@@ -222,15 +195,40 @@ export default function PlanoFormPage({ id }: { id?: string }) {
         status: form.status,
         eixos: form.eixos,
         retiros: form.retiros,
-        documentoAnexo,
-        documentoAnexoId,
       };
 
       if (isEditing && id) {
+        // EDIT: entity already exists — upload document first, then PUT
+        const original = planos.find((p) => p.id === id);
+        let documentoAnexo = form.documentoNome || undefined;
+        let documentoAnexoId = form.documentoId || undefined;
+
+        if (documentoFile) {
+          const fd = new FormData();
+          fd.append("file", documentoFile);
+          fd.append("entityType", "plano");
+          fd.append("entityId", id);
+          const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
+          if (!uploadRes.ok) {
+            toast.error(`Erro ao enviar documento: ${await uploadRes.text()}`);
+            return;
+          }
+          const uploaded = await uploadRes.json() as { id: string; nome: string };
+          if (original?.documentoAnexoId) {
+            fetch(`/api/arquivos/${original.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+          }
+          documentoAnexo = uploaded.nome;
+          documentoAnexoId = uploaded.id;
+        } else if (!form.documentoNome && original?.documentoAnexoId) {
+          fetch(`/api/arquivos/${original.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+          documentoAnexo = undefined;
+          documentoAnexoId = undefined;
+        }
+
         const res = await fetch(`/api/planos/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...basePayload, documentoAnexo, documentoAnexoId }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -242,17 +240,42 @@ export default function PlanoFormPage({ id }: { id?: string }) {
         toast.success("Plano atualizado com sucesso!");
         router.push(`/planos/${id}`);
       } else {
-        const res = await fetch("/api/planos", {
+        // CREATE: create plan first to get real ID, then upload document
+        const createRes = await fetch("/api/planos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(basePayload),
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
+        if (!createRes.ok) {
+          const err = await createRes.json().catch(() => ({}));
           toast.error((err as { error?: string }).error || "Erro ao criar plano");
           return;
         }
-        const created = await res.json();
+        let created = await createRes.json();
+
+        if (documentoFile) {
+          const fd = new FormData();
+          fd.append("file", documentoFile);
+          fd.append("entityType", "plano");
+          fd.append("entityId", created.id);
+          const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
+          if (!uploadRes.ok) {
+            // Plan created but document failed — navigate anyway, user can add later
+            toast.warning(`Plano criado, mas o documento não pôde ser anexado: ${await uploadRes.text()}`);
+            db.planos.save([...db.planos.load(), created]);
+            router.push("/planos");
+            return;
+          }
+          const uploaded = await uploadRes.json() as { id: string; nome: string };
+          // Link document to the newly created plan
+          const updateRes = await fetch(`/api/planos/${created.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...basePayload, documentoAnexo: uploaded.nome, documentoAnexoId: uploaded.id }),
+          });
+          if (updateRes.ok) created = await updateRes.json();
+        }
+
         db.planos.save([...db.planos.load(), created]);
         toast.success("Plano criado com sucesso!");
         router.push("/planos");
@@ -351,17 +374,11 @@ export default function PlanoFormPage({ id }: { id?: string }) {
 
       {/* ── Seção 1: Encontros Semanais (Eixos Formativos) ──────────────── */}
       <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Encontros Semanais</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Eixos formativos e etapas que estruturam os encontros do plano.
-            </p>
-          </div>
-          <Button type="button" variant="outline" size="sm" onClick={addEixo} className="h-7 text-xs shrink-0">
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Adicionar eixo
-          </Button>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-foreground">Encontros Semanais</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Direcionamentos para encontros
+          </p>
         </div>
 
         {form.eixos.length === 0 ? (
@@ -463,27 +480,19 @@ export default function PlanoFormPage({ id }: { id?: string }) {
             </span>
           </p>
         )}
+        <Button type="button" variant="outline" size="sm" onClick={addEixo} className="mt-3 h-7 text-xs w-full">
+          <Plus className="h-3.5 w-3.5 mr-1" />
+          Adicionar eixo
+        </Button>
       </div>
 
       {/* ── Seção 2: Retiros Comunitários ───────────────────────────────── */}
       <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Retiros Comunitários</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Retiros anuais previstos no plano formativo para toda a morada.
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => addRetiro("comunitario")}
-            className="h-7 text-xs shrink-0"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Adicionar retiro
-          </Button>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-foreground">Retiros Comunitários</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Direcionamentos para retiros comunitários
+          </p>
         </div>
 
         {retirosComunitarios.length === 0 ? (
@@ -511,27 +520,25 @@ export default function PlanoFormPage({ id }: { id?: string }) {
             </span>
           </p>
         )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addRetiro("comunitario")}
+          className="mt-3 h-7 text-xs w-full"
+        >
+          <Plus className="h-3.5 w-3.5 mr-1" />
+          Adicionar retiro comunitário
+        </Button>
       </div>
 
       {/* ── Seção 3: Retiros Pessoais ───────────────────────────────────── */}
       <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Retiros Pessoais</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Retiros trimestrais individuais previstos no plano formativo.
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => addRetiro("pessoal")}
-            className="h-7 text-xs shrink-0"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Adicionar retiro
-          </Button>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-foreground">Retiros Pessoais</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Direcionamentos para retiros pessoais
+          </p>
         </div>
 
         {retirosPessoais.length === 0 ? (
@@ -559,6 +566,16 @@ export default function PlanoFormPage({ id }: { id?: string }) {
             </span>
           </p>
         )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addRetiro("pessoal")}
+          className="mt-3 h-7 text-xs w-full"
+        >
+          <Plus className="h-3.5 w-3.5 mr-1" />
+          Adicionar retiro pessoal
+        </Button>
       </div>
 
       {/* ── Documento ───────────────────────────────────────────────────── */}
