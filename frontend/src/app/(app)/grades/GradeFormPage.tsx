@@ -269,13 +269,6 @@ export default function GradeFormPage({ id, role }: { id?: string; role: string 
     if (!form.planoId) return toast.error("Selecione o plano formativo.");
     if (!form.vigenciaInicio || !form.vigenciaFim)
       return toast.error("Datas de vigência são obrigatórias.");
-    for (const ec of eixosComFormacoes) {
-      for (const f of ec.formacoes) {
-        if (!f.tema.trim())
-          return toast.error(`Preencha o tema de todas as formações do eixo "${ec.eixoPlano.nome}".`);
-      }
-    }
-
     setSaving(true);
     const JSON_H = { "Content-Type": "application/json" };
     try {
