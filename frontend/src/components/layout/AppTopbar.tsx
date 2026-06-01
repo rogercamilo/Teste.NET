@@ -13,6 +13,7 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
+  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useTermos } from "@/lib/data-store";
@@ -121,16 +122,18 @@ export function AppTopbar() {
               <Fragment key={`${crumb.href}-${index}`}>
                 {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
                 <BreadcrumbItem className={!isLast ? "hidden md:block" : undefined}>
-                  <BreadcrumbLink
-                    render={<Link href={crumb.href} />}
-                    className={
-                      isLast
-                        ? "text-sm font-medium text-foreground hover:text-foreground"
-                        : "text-muted-foreground text-sm"
-                    }
-                  >
-                    {crumb.label}
-                  </BreadcrumbLink>
+                  {isLast ? (
+                    <BreadcrumbPage className="text-sm font-medium text-foreground">
+                      {crumb.label}
+                    </BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink
+                      render={<Link href={crumb.href} />}
+                      className="text-muted-foreground text-sm"
+                    >
+                      {crumb.label}
+                    </BreadcrumbLink>
+                  )}
                 </BreadcrumbItem>
               </Fragment>
             );
