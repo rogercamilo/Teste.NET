@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { useGrades, useFormacoes, usePlanos, useUsuarios, useEtapaLabels } from "@/lib/data-store";
+import { useGrades, useFormacoes, usePlanos, useUsuarios, useEtapaLabels, db } from "@/lib/data-store";
 import {
   MODALIDADE_LABELS,
+  isAdmin,
   type NivelFormativo,
   type GradeFormativa,
   type Eixo,
@@ -111,14 +111,12 @@ function emptyFormacao(): FormacaoInput {
   };
 }
 
-export default function GradeFormPage({ id }: { id?: string }) {
+export default function GradeFormPage({ id, role }: { id?: string; role: string }) {
   const router = useRouter();
-  const { data: session } = useSession();
-  const role = (session?.user as { role?: string })?.role ?? "formador_comunitario";
-  const isFormadorGeral = role === "formador_geral";
+  const canManageFormacoes = isAdmin(role);
 
-  const [grades, setGrades] = useGrades();
-  const [allFormacoes, setFormacoes] = useFormacoes();
+  const [grades] = useGrades();
+  const [allFormacoes] = useFormacoes();
   const [allPlanos] = usePlanos();
   const [allUsuarios] = useUsuarios();
   const etapaLabels = useEtapaLabels();
@@ -154,7 +152,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
     }
 
     // Inicializar eixos — aguarda planos carregarem (pode vir depois do grade)
-    if (isFormadorGeral && !eixosInitialized.current && allPlanos.length > 0) {
+    if (canManageFormacoes && !eixosInitialized.current && allPlanos.length > 0) {
       const plano = allPlanos.find((p) => p.id === g.planoId);
       if (plano && plano.eixos.length > 0) {
         const existingFormacoes = allFormacoes.filter((f) => f.gradeId === id);
@@ -179,7 +177,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
         );
       }
       eixosInitialized.current = true;
-    } else if (!isFormadorGeral) {
+    } else if (!canManageFormacoes) {
       eixosInitialized.current = true;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,7 +194,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
       planoId,
       nivelFormativo: plano?.nivelFormativo ?? prev.nivelFormativo,
     }));
-    if (isFormadorGeral && plano && plano.eixos.length > 0) {
+    if (canManageFormacoes && plano && plano.eixos.length > 0) {
       setEixosComFormacoes(
         plano.eixos.map((ep) => ({
           eixoPlano: ep,
@@ -268,72 +266,40 @@ export default function GradeFormPage({ id }: { id?: string }) {
 
   async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório.");
+    if (!form.planoId) return toast.error("Selecione o plano formativo.");
     if (!form.vigenciaInicio || !form.vigenciaFim)
       return toast.error("Datas de vigência são obrigatórias.");
-
     for (const ec of eixosComFormacoes) {
       for (const f of ec.formacoes) {
-        if (!f.tema.trim()) {
-          return toast.error(
-            `Preencha o tema de todas as formações do eixo "${ec.eixoPlano.nome}".`
-          );
-        }
+        if (!f.tema.trim())
+          return toast.error(`Preencha o tema de todas as formações do eixo "${ec.eixoPlano.nome}".`);
       }
     }
 
     setSaving(true);
+    const JSON_H = { "Content-Type": "application/json" };
     try {
       const plano = allPlanos.find((p) => p.id === form.planoId);
-      const entId = id ?? `g${Date.now()}`;
-      const today = new Date().toISOString().split("T")[0];
       const nivelFormativo = plano?.nivelFormativo ?? form.nivelFormativo;
-      const existing = isEditing ? grades.find((g) => g.id === id) : undefined;
 
-      let documentoAnexo = form.documentoNome || undefined;
-      let documentoAnexoId = form.documentoId || undefined;
+      const eixosPayload = eixosComFormacoes.length > 0
+        ? eixosComFormacoes.map((ec, idx) => ({
+            id: `e-${idx}`,
+            nome: ec.eixoPlano.nome,
+            descricao: ec.eixoPlano.objetivo ?? "",
+            ordem: idx + 1,
+            cor: EIXO_HEX[idx % EIXO_HEX.length],
+            eixoPlanoId: ec.eixoPlano.id,
+          }))
+        : form.eixos.split(";").map((n) => n.trim()).filter(Boolean).map((nome, i) => ({
+            id: `e-${i}`,
+            nome,
+            descricao: "",
+            ordem: i + 1,
+            cor: EIXO_HEX[i % EIXO_HEX.length],
+          }));
 
-      if (documentoFile) {
-        const fd = new FormData();
-        fd.append("file", documentoFile);
-        fd.append("entityType", "grade");
-        fd.append("entityId", entId);
-        const res = await fetch("/api/arquivos", { method: "POST", body: fd });
-        if (!res.ok) {
-          toast.error(`Erro ao enviar documento: ${await res.text()}`);
-          return;
-        }
-        const uploaded = await res.json() as { id: string; nome: string };
-        if (existing?.documentoAnexoId) {
-          fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-        }
-        documentoAnexo = uploaded.nome;
-        documentoAnexoId = uploaded.id;
-      } else if (!form.documentoNome && existing?.documentoAnexoId) {
-        fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-        documentoAnexo = undefined;
-        documentoAnexoId = undefined;
-      }
-
-      const eixos: Eixo[] =
-        eixosComFormacoes.length > 0
-          ? eixosComFormacoes.map((ec, idx) => ({
-              id: `e${entId}-${idx}`,
-              nome: ec.eixoPlano.nome,
-              descricao: ec.eixoPlano.objetivo,
-              gradeId: entId,
-              ordem: idx + 1,
-              cor: EIXO_HEX[idx % EIXO_HEX.length],
-              eixoPlanoId: ec.eixoPlano.id,
-            }))
-          : parseEixos(form.eixos, entId);
-
-      const totalFormacoes = eixosComFormacoes.reduce(
-        (sum, ec) => sum + ec.formacoes.length,
-        0
-      );
-
-      const payload: GradeFormativa = {
-        id: entId,
+      const basePayload = {
         nome: form.nome.trim(),
         planoId: form.planoId,
         planoNome: plano?.nome ?? "",
@@ -341,59 +307,151 @@ export default function GradeFormPage({ id }: { id?: string }) {
         vigenciaInicio: form.vigenciaInicio,
         vigenciaFim: form.vigenciaFim,
         versao: form.versao || "1.0",
-        eixos,
-        etapas: existing?.etapas ?? [],
-        totalFormacoes: totalFormacoes || (existing?.totalFormacoes ?? 0),
+        totalFormacoes: eixosComFormacoes.reduce((s, ec) => s + ec.formacoes.length, 0),
         objetivos: form.objetivos.trim() || undefined,
         fundamentacao: form.fundamentacao.trim() || undefined,
-        documentoAnexo,
-        documentoAnexoId,
         ativo: true,
-        criadoEm: existing?.criadoEm ?? today,
+        eixos: eixosPayload,
       };
 
-      if (isFormadorGeral && eixosComFormacoes.length > 0) {
-        let globalSeq = 0;
-        const novasFormacoes: Formacao[] = eixosComFormacoes.flatMap((ec, idx) =>
-          ec.formacoes.map((f) => {
-            globalSeq++;
-            return {
-              id: `fm${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              tema: f.tema.trim(),
-              objetivo: f.objetivo.trim(),
-              descricao: f.descricao.trim(),
-              nivelFormativo,
-              eixoId: eixos[idx].id,
-              eixoNome: ec.eixoPlano.nome,
-              formadorId: f.formadorId,
-              formadorNome: allUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
-              cargaHoraria: Number(f.cargaHoraria) || 2,
-              modalidade: f.modalidade,
-              tipoFormacao: "comunitaria" as const,
-              gradeId: entId,
-              gradeNome: form.nome.trim(),
-              numero: globalSeq,
-              observacoesFormador: f.observacoesFormador.trim() || undefined,
-              vezesUtilizada: 0,
-              criadoEm: today,
-            };
-          })
+      // Cria formações vinculadas à grade com IDs reais
+      async function criarFormacoes(gradeId: string, gradeEixos: Array<{ id: string; eixoPlanoId?: string }>) {
+        const eixoMap = new Map(gradeEixos.map((e) => [e.eixoPlanoId, e.id]));
+        let seq = 0;
+        const results = await Promise.all(
+          eixosComFormacoes.flatMap((ec) =>
+            ec.formacoes.map(async (f) => {
+              seq++;
+              const res = await fetch("/api/formacoes", {
+                method: "POST",
+                headers: JSON_H,
+                body: JSON.stringify({
+                  tema: f.tema.trim(),
+                  objetivo: f.objetivo.trim() || undefined,
+                  descricao: f.descricao.trim() || undefined,
+                  nivelFormativo,
+                  eixoId: eixoMap.get(ec.eixoPlano.id) || undefined,
+                  eixoNome: ec.eixoPlano.nome,
+                  formadorId: f.formadorId || undefined,
+                  formadorNome: allUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
+                  cargaHoraria: Number(f.cargaHoraria) || 2,
+                  modalidade: f.modalidade,
+                  tipoFormacao: "comunitaria",
+                  gradeId,
+                  gradeNome: form.nome.trim(),
+                  numero: seq,
+                  observacoesFormador: f.observacoesFormador.trim() || undefined,
+                }),
+              });
+              return res.ok ? res.json() : null;
+            })
+          )
         );
-        await setFormacoes((prev) => [
-          ...prev.filter((f) => f.gradeId !== entId),
-          ...novasFormacoes,
-        ]);
+        return results.filter(Boolean);
       }
 
       if (isEditing && id) {
-        await setGrades((prev) => prev.map((g) => (g.id === id ? payload : g)));
+        // ── EDIÇÃO ──────────────────────────────────────────────────────
+        const existing = grades.find((g) => g.id === id);
+        let documentoAnexo = form.documentoNome || undefined;
+        let documentoAnexoId = form.documentoId || undefined;
+
+        if (documentoFile) {
+          const fd = new FormData();
+          fd.append("file", documentoFile);
+          fd.append("entityType", "grade");
+          fd.append("entityId", id);
+          const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
+          if (!uploadRes.ok) {
+            toast.error(`Erro ao enviar documento: ${await uploadRes.text()}`);
+            return;
+          }
+          const uploaded = await uploadRes.json() as { id: string; nome: string };
+          if (existing?.documentoAnexoId) {
+            fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+          }
+          documentoAnexo = uploaded.nome;
+          documentoAnexoId = uploaded.id;
+        } else if (!form.documentoNome && existing?.documentoAnexoId) {
+          fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+          documentoAnexo = undefined;
+          documentoAnexoId = undefined;
+        }
+
+        const putRes = await fetch(`/api/grades/${id}`, {
+          method: "PUT",
+          headers: JSON_H,
+          body: JSON.stringify({ ...basePayload, documentoAnexo, documentoAnexoId }),
+        });
+        if (!putRes.ok) {
+          const err = await putRes.json().catch(() => ({}));
+          toast.error((err as { error?: string }).error || "Erro ao atualizar grade");
+          return;
+        }
+        const updated = await putRes.json();
+
+        if (canManageFormacoes && eixosComFormacoes.length > 0) {
+          // Remove formações antigas e recria com IDs reais
+          const existingForms = allFormacoes.filter((f) => f.gradeId === id);
+          await Promise.all(
+            existingForms.map((f) =>
+              fetch(`/api/formacoes/${f.id}`, { method: "DELETE" }).catch(() => null)
+            )
+          );
+          const novas = await criarFormacoes(id, updated.eixos);
+          db.formacoes.save([
+            ...db.formacoes.load().filter((f) => f.gradeId !== id),
+            ...novas,
+          ]);
+        }
+
+        db.grades.save(db.grades.load().map((g) => (g.id === id ? updated : g)));
         toast.success("Grade atualizada com sucesso!");
         router.push(`/grades/${id}`);
       } else {
-        await setGrades((prev) => [...prev, payload]);
+        // ── CRIAÇÃO ─────────────────────────────────────────────────────
+        const createRes = await fetch("/api/grades", {
+          method: "POST",
+          headers: JSON_H,
+          body: JSON.stringify(basePayload),
+        });
+        if (!createRes.ok) {
+          const err = await createRes.json().catch(() => ({}));
+          toast.error((err as { error?: string }).error || "Erro ao criar grade");
+          return;
+        }
+        let created = await createRes.json();
+
+        if (canManageFormacoes && eixosComFormacoes.length > 0) {
+          const novas = await criarFormacoes(created.id, created.eixos);
+          db.formacoes.save([...db.formacoes.load(), ...novas]);
+        }
+
+        if (documentoFile) {
+          const fd = new FormData();
+          fd.append("file", documentoFile);
+          fd.append("entityType", "grade");
+          fd.append("entityId", created.id);
+          const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
+          if (uploadRes.ok) {
+            const uploaded = await uploadRes.json() as { id: string; nome: string };
+            const updateRes = await fetch(`/api/grades/${created.id}`, {
+              method: "PUT",
+              headers: JSON_H,
+              body: JSON.stringify({ ...basePayload, documentoAnexo: uploaded.nome, documentoAnexoId: uploaded.id }),
+            });
+            if (updateRes.ok) created = await updateRes.json();
+          } else {
+            toast.warning("Grade criada, mas o documento não pôde ser anexado.");
+          }
+        }
+
+        db.grades.save([...db.grades.load(), created]);
         toast.success("Grade criada com sucesso!");
         router.push("/grades");
       }
+    } catch {
+      toast.error("Falha de rede. Verifique sua conexão e tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -591,7 +649,7 @@ export default function GradeFormPage({ id }: { id?: string }) {
       </div>
 
       {/* ── Eixos e Formações (card separado) ── */}
-      {isFormadorGeral && eixosComFormacoes.length > 0 && (
+      {canManageFormacoes && eixosComFormacoes.length > 0 && (
         <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6 space-y-4">
           <div>
             <p className="text-base font-semibold text-foreground">Eixos Formativos e Formações</p>
