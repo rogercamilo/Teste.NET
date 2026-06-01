@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanos, useEtapaLabels } from "@/lib/data-store";
+import { usePlanos, useEtapaLabels, db } from "@/lib/data-store";
 import {
   STATUS_PLANO_LABELS,
   type StatusPlano,
@@ -84,7 +84,7 @@ function makeRetiro(tipo: "comunitario" | "pessoal", numero: number, planoId = "
 
 export default function PlanoFormPage({ id }: { id?: string }) {
   const router = useRouter();
-  const [planos, setPlanos] = usePlanos();
+  const [planos] = usePlanos();
   const etapaLabels = useEtapaLabels();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
@@ -187,8 +187,6 @@ export default function PlanoFormPage({ id }: { id?: string }) {
 
     setSaving(true);
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const entId = id ?? `p${Date.now()}`;
       const original = isEditing ? planos.find((p) => p.id === id) : undefined;
 
       let documentoAnexo = form.documentoNome || undefined;
@@ -198,13 +196,13 @@ export default function PlanoFormPage({ id }: { id?: string }) {
         const fd = new FormData();
         fd.append("file", documentoFile);
         fd.append("entityType", "plano");
-        fd.append("entityId", entId);
-        const res = await fetch("/api/arquivos", { method: "POST", body: fd });
-        if (!res.ok) {
-          toast.error(`Erro ao enviar documento: ${await res.text()}`);
+        fd.append("entityId", id ?? `p${Date.now()}`);
+        const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
+        if (!uploadRes.ok) {
+          toast.error(`Erro ao enviar documento: ${await uploadRes.text()}`);
           return;
         }
-        const uploaded = await res.json() as { id: string; nome: string };
+        const uploaded = await uploadRes.json() as { id: string; nome: string };
         if (original?.documentoAnexoId) {
           fetch(`/api/arquivos/${original.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
         }
@@ -229,11 +227,33 @@ export default function PlanoFormPage({ id }: { id?: string }) {
       };
 
       if (isEditing && id) {
-        setPlanos((prev) => prev.map((p) => (p.id === id ? { ...p, ...payload, atualizadoEm: today } : p)));
+        const res = await fetch(`/api/planos/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          toast.error((err as { error?: string }).error || "Erro ao atualizar plano");
+          return;
+        }
+        const updated = await res.json();
+        db.planos.save(db.planos.load().map((p) => (p.id === id ? updated : p)));
         toast.success("Plano atualizado com sucesso!");
         router.push(`/planos/${id}`);
       } else {
-        setPlanos((prev) => [...prev, { id: entId, ...payload, criadoEm: today, atualizadoEm: today }]);
+        const res = await fetch("/api/planos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          toast.error((err as { error?: string }).error || "Erro ao criar plano");
+          return;
+        }
+        const created = await res.json();
+        db.planos.save([...db.planos.load(), created]);
         toast.success("Plano criado com sucesso!");
         router.push("/planos");
       }
