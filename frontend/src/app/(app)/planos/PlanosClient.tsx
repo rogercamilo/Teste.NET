@@ -256,7 +256,7 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
                             <span>{eixo.nomeEtapa || eixo.nome}</span>
                             {eixo.areaFormacao && (
                               <span className="text-muted-foreground opacity-70">
-                                · <span className="opacity-70">Área:</span> {eixo.areaFormacao}
+                                · <span className="opacity-70">Área formativa:</span> {eixo.areaFormacao}
                               </span>
                             )}
                           </div>
