@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -2799,7 +2799,7 @@ function SistemaTab() {
         </CardHeader>
         <CardContent className="pb-4 space-y-0">
           {[
-            { label: "Aplicativo", value: "Formatio" },
+            { label: "Aplicativo", value: "Formattio" },
             { label: "Versão do schema", value: "3" },
             { label: "Ambiente", value: "Desenvolvimento / Mock" },
             { label: "Armazenamento", value: "localStorage (navegador)" },

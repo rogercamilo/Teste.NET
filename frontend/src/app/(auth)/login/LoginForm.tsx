@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
@@ -87,8 +87,8 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
               </div>
             ) : (
               <img
-                src="/brand/formatio-symbol-mono-white.svg"
-                alt="Formatio"
+                src="/brand/Formattio-symbol-mono-white.svg"
+                alt="Formattio"
                 width={80}
                 height={80}
                 className="mx-auto"
@@ -118,8 +118,8 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
               />
             ) : (
               <img
-                src="/brand/formatio-symbol.svg"
-                alt="Formatio"
+                src="/brand/Formattio-symbol.svg"
+                alt="Formattio"
                 width={40}
                 height={40}
                 className="mr-2.5 shrink-0"

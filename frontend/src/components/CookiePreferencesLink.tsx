@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-const STORAGE_KEY = "formatio_cookie_consent";
+const STORAGE_KEY = "Formattio_cookie_consent";
 
 export default function CookiePreferencesLink() {
   function handleClick() {

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/types";
@@ -68,8 +68,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-xs text-muted-foreground">
               <p>
                 {sessionUser.role !== "super_admin" && (orgBranding.nomePlataforma || orgBranding.nome)
-                  ? <>{orgBranding.nomePlataforma || orgBranding.nome} · <span className="opacity-60">powered by Formatio</span></>
-                  : <>© {new Date().getFullYear()} Formatio</>
+                  ? <>{orgBranding.nomePlataforma || orgBranding.nome} · <span className="opacity-60">powered by Formattio</span></>
+                  : <>© {new Date().getFullYear()} Formattio</>
                 }
                 {" "}— Todos os direitos reservados.
               </p>

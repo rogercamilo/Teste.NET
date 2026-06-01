@@ -85,7 +85,7 @@ export default function ConviteForm({ token }: { token: string }) {
         <div className="w-full max-w-sm text-center">
           <img
             src="/brand/formatio-horizontal.svg"
-            alt="Formatio"
+            alt="Formattio"
             className="h-7 mx-auto mb-8"
           />
           <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
@@ -110,7 +110,7 @@ export default function ConviteForm({ token }: { token: string }) {
           <div className="mb-8">
             <img
               src="/brand/formatio-symbol-mono-white.svg"
-              alt="Formatio"
+              alt="Formattio"
               width={80}
               height={80}
               className="mx-auto"
@@ -124,7 +124,7 @@ export default function ConviteForm({ token }: { token: string }) {
             {convite?.orgNome}
           </p>
           <p className="text-sm text-white/60 leading-relaxed">
-            Crie sua senha e comece a usar o Formatio para acompanhar a jornada formativa da sua comunidade.
+            Crie sua senha e comece a usar o Formattio para acompanhar a jornada formativa da sua comunidade.
           </p>
         </div>
         <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-white/5 -translate-y-1/3 translate-x-1/3" />
@@ -137,12 +137,12 @@ export default function ConviteForm({ token }: { token: string }) {
         <div className="flex items-center justify-center mb-8 lg:hidden">
           <img
             src="/brand/formatio-symbol.svg"
-            alt="Formatio"
+            alt="Formattio"
             width={40}
             height={40}
             className="mr-2.5 shrink-0"
           />
-          <p className="font-semibold text-foreground text-sm leading-tight">Formatio</p>
+          <p className="font-semibold text-foreground text-sm leading-tight">Formattio</p>
         </div>
 
         <div className="w-full max-w-sm">
@@ -232,7 +232,7 @@ export default function ConviteForm({ token }: { token: string }) {
           </form>
 
           <p className="text-xs text-muted-foreground mt-6 text-center">
-            © {new Date().getFullYear()} Formatio
+            © {new Date().getFullYear()} Formattio
           </p>
         </div>
       </div>

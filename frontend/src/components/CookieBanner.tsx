@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Cookie, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const STORAGE_KEY = "formatio_cookie_consent";
-const SESSION_ID_KEY = "formatio_consent_session_id";
+const STORAGE_KEY = "Formattio_cookie_consent";
+const SESSION_ID_KEY = "Formattio_consent_session_id";
 const CONSENT_VERSION = "1";
 
 interface ConsentState {

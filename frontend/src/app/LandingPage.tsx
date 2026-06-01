@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -16,7 +16,7 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          <img src="/brand/formatio-horizontal-on-dark.svg" alt="Formatio" height={32} className="h-8 w-auto" />
+          <img src="/brand/Formattio-horizontal-on-dark.svg" alt="Formattio" height={32} className="h-8 w-auto" />
         </Link>
 
         {/* Desktop nav */}
@@ -96,7 +96,7 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
         </h1>
 
         <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Do cadastro ao acompanhamento das formações aplicadas, o Formatio centraliza toda a jornada formativa
+          Do cadastro ao acompanhamento das formações aplicadas, o Formattio centraliza toda a jornada formativa
           dos seus membros em uma plataforma simples, segura e em conformidade com a LGPD (Lei geral de proteção de dados).
         </p>
 
@@ -140,7 +140,7 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
                 <div key={i} className={`h-2.5 w-2.5 rounded-full ${c}`} />
               ))}
               <div className="ml-3 text-xs text-slate-500 bg-slate-800 rounded px-3 py-1">
-                app.formatio.com.br/dashboard
+                app.Formattio.com.br/dashboard
               </div>
             </div>
             <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -465,10 +465,10 @@ function Pricing() {
 const faqs = [
   {
     q: "O plano Gratuito expira?",
-    a: "Não. O plano Gratuito é permanente. Você pode usar o Formatio com 1 Grupo de formação e até 30 formandos por tempo indeterminado, sem cartão de crédito.",
+    a: "Não. O plano Gratuito é permanente. Você pode usar o Formattio com 1 Grupo de formação e até 30 formandos por tempo indeterminado, sem cartão de crédito.",
   },
   {
-    q: "O que é um 'Grupo de formação' no Formatio?",
+    q: "O que é um 'Grupo de formação' no Formattio?",
     a: "Um Grupo de formação é um conjunto de pessoas dentro da sua comunidade que percorrerão um caminho formativo. Cada grupo de formação tem seus próprios formandos, formador responsável, plano formativo e grade de conteúdos.",
   },
   {
@@ -477,11 +477,11 @@ const faqs = [
   },
   {
     q: "O que é a LGPD?",
-    a: "A LGPD é a lei que protege os dados pessoais e estabelece regras para que empresas utilizem essas informações com segurança, transparência e responsabilidade. Estar em conformidade com a LGPD ajuda a aumentar a confiança dos clientes, fortalecer a credibilidade da marca, evitar riscos jurídicos e multas, além de demonstrar profissionalismo e compromisso com a proteção dos dados dos usuários. O Formatio foi desenvolvido desde o início com foco na conformidade com a LGPD, garantindo que os dados dos seus formandos estejam protegidos e que sua organização esteja em conformidade com a legislação brasileira de proteção de dados.",
+    a: "A LGPD é a lei que protege os dados pessoais e estabelece regras para que empresas utilizem essas informações com segurança, transparência e responsabilidade. Estar em conformidade com a LGPD ajuda a aumentar a confiança dos clientes, fortalecer a credibilidade da marca, evitar riscos jurídicos e multas, além de demonstrar profissionalismo e compromisso com a proteção dos dados dos usuários. O Formattio foi desenvolvido desde o início com foco na conformidade com a LGPD, garantindo que os dados dos seus formandos estejam protegidos e que sua organização esteja em conformidade com a legislação brasileira de proteção de dados.",
   },
   {
     q: "Posso migrar meus dados de outra plataforma?",
-    a: "Sim. O Formatio possui importação via arquivo e exportação completa de dados em JSON a qualquer momento. Você nunca fica preso na plataforma.",
+    a: "Sim. O Formattio possui importação via arquivo e exportação completa de dados em JSON a qualquer momento. Você nunca fica preso na plataforma.",
   },
   {
     q: "Como funciona o upgrade de plano?",
@@ -580,7 +580,7 @@ function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center mb-3">
-              <img src="/brand/formatio-horizontal-on-dark.svg" alt="Formatio" height={28} className="h-7 w-auto" />
+              <img src="/brand/Formattio-horizontal-on-dark.svg" alt="Formattio" height={28} className="h-7 w-auto" />
             </Link>
             <p className="text-xs text-slate-500 leading-relaxed">
               Plataforma SaaS de gestão formativa para comunidades e organizações religiosas.
@@ -617,7 +617,7 @@ function Footer() {
         </div>
 
         <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-600">
-          <p>© {year} Formatio. Todos os direitos reservados.</p>
+          <p>© {year} Formattio. Todos os direitos reservados.</p>
           <p>Desenvolvido com ♥ para comunidades brasileiras.</p>
         </div>
       </div>

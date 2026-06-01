@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -151,7 +151,7 @@ export default function DashboardClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-base font-semibold">Cockpit — Formatio</h1>
+          <h1 className="text-base font-semibold">Cockpit — Formattio</h1>
           <p className="text-xs text-muted-foreground">Monitoramento técnico e operacional da plataforma</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} className="gap-1.5">

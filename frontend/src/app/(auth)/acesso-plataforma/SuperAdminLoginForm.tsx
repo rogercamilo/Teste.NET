@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
@@ -59,8 +59,8 @@ export default function SuperAdminLoginForm() {
             }
           </div>
           <img
-            src="/brand/formatio-symbol-mono-white.svg"
-            alt="Formatio"
+            src="/brand/Formattio-symbol-mono-white.svg"
+            alt="Formattio"
             width={32}
             height={32}
             className="mb-3 opacity-40"
@@ -69,7 +69,7 @@ export default function SuperAdminLoginForm() {
             {mfaRequired ? "Verificação em dois fatores" : "Acesso Restrito"}
           </h1>
           <p className="text-xs text-slate-500 mt-1 tracking-wide uppercase">
-            Plataforma Formatio · Administração
+            Plataforma Formattio · Administração
           </p>
         </div>
 
@@ -93,7 +93,7 @@ export default function SuperAdminLoginForm() {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="admin@formatio.app"
+                      placeholder="admin@Formattio.app"
                       className="pl-9 h-10 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-600 focus-visible:ring-red-500/30 focus-visible:border-red-500/50"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -180,7 +180,7 @@ export default function SuperAdminLoginForm() {
         </div>
 
         <p className="text-center text-xs text-slate-700 mt-6">
-          © {new Date().getFullYear()} Formatio · Acesso monitorado
+          © {new Date().getFullYear()} Formattio · Acesso monitorado
         </p>
       </div>
     </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Rota de retenção de dados — executada via cron job externo (Railway / Vercel Cron).
  *
  * O chamador deve enviar o header:
@@ -10,7 +10,7 @@
  *     (dados já foram anonimizados imediatamente na rota /api/conta/excluir)
  *
  * Exemplo de chamada (Railway cron):
- *   GET https://app.formatio.app/api/admin/retention
+ *   GET https://app.Formattio.app/api/admin/retention
  *   Authorization: Bearer <CRON_SECRET>
  */
 

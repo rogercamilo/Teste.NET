@@ -1,4 +1,4 @@
-import { Ratelimit } from "@upstash/ratelimit";
+﻿import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
 export interface RateLimitResult {
@@ -71,7 +71,7 @@ function getUpstashLimiter(configKey: string, limit: number, windowMs: number): 
       new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(limit, `${seconds} s`),
-        prefix: "formatio:rl",
+        prefix: "Formattio:rl",
       })
     );
   }

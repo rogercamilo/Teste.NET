@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sendInviteEmail } from "@/lib/email";
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       nome: nome.trim(),
       email: email.toLowerCase().trim(),
       inviteUrl,
-      orgNome: org?.nome ?? "Formatio",
+      orgNome: org?.nome ?? "Formattio",
     });
 
     logAction(

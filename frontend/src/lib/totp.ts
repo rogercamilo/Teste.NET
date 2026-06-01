@@ -1,4 +1,4 @@
-import { TOTP, NobleCryptoPlugin, ScureBase32Plugin } from "otplib";
+﻿import { TOTP, NobleCryptoPlugin, ScureBase32Plugin } from "otplib";
 
 const totp = new TOTP({
   crypto: new NobleCryptoPlugin(),
@@ -15,5 +15,5 @@ export async function verifyTotpToken(token: string, secret: string): Promise<bo
 }
 
 export function generateTotpUri(email: string, secret: string): string {
-  return totp.toURI({ label: email, issuer: "Formatio", secret });
+  return totp.toURI({ label: email, issuer: "Formattio", secret });
 }

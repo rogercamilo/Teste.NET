@@ -1,10 +1,10 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Shield } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidade — Formatio",
-  description: "Como a Formatio coleta, usa e protege seus dados pessoais em conformidade com a LGPD.",
+  title: "Política de Privacidade — Formattio",
+  description: "Como a Formattio coleta, usa e protege seus dados pessoais em conformidade com a LGPD.",
 };
 
 import { PRIVACY_VERSION } from "@/lib/legal-versions";
@@ -41,7 +41,7 @@ export default function PoliticaPrivacidadePage() {
             className="flex items-center gap-2 text-foreground font-semibold hover:opacity-80 transition-opacity"
           >
             <Shield className="h-5 w-5 text-primary" />
-            Formatio
+            Formattio
           </Link>
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
@@ -57,7 +57,7 @@ export default function PoliticaPrivacidadePage() {
         <div className="mb-10 max-w-3xl">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Política de Privacidade</h1>
           <p className="mt-3 text-muted-foreground leading-relaxed">
-            A <strong className="text-foreground">Formatio</strong> está comprometida com a proteção dos seus dados
+            A <strong className="text-foreground">Formattio</strong> está comprometida com a proteção dos seus dados
             pessoais em conformidade com a{" "}
             <strong className="text-foreground">Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>.
             Esta Política descreve como coletamos, usamos, armazenamos e compartilhamos seus dados, bem como os
@@ -99,16 +99,16 @@ export default function PoliticaPrivacidadePage() {
             <section id="estrutura-juridica" className="scroll-mt-20">
               <SectionHeader num="1" title="Estrutura Jurídica e Papéis no Tratamento" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
-                <p>A Formatio opera em duplo papel no ecossistema de proteção de dados:</p>
+                <p>A Formattio opera em duplo papel no ecossistema de proteção de dados:</p>
                 <ul>
                   <li>
                     <strong>Controladora</strong> — em relação aos dados dos{" "}
                     <em>administradores e usuários da plataforma</em> (nome, e-mail, senha, logs de acesso),
-                    a Formatio define as finalidades e os meios do tratamento.
+                    a Formattio define as finalidades e os meios do tratamento.
                   </li>
                   <li>
                     <strong>Operadora</strong> — em relação aos dados dos{" "}
-                    <em>formandos cadastrados pelas organizações</em> assinantes, a Formatio trata os dados
+                    <em>formandos cadastrados pelas organizações</em> assinantes, a Formattio trata os dados
                     segundo as instruções de cada organização, que é a Controladora desses dados.
                   </li>
                 </ul>
@@ -124,7 +124,7 @@ export default function PoliticaPrivacidadePage() {
               <SectionHeader num="2" title="Princípios Gerais de Tratamento (Art. 6º LGPD)" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  O tratamento de dados pessoais realizado pela Formatio observa os princípios previstos no
+                  O tratamento de dados pessoais realizado pela Formattio observa os princípios previstos no
                   art. 6º da LGPD, incluindo{" "}
                   <strong className="text-foreground">
                     finalidade, adequação, necessidade, livre acesso, qualidade dos dados, transparência,
@@ -154,7 +154,7 @@ export default function PoliticaPrivacidadePage() {
                   ))}
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  A Formatio adota os princípios de finalidade, adequação, necessidade e minimização previstos
+                  A Formattio adota os princípios de finalidade, adequação, necessidade e minimização previstos
                   no art. 6º da LGPD, limitando o tratamento aos dados estritamente necessários para a
                   prestação dos serviços disponibilizados. Os dados pessoais tratados não serão utilizados
                   para finalidades incompatíveis com as informadas nesta Política, salvo mediante nova base
@@ -181,11 +181,11 @@ export default function PoliticaPrivacidadePage() {
                     Colher consentimento específico e destacado dos titulares quando exigido, especialmente
                     para dados sensíveis (art. 11, I, LGPD).
                   </li>
-                  <li>Informar os titulares sobre o tratamento realizado pela organização e pela Formatio.</li>
+                  <li>Informar os titulares sobre o tratamento realizado pela organização e pela Formattio.</li>
                   <li>Atender às solicitações de direitos dos titulares encaminhadas à organização.</li>
                 </ul>
                 <p>
-                  A Formatio disponibiliza ferramentas técnicas para facilitar o cumprimento dessas obrigações
+                  A Formattio disponibiliza ferramentas técnicas para facilitar o cumprimento dessas obrigações
                   (exportação de dados, exclusão de registros, logs de auditoria), mas a responsabilidade
                   jurídica pelo tratamento dos dados de formandos é da organização assinante.
                 </p>
@@ -240,7 +240,7 @@ export default function PoliticaPrivacidadePage() {
               <SectionHeader num="5" title="Dados Pessoais Sensíveis" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
-                  A Formatio reconhece que organizações de formação comunitária, pastoral, vocacional ou
+                  A Formattio reconhece que organizações de formação comunitária, pastoral, vocacional ou
                   espiritual podem registrar informações enquadradas como{" "}
                   <strong>dados pessoais sensíveis</strong> nos termos do art. 5º, II, c/c arts. 7º e 11
                   da LGPD, tais como:
@@ -258,7 +258,7 @@ export default function PoliticaPrivacidadePage() {
                   por garantir a base legal adequada antes de inserir dados sensíveis na plataforma.
                 </p>
                 <p>
-                  A Formatio adota controles técnicos adicionais para dados sensíveis: acesso restrito por
+                  A Formattio adota controles técnicos adicionais para dados sensíveis: acesso restrito por
                   perfil, registros de auditoria específicos e criptografia em repouso na camada de
                   armazenamento (seção 9).
                 </p>
@@ -284,12 +284,12 @@ export default function PoliticaPrivacidadePage() {
                     legal, conforme o contexto.
                   </li>
                   <li>
-                    A Formatio <strong>não coleta diretamente</strong> dados de menores — esses dados são
+                    A Formattio <strong>não coleta diretamente</strong> dados de menores — esses dados são
                     inseridos pelas organizações assinantes, que são responsáveis por obter as autorizações
                     necessárias.
                   </li>
                   <li>
-                    Nenhuma funcionalidade da Formatio é direcionada a crianças para uso direto e autônomo.
+                    Nenhuma funcionalidade da Formattio é direcionada a crianças para uso direto e autônomo.
                   </li>
                 </ul>
               </div>
@@ -390,7 +390,7 @@ export default function PoliticaPrivacidadePage() {
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
-                    A Formatio adota medidas técnicas e organizacionais para proteger seus dados, incluindo:
+                    A Formattio adota medidas técnicas e organizacionais para proteger seus dados, incluindo:
                   </p>
                   <ul>
                     <li>
@@ -422,7 +422,7 @@ export default function PoliticaPrivacidadePage() {
                       restrito.
                     </li>
                     <li>
-                      A Formatio poderá exigir <strong>autenticação multifator (MFA)</strong> para contas
+                      A Formattio poderá exigir <strong>autenticação multifator (MFA)</strong> para contas
                       com privilégios administrativos ou acesso a funcionalidades críticas.
                     </li>
                     <li>
@@ -435,7 +435,7 @@ export default function PoliticaPrivacidadePage() {
                   {[
                     {
                       title: "Accountability",
-                      body: "A Formatio mantém registros e evidências das operações de tratamento de dados pessoais, medidas de segurança adotadas e registros de consentimento, em conformidade com os princípios de responsabilização e prestação de contas previstos na LGPD.",
+                      body: "A Formattio mantém registros e evidências das operações de tratamento de dados pessoais, medidas de segurança adotadas e registros de consentimento, em conformidade com os princípios de responsabilização e prestação de contas previstos na LGPD.",
                     },
                     {
                       title: "Revisão Periódica",
@@ -443,7 +443,7 @@ export default function PoliticaPrivacidadePage() {
                     },
                     {
                       title: "Continuidade Operacional",
-                      body: "A Formatio adota medidas de continuidade operacional e recuperação de desastres visando assegurar a disponibilidade, integridade e resiliência dos dados e serviços disponibilizados na plataforma.",
+                      body: "A Formattio adota medidas de continuidade operacional e recuperação de desastres visando assegurar a disponibilidade, integridade e resiliência dos dados e serviços disponibilizados na plataforma.",
                     },
                   ].map((card) => (
                     <div
@@ -464,7 +464,7 @@ export default function PoliticaPrivacidadePage() {
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Em caso de incidente de segurança que possa acarretar risco ou dano relevante aos titulares
-                  (vazamento, acesso não autorizado, perda ou alteração indevida de dados), a Formatio adotará
+                  (vazamento, acesso não autorizado, perda ou alteração indevida de dados), a Formattio adotará
                   as seguintes medidas:
                 </p>
                 <ul>
@@ -498,7 +498,7 @@ export default function PoliticaPrivacidadePage() {
               <SectionHeader num="11" title="Transferência Internacional de Dados" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  A Formatio utiliza subprocessadores localizados nos <strong className="text-foreground">Estados
+                  A Formattio utiliza subprocessadores localizados nos <strong className="text-foreground">Estados
                   Unidos</strong> e na <strong className="text-foreground">União Europeia</strong>. Toda
                   transferência internacional de dados pessoais é realizada com base em salvaguardas
                   adequadas, conforme art. 33 da LGPD:
@@ -547,7 +547,7 @@ export default function PoliticaPrivacidadePage() {
               <SectionHeader num="12" title="Compartilhamento de Dados" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
-                  A Formatio <strong>não comercializa</strong> dados pessoais. Compartilhamos dados somente
+                  A Formattio <strong>não comercializa</strong> dados pessoais. Compartilhamos dados somente
                   com os subprocessadores listados na seção 11, estritamente necessários à operação do
                   serviço, e com autoridades públicas quando exigido por lei ou ordem judicial.
                 </p>
@@ -652,14 +652,14 @@ export default function PoliticaPrivacidadePage() {
                       Formulário online
                     </Link>
                     <a
-                      href="mailto:privacidade@formatio.app"
+                      href="mailto:privacidade@Formattio.app"
                       className="flex items-center gap-2 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
-                      privacidade@formatio.app
+                      privacidade@Formattio.app
                     </a>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    A Formatio poderá solicitar informações adicionais para validação da identidade do
+                    A Formattio poderá solicitar informações adicionais para validação da identidade do
                     solicitante antes do atendimento de requisições relacionadas aos direitos dos titulares,
                     visando prevenir fraudes e acessos não autorizados.
                   </p>
@@ -672,7 +672,7 @@ export default function PoliticaPrivacidadePage() {
               <SectionHeader num="15" title="Canal de Privacidade e Proteção de Dados" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  A Formatio mantém um{" "}
+                  A Formattio mantém um{" "}
                   <strong className="text-foreground">Canal de Privacidade e Proteção de Dados</strong>{" "}
                   dedicado ao atendimento de questões relacionadas ao tratamento de dados pessoais. Não
                   possuímos Encarregado (DPO) formalmente designado nesta fase, mas o canal é monitorado
@@ -680,7 +680,7 @@ export default function PoliticaPrivacidadePage() {
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <a
-                    href="mailto:privacidade@formatio.app"
+                    href="mailto:privacidade@Formattio.app"
                     className="flex items-center gap-3 rounded-lg border border-border/60 bg-card/40 p-4 hover:bg-accent transition-colors group"
                   >
                     <div className="flex-none w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
@@ -691,7 +691,7 @@ export default function PoliticaPrivacidadePage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-foreground">E-mail</p>
-                      <p className="text-xs text-muted-foreground">privacidade@formatio.app</p>
+                      <p className="text-xs text-muted-foreground">privacidade@Formattio.app</p>
                     </div>
                   </a>
                   <Link
@@ -761,7 +761,7 @@ export default function PoliticaPrivacidadePage() {
 
       <footer className="border-t border-border/60 bg-card/50 mt-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} Formatio — Todos os direitos reservados.</span>
+          <span>© {new Date().getFullYear()} Formattio — Todos os direitos reservados.</span>
           <div className="flex gap-4">
             <Link href="/termos" className="hover:text-foreground transition-colors">Termos de Uso</Link>
             <Link href="/privacidade" className="hover:text-foreground transition-colors">Privacidade</Link>

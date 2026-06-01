@@ -1,4 +1,4 @@
-import { cache } from "react";
+﻿import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 export interface PublicBranding {
@@ -9,10 +9,10 @@ export interface PublicBranding {
 }
 
 const DEFAULT_BRANDING: PublicBranding = {
-  nome: "Formatio",
+  nome: "Formattio",
   nomePlataforma: null,
   logoUrl: null,
-  temaCor: "formatio",
+  temaCor: "Formattio",
 };
 
 // React.cache() deduplicates calls within a single request (layout + page share one DB hit)

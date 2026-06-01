@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import NextImage from "next/image";
@@ -96,8 +96,8 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
         <div className="flex items-center gap-2.5 px-2">
           {isSuperAdmin ? (
             <img
-              src="/brand/formatio-symbol.svg"
-              alt="Formatio"
+              src="/brand/Formattio-symbol.svg"
+              alt="Formattio"
               width={32}
               height={32}
               className="h-8 w-8 shrink-0"
@@ -119,13 +119,13 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
           <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
             {isSuperAdmin ? (
               <>
-                <span className="text-sm font-semibold text-foreground leading-tight truncate">Formatio</span>
+                <span className="text-sm font-semibold text-foreground leading-tight truncate">Formattio</span>
                 <span className="text-xs text-muted-foreground truncate">Plataforma</span>
               </>
             ) : (
               <>
                 <span className="text-sm font-semibold text-foreground leading-tight truncate">
-                  {nomePlataforma || comunidade.nome || "Formatio"}
+                  {nomePlataforma || comunidade.nome || "Formattio"}
                 </span>
                 {nomePlataforma && (
                   <span className="text-xs text-muted-foreground truncate">

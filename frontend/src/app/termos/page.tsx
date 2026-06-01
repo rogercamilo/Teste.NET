@@ -1,10 +1,10 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { FileText } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Termos de Uso — Formatio",
-  description: "Condições de uso da plataforma Formatio para organizações e usuários.",
+  title: "Termos de Uso — Formattio",
+  description: "Condições de uso da plataforma Formattio para organizações e usuários.",
 };
 
 import { TERMS_VERSION } from "@/lib/legal-versions";
@@ -47,7 +47,7 @@ export default function TermosDeUsoPage() {
             className="flex items-center gap-2 text-foreground font-semibold hover:opacity-80 transition-opacity"
           >
             <FileText className="h-5 w-5 text-primary" />
-            Formatio
+            Formattio
           </Link>
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
@@ -63,10 +63,10 @@ export default function TermosDeUsoPage() {
         <div className="mb-10 max-w-3xl">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Termos de Uso</h1>
           <p className="mt-3 text-muted-foreground leading-relaxed">
-            Ao utilizar a plataforma <strong className="text-foreground">Formatio</strong>, você concorda com os
+            Ao utilizar a plataforma <strong className="text-foreground">Formattio</strong>, você concorda com os
             presentes Termos de Uso. Leia com atenção antes de criar uma conta ou utilizar qualquer funcionalidade.
             Estes Termos foram elaborados para garantir uma relação transparente e juridicamente robusta entre a
-            Formatio e as organizações contratantes.
+            Formattio e as organizações contratantes.
           </p>
           <div className="mt-4 rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50/60 dark:bg-blue-950/20 px-4 py-3 text-sm text-blue-800 dark:text-blue-300">
             A plataforma destina-se exclusivamente a uso profissional e organizacional. Ao aceitar estes Termos,
@@ -105,7 +105,7 @@ export default function TermosDeUsoPage() {
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
-                    O uso da plataforma Formatio pressupõe a leitura e aceitação integral destes Termos. Caso não
+                    O uso da plataforma Formattio pressupõe a leitura e aceitação integral destes Termos. Caso não
                     concorde com qualquer disposição, não utilize o serviço. O aceite é registrado individualmente
                     por usuário, com versão e data/hora, em conformidade com a LGPD.
                   </p>
@@ -113,7 +113,7 @@ export default function TermosDeUsoPage() {
                 <div className="rounded-lg border border-border/60 bg-card/40 px-4 py-4 text-sm text-muted-foreground leading-relaxed">
                   O usuário reconhece que o aceite eletrônico destes Termos possui{" "}
                   <strong className="text-foreground">validade jurídica plena</strong>, nos termos da legislação
-                  brasileira aplicável, constituindo manifestação inequívoca de vontade. A Formatio poderá
+                  brasileira aplicável, constituindo manifestação inequívoca de vontade. A Formattio poderá
                   armazenar registros eletrônicos de aceite, incluindo data, hora, endereço IP, identificadores
                   de dispositivo, versão dos Termos aceitos e logs relacionados, para fins de auditoria,
                   segurança e comprovação.
@@ -126,7 +126,7 @@ export default function TermosDeUsoPage() {
               <SectionHeader num="2" title="Descrição do Serviço" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
-                  A Formatio é uma plataforma SaaS (Software as a Service) de gestão de formação comunitária.
+                  A Formattio é uma plataforma SaaS (Software as a Service) de gestão de formação comunitária.
                   Permite que organizações (doravante "<strong>Organização</strong>" ou "<strong>Tenant</strong>")
                   gerenciem formandos, moradas, planos formativos, presenças e documentos em ambiente com
                   segregação lógica completa de dados entre organizações distintas.
@@ -156,7 +156,7 @@ export default function TermosDeUsoPage() {
             <section id="elegibilidade" className="scroll-mt-20">
               <SectionHeader num="4" title="Elegibilidade" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
-                <p>Para utilizar a Formatio, você deve:</p>
+                <p>Para utilizar a Formattio, você deve:</p>
                 <ul>
                   <li>Ter ao menos 18 anos ou estar representando uma organização legalmente constituída.</li>
                   <li>Fornecer informações verdadeiras e atualizadas no cadastro.</li>
@@ -182,7 +182,7 @@ export default function TermosDeUsoPage() {
                   </li>
                 </ul>
                 <p>
-                  A Formatio não se responsabiliza por acessos não autorizados decorrentes de falha na guarda
+                  A Formattio não se responsabiliza por acessos não autorizados decorrentes de falha na guarda
                   das credenciais pelo usuário.
                 </p>
               </div>
@@ -198,7 +198,7 @@ export default function TermosDeUsoPage() {
                       label: "Trial",
                       badge: "14 dias grátis",
                       badgeClass: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
-                      desc: "Acesso ao plano Essencial sem necessidade de cartão de crédito. Contas em período de avaliação podem possuir limitações funcionais, ausência de SLA e disponibilidade reduzida de suporte técnico, a exclusivo critério da Formatio.",
+                      desc: "Acesso ao plano Essencial sem necessidade de cartão de crédito. Contas em período de avaliação podem possuir limitações funcionais, ausência de SLA e disponibilidade reduzida de suporte técnico, a exclusivo critério da Formattio.",
                     },
                     {
                       label: "Planos Pagos",
@@ -260,7 +260,7 @@ export default function TermosDeUsoPage() {
                       Utilizar a plataforma para desenvolvimento de produto concorrente
                     </strong>
                     , testes comparativos não autorizados ou coleta automatizada de informações comerciais,
-                    técnicas ou funcionais da Formatio.
+                    técnicas ou funcionais da Formattio.
                   </li>
                 </ul>
               </div>
@@ -272,7 +272,7 @@ export default function TermosDeUsoPage() {
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Organização é o <strong>controlador</strong> dos dados pessoais dos formandos que insere
-                  na plataforma. A Formatio atua como <strong>operadora</strong>, processando esses dados
+                  na plataforma. A Formattio atua como <strong>operadora</strong>, processando esses dados
                   exclusivamente conforme as instruções da Organização e nos termos do{" "}
                   <strong>DPA (Data Processing Agreement)</strong> aceito no momento do cadastro.
                 </p>
@@ -283,7 +283,7 @@ export default function TermosDeUsoPage() {
                   autorizações legais e cumprimento de deveres de transparência perante os titulares.
                 </p>
                 <p>
-                  Para detalhes sobre como a Formatio trata seus dados, consulte nossa{" "}
+                  Para detalhes sobre como a Formattio trata seus dados, consulte nossa{" "}
                   <Link href="/privacidade" className="text-primary hover:underline">
                     Política de Privacidade
                   </Link>
@@ -297,14 +297,14 @@ export default function TermosDeUsoPage() {
               <SectionHeader num="9" title="Propriedade Intelectual" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
-                  Todo o código-fonte, design, marca e conteúdo da plataforma Formatio são de propriedade
+                  Todo o código-fonte, design, marca e conteúdo da plataforma Formattio são de propriedade
                   exclusiva dos seus desenvolvedores. A assinatura concede uma licença de uso limitada, não
                   exclusiva e intransferível para utilização do serviço. Nenhum direito de propriedade
                   intelectual é transferido ao usuário.
                 </p>
                 <p>
                   Os dados inseridos pela Organização (formandos, planos, documentos) permanecem de
-                  propriedade da Organização. A Formatio não reivindica propriedade sobre esses dados.
+                  propriedade da Organização. A Formattio não reivindica propriedade sobre esses dados.
                 </p>
               </div>
             </section>
@@ -315,7 +315,7 @@ export default function TermosDeUsoPage() {
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
-                    A Formatio empenha-se em manter disponibilidade de <strong>99,9% ao mês</strong>.
+                    A Formattio empenha-se em manter disponibilidade de <strong>99,9% ao mês</strong>.
                     Manutenções programadas serão comunicadas com antecedência mínima de 24 horas.
                   </p>
                 </div>
@@ -332,7 +332,7 @@ export default function TermosDeUsoPage() {
                 </div>
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
-                    A Formatio <strong>não garante</strong> que:
+                    A Formattio <strong>não garante</strong> que:
                   </p>
                   <ul>
                     <li>o serviço será ininterrupto ou livre de erros;</li>
@@ -351,13 +351,13 @@ export default function TermosDeUsoPage() {
               <SectionHeader num="11" title="Segurança da Informação" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
-                  A Formatio adota medidas técnicas e administrativas razoáveis e compatíveis com o estado
+                  A Formattio adota medidas técnicas e administrativas razoáveis e compatíveis com o estado
                   da técnica para proteção dos dados tratados, incluindo controles de acesso, criptografia
                   quando aplicável, segregação lógica entre organizações e monitoramento de segurança.
                 </p>
                 <p>
                   Nenhum sistema é integralmente imune a falhas ou incidentes de segurança, razão pela qual
-                  a Formatio <strong>não garante segurança absoluta</strong> contra invasões, ações
+                  a Formattio <strong>não garante segurança absoluta</strong> contra invasões, ações
                   maliciosas ou eventos externos imprevisíveis.
                 </p>
                 <p>
@@ -377,7 +377,7 @@ export default function TermosDeUsoPage() {
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
-                    A Formatio realiza rotinas periódicas de backup para fins de continuidade operacional,
+                    A Formattio realiza rotinas periódicas de backup para fins de continuidade operacional,
                     sem garantia de recuperação integral em todos os cenários.
                   </p>
                   <p>
@@ -413,7 +413,7 @@ export default function TermosDeUsoPage() {
                   plataforma à época da solicitação.
                 </p>
                 <p>
-                  A Formatio não se obriga a disponibilizar exportações em formatos específicos não previstos
+                  A Formattio não se obriga a disponibilizar exportações em formatos específicos não previstos
                   na plataforma ou a manter funcionalidades de exportação inalteradas ao longo do tempo.
                 </p>
               </div>
@@ -424,7 +424,7 @@ export default function TermosDeUsoPage() {
               <SectionHeader num="14" title="Subprocessadores" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
-                  A Formatio poderá utilizar provedores terceirizados ("<strong>suboperadores</strong>" ou
+                  A Formattio poderá utilizar provedores terceirizados ("<strong>suboperadores</strong>" ou
                   "<strong>subprocessadores</strong>") para hospedagem, processamento de pagamentos, envio
                   de e-mails, monitoramento e infraestrutura tecnológica, observados padrões adequados de
                   segurança e proteção de dados.
@@ -449,14 +449,14 @@ export default function TermosDeUsoPage() {
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
-                    A Formatio poderá manter registros de acesso, logs operacionais e trilhas de auditoria,
+                    A Formattio poderá manter registros de acesso, logs operacionais e trilhas de auditoria,
                     nos termos da legislação aplicável, para fins de segurança, prevenção a fraudes,
                     investigação de incidentes e cumprimento de obrigações legais.
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-card/40 px-4 py-4 text-sm text-muted-foreground leading-relaxed">
                   <strong className="text-foreground">Validade probatória:</strong> Registros eletrônicos,
-                  logs sistêmicos e evidências digitais mantidos pela Formatio poderão ser utilizados como{" "}
+                  logs sistêmicos e evidências digitais mantidos pela Formattio poderão ser utilizados como{" "}
                   <strong className="text-foreground">meio válido de prova</strong> em processos
                   administrativos ou judiciais, nos termos da legislação brasileira aplicável.
                 </div>
@@ -469,7 +469,7 @@ export default function TermosDeUsoPage() {
               <div className="space-y-4">
                 <div className="rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50/60 dark:bg-red-950/20 px-4 py-4">
                   <p className="text-sm font-semibold text-red-800 dark:text-red-300 mb-3">
-                    Em nenhuma hipótese a Formatio será responsável por:
+                    Em nenhuma hipótese a Formattio será responsável por:
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {[
@@ -497,7 +497,7 @@ export default function TermosDeUsoPage() {
                 </div>
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
-                    A responsabilidade total da Formatio, quando comprovada judicialmente, ficará limitada ao{" "}
+                    A responsabilidade total da Formattio, quando comprovada judicialmente, ficará limitada ao{" "}
                     <strong>
                       montante efetivamente pago pela Organização nos 12 meses anteriores
                     </strong>{" "}
@@ -516,7 +516,7 @@ export default function TermosDeUsoPage() {
               <SectionHeader num="17" title="Indenização" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
-                  A Organização compromete-se a indenizar e manter a Formatio indene de quaisquer
+                  A Organização compromete-se a indenizar e manter a Formattio indene de quaisquer
                   reclamações, perdas, danos, custos, sanções, penalidades ou despesas decorrentes:
                 </p>
                 <ul>
@@ -536,7 +536,7 @@ export default function TermosDeUsoPage() {
               <SectionHeader num="18" title="Força Maior e Caso Fortuito" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
-                  A Formatio não será responsabilizada por falhas ou atrasos decorrentes de eventos de força
+                  A Formattio não será responsabilizada por falhas ou atrasos decorrentes de eventos de força
                   maior ou caso fortuito, incluindo falhas de energia, interrupções de provedores de
                   infraestrutura, ataques cibernéticos em larga escala, desastres naturais, atos
                   governamentais, greves ou eventos fora de seu controle razoável.
@@ -549,12 +549,12 @@ export default function TermosDeUsoPage() {
               <SectionHeader num="19" title="Suspensão Preventiva e Rescisão" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
-                  A Formatio poderá <strong>suspender preventivamente</strong> o acesso à plataforma quando
+                  A Formattio poderá <strong>suspender preventivamente</strong> o acesso à plataforma quando
                   identificar indícios de atividade suspeita, risco à segurança, tentativa de fraude,
                   comprometimento de credenciais ou uso que possa afetar a estabilidade da infraestrutura.
                 </p>
                 <p>
-                  A Formatio reserva-se o direito de suspender ou encerrar contas que violem estes Termos,
+                  A Formattio reserva-se o direito de suspender ou encerrar contas que violem estes Termos,
                   sem aviso prévio em casos graves (atividade ilegal, abuso comprovado). Em casos de
                   inadimplência, o processo segue o disposto na cláusula 6.
                 </p>
@@ -600,7 +600,7 @@ export default function TermosDeUsoPage() {
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Dúvidas sobre estes Termos podem ser enviadas para{" "}
-                  <strong>contato@formatio.app</strong> ou pelo canal de suporte disponível na plataforma.
+                  <strong>contato@Formattio.app</strong> ou pelo canal de suporte disponível na plataforma.
                 </p>
               </div>
             </section>
@@ -620,7 +620,7 @@ export default function TermosDeUsoPage() {
 
       <footer className="border-t border-border/60 bg-card/50 mt-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} Formatio — Todos os direitos reservados.</span>
+          <span>© {new Date().getFullYear()} Formattio — Todos os direitos reservados.</span>
           <div className="flex gap-4">
             <Link href="/termos" className="hover:text-foreground transition-colors">
               Termos de Uso

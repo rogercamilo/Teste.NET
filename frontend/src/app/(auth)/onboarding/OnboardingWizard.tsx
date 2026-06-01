@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -83,7 +83,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
 
   // Step 2 — visual identity
   const [logo, setLogo] = useState<string | null>(org.logoUrl);
-  const [themeKey, setThemeKey] = useState(org.temaCor ?? "formatio");
+  const [themeKey, setThemeKey] = useState(org.temaCor ?? "Formattio");
 
   // Step 3 — plan
   const [plano, setPlano] = useState(org.planoAssinatura ?? "GRATUITO");
@@ -210,8 +210,8 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
         {/* Header */}
         <div className="text-center mb-8">
           <img
-            src="/brand/formatio-horizontal.svg"
-            alt="Formatio"
+            src="/brand/Formattio-horizontal.svg"
+            alt="Formattio"
             className="h-8 mx-auto mb-6"
           />
           <h1 className="text-2xl font-bold text-foreground">Vamos configurar sua plataforma</h1>

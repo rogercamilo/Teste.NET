@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -65,15 +65,15 @@ export default function RegistroForm() {
         <div className="relative z-10 flex flex-col items-center text-center text-primary-foreground max-w-sm">
           <div className="mb-8">
             <img
-              src="/brand/formatio-symbol-mono-white.svg"
-              alt="Formatio"
+              src="/brand/Formattio-symbol-mono-white.svg"
+              alt="Formattio"
               width={80}
               height={80}
               className="mx-auto"
             />
           </div>
           <h1 className="text-3xl font-bold leading-tight mb-3">
-            Formatio
+            Formattio
           </h1>
           <p className="text-base text-white/90 font-medium mb-4">Gestão formativa para comunidades</p>
           <p className="text-sm text-white/60 leading-relaxed">
@@ -97,13 +97,13 @@ export default function RegistroForm() {
         {/* Mobile logo */}
         <div className="flex items-center justify-center mb-8 lg:hidden">
           <img
-            src="/brand/formatio-symbol.svg"
-            alt="Formatio"
+            src="/brand/Formattio-symbol.svg"
+            alt="Formattio"
             width={40}
             height={40}
             className="mr-2.5 shrink-0"
           />
-          <p className="font-semibold text-foreground text-sm leading-tight">Formatio</p>
+          <p className="font-semibold text-foreground text-sm leading-tight">Formattio</p>
         </div>
 
         <div className="w-full max-w-sm py-8">

@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+﻿import { Resend } from "resend";
 import nodemailer from "nodemailer";
 import { loadSmtpConfig, isSmtpReady, type SmtpConfig } from "./smtp-config";
 import { loadEmailTemplate, buildEmailHtml } from "./email-template";
@@ -19,7 +19,7 @@ function safeUrl(url: string): string {
 
 // Resend takes priority over SMTP when RESEND_API_KEY is set
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const RESEND_FROM = process.env.RESEND_FROM ?? "noreply@formatio.app";
+const RESEND_FROM = process.env.RESEND_FROM ?? "noreply@Formattio.app";
 
 async function sendViaResend(
   to: string,
@@ -122,7 +122,7 @@ export async function sendInviteEmail({
       </p>
     </div>
   `;
-  return send(organizacaoId, email, `Convite para ${orgNome.replace(/[\r\n]/g, "")} — Formatio`, html);
+  return send(organizacaoId, email, `Convite para ${orgNome.replace(/[\r\n]/g, "")} — Formattio`, html);
 }
 
 export async function sendAccountDeletionEmail({
@@ -139,14 +139,14 @@ export async function sendAccountDeletionEmail({
     <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
       <h2 style="color: #dc2626;">Conta encerrada</h2>
       <p>Olá, <strong>${safeName}</strong>.</p>
-      <p>Sua conta na plataforma <strong>Formatio</strong> foi encerrada conforme solicitado.</p>
+      <p>Sua conta na plataforma <strong>Formattio</strong> foi encerrada conforme solicitado.</p>
       <p>Seus dados pessoais foram anonimizados imediatamente. Logs de auditoria são mantidos por 12 meses conforme exigência legal.</p>
-      <p>Se não solicitou esta exclusão, entre em contato imediatamente com <a href="mailto:privacidade@formatio.app">privacidade@formatio.app</a>.</p>
+      <p>Se não solicitou esta exclusão, entre em contato imediatamente com <a href="mailto:privacidade@Formattio.app">privacidade@Formattio.app</a>.</p>
       <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-      <p style="color: #999; font-size: 12px;">Formatio — plataforma de gestão formativa</p>
+      <p style="color: #999; font-size: 12px;">Formattio — plataforma de gestão formativa</p>
     </div>
   `;
-  return send(organizacaoId, email, "Sua conta Formatio foi encerrada", html);
+  return send(organizacaoId, email, "Sua conta Formattio foi encerrada", html);
 }
 
 export async function sendCredentialResetEmail({
@@ -171,7 +171,7 @@ export async function sendCredentialResetEmail({
     <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
       <h2 style="color: #d97706;">Redefinição de acesso</h2>
       <p>Olá, <strong>${safeName}</strong>.</p>
-      <p>O suporte da plataforma <strong>Formatio</strong> redefiniu as credenciais de acesso da organização <strong>${safeOrg}</strong> a pedido do responsável.</p>
+      <p>O suporte da plataforma <strong>Formattio</strong> redefiniu as credenciais de acesso da organização <strong>${safeOrg}</strong> a pedido do responsável.</p>
       <p>Utilize a senha temporária abaixo para acessar a plataforma. Você será solicitado(a) a alterá-la imediatamente no primeiro acesso.</p>
       <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:16px;margin:24px 0;text-align:center;">
         <p style="margin:0 0 6px;font-size:12px;color:#92400e;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Senha Temporária</p>
@@ -186,11 +186,11 @@ export async function sendCredentialResetEmail({
       <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px 16px;margin:16px 0;">
         <p style="margin:0;font-size:13px;color:#991b1b;">
           <strong>Atenção:</strong> Se você não solicitou esta redefinição, entre em contato imediatamente com o suporte em
-          <a href="mailto:suporte@formatio.app" style="color:#991b1b;">suporte@formatio.app</a>.
+          <a href="mailto:suporte@Formattio.app" style="color:#991b1b;">suporte@Formattio.app</a>.
         </p>
       </div>
       <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-      <p style="color:#999;font-size:12px;">Formatio — plataforma de gestão formativa</p>
+      <p style="color:#999;font-size:12px;">Formattio — plataforma de gestão formativa</p>
     </div>
   `;
   return send(organizacaoId, email, `Redefinição de acesso — ${orgNome.replace(/[\r\n]/g, "")}`, html);

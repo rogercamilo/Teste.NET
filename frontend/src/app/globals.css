@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -49,7 +49,7 @@
 }
 
 :root {
-  /* Formatio · Conceito H · Travessia — clay/terracota brand palette */
+  /* Formattio · Conceito H · Travessia — clay/terracota brand palette */
   --background: oklch(0.98 0.006 75);    /* #FBF8F4 warm white */
   --foreground: oklch(0.22 0.022 50);    /* #2A1E16 */
   --card: oklch(1.00 0 0);              /* #FFFFFF */

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Centralized environment variable validation.
  * Fails fast at startup with a clear, actionable error message.
  * Server-side only — never import this from client components.
@@ -43,7 +43,7 @@ const schema = z
 
     // Resend (alternative transactional email)
     RESEND_API_KEY: z.string().optional(),
-    RESEND_FROM: z.string().default("noreply@formatio.app"),
+    RESEND_FROM: z.string().default("noreply@Formattio.app"),
 
     // Cloudflare R2 — optional; all four required if any is set
     R2_ACCOUNT_ID: z.string().optional(),

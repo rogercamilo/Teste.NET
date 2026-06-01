@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -269,7 +269,7 @@ export default function SuperAdminClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-base font-semibold">Super Admin — Formatio</h1>
+          <h1 className="text-base font-semibold">Super Admin — Formattio</h1>
           <p className="text-xs text-muted-foreground">Gestão do negócio, contratos e compliance</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} className="gap-1.5">

@@ -1,4 +1,4 @@
-export interface ThemePalette {
+﻿export interface ThemePalette {
   key: string;
   label: string;
   preview: string;
@@ -36,7 +36,7 @@ function mkPalette(
 
 export const THEME_PALETTES: ThemePalette[] = [
   mkPalette(
-    "formatio", "Formatio", "#B25433",
+    "Formattio", "Formattio", "#B25433",
     "oklch(0.55 0.135 36)",
     "oklch(0.95 0.020 60)",
     "oklch(0.22 0.022 50)"

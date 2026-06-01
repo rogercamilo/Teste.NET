@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { loadSmtpConfig, isSmtpReady } from "@/lib/smtp-config";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -53,12 +53,12 @@ export async function POST(request: Request) {
     await transporter.sendMail({
       from,
       to,
-      subject: "Teste de conexão SMTP — Formatio",
+      subject: "Teste de conexão SMTP — Formattio",
       html: `
         <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f9fafb;border-radius:12px;">
           <h2 style="margin:0 0 12px;color:#1d4ed8;font-size:20px;">✅ Conexão SMTP confirmada</h2>
           <p style="margin:0 0 12px;color:#374151;font-size:15px;line-height:1.6;">
-            Este e-mail confirma que o servidor SMTP está corretamente configurado no Formatio.
+            Este e-mail confirma que o servidor SMTP está corretamente configurado no Formattio.
           </p>
           <p style="margin:0;color:#9ca3af;font-size:13px;">
             Enviado em ${new Date().toLocaleString("pt-BR")}

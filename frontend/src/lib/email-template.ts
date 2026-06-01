@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Email template — stored per-tenant in ConfiguracaoOrg.emailTemplate (PostgreSQL).
  * Falls back to DEFAULT_EMAIL_TEMPLATE when no DB record exists.
  * NEVER import this module in client components — uses Prisma (Node.js only).
@@ -22,10 +22,10 @@ export interface EmailTemplate {
 }
 
 export const DEFAULT_EMAIL_TEMPLATE: EmailTemplate = {
-  assunto: "Bem-vindo(a) ao Formatio",
+  assunto: "Bem-vindo(a) ao Formattio",
   saudacao: "Olá, {{primeiroNome}}!",
   mensagem1:
-    "É com grande alegria que damos as boas-vindas à sua nova missão como Formador Comunitário no Formatio.",
+    "É com grande alegria que damos as boas-vindas à sua nova missão como Formador Comunitário no Formattio.",
   mensagem2:
     "A sua dedicação é fundamental para o crescimento e amadurecimento da nossa comunidade. Contamos com o seu compromisso e testemunho nesta bela missão.",
   passos: [
@@ -159,7 +159,7 @@ export function buildEmailHtml(template: EmailTemplate, vars: TemplateVars): str
           <tr>
             <td style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);padding:40px 40px 32px;text-align:center;">
               <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:1px;">Plataforma Formativa</p>
-              <h1 style="margin:0;font-size:26px;font-weight:700;color:#ffffff;line-height:1.2;">Formatio</h1>
+              <h1 style="margin:0;font-size:26px;font-weight:700;color:#ffffff;line-height:1.2;">Formattio</h1>
             </td>
           </tr>
 

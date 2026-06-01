@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -17,7 +17,7 @@ interface Usage {
   storage: UsageMetric;
 }
 
-const DISMISS_KEY = "formatio_quota_banner_dismissed";
+const DISMISS_KEY = "Formattio_quota_banner_dismissed";
 const WARNING_THRESHOLD = 80;
 const DANGER_THRESHOLD = 95;
 
