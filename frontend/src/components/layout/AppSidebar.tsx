@@ -124,11 +124,11 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
               </>
             ) : (
               <>
-                <span className="text-sm font-semibold text-foreground leading-tight truncate">
+                <span className="text-sm font-semibold text-foreground leading-tight break-words">
                   {nomePlataforma || comunidade.nome || "Formattio"}
                 </span>
                 {nomePlataforma && (
-                  <span className="text-xs text-muted-foreground truncate">
+                  <span className="text-xs text-muted-foreground break-words">
                     {comunidade.nome || ""}
                   </span>
                 )}
