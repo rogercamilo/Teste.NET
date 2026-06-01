@@ -270,7 +270,7 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
                         )}
                         {nRetirosP > 0 && (
                           <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-medium">
-                            {nRetirosP} Retiro{nRetirosP !== 1 ? "s" : ""} pessoal{nRetirosP !== 1 ? "is" : ""}
+                            {nRetirosP} Retiro{nRetirosP !== 1 ? "s" : ""} pessoa{nRetirosP !== 1 ? "is" : ""}
                           </div>
                         )}
                       </div>
