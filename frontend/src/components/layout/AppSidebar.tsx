@@ -93,7 +93,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2.5 px-2 justify-center">
+        <div className="flex items-center gap-2.5 px-2">
           {isSuperAdmin ? (
             <img
               src="/brand/Formattio-symbol.svg"
@@ -124,7 +124,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
               </>
             ) : (
               <>
-                <span className="text-sm font-semibold text-foreground leading-tight break-words">
+                <span className="text-sm font-semibold text-foreground leading-tight break-words text-center">
                   {nomePlataforma || comunidade.nome || "Formattio"}
                 </span>
                 {nomePlataforma && (
