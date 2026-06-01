@@ -250,7 +250,9 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
                     </div>
 
                     {plano.eixos.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-3">
+                      <div className="mt-3">
+                      <p className="text-xs text-muted-foreground mb-1.5">Eixos Formativos</p>
+                      <div className="flex flex-wrap gap-1.5">
                         {plano.eixos.map((eixo) => (
                           <div key={eixo.id} className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
                             <span>{eixo.nomeEtapa || eixo.nome}</span>
@@ -268,6 +270,7 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
                             {nRetirosP > 0 && <span>{nRetirosP} pessoal{nRetirosP !== 1 ? "is" : ""}</span>}
                           </div>
                         )}
+                      </div>
                       </div>
                     )}
 
