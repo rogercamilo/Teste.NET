@@ -109,7 +109,7 @@ async function syncToApi<T extends { id: string }>(
 // ---------------------------------------------------------------------------
 // Generic API-backed hook
 // ---------------------------------------------------------------------------
-type Setter<T> = (updater: T[] | ((prev: T[]) => T[])) => void;
+type Setter<T> = (updater: T[] | ((prev: T[]) => T[])) => Promise<void>;
 
 function useApiEntity<T extends { id: string }>(
   endpoint: string,
@@ -134,7 +134,7 @@ function useApiEntity<T extends { id: string }>(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endpoint]);
 
-  const setter: Setter<T> = (updater) => {
+  const setter: Setter<T> = async (updater) => {
     const prev = prevRef.current;
     const next = typeof updater === "function" ? updater(prev) : updater;
 
@@ -143,16 +143,13 @@ function useApiEntity<T extends { id: string }>(
     prevRef.current = next;
     dbEntity.save(next);
 
-    // Background API sync + server refresh
-    syncToApi(endpoint, prev, next)
-      .then((fresh) => {
-        if (fresh) {
-          setItems(fresh);
-          prevRef.current = fresh;
-          dbEntity.save(fresh);
-        }
-      })
-      .catch(() => {/* keep optimistic state */});
+    // Await API sync so callers can navigate only after persistence is confirmed
+    const fresh = await syncToApi(endpoint, prev, next).catch(() => null);
+    if (fresh) {
+      setItems(fresh);
+      prevRef.current = fresh;
+      dbEntity.save(fresh);
+    }
   };
 
   return [items, setter];
@@ -188,6 +185,7 @@ export function useHistorico(): [HistoricoFormando[], Setter<HistoricoFormando>]
       db.historico.save(next);
       return next;
     });
+    return Promise.resolve();
   };
   return [s, setter];
 }

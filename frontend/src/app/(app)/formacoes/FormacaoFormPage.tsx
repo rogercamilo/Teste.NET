@@ -216,11 +216,11 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
       };
 
       if (isEditing && id) {
-        setFormacoes((prev) => prev.map((f) => (f.id === id ? payload : f)));
+        await setFormacoes((prev) => prev.map((f) => (f.id === id ? payload : f)));
         toast.success("Formação atualizada com sucesso!");
         router.push(`/formacoes/${id}`);
       } else {
-        setFormacoes((prev) => [...prev, payload]);
+        await setFormacoes((prev) => [...prev, payload]);
         toast.success("Formação criada com sucesso!");
         router.push("/formacoes");
       }

@@ -257,6 +257,8 @@ export default function PlanoFormPage({ id }: { id?: string }) {
         toast.success("Plano criado com sucesso!");
         router.push("/planos");
       }
+    } catch {
+      toast.error("Falha de rede. Verifique sua conexão e tente novamente.");
     } finally {
       setSaving(false);
     }

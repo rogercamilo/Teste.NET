@@ -379,18 +379,18 @@ export default function GradeFormPage({ id }: { id?: string }) {
             };
           })
         );
-        setFormacoes((prev) => [
+        await setFormacoes((prev) => [
           ...prev.filter((f) => f.gradeId !== entId),
           ...novasFormacoes,
         ]);
       }
 
       if (isEditing && id) {
-        setGrades((prev) => prev.map((g) => (g.id === id ? payload : g)));
+        await setGrades((prev) => prev.map((g) => (g.id === id ? payload : g)));
         toast.success("Grade atualizada com sucesso!");
         router.push(`/grades/${id}`);
       } else {
-        setGrades((prev) => [...prev, payload]);
+        await setGrades((prev) => [...prev, payload]);
         toast.success("Grade criada com sucesso!");
         router.push("/grades");
       }

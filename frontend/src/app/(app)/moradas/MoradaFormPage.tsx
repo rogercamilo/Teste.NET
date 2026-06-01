@@ -145,7 +145,7 @@ export default function MoradaFormPage() {
         criadoEm: today,
       };
 
-      setMoradas((prev) => [...prev, payload]);
+      await setMoradas((prev) => [...prev, payload]);
       toast.success(
         hasFormador
           ? `${termoMorada} criada com sucesso!`
