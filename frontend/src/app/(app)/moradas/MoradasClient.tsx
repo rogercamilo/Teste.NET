@@ -214,7 +214,7 @@ export default function MoradasClient() {
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
-          placeholder="Buscar morada..."
+          placeholder={`Buscar ${termoMorada.toLowerCase()}...`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-8 h-9 text-sm"
@@ -224,7 +224,7 @@ export default function MoradasClient() {
       {filtered.length === 0 && (
         <div className="flex flex-col items-center py-16 text-center">
           <Home className="h-12 w-12 text-muted-foreground/30 mb-3" />
-          <p className="font-medium text-foreground">Nenhuma morada encontrada</p>
+          <p className="font-medium text-foreground">Nenhuma {termoMorada.toLowerCase()} encontrada</p>
         </div>
       )}
 
@@ -350,7 +350,7 @@ export default function MoradasClient() {
               <Input
                 value={form.nome}
                 onChange={(e) => set("nome")(e.target.value)}
-                placeholder="Morada São João Bosco"
+                placeholder={`Ex.: ${termoMorada} São João Bosco`}
               />
             </div>
 
@@ -424,7 +424,7 @@ export default function MoradasClient() {
               </Select>
               {!form.formadorId && !editing && (
                 <p className="text-xs text-amber-600">
-                  Sem formador, a morada será criada como inativa.
+                  Sem formador, a {termoMorada.toLowerCase()} será criada como inativa.
                 </p>
               )}
             </div>

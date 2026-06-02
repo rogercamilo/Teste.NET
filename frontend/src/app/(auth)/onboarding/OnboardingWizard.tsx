@@ -431,34 +431,34 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="termoMorada">Grupo de formação <span className="font-normal text-muted-foreground">(Ex: "Morada", "Célula")</span></Label>
-                <Input id="termoMorada" value={termoMorada} onChange={(e) => setTermoMorada(e.target.value)} placeholder="Grupo de Formação" className="h-10" />
+                <Input id="termoMorada" value={termoMorada} onChange={(e) => setTermoMorada(e.target.value)} className="h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="termoFormando">Membro do grupo <span className="font-normal text-muted-foreground">(Ex: "Formando")</span></Label>
-                <Input id="termoFormando" value={termoFormando} onChange={(e) => setTermoFormando(e.target.value)} placeholder="Formando" className="h-10" />
+                <Input id="termoFormando" value={termoFormando} onChange={(e) => setTermoFormando(e.target.value)} className="h-10" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="termoFormador">Responsável pelo grupo <span className="font-normal text-muted-foreground">(Ex: "Formador Comunitário")</span></Label>
-                <Input id="termoFormador" value={termoFormador} onChange={(e) => setTermoFormador(e.target.value)} placeholder="Formador Comunitário" className="h-10" />
+                <Label htmlFor="termoFormador">Responsável pelo grupo <span className="font-normal text-muted-foreground">(Ex: "Formador Comunitário", "Formador")</span></Label>
+                <Input id="termoFormador" value={termoFormador} onChange={(e) => setTermoFormador(e.target.value)}  className="h-10" />
               </div>
               <div className="border-t border-border pt-3">
                 <p className="text-xs font-medium text-foreground mb-3">Etapas do percurso formativo</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="termoPreDiscipulado">1.ª etapa</Label>
-                    <Input id="termoPreDiscipulado" value={termoPreDiscipulado} onChange={(e) => setTermoPreDiscipulado(e.target.value)} placeholder="Pré-Discipulado" className="h-10" />
+                    <Label htmlFor="termoPreDiscipulado">1.ª etapa <span className="font-normal text-muted-foreground">(Ex: "Postulantado", "Pré-Discipulado")</span></Label>
+                    <Input id="termoPreDiscipulado" value={termoPreDiscipulado} onChange={(e) => setTermoPreDiscipulado(e.target.value)} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="termoDiscipulado">2.ª etapa</Label>
-                    <Input id="termoDiscipulado" value={termoDiscipulado} onChange={(e) => setTermoDiscipulado(e.target.value)} placeholder="Discipulado" className="h-10" />
+                    <Input id="termoDiscipulado" value={termoDiscipulado} onChange={(e) => setTermoDiscipulado(e.target.value)} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="termoPrimeirasPromessas">3.ª etapa</Label>
-                    <Input id="termoPrimeirasPromessas" value={termoPrimeirasPromessas} onChange={(e) => setTermoPrimeirasPromessas(e.target.value)} placeholder="Primeiras Promessas" className="h-10" />
+                    <Label htmlFor="termoPrimeirasPromessas">3.ª etapa </Label>
+                    <Input id="termoPrimeirasPromessas" value={termoPrimeirasPromessas} onChange={(e) => setTermoPrimeirasPromessas(e.target.value)} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="termoFormacaoPermanente">4.ª etapa</Label>
-                    <Input id="termoFormacaoPermanente" value={termoFormacaoPermanente} onChange={(e) => setTermoFormacaoPermanente(e.target.value)} placeholder="Formação Permanente" className="h-10" />
+                    <Label htmlFor="termoFormacaoPermanente">4.ª etapa <span className="font-normal text-muted-foreground">(Ex: "Formação Permanente")</span></Label>
+                    <Input id="termoFormacaoPermanente" value={termoFormacaoPermanente} onChange={(e) => setTermoFormacaoPermanente(e.target.value)} className="h-10" />
                   </div>
                 </div>
               </div>
@@ -476,7 +476,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="moradaNome">Nome do grupo de formação</Label>
-                <Input id="moradaNome" placeholder="Ex: Morada São João" value={moradaNome} onChange={(e) => setMoradaNome(e.target.value)} className="h-10" />
+                <Input id="moradaNome" placeholder={`Ex: ${termoMorada || "Grupo de Formação"} São João`} value={moradaNome} onChange={(e) => setMoradaNome(e.target.value)} className="h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="moradaLocalReuniao">Local de reunião</Label>

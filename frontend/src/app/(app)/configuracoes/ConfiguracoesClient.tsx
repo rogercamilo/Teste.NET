@@ -1863,7 +1863,7 @@ function ComunidadeTab() {
             <p className="text-xs font-medium text-muted-foreground">Prévia na navegação</p>
             <div className="flex flex-wrap gap-2">
               {[
-                { emoji: "🏠", label: `${form.termoMorada?.trim() || "Morada"}s` },
+                { emoji: "🏠", label: `${form.termoMorada?.trim() || "Grupo de Formação"}s` },
                 { emoji: "👥", label: `${form.termoFormando?.trim() || "Formando"}s` },
               ].map(({ emoji, label }) => (
                 <span
@@ -2742,6 +2742,7 @@ function EmailTab() {
 /* ─── TAB: SISTEMA ──────────────────────────────────────────────── */
 
 function SistemaTab() {
+  const { morada: termoMorada } = useTermos();
   const [resetOpen, setResetOpen] = useState(false);
   const [counts] = useState(() => ({
     formandos: db.formandos.load().length,
@@ -2828,7 +2829,7 @@ function SistemaTab() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
               { label: "Formandos", count: counts.formandos },
-              { label: "Moradas", count: counts.moradas },
+              { label: `${termoMorada}s`, count: counts.moradas },
               { label: "Usuários", count: counts.usuarios },
               { label: "Planos", count: counts.planos },
               { label: "Grades", count: counts.grades },

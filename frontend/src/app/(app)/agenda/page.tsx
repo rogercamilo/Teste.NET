@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { useAgendamentos, useFormacoes, useMoradas } from "@/lib/data-store";
+import { useAgendamentos, useFormacoes, useMoradas, useTermos } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -121,6 +121,7 @@ function AgendamentoFormDialog({
 }) {
   const [formacoes] = useFormacoes();
   const [allMoradas] = useMoradas();
+  const { morada: termoMorada } = useTermos();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
@@ -250,14 +251,14 @@ function AgendamentoFormDialog({
 
           {!isFC && allMoradas.length > 0 && (
             <div className="grid gap-1.5">
-              <Label>Morada</Label>
+              <Label>{termoMorada}</Label>
               <Select
                 value={form.moradaId}
                 onValueChange={(v) => v && set("moradaId")(v)}
                 items={Object.fromEntries(allMoradas.map((m) => [m.id, m.nome]))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar morada (opcional)..." />
+                  <SelectValue placeholder={`Selecionar ${termoMorada.toLowerCase()} (opcional)...`} />
                 </SelectTrigger>
                 <SelectContent>
                   {allMoradas.map((m) => (

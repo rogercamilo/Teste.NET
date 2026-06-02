@@ -147,6 +147,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [allAgendamentos] = useAgendamentos();
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
+  const termoMorada = comunidade.termoMorada?.trim() || "Grupo de Formação";
 
   // Inicializa a morada a partir do cache reativo (não substitui edições locais)
   useEffect(() => {
@@ -202,7 +203,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   if (!morada) {
     return (
       <div className="flex flex-col items-center py-20">
-        <p className="text-muted-foreground">Morada não encontrada.</p>
+        <p className="text-muted-foreground">{termoMorada} não encontrada.</p>
         <Link href="/moradas" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-4")}>
           Voltar
         </Link>
@@ -304,7 +305,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     setMorada(updated);
     db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
     setEditOpen(false);
-    toast.success("Morada atualizada!");
+    toast.success(`${termoMorada} atualizada!`);
   }
 
   function handleSalvarPresenca() {
@@ -536,7 +537,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "mb-3 -ml-1 text-muted-foreground")}
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
-          Moradas
+          {termoMorada}s
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -849,7 +850,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                 <Users className="h-10 w-10 text-muted-foreground/40 mb-3" />
                 <p className="text-sm font-medium text-muted-foreground">
                   {formandosDaMorada.length === 0
-                    ? `Nenhum ${termoFormando.toLowerCase()} nesta morada`
+                    ? `Nenhum ${termoFormando.toLowerCase()} nesta ${termoMorada.toLowerCase()}`
                     : "Nenhum resultado encontrado"}
                 </p>
                 {formandosDaMorada.length === 0 && (
@@ -1133,7 +1134,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar Morada</DialogTitle>
+            <DialogTitle>Editar {termoMorada}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
@@ -1171,7 +1172,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
               <p>{NIVEL_ICONS[morada.nivelFormativo]} {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Esta ação registará a data de encerramento da etapa atual na morada e em todos os formandos associados. Após o encerramento, o botão <span className="font-medium text-foreground">Nova Etapa</span> ficará disponível.
+              Esta ação registará a data de encerramento da etapa atual na {termoMorada.toLowerCase()} e em todos os {termoFormando.toLowerCase()}s associados. Após o encerramento, o botão <span className="font-medium text-foreground">Nova Etapa</span> ficará disponível.
             </p>
           </div>
           <DialogFooter className="gap-2">
@@ -1356,7 +1357,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             <div className="grid gap-1.5">
               <Label>Etapa Formativa</Label>
               <Input value={NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]} disabled className="bg-muted/50" />
-              <p className="text-xs text-muted-foreground">Definida automaticamente pela morada.</p>
+              <p className="text-xs text-muted-foreground">Definida automaticamente pela {termoMorada.toLowerCase()}.</p>
             </div>
           </div>
           <DialogFooter className="gap-2">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TrendingUp, AlertTriangle } from "lucide-react";
+import { useTermos } from "@/lib/data-store";
 
 interface UsageMetric {
   current: number;
@@ -63,6 +64,7 @@ function UsageBar({ label, metric, formatValue }: {
 }
 
 export default function PlanUsage() {
+  const { morada: termoMorada } = useTermos();
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -104,7 +106,7 @@ export default function PlanUsage() {
       </div>
 
       <div className="space-y-4">
-        <UsageBar label="Moradas" metric={usage.moradas} />
+        <UsageBar label={`${termoMorada}s`} metric={usage.moradas} />
         <UsageBar label="Formandos" metric={usage.formandos} />
         <UsageBar label="Armazenamento" metric={usage.storage} formatValue={formatBytes} />
       </div>

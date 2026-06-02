@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, X } from "lucide-react";
+import { useTermos } from "@/lib/data-store";
 
 interface UsageMetric {
   current: number;
@@ -27,6 +28,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function QuotaWarningBanner({ role }: { role?: string }) {
+  const { morada: termoMorada } = useTermos();
   const [usage, setUsage] = useState<Usage | null>(null);
   const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
 
@@ -53,7 +55,7 @@ export default function QuotaWarningBanner({ role }: { role?: string }) {
   if (!canSee || dismissed || !usage) return null;
 
   const metrics = [
-    { label: "Moradas", metric: usage.moradas, format: (v: number) => String(v) },
+    { label: `${termoMorada}s`, metric: usage.moradas, format: (v: number) => String(v) },
     { label: "Formandos", metric: usage.formandos, format: (v: number) => String(v) },
     { label: "Armazenamento", metric: usage.storage, format: formatBytes },
   ];

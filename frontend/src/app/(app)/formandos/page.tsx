@@ -122,7 +122,7 @@ export default function FormandosPage() {
   const [formandos, setFormandos] = useFormandos();
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
-  const termoMorada = comunidade.termoMorada?.trim() || "Morada";
+  const termoMorada = comunidade.termoMorada?.trim() || "Grupo de Formação";
   const etapaLabels = useEtapaLabels();
   const [allMoradas, setAllMoradas] = useMoradas();
   const [allGrades] = useGrades();
@@ -519,7 +519,7 @@ export default function FormandosPage() {
               </div>
             </div>
             <div className="grid gap-1.5">
-              <Label>Morada</Label>
+              <Label>{termoMorada}</Label>
               <Select
                 value={form.moradaId}
                 onValueChange={(v) => {
@@ -529,7 +529,7 @@ export default function FormandosPage() {
                 }}
                 items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, `${m.nome} — ${etapaLabels[m.nivelFormativo]}`]))}
               >
-                <SelectTrigger><SelectValue placeholder="Selecione a morada..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={`Selecione a ${termoMorada.toLowerCase()}...`} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhuma</SelectItem>
                   {allMoradas.filter((m) => m.ativo).map((m) => (

@@ -57,7 +57,7 @@ function buildBreadcrumbs(pathname: string, morada: string): BreadcrumbSegment[]
     grades:     { parent: "Pedagógico",        parentHref: "/planos",    label: "Grades Formativas"   },
     formacoes:  { parent: "Pedagógico",        parentHref: "/formacoes", label: "Formações"           },
     formandos:  { parent: "Gestão",            parentHref: "/formandos", label: "Formandos"           },
-    moradas:    { parent: "Gestão",            parentHref: "/moradas",   label: "Moradas"             },
+    moradas:    { parent: "Gestão",            parentHref: "/moradas",   label: `${morada}s`          },
     documentos: { parent: "Gestão",            parentHref: "/moradas",   label: "Documentos"          },
     presenca:   { parent: `Minha ${morada}`,   parentHref: "/presenca",  label: "Gestão de Presença"  },
     comentarios:{ parent: `Minha ${morada}`,   parentHref: "/presenca",  label: "Comentários"         },
@@ -67,7 +67,7 @@ function buildBreadcrumbs(pathname: string, morada: string): BreadcrumbSegment[]
     planos:    { novo: "Novo Plano",     editar: "Editar Plano"     },
     grades:    { novo: "Nova Grade",     editar: "Editar Grade"     },
     formacoes: { novo: "Nova Formação",  editar: "Editar Formação"  },
-    moradas:   { nova: "Nova Morada"                                },
+    moradas:   { nova: `Nova ${morada}`                             },
   };
 
   const section = sectionMap[root];
