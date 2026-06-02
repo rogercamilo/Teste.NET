@@ -221,7 +221,7 @@ export interface Termos {
 export function useTermos(): Termos {
   const [comunidade] = useComunidade();
   return {
-    morada: comunidade.termoMorada?.trim() || "Morada",
+    morada: comunidade.termoMorada?.trim() || "Grupo de Formação",
     formando: comunidade.termoFormando?.trim() || "Formando",
     formador: comunidade.termoFormador?.trim() || "Formador Comunitário",
   };

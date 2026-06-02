@@ -42,7 +42,7 @@ model Organizacao {
   endereco             String?
   missao               String?
   anoFundacao          String?
-  termoMorada               String            @default("Morada")
+  termoMorada               String            @default("Grupo de Formação")
   termoFormando             String            @default("Formando")
   termoFormador             String            @default("Formador Comunitário")
   termoPreDiscipulado       String            @default("Pré-Discipulado")

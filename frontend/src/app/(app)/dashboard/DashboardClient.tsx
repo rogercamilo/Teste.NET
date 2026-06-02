@@ -32,6 +32,7 @@ import { ptBR } from "date-fns/locale";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useTermos } from "@/lib/data-store";
 
 // ── Paleta ─────────────────────────────────────────────────────────────────
 
@@ -88,7 +89,7 @@ const EMPTY_STATS: DashboardStats = {
 };
 
 const PERFIL_SUBTITULO: Record<PerfilUsuario, string> = {
-  formador_comunitario: "Visão da sua morada",
+  formador_comunitario: "",
   formador_geral: "Visão geral da organização",
   administrador: "Visão geral da organização",
   super_admin: "Plataforma",
@@ -107,11 +108,14 @@ interface Props {
 
 export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada }: Props) {
   const router = useRouter();
+  const termos = useTermos();
   const stats = rawStats ?? EMPTY_STATS;
   const isFC = perfil === "formador_comunitario";
   const isAdmin = perfil === "formador_geral" || perfil === "administrador";
 
-  const subtitulo = isFC && moradaNome ? moradaNome : PERFIL_SUBTITULO[perfil];
+  const subtitulo = isFC
+    ? (moradaNome ?? `Visão da sua ${termos.morada.toLowerCase()}`)
+    : PERFIL_SUBTITULO[perfil];
 
   if (semMorada) {
     return (
@@ -119,7 +123,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Visão da sua morada —{" "}
+            Visão da sua {termos.morada.toLowerCase()} —{" "}
             {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
@@ -127,9 +131,9 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
           <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
             <Home className="h-7 w-7 text-muted-foreground/60" />
           </div>
-          <h2 className="text-base font-semibold text-foreground mb-1">Sem morada atribuída</h2>
+          <h2 className="text-base font-semibold text-foreground mb-1">Sem {termos.morada.toLowerCase()} atribuída</h2>
           <p className="text-sm text-muted-foreground max-w-sm">
-            Você ainda não foi associado a uma morada. Entre em contacto com o administrador da sua organização para ser incluído numa morada.
+            Você ainda não foi associado a uma {termos.morada.toLowerCase()}. Entre em contacto com o administrador da sua organização para ser incluído numa {termos.morada.toLowerCase()}.
           </p>
         </div>
       </div>
@@ -240,9 +244,9 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               <CardContent className="pt-5 pb-4 px-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total de Moradas</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total de {termos.morada}s</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats.totalMoradas ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Comunidades formativas ativas</p>
+                    <p className="text-xs text-muted-foreground mt-1">{termos.morada}s cadastradas</p>
                   </div>
                   <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
                     <Home className="h-4.5 w-4.5 text-violet-600" />
@@ -257,7 +261,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                   <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planos Formativos</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats.totalPlanosAtivos ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Moradas com plano em vigor</p>
+                    <p className="text-xs text-muted-foreground mt-1">{termos.morada}s com plano em vigor</p>
                   </div>
                   <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center">
                     <FileText className="h-4.5 w-4.5 text-blue-600" />
@@ -272,9 +276,9 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
             {(["moradasSemPlano", "moradasComGradeExpirada", "fcsSemMorada"] as const).map((key) => {
               const val = stats[key] ?? 0;
               const labels: Record<typeof key, { title: string; sub: string }> = {
-                moradasSemPlano: { title: "Moradas sem plano", sub: "Aguardando planejamento formativo" },
-                moradasComGradeExpirada: { title: "Moradas sem grade vigente", sub: "Requerem nova programação" },
-                fcsSemMorada: { title: "Formadores sem morada", sub: "Aguardando atribuição de morada" },
+                moradasSemPlano: { title: `${termos.morada}s sem plano`, sub: "Aguardando planejamento formativo" },
+                moradasComGradeExpirada: { title: `${termos.morada}s sem grade vigente`, sub: "Requerem nova programação" },
+                fcsSemMorada: { title: `Formadores sem ${termos.morada.toLowerCase()}`, sub: `Aguardando atribuição de ${termos.morada.toLowerCase()}` },
               };
               const hasAlert = val > 0;
               return (
@@ -344,7 +348,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
 
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-foreground">Formandos por Nível</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">{termos.formando}s por Nível</CardTitle>
           </CardHeader>
           <CardContent>
             {stats.porNivel.length > 0 ? (
@@ -376,7 +380,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
             ) : (
               <div className="flex flex-col items-center py-8 text-center">
                 <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">Nenhum formando cadastrado</p>
+                <p className="text-sm text-muted-foreground">Nenhum {termos.formando.toLowerCase()} cadastrado</p>
               </div>
             )}
           </CardContent>
@@ -431,7 +435,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                 <CardTitle className="text-sm font-semibold text-foreground">Funil Formativo</CardTitle>
                 <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
                   <Users className="h-3.5 w-3.5 mr-1" />
-                  {stats.totalFormandos} formandos
+                  {stats.totalFormandos} {termos.formando.toLowerCase()}s
                 </Link>
               </div>
             </CardHeader>
@@ -439,7 +443,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               {stats.porNivel.length === 0 ? (
                 <div className="flex flex-col items-center py-6 text-center">
                   <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhum formando cadastrado</p>
+                  <p className="text-sm text-muted-foreground">Nenhum {termos.formando.toLowerCase()} cadastrado</p>
                 </div>
               ) : (
                 stats.porNivel.map((item) => (
@@ -478,7 +482,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                 <CardTitle className="text-sm font-semibold text-foreground">Funil Formativo</CardTitle>
                 <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
                   <Users className="h-3.5 w-3.5 mr-1" />
-                  {stats.totalFormandos} formandos
+                  {stats.totalFormandos} {termos.formando.toLowerCase()}s
                 </Link>
               </div>
             </CardHeader>
@@ -486,7 +490,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               {stats.porNivel.length === 0 ? (
                 <div className="flex flex-col items-center py-6 text-center">
                   <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhum formando cadastrado</p>
+                  <p className="text-sm text-muted-foreground">Nenhum {termos.formando.toLowerCase()} cadastrado</p>
                 </div>
               ) : (
                 stats.porNivel.map((item) => (
@@ -529,14 +533,14 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               </div>
               <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
                 <Users className="h-3.5 w-3.5 mr-1" />
-                Ver formandos
+                Ver {termos.formando.toLowerCase()}s
               </Link>
             </div>
           </CardHeader>
           <CardContent>
             {/* Cabeçalho das colunas */}
             <div className="hidden sm:grid sm:grid-cols-[1fr_90px_90px_100px] gap-2 mb-2 px-1">
-              <span className="text-xs text-muted-foreground font-medium">Formando</span>
+              <span className="text-xs text-muted-foreground font-medium">{termos.formando}</span>
               {PERSPECTIVAS.map((p) => (
                 <span key={p} className="text-xs text-muted-foreground font-medium text-center">
                   {PERSPECTIV_LABELS[p]}
@@ -594,7 +598,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                   <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-semibold text-red-700">
-                      {criticos.length} formando{criticos.length > 1 ? "s" : ""} com presença crítica (&lt;50%)
+                      {criticos.length} {termos.formando.toLowerCase()}{criticos.length > 1 ? "s" : ""} com presença crítica (&lt;50%)
                     </p>
                     <p className="text-xs text-red-600 mt-0.5">
                       {criticos.map((f) => f.nome).join(", ")}
@@ -642,7 +646,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
       {isAdmin && (stats.moradasResumo?.length ?? 0) > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">Moradas</h2>
+            <h2 className="text-sm font-semibold text-foreground">{termos.morada}s</h2>
             <Link href="/moradas" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
               Ver todas
             </Link>
@@ -709,7 +713,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
-                    {m.formandosAtivos} de {m.totalFormandos} ativos
+                    {m.formandosAtivos} de {m.totalFormandos} {termos.formando.toLowerCase()}s ativos
                   </span>
                   {m.formadorNome && (
                     <span className="flex items-center gap-1 truncate max-w-[40%]">

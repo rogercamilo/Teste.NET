@@ -1754,12 +1754,12 @@ function ComunidadeTab() {
           <div className="grid gap-2">
             <Label>
               Grupo de formação{" "}
-              <span className="font-normal text-muted-foreground text-xs">(padrão: "Morada")</span>
+              <span className="font-normal text-muted-foreground text-xs">(padrão: "Grupo de Formação")</span>
             </Label>
             <Input
               value={form.termoMorada ?? ""}
               onChange={(e) => handleChange("termoMorada", e.target.value)}
-              placeholder="Morada"
+              placeholder="Grupo de Formação"
               className="max-w-xs h-9 text-sm"
             />
             <p className="text-xs text-muted-foreground">

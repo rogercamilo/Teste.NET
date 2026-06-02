@@ -431,7 +431,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="termoMorada">Grupo de formação <span className="font-normal text-muted-foreground">(Ex: "Morada", "Célula")</span></Label>
-                <Input id="termoMorada" value={termoMorada} onChange={(e) => setTermoMorada(e.target.value)} placeholder="Morada" className="h-10" />
+                <Input id="termoMorada" value={termoMorada} onChange={(e) => setTermoMorada(e.target.value)} placeholder="Grupo de Formação" className="h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="termoFormando">Membro do grupo <span className="font-normal text-muted-foreground">(Ex: "Formando")</span></Label>
