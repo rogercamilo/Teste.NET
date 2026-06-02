@@ -184,10 +184,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Realizadas</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.totalRealizadas}</p>
-                <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  Ótimo resultado
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Este mês</p>
               </div>
               <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center">
                 <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
@@ -202,7 +199,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Canceladas</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.totalCanceladas}</p>
-                <p className="text-xs text-muted-foreground mt-1">No período</p>
+                <p className="text-xs text-muted-foreground mt-1">Este mês</p>
               </div>
               <div className="h-9 w-9 rounded-xl bg-red-50 flex items-center justify-center">
                 <XCircle className="h-4.5 w-4.5 text-red-500" />
@@ -224,7 +221,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                     : `${stats.taxaRealizacao}%`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {isFC ? "Últimos 90 dias" : `${stats.formandosAtivos}/${stats.totalFormandos} ativos`}
+                  {isFC ? "Últimos 90 dias" : "Realizadas ÷ decididas este mês"}
                 </p>
               </div>
               <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -260,7 +257,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                   <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planos Ativos</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats.totalPlanosAtivos ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Planos formativos</p>
+                    <p className="text-xs text-muted-foreground mt-1">Moradas com plano ativo</p>
                   </div>
                   <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center">
                     <FileText className="h-4.5 w-4.5 text-blue-600" />
@@ -275,9 +272,9 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
             {(["moradasSemPlano", "moradasComGradeExpirada", "fcsSemMorada"] as const).map((key) => {
               const val = stats[key] ?? 0;
               const labels: Record<typeof key, { title: string; sub: string }> = {
-                moradasSemPlano: { title: "Sem plano", sub: "Moradas sem plano formativo" },
-                moradasComGradeExpirada: { title: "Grade expirada", sub: "Moradas com etapa encerrada" },
-                fcsSemMorada: { title: "FC sem morada", sub: "Formadores sem morada atribuída" },
+                moradasSemPlano: { title: "Sem plano formativo", sub: "Moradas aguardando planejamento" },
+                moradasComGradeExpirada: { title: "Grade encerrada", sub: "Moradas com programação esgotada" },
+                fcsSemMorada: { title: "Formadores sem morada", sub: "Aguardando atribuição de morada" },
               };
               const hasAlert = val > 0;
               return (
