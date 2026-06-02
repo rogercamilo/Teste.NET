@@ -240,9 +240,9 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               <CardContent className="pt-5 pb-4 px-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Moradas</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total de Moradas</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats.totalMoradas ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{stats.formandosAtivos} formandos ativos</p>
+                    <p className="text-xs text-muted-foreground mt-1">Comunidades formativas ativas</p>
                   </div>
                   <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
                     <Home className="h-4.5 w-4.5 text-violet-600" />
@@ -272,8 +272,8 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
             {(["moradasSemPlano", "moradasComGradeExpirada", "fcsSemMorada"] as const).map((key) => {
               const val = stats[key] ?? 0;
               const labels: Record<typeof key, { title: string; sub: string }> = {
-                moradasSemPlano: { title: "Sem plano formativo", sub: "Moradas aguardando planejamento" },
-                moradasComGradeExpirada: { title: "Grade encerrada", sub: "Moradas com programação esgotada" },
+                moradasSemPlano: { title: "Moradas sem plano", sub: "Aguardando planejamento formativo" },
+                moradasComGradeExpirada: { title: "Moradas sem grade vigente", sub: "Requerem nova programação" },
                 fcsSemMorada: { title: "Formadores sem morada", sub: "Aguardando atribuição de morada" },
               };
               const hasAlert = val > 0;
