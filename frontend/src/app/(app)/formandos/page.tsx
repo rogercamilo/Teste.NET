@@ -309,10 +309,9 @@ export default function FormandosPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os níveis</SelectItem>
-            <SelectItem value="pre-discipulado">Pré-Discipulado</SelectItem>
-            <SelectItem value="discipulado">Discipulado</SelectItem>
-            <SelectItem value="primeiras-promessas">Primeiras Promessas</SelectItem>
-            <SelectItem value="formacao-permanente">Formação Permanente</SelectItem>
+            {(Object.entries(etapaLabels) as [NivelFormativo, string][]).map(([nivel, label]) => (
+              <SelectItem key={nivel} value={nivel}>{label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <div className="flex rounded-md border border-border overflow-hidden h-9">

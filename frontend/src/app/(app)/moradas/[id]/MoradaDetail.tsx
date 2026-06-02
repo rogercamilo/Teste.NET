@@ -3,9 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
-import { usePresencas, useComentarios, useFormandos, useMoradas, usePlanos, useGrades, useUsuarios, useAgendamentos, useComunidade, db } from "@/lib/data-store";
+import { usePresencas, useComentarios, useFormandos, useMoradas, usePlanos, useGrades, useUsuarios, useAgendamentos, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
 import {
-  NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   MODALIDADE_LABELS,
   STATUS_FORMACAO_LABELS,
@@ -148,6 +147,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const termoMorada = comunidade.termoMorada?.trim() || "Grupo de Formação";
+  const etapaLabels = useEtapaLabels();
 
   // Inicializa a morada a partir do cache reativo (não substitui edições locais)
   useEffect(() => {
@@ -568,7 +568,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold text-foreground">{morada.nome}</h1>
               <Badge variant="outline" className={NIVEL_CORES[morada.nivelFormativo]}>
-                {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}
+                {etapaLabels[morada.nivelFormativo]}
               </Badge>
               <Badge
                 variant="outline"
@@ -704,7 +704,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                   <span className="text-lg">{NIVEL_ICONS[morada.nivelFormativo] ?? "🏠"}</span>
                   <div>
                     <p className="text-xs font-medium text-foreground">
-                      {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}
+                      {etapaLabels[morada.nivelFormativo]}
                     </p>
                     {morada.vigenciaInicio && morada.vigenciaFim ? (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
@@ -720,7 +720,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                 </div>
                 {currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
                   <p className="text-xs text-muted-foreground">
-                    Próxima etapa: <span className="font-medium text-foreground">{NIVEL_FORMATIVO_LABELS[NIVEL_SEQUENCE[currentNivelIdx + 1]]}</span>
+                    Próxima etapa: <span className="font-medium text-foreground">{etapaLabels[NIVEL_SEQUENCE[currentNivelIdx + 1]]}</span>
                   </p>
                 )}
               </CardContent>
@@ -825,17 +825,16 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             <Select
               value={formNivelFilter}
               onValueChange={(v) => setFormNivelFilter(v ?? "todos")}
-              items={{ todos: "Todos os níveis", ...NIVEL_FORMATIVO_LABELS }}
+              items={{ todos: "Todos os níveis", ...etapaLabels }}
             >
               <SelectTrigger className="h-9 w-full sm:w-48 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os níveis</SelectItem>
-                <SelectItem value="pre-discipulado">Pré-Discipulado</SelectItem>
-                <SelectItem value="discipulado">Discipulado</SelectItem>
-                <SelectItem value="primeiras-promessas">Primeiras Promessas</SelectItem>
-                <SelectItem value="formacao-permanente">Formação Permanente</SelectItem>
+                {NIVEL_SEQUENCE.map((nivel) => (
+                  <SelectItem key={nivel} value={nivel}>{etapaLabels[nivel]}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Button size="sm" onClick={openCreateFormando} className="shrink-0 gap-1.5">
@@ -910,7 +909,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                         </div>
                       </div>
                       <Badge variant="outline" className={`text-xs mb-3 ${NIVEL_CORES[formando.nivelFormativo]}`}>
-                        {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+                        {etapaLabels[formando.nivelFormativo]}
                       </Badge>
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs">
@@ -1042,7 +1041,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{formando.nome}</p>
                           <p className="text-xs text-muted-foreground">
-                            {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+                            {etapaLabels[formando.nivelFormativo]}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1108,7 +1107,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                             <span className="text-sm font-semibold">{comentario.formandoNome}</span>
                             {formando && (
                               <Badge className={NIVEL_CORES[formando.nivelFormativo]}>
-                                {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+                                {etapaLabels[formando.nivelFormativo]}
                               </Badge>
                             )}
                             <Badge className={TIPO_COMENTARIO_CORES[comentario.tipo]}>
@@ -1169,7 +1168,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
               <p className="font-medium mb-1">Etapa a encerrar:</p>
-              <p>{NIVEL_ICONS[morada.nivelFormativo]} {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}</p>
+              <p>{NIVEL_ICONS[morada.nivelFormativo]} {etapaLabels[morada.nivelFormativo]}</p>
             </div>
             <p className="text-sm text-muted-foreground">
               Esta ação registará a data de encerramento da etapa atual na {termoMorada.toLowerCase()} e em todos os {termoFormando.toLowerCase()}s associados. Após o encerramento, o botão <span className="font-medium text-foreground">Nova Etapa</span> ficará disponível.
@@ -1193,8 +1192,8 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{NIVEL_ICONS[morada.nivelFormativo]} {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}</span></p>
-              <p className="mt-1">Próxima etapa: <span className="font-medium text-foreground">{NIVEL_ICONS[nextEtapaOptions[0]] ?? ""} {NIVEL_FORMATIVO_LABELS[nextEtapaOptions[0]]}</span></p>
+              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{NIVEL_ICONS[morada.nivelFormativo]} {etapaLabels[morada.nivelFormativo]}</span></p>
+              <p className="mt-1">Próxima etapa: <span className="font-medium text-foreground">{NIVEL_ICONS[nextEtapaOptions[0]] ?? ""} {etapaLabels[nextEtapaOptions[0]]}</span></p>
             </div>
             <p className="text-sm text-muted-foreground">
               Ao confirmar, declaro que não há pendências administrativas, formativas ou documentais neste grupo formativo e que estamos prontos para avançar.
@@ -1356,7 +1355,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             </div>
             <div className="grid gap-1.5">
               <Label>Etapa Formativa</Label>
-              <Input value={NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]} disabled className="bg-muted/50" />
+              <Input value={etapaLabels[morada.nivelFormativo]} disabled className="bg-muted/50" />
               <p className="text-xs text-muted-foreground">Definida automaticamente pela {termoMorada.toLowerCase()}.</p>
             </div>
           </div>

@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useFormacoes, useGrades, useMoradas } from "@/lib/data-store";
+import { useFormacoes, useGrades, useMoradas, useEtapaLabels } from "@/lib/data-store";
 import {
-  NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   MODALIDADE_LABELS,
   type Formacao,
@@ -77,6 +76,7 @@ export default function FormacoesPage() {
   const canEdit = userRole === "formador_geral" || userRole === "administrador";
   const isFormadorComunitario = userRole === "formador_comunitario";
 
+  const etapaLabels = useEtapaLabels();
   const PAGE_SIZE = 10;
   const [formacoes, setFormacoes] = useFormacoes();
   const [grades] = useGrades();
@@ -181,7 +181,7 @@ export default function FormacoesPage() {
               >
                 <p className="text-lg font-bold text-foreground">{count}</p>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
-                  {NIVEL_FORMATIVO_LABELS[nivel]}
+                  {etapaLabels[nivel]}
                 </p>
               </div>
             );
@@ -201,17 +201,16 @@ export default function FormacoesPage() {
           />
         </div>
         {!isFormadorComunitario && (
-          <Select value={nivelFilter} onValueChange={(v) => v && setNivelFilter(v)} items={{ todos: "Todos os níveis", ...NIVEL_FORMATIVO_LABELS }}>
+          <Select value={nivelFilter} onValueChange={(v) => v && setNivelFilter(v)} items={{ todos: "Todos os níveis", ...etapaLabels }}>
             <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
               <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue placeholder="Etapa formativa" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os níveis</SelectItem>
-              <SelectItem value="pre-discipulado">Pré-Discipulado</SelectItem>
-              <SelectItem value="discipulado">Discipulado</SelectItem>
-              <SelectItem value="primeiras-promessas">Primeiras Promessas</SelectItem>
-              <SelectItem value="formacao-permanente">Formação Permanente</SelectItem>
+              {(Object.entries(etapaLabels) as [NivelFormativo, string][]).map(([nivel, label]) => (
+                <SelectItem key={nivel} value={nivel}>{label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         )}
@@ -252,7 +251,7 @@ export default function FormacoesPage() {
                 <section key={nivel}>
                   <div className="flex items-center gap-2 mb-3">
                     <h2 className="text-base font-semibold text-foreground">
-                      {NIVEL_FORMATIVO_LABELS[nivel]}
+                      {etapaLabels[nivel]}
                     </h2>
                     <Badge
                       variant="outline"
