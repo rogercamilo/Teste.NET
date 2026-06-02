@@ -167,7 +167,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
           <CardContent className="pt-5 pb-4 px-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Agendadas</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Formações Agendadas</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.totalAgendadas}</p>
                 <p className="text-xs text-muted-foreground mt-1">Este mês</p>
               </div>
@@ -182,7 +182,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
           <CardContent className="pt-5 pb-4 px-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Realizadas</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Formações Realizadas</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.totalRealizadas}</p>
                 <p className="text-xs text-muted-foreground mt-1">Este mês</p>
               </div>
@@ -197,7 +197,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
           <CardContent className="pt-5 pb-4 px-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Canceladas</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Formações Canceladas</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.totalCanceladas}</p>
                 <p className="text-xs text-muted-foreground mt-1">Este mês</p>
               </div>
@@ -213,7 +213,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  {isFC ? "Presença Geral" : "Taxa de Realização"}
+                  {isFC ? "Presença nas Formações" : "Taxa de Realização"}
                 </p>
                 <p className="text-3xl font-bold text-foreground mt-1">
                   {isFC
@@ -255,9 +255,9 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               <CardContent className="pt-5 pb-4 px-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planos Ativos</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planos Formativos</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats.totalPlanosAtivos ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Moradas com plano ativo</p>
+                    <p className="text-xs text-muted-foreground mt-1">Moradas com plano em vigor</p>
                   </div>
                   <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center">
                     <FileText className="h-4.5 w-4.5 text-blue-600" />
