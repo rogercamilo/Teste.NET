@@ -22,7 +22,7 @@ type BreadcrumbSegment = { label: string; href: string };
 
 const NAMED_ACTIONS = new Set(["novo", "nova", "editar"]);
 
-function buildBreadcrumbs(pathname: string, morada: string): BreadcrumbSegment[] {
+function buildBreadcrumbs(pathname: string, morada: string, formando: string): BreadcrumbSegment[] {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return [{ label: "Dashboard", href: "/dashboard" }];
 
@@ -56,7 +56,7 @@ function buildBreadcrumbs(pathname: string, morada: string): BreadcrumbSegment[]
     planos:     { parent: "Pedagógico",        parentHref: "/planos",    label: "Planos Formativos"   },
     grades:     { parent: "Pedagógico",        parentHref: "/planos",    label: "Grades Formativas"   },
     formacoes:  { parent: "Pedagógico",        parentHref: "/formacoes", label: "Formações"           },
-    formandos:  { parent: "Gestão",            parentHref: "/formandos", label: "Formandos"           },
+    formandos:  { parent: "Gestão",            parentHref: "/formandos", label: `${formando}s`        },
     moradas:    { parent: "Gestão",            parentHref: "/moradas",   label: `${morada}s`          },
     documentos: { parent: "Gestão",            parentHref: "/moradas",   label: "Documentos"          },
     presenca:   { parent: `Minha ${morada}`,   parentHref: "/presenca",  label: "Gestão de Presença"  },
@@ -105,9 +105,9 @@ function buildBreadcrumbs(pathname: string, morada: string): BreadcrumbSegment[]
 
 export function AppTopbar() {
   const pathname = usePathname();
-  const { morada } = useTermos();
+  const { morada, formando } = useTermos();
 
-  const breadcrumbs = buildBreadcrumbs(pathname, morada);
+  const breadcrumbs = buildBreadcrumbs(pathname, morada, formando);
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 bg-background/80 backdrop-blur-sm border-b border-border/60 px-4">

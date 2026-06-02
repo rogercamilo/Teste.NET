@@ -334,7 +334,7 @@ export default function FormandosPage() {
       {filtered.length === 0 && (
         <div className="flex flex-col items-center py-16 text-center">
           <Users className="h-12 w-12 text-muted-foreground/30 mb-3" />
-          <p className="font-medium text-foreground">Nenhum formando encontrado</p>
+          <p className="font-medium text-foreground">Nenhum {termoFormando.toLowerCase()} encontrado</p>
           <p className="text-sm text-muted-foreground mt-1">Tente ajustar os filtros de busca</p>
         </div>
       )}
@@ -369,7 +369,7 @@ export default function FormandosPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="text-xs font-semibold text-muted-foreground">Formando</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground">{termoFormando}</TableHead>
                 <TableHead className="text-xs font-semibold text-muted-foreground hidden md:table-cell">Nível</TableHead>
                 <TableHead className="text-xs font-semibold text-muted-foreground hidden lg:table-cell">Ingresso</TableHead>
                 <TableHead className="text-xs font-semibold text-muted-foreground hidden md:table-cell">Progresso</TableHead>
@@ -566,7 +566,7 @@ export default function FormandosPage() {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>{editing ? "Salvar alterações" : "Criar formando"}</Button>
+            <Button onClick={handleSave}>{editing ? "Salvar alterações" : `Criar ${termoFormando.toLowerCase()}`}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
