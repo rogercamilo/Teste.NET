@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { subMonths, startOfMonth, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DashboardClient } from "./DashboardClient";
-import type { DashboardStats, NivelFormativo, TipoFormacao, StatusFormacao, PerfilUsuario } from "@/types";
+import type { DashboardStats, NivelFormativo, NotaAdesao, TipoFormacao, StatusFormacao, PerfilUsuario } from "@/types";
 
 // PerfilUsuario enum values from Prisma
 const PERFIL_FC = "formador_comunitario" as const;
@@ -151,12 +151,13 @@ async function getDashboardData(
     ]);
 
     // Monta mapa: formandoId → { humana, espiritual, comunitaria } com nota mais recente
-    const perspMap = new Map<string, { humana?: string; espiritual?: string; comunitaria?: string }>();
+    type PerspectivaMap = { humana?: NotaAdesao; espiritual?: NotaAdesao; comunitaria?: NotaAdesao };
+    const perspMap = new Map<string, PerspectivaMap>();
     for (const ev of avaliacoesPerspectiva) {
       if (!ev.perspectiva || !ev.notaAdesao) continue;
-      const entry = perspMap.get(ev.formandoId) ?? {};
-      const key = ev.perspectiva as "humana" | "espiritual" | "comunitaria";
-      if (!entry[key]) entry[key] = ev.notaAdesao; // já ordenado desc, pega a mais recente
+      const entry: PerspectivaMap = perspMap.get(ev.formandoId) ?? {};
+      const key = ev.perspectiva as keyof PerspectivaMap;
+      if (!entry[key]) entry[key] = ev.notaAdesao as NotaAdesao;
       perspMap.set(ev.formandoId, entry);
     }
 
@@ -194,7 +195,7 @@ async function getDashboardData(
   // ── FG/Admin: visão estratégica ───────────────────────────────────────────
   if (perfil === "formador_geral" || perfil === "administrador") {
     const threeMonthsAgo = subMonths(now, 3);
-    const [moradasData, formandosAtivosGrp, totalPlanosAtivos, moradasSemPlano, moradasSemGrade, fcsSemMorada, presencasPorMorada] =
+    const [moradasData, formandosAtivosGrp, totalPlanosAtivos, moradasSemPlano, moradasSemGrade, moradasComGradeExpirada, fcsSemMorada, presencasPorMorada] =
       await Promise.all([
         prisma.morada.findMany({
           where: { organizacaoId, ativo: true },
@@ -216,6 +217,8 @@ async function getDashboardData(
         }),
         prisma.morada.count({ where: { organizacaoId, ativo: true, planoId: null } }),
         prisma.morada.count({ where: { organizacaoId, ativo: true, gradeId: null } }),
+        // Moradas que têm grade mas a etapa foi encerrada (vigenciaFim definida)
+        prisma.morada.count({ where: { organizacaoId, ativo: true, gradeId: { not: null }, vigenciaFim: { not: null } } }),
         prisma.usuario.count({
           where: { organizacaoId, perfil: "formador_comunitario", ativo: true, moradaId: null },
         }),
@@ -245,6 +248,7 @@ async function getDashboardData(
       totalPlanosAtivos,
       moradasSemPlano,
       moradasSemGrade,
+      moradasComGradeExpirada,
       fcsSemMorada,
       moradasResumo: moradasData.map((m) => {
         const pres = presencaMoradaMap.get(m.id);

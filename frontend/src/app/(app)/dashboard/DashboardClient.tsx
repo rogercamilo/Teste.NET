@@ -6,7 +6,7 @@ import {
   NIVEL_CORES,
   PERSPECTIV_LABELS,
   NOTA_ADESAO_LABELS,
-  NOTA_ADESAO_DOT,
+  NOTA_ADESAO_CORES,
   type NivelFormativo,
   type NotaAdesao,
   type StatusFormacao,
@@ -64,6 +64,19 @@ function semaforoClasses(taxa: number): { dot: string; bar: string; label: strin
   if (taxa >= 75) return { dot: "bg-emerald-500", bar: "bg-emerald-400", label: `${taxa}%` };
   if (taxa >= 50) return { dot: "bg-amber-400", bar: "bg-amber-400", label: `${taxa}%` };
   return { dot: "bg-red-500", bar: "bg-red-500", label: `${taxa}%` };
+}
+
+// ── Perspectiva badge ───────────────────────────────────────────────────────
+
+const PERSPECTIVAS: PerspectivFormativa[] = ["humana", "espiritual", "comunitaria"];
+
+function NotaBadge({ nota }: { nota?: NotaAdesao }) {
+  if (!nota) return <span className="text-xs text-muted-foreground/60">—</span>;
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${NOTA_ADESAO_CORES[nota]}`}>
+      {NOTA_ADESAO_LABELS[nota]}
+    </span>
+  );
 }
 
 // ── Defaults ───────────────────────────────────────────────────────────────
@@ -222,73 +235,74 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
         </Card>
       </div>
 
-      {/* ── FG/Admin KPI row 2 — compliance ── */}
+      {/* ── FG/Admin KPI row 2 — visão estratégica ── */}
       {isAdmin && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-0 shadow-sm bg-card">
-            <CardContent className="pt-5 pb-4 px-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Moradas</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">{stats.totalMoradas ?? 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{stats.formandosAtivos} formandos ativos</p>
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="border-0 shadow-sm bg-card">
+              <CardContent className="pt-5 pb-4 px-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Moradas</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats.totalMoradas ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{stats.formandosAtivos} formandos ativos</p>
+                  </div>
+                  <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
+                    <Home className="h-4.5 w-4.5 text-violet-600" />
+                  </div>
                 </div>
-                <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
-                  <Home className="h-4.5 w-4.5 text-violet-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="border-0 shadow-sm bg-card">
-            <CardContent className="pt-5 pb-4 px-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planos Ativos</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">{stats.totalPlanosAtivos ?? 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Planos formativos</p>
+            <Card className="border-0 shadow-sm bg-card">
+              <CardContent className="pt-5 pb-4 px-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planos Ativos</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats.totalPlanosAtivos ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Planos formativos</p>
+                  </div>
+                  <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <FileText className="h-4.5 w-4.5 text-blue-600" />
+                  </div>
                 </div>
-                <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <FileText className="h-4.5 w-4.5 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className={cn("border-0 shadow-sm", (stats.moradasSemPlano ?? 0) > 0 ? "bg-amber-50" : "bg-card")}>
-            <CardContent className="pt-5 pb-4 px-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sem Plano</p>
-                  <p className={cn("text-3xl font-bold mt-1", (stats.moradasSemPlano ?? 0) > 0 ? "text-amber-600" : "text-foreground")}>
-                    {stats.moradasSemPlano ?? 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">Moradas sem plano</p>
-                </div>
-                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", (stats.moradasSemPlano ?? 0) > 0 ? "bg-amber-100" : "bg-muted")}>
-                  <AlertTriangle className={cn("h-4.5 w-4.5", (stats.moradasSemPlano ?? 0) > 0 ? "text-amber-600" : "text-muted-foreground")} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className={cn("border-0 shadow-sm", (stats.fcsSemMorada ?? 0) > 0 ? "bg-amber-50" : "bg-card")}>
-            <CardContent className="pt-5 pb-4 px-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">FCs sem Morada</p>
-                  <p className={cn("text-3xl font-bold mt-1", (stats.fcsSemMorada ?? 0) > 0 ? "text-amber-600" : "text-foreground")}>
-                    {stats.fcsSemMorada ?? 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">Formadores sem morada</p>
-                </div>
-                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", (stats.fcsSemMorada ?? 0) > 0 ? "bg-amber-100" : "bg-muted")}>
-                  <User className={cn("h-4.5 w-4.5", (stats.fcsSemMorada ?? 0) > 0 ? "text-amber-600" : "text-muted-foreground")} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Alertas de compliance — só exibe se houver algum problema */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {(["moradasSemPlano", "moradasComGradeExpirada", "fcsSemMorada"] as const).map((key) => {
+              const val = stats[key] ?? 0;
+              const labels: Record<typeof key, { title: string; sub: string }> = {
+                moradasSemPlano: { title: "Sem plano", sub: "Moradas sem plano formativo" },
+                moradasComGradeExpirada: { title: "Grade expirada", sub: "Moradas com etapa encerrada" },
+                fcsSemMorada: { title: "FC sem morada", sub: "Formadores sem morada atribuída" },
+              };
+              const hasAlert = val > 0;
+              return (
+                <Card key={key} className={cn("border-0 shadow-sm", hasAlert ? "bg-amber-50" : "bg-card")}>
+                  <CardContent className="pt-5 pb-4 px-5">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          {labels[key].title}
+                        </p>
+                        <p className={cn("text-3xl font-bold mt-1", hasAlert ? "text-amber-600" : "text-foreground")}>
+                          {val}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">{labels[key].sub}</p>
+                      </div>
+                      <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", hasAlert ? "bg-amber-100" : "bg-muted")}>
+                        <AlertTriangle className={cn("h-4.5 w-4.5", hasAlert ? "text-amber-600" : "text-muted-foreground")} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* ── Charts row ── */}
@@ -524,41 +538,32 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
           </CardHeader>
           <CardContent>
             {/* Cabeçalho das colunas */}
-            <div className="grid grid-cols-[1fr_80px_80px_80px] gap-2 mb-2 px-1">
+            <div className="hidden sm:grid sm:grid-cols-[1fr_90px_90px_100px] gap-2 mb-2 px-1">
               <span className="text-xs text-muted-foreground font-medium">Formando</span>
-              {(["humana", "espiritual", "comunitaria"] as PerspectivFormativa[]).map((p) => (
+              {PERSPECTIVAS.map((p) => (
                 <span key={p} className="text-xs text-muted-foreground font-medium text-center">
                   {PERSPECTIV_LABELS[p]}
                 </span>
               ))}
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {(stats.formandosPresenca ?? []).map((f) => (
-                <div key={f.id} className="grid grid-cols-[1fr_80px_80px_80px] gap-2 items-center rounded-lg px-1 py-1.5 hover:bg-muted/40 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0">
+                <div key={f.id} className="rounded-lg px-1 py-2 hover:bg-muted/40 transition-colors">
+                  {/* Nome + semáforo de presença */}
+                  <div className="flex items-center gap-2 mb-1.5">
                     <div className={`h-2 w-2 rounded-full shrink-0 ${semaforoClasses(f.taxa).dot}`} />
-                    <span className="text-sm text-foreground truncate">{f.nome}</span>
+                    <span className="text-sm font-medium text-foreground truncate">{f.nome}</span>
                   </div>
-                  {(["humana", "espiritual", "comunitaria"] as PerspectivFormativa[]).map((persp) => {
-                    const nota = f.perspectivas?.[persp] as NotaAdesao | undefined;
-                    return (
-                      <div key={persp} className="flex justify-center">
-                        {nota ? (
-                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
-                            nota === "otima" ? "bg-emerald-100 text-emerald-700" :
-                            nota === "boa" ? "bg-blue-100 text-blue-700" :
-                            nota === "regular" ? "bg-amber-100 text-amber-700" :
-                            "bg-red-100 text-red-700"
-                          }`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${NOTA_ADESAO_DOT[nota]}`} />
-                            {NOTA_ADESAO_LABELS[nota]}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/60">—</span>
-                        )}
+                  {/* Perspectivas — grid em sm+, coluna em mobile */}
+                  <div className="sm:grid sm:grid-cols-[1fr_90px_90px_100px] gap-2 flex flex-col gap-y-1 pl-4 sm:pl-0">
+                    <div className="hidden sm:block" />
+                    {PERSPECTIVAS.map((persp) => (
+                      <div key={persp} className="flex items-center justify-between sm:justify-center gap-2">
+                        <span className="text-xs text-muted-foreground sm:hidden">{PERSPECTIV_LABELS[persp]}</span>
+                        <NotaBadge nota={f.perspectivas?.[persp] as NotaAdesao | undefined} />
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

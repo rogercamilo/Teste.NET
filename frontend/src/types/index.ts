@@ -336,6 +336,7 @@ export interface DashboardStats {
   totalPlanosAtivos?: number;
   moradasSemPlano?: number;
   moradasSemGrade?: number;
+  moradasComGradeExpirada?: number;
   fcsSemMorada?: number;
   moradasResumo?: {
     id: string; nome: string; nivelFormativo: NivelFormativo;
@@ -511,12 +512,6 @@ export const PERSPECTIV_LABELS: Record<PerspectivFormativa, string> = {
   humana: "Humana",
   espiritual: "Espiritual",
   comunitaria: "Comunitária",
-};
-
-export const PERSPECTIV_ICONS: Record<PerspectivFormativa, string> = {
-  humana: "🧠",
-  espiritual: "✝",
-  comunitaria: "🤝",
 };
 
 export const NOTA_ADESAO_DOT: Record<NotaAdesao, string> = {
