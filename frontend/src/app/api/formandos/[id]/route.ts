@@ -94,7 +94,7 @@ export async function PUT(request: Request, { params }: Params) {
           email: body.email,
           ativo: body.ativo,
           motivoInatividade: body.motivoInatividade || null,
-          foto: body.foto || null,
+          ...(body.foto !== undefined ? { foto: body.foto || null } : {}),
           turmaId: body.turmaId || null,
           moradaId: body.moradaId || null,
           totalFormacoes: body.totalFormacoes,

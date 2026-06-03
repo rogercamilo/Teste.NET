@@ -225,6 +225,7 @@ export default function FormandosPage() {
       telefone: stripPhone(form.telefone),
       email: form.email.trim(),
       ativo: editing?.ativo ?? true,
+      foto: editing?.foto,
       moradaId: form.moradaId || undefined,
       totalFormacoes: editing?.totalFormacoes ?? totalRequerido(nivelFormativo),
       formacoesRealizadas: editing?.formacoesRealizadas ?? 0,
