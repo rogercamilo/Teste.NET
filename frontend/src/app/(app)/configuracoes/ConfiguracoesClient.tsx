@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/table";
 import {
   AlertTriangle,
+  Bell,
   Building2,
   Calendar,
   CheckCircle2,
@@ -89,6 +90,7 @@ import {
 import PlanUsage from "@/components/PlanUsage";
 import StripeUpgrade from "@/components/StripeUpgrade";
 import PrivacidadeTab from "@/components/PrivacidadeTab";
+import NotificacoesTab from "@/components/NotificacoesTab";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -163,6 +165,10 @@ export default function ConfiguracoesClient({
             <Server className="h-3.5 w-3.5" />
             Sistema
           </TabsTrigger>
+          <TabsTrigger value="notificacoes" className="text-xs h-7 gap-1.5">
+            <Bell className="h-3.5 w-3.5" />
+            Notificações
+          </TabsTrigger>
           <TabsTrigger value="privacidade" className="text-xs h-7 gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5" />
             Privacidade
@@ -210,6 +216,10 @@ export default function ConfiguracoesClient({
 
         <TabsContent value="sistema" className="mt-4">
           <SistemaTab />
+        </TabsContent>
+
+        <TabsContent value="notificacoes" className="mt-4">
+          <NotificacoesTab />
         </TabsContent>
 
         <TabsContent value="privacidade" className="mt-4">

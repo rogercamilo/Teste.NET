@@ -408,6 +408,24 @@ export const CreateGradeSchema = z.object({
 
 export const UpdateGradeSchema = CreateGradeSchema.partial();
 
+// ── Web Push ──────────────────────────────────────────────────────────────────
+
+export const PushSubscribeSchema = z.object({
+  endpoint: z.string().url("endpoint inválido").max(2048),
+  p256dh: z.string().min(1, "p256dh obrigatório").max(500),
+  auth: z.string().min(1, "auth obrigatório").max(500),
+});
+
+export const PushUnsubscribeSchema = z.object({
+  endpoint: z.string().url("endpoint inválido").max(2048),
+});
+
+export const PushSendSchema = z.object({
+  titulo: nonEmptyString(100),
+  corpo: nonEmptyString(300),
+  url: z.string().url("URL inválida").max(2048).optional(),
+});
+
 // ── Helpers de resposta ───────────────────────────────────────────────────────
 
 export function parseBody<T>(

@@ -6,7 +6,9 @@ import {
   Users, BookOpen, Calendar, BarChart3, Mail,
   Check, ChevronDown, ChevronRight, Menu, X, ArrowRight,
   Lock, Shield, Zap, Globe, Star,
+  Bell, BellOff, CheckCircle2, Loader2,
 } from "lucide-react";
+import { usePushSubscription } from "@/hooks/use-push-subscription";
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
 
@@ -148,7 +150,7 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
                 { label: "Formandos", value: "142", color: "text-blue-400" },
                 { label: "Formações", value: "28", color: "text-emerald-400" },
                 { label: "Presenças", value: "94%", color: "text-violet-400" },
-                { label: "Moradas", value: "3", color: "text-amber-400" },
+                { label: "Grupos de formação", value: "3", color: "text-amber-400" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="rounded-xl bg-slate-800/60 p-4 border border-white/5">
                   <p className="text-xs text-slate-500 mb-1">{label}</p>
@@ -157,7 +159,7 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
               ))}
             </div>
             <div className="px-6 pb-6 grid grid-cols-3 gap-3">
-              {["Pré-discipulado", "Discipulado", "Primeiras Promessas"].map((nivel, i) => (
+              {["Postulantado", "Discipulado", "Primeiras Promessas"].map((nivel, i) => (
                 <div key={nivel} className="rounded-lg bg-slate-800/40 border border-white/5 p-3">
                   <p className="text-xs text-slate-400 truncate">{nivel}</p>
                   <div className="mt-2 h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
@@ -214,13 +216,13 @@ const features = [
   {
     icon: BookOpen,
     title: "Planos e grades formativas",
-    desc: "Estruture o conteúdo em eixos e etapas. Crie grades reutilizáveis por nível e associe planos a cada Grupo de formação.",
+    desc: "Estruture o conteúdo em eixos e etapas. Crie grades formativas reutilizáveis por etapas de formação e associe planos formativos a cada Grupo de formação.",
     color: "bg-violet-500/10 text-violet-400",
   },
   {
     icon: Calendar,
     title: "Agenda e presenças",
-    desc: "Agende formações, registre presenças por sessão e monitore a frequência de cada formando ao longo do tempo.",
+    desc: "Agende formações, acompanhe a frequencia dos formandos por encontro e monitore a participação de cada formando ao longo do tempo.",
     color: "bg-emerald-500/10 text-emerald-400",
   },
   {
@@ -232,7 +234,7 @@ const features = [
   {
     icon: Mail,
     title: "Comunicação integrada",
-    desc: "Convide formadores por e-mail, personalize templates com a identidade da sua organização e gerencie notificações.",
+    desc: "Convide formadores por e-mail, personalize templates com a identidade da sua comunidade e gerencie notificações de forma personalizada.",
     color: "bg-pink-500/10 text-pink-400",
   },
   {
@@ -253,8 +255,8 @@ function Features() {
             Tudo que sua comunidade precisa
           </h2>
           <p className="text-slate-400 max-w-xl mx-auto">
-            Uma plataforma completa para gerir a jornada formativa dos seus membros,
-            do primeiro cadastro à formação permanente.
+            Uma plataforma completa para acompanhar e gerir a jornada formativa dos seus formandos,
+            desde o ingresso até a formação permanente.
           </p>
         </div>
 
@@ -283,17 +285,17 @@ function HowItWorks() {
   const steps = [
     {
       number: "01",
-      title: "Crie sua organização",
+      title: "Cadastre sua comunidade",
       desc: "Em menos de 2 minutos, configure sua comunidade, personalize o nome da plataforma e convide seus formadores por e-mail.",
     },
     {
       number: "02",
       title: "Configure a estrutura",
-      desc: "Adicione Grupo de formaçãos, cadastre formandos manualmente ou via importação, e defina planos formativos por nível.",
+      desc: "Adicione Grupos de formação, defina planos formativos por etapa formativa, e cadastre seus formandos.",
     },
     {
       number: "03",
-      title: "Acompanhe o crescimento",
+      title: "Acompanhe a adesão formativa",
       desc: "Dashboard em tempo real com métricas de evolução, presença e funil formativo. Histórico completo de cada membro.",
     },
   ];
@@ -530,6 +532,82 @@ function FAQ() {
   );
 }
 
+// ── Push Subscribe ────────────────────────────────────────────────────────────
+
+function PushSubscribeSection() {
+  const { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
+    usePushSubscription();
+
+  if (!isSupported) return null;
+
+  return (
+    <section id="notificacoes" className="bg-slate-900 border-t border-white/5 py-20">
+      <div className="max-w-2xl mx-auto px-4 text-center">
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 mb-6">
+          <Bell className="h-6 w-6 text-primary" />
+        </div>
+
+        <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3">
+          Notificações
+        </p>
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+          Fique por dentro dos encontros da sua comunidade
+        </h2>
+        <p className="text-slate-400 mb-8 max-w-lg mx-auto text-sm leading-relaxed">
+          Ative as notificações e receba avisos diretamente no seu celular sobre formações,
+          datas e comunicados — mesmo com o navegador fechado, sem instalar nenhum aplicativo.
+        </p>
+
+        {isSubscribed ? (
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
+              <span className="text-sm font-medium">Notificações ativas neste dispositivo</span>
+            </div>
+            <div>
+              <button
+                onClick={unsubscribe}
+                disabled={isLoading}
+                className="inline-flex items-center gap-2 text-xs text-slate-500 hover:text-slate-400 transition-colors mt-1"
+              >
+                {isLoading
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <BellOff className="h-3 w-3" />
+                }
+                Desativar notificações neste dispositivo
+              </button>
+            </div>
+          </div>
+        ) : permission === "denied" ? (
+          <div className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-slate-800 border border-white/10 text-slate-400">
+            <BellOff className="h-5 w-5 shrink-0" />
+            <span className="text-sm">
+              Notificações bloqueadas. Ative nas configurações do navegador.
+            </span>
+          </div>
+        ) : (
+          <button
+            onClick={subscribe}
+            disabled={isLoading}
+            className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors text-sm"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Bell className="h-4 w-4" />
+            )}
+            {isLoading ? "Ativando…" : "Ativar notificações"}
+          </button>
+        )}
+
+        <p className="mt-6 text-xs text-slate-600">
+          Sem spam. Apenas avisos da sua comunidade. Cancele a qualquer momento.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 // ── Final CTA ─────────────────────────────────────────────────────────────────
 
 function FinalCTA({ isNewOrg }: { isNewOrg: boolean }) {
@@ -583,7 +661,7 @@ function Footer() {
               <img src="/brand/Formattio-horizontal-on-dark.svg" alt="Formattio" height={28} className="h-7 w-auto" />
             </Link>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Plataforma SaaS de gestão formativa para comunidades e organizações religiosas.
+              Plataforma de gestão formativa para comunidades e organizações religiosas.
             </p>
           </div>
 
@@ -618,7 +696,7 @@ function Footer() {
 
         <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-600">
           <p>© {year} Formattio. Todos os direitos reservados.</p>
-          <p>Desenvolvido com ♥ para comunidades brasileiras.</p>
+          <p>Desenvolvido com amor para comunidades brasileiras.</p>
         </div>
       </div>
     </footer>
@@ -637,6 +715,7 @@ export default function LandingPage({ isNewOrg }: { isNewOrg: boolean }) {
       <HowItWorks />
       <Pricing />
       <FAQ />
+      <PushSubscribeSection />
       <FinalCTA isNewOrg={isNewOrg} />
       <Footer />
     </div>

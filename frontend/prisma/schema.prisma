@@ -80,6 +80,7 @@ model Organizacao {
   arquivos             Arquivo[]
   convites             ConviteUsuario[]
   configuracao         ConfiguracaoOrg?
+  pushSubscriptions    PushSubscription[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -692,6 +693,24 @@ model DeletionRequest {
 model ProcessedWebhookEvent {
   id          String   @id  // Stripe event ID (evt_xxx) — garante idempotência
   processedAt DateTime @default(now())
+}
+
+// ==========================================================
+// PUSH SUBSCRIPTION — notificações Web Push por organização
+// ==========================================================
+
+model PushSubscription {
+  id            String   @id @default(cuid())
+  organizacaoId String
+  endpoint      String
+  p256dh        String   @db.Text
+  auth          String   @db.Text
+  criadoEm      DateTime @default(now())
+
+  organizacao   Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([organizacaoId, endpoint])
+  @@index([organizacaoId])
 }
 
 model AuditLog {

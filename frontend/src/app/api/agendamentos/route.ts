@@ -6,6 +6,7 @@ import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateAgendamentoSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
+import { sendPushToOrg, formatDataBr } from "@/lib/push";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -88,6 +89,14 @@ export async function POST(request: Request) {
       },
     });
     logAction("agendamento_created", user.id, getClientIp(request), { formacaoId: body.formacaoId }, user.organizacaoId);
+
+    // Notificação push — fire-and-forget
+    sendPushToOrg(user.organizacaoId, {
+      titulo: `Nova formação agendada`,
+      corpo: `${row.formacaoTema} — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
+      url: "/agenda",
+    }).catch(() => {});
+
     return NextResponse.json(toAg(row), { status: 201 });
   } catch (err) {
     logError("agendamentos POST", err);

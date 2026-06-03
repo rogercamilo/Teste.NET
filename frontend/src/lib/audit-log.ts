@@ -80,7 +80,10 @@ export type AuditAction =
   | "terms_accepted"
   | "audit_log_purged"
   | "deletion_request_processed"
-  | "admin_credentials_reset";
+  | "admin_credentials_reset"
+  | "push_subscribed"
+  | "push_unsubscribed"
+  | "push_notification_sent";
 
 export interface AuditEntry {
   timestamp: string;

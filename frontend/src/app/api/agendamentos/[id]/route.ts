@@ -5,6 +5,7 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
 import { UpdateAgendamentoSchema, parseBody, isValidId } from "@/lib/schemas";
+import { sendPushToOrg, formatDataBr } from "@/lib/push";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
@@ -46,6 +47,25 @@ export async function PUT(request: Request, { params }: Params) {
       data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, moradaId: body.moradaId !== undefined ? (body.moradaId ?? null) : undefined, dataInicio: body.dataInicio ? new Date(body.dataInicio) : undefined, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null },
     });
     logAction("agendamento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
+
+    // Notificação push para mudanças de status relevantes — fire-and-forget
+    if (body.status && body.status !== existing.status) {
+      const dataStr = formatDataBr(updated.dataInicio);
+      const pushMap: Partial<Record<string, string>> = {
+        confirmada: `${updated.formacaoTema} confirmada para ${dataStr}`,
+        cancelada: `${updated.formacaoTema} de ${dataStr} foi cancelada`,
+        reagendada: `${updated.formacaoTema} foi remarcada para ${dataStr}`,
+      };
+      const corpo = pushMap[body.status];
+      if (corpo) {
+        sendPushToOrg(user.organizacaoId, {
+          titulo: "Atualização de formação",
+          corpo,
+          url: "/agenda",
+        }).catch(() => {});
+      }
+    }
+
     return NextResponse.json(toAg(updated));
   } catch (err) { logError("agendamentos/:id PUT", err); return NextResponse.json({ error: "Falha ao atualizar agendamento" }, { status: 500 }); }
 }
