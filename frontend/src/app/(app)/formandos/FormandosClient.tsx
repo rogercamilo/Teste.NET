@@ -23,7 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,7 @@ import {
 } from "@/components/ui/table";
 import {
   AlertTriangle,
+  Camera,
   Filter,
   LayoutGrid,
   Link2,
@@ -699,23 +701,60 @@ function FormandoCard({
   onDelete: (f: Formando, e: React.MouseEvent) => void;
   onVincularGrade?: (moradaId: string, nivelFormativo: NivelFormativo) => void;
 }) {
+  const router = useRouter();
+  const [isPendingFoto, startFotoTransition] = useTransition();
   const etapaLabels = useEtapaLabels();
   const { morada: termoMoradaCard } = useTermos();
+  const [fotoDialogOpen, setFotoDialogOpen] = useState(false);
+
   const progresso = Math.round(
     (formando.formacoesRealizadas / formando.totalFormacoes) * 100
   );
   const idade = differenceInYears(new Date(), parseISO(formando.dataNascimento));
+
+  async function handleFotoSave(base64: string) {
+    const res = await fetch(`/api/formandos/${formando.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ foto: base64 }),
+    });
+    if (!res.ok) { toast.error("Erro ao salvar foto."); return; }
+    toast.success("Foto atualizada.");
+    startFotoTransition(() => router.refresh());
+  }
+
+  async function handleFotoRemove() {
+    const res = await fetch(`/api/formandos/${formando.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ foto: null }),
+    });
+    if (!res.ok) { toast.error("Erro ao remover foto."); return; }
+    toast.success("Foto removida.");
+    startFotoTransition(() => router.refresh());
+  }
 
   return (
     <Card className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <Avatar className="h-10 w-10 shrink-0">
-              <AvatarFallback className={`font-semibold text-sm ${NIVEL_AVATAR_BG[formando.nivelFormativo]}`}>
-                {getInitials(formando.nome)}
-              </AvatarFallback>
-            </Avatar>
+            <button
+              type="button"
+              onClick={() => setFotoDialogOpen(true)}
+              className="relative h-10 w-10 shrink-0 group/foto rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              title="Alterar foto"
+            >
+              <Avatar className="h-10 w-10">
+                {formando.foto && <AvatarImage src={formando.foto} alt={formando.nome} />}
+                <AvatarFallback className={`font-semibold text-sm ${NIVEL_AVATAR_BG[formando.nivelFormativo]}`}>
+                  {getInitials(formando.nome)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover/foto:opacity-100 transition-opacity">
+                <Camera className="h-3.5 w-3.5 text-white" />
+              </span>
+            </button>
             <div className="flex-1 min-w-0">
               <Link href={`/formandos/${formando.id}`}>
                 <p className="font-semibold text-sm text-foreground leading-tight truncate group-hover:text-primary transition-colors">
@@ -791,6 +830,15 @@ function FormandoCard({
           </Badge>
         </div>
       </CardContent>
+
+      <ImageCropDialog
+        open={fotoDialogOpen}
+        onOpenChange={setFotoDialogOpen}
+        title={`Foto de ${formando.nome}`}
+        hasImage={!!formando.foto}
+        onSave={handleFotoSave}
+        onRemove={handleFotoRemove}
+      />
     </Card>
   );
 }
