@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Cropper from "react-easy-crop";
-import type { Area } from "react-easy-crop";
+import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { usePresencas, useComentarios, useFormandos, useMoradas, usePlanos, useGrades, useUsuarios, useAgendamentos, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
 import {
   NIVEL_CORES,
@@ -194,17 +193,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
 
   // Imagem da morada
   const [imagemDialogOpen, setImagemDialogOpen] = useState(false);
-  const [imagemSrc, setImagemSrc] = useState<string | null>(null);
   const [imagemLoading, setImagemLoading] = useState(false);
-  const [imagemDragOver, setImagemDragOver] = useState(false);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const imagemInputRef = useRef<HTMLInputElement>(null);
-
-  const onCropComplete = useCallback((_: Area, pixels: Area) => {
-    setCroppedAreaPixels(pixels);
-  }, []);
 
   if (!morada) {
     return (
@@ -503,52 +492,6 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     toast.success("Datas da etapa registradas para todos os formandos.");
   }
 
-  function processImagemFile(file: File) {
-    if (!file.type.startsWith("image/")) return toast.error("Apenas imagens são permitidas (PNG, JPG, WebP).");
-    if (file.size > 5 * 1024 * 1024) return toast.error("A imagem deve ter no máximo 5 MB.");
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setImagemSrc(ev.target?.result as string);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function handleImagemFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (file) processImagemFile(file);
-  }
-
-  function handleImagemDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setImagemDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) processImagemFile(file);
-  }
-
-  async function confirmCrop() {
-    if (!imagemSrc || !croppedAreaPixels) return;
-    // 280×280 JPEG 82% → base64 ~20–80 KB, sempre < 256 KB (limite do proxy)
-    const OUTPUT = 280;
-    const image = new Image();
-    image.src = imagemSrc;
-    await new Promise<void>((resolve) => { image.onload = () => resolve(); });
-    const canvas = document.createElement("canvas");
-    canvas.width = OUTPUT;
-    canvas.height = OUTPUT;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(
-      image,
-      croppedAreaPixels.x, croppedAreaPixels.y,
-      croppedAreaPixels.width, croppedAreaPixels.height,
-      0, 0, OUTPUT, OUTPUT
-    );
-    const base64 = canvas.toDataURL("image/jpeg", 0.82);
-    await salvarImagem(base64);
-  }
-
   async function salvarImagem(imagemUrl: string | null) {
     setImagemLoading(true);
     const res = await fetch(`/api/moradas/${id}`, {
@@ -559,13 +502,12 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     setImagemLoading(false);
     if (!res.ok) {
       const body = await res.json().catch(() => ({})) as { error?: string };
-      return toast.error(body.error ?? "Erro ao salvar imagem.");
+      toast.error(body.error ?? "Erro ao salvar imagem.");
+      return;
     }
     const updated = await res.json();
     setMorada(updated);
     db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
-    setImagemDialogOpen(false);
-    setImagemSrc(null);
     toast.success(imagemUrl ? "Imagem atualizada!" : "Imagem removida.");
   }
 
@@ -1493,108 +1435,15 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         </DialogContent>
       </Dialog>
 
-      {/* Imagem da Morada Dialog */}
-      <Dialog open={imagemDialogOpen} onOpenChange={(open) => { setImagemDialogOpen(open); if (!open) setImagemSrc(null); }}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Imagem de identificação</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {imagemSrc ? (
-              <>
-                {/* Área do Cropper */}
-                <div className="relative w-full h-72 rounded-xl overflow-hidden bg-black">
-                  <Cropper
-                    image={imagemSrc}
-                    crop={crop}
-                    zoom={zoom}
-                    aspect={1}
-                    onCropChange={setCrop}
-                    onZoomChange={setZoom}
-                    onCropComplete={onCropComplete}
-                    showGrid={false}
-                    style={{
-                      containerStyle: { borderRadius: "0.75rem" },
-                      cropAreaStyle: { border: "2px solid rgba(255,255,255,0.8)", borderRadius: "0.5rem" },
-                    }}
-                  />
-                </div>
-                {/* Controlo de zoom */}
-                <div className="flex items-center gap-3 px-1">
-                  <span className="text-xs text-muted-foreground w-6 text-center select-none">−</span>
-                  <input
-                    type="range"
-                    min={1} max={3} step={0.05}
-                    value={zoom}
-                    onChange={(e) => setZoom(Number(e.target.value))}
-                    className="flex-1 h-1.5 rounded-full accent-primary cursor-pointer"
-                  />
-                  <span className="text-xs text-muted-foreground w-6 text-center select-none">+</span>
-                </div>
-                <p className="text-xs text-muted-foreground text-center">
-                  Arraste para reposicionar · use o controlo ou scroll para aplicar zoom
-                </p>
-              </>
-            ) : (
-              /* Drop zone inicial */
-              <div
-                className={cn(
-                  "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors cursor-pointer h-40",
-                  imagemDragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/30"
-                )}
-                onClick={() => imagemInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setImagemDragOver(true); }}
-                onDragLeave={() => setImagemDragOver(false)}
-                onDrop={handleImagemDrop}
-              >
-                {morada.imagemUrl ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={morada.imagemUrl} alt={morada.nome} className="h-full w-full object-cover rounded-xl" />
-                    <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
-                      <Camera className="h-6 w-6 text-white" />
-                      <span className="text-xs text-white font-medium">Trocar imagem</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground pointer-events-none select-none">
-                    <Camera className="h-8 w-8 opacity-40" />
-                    <p className="text-sm font-medium">Clique ou arraste uma imagem</p>
-                    <p className="text-xs opacity-60">PNG, JPG, WebP · máx. 5 MB</p>
-                  </div>
-                )}
-              </div>
-            )}
-            <input ref={imagemInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagemFileInput} />
-          </div>
-          <DialogFooter className="gap-2 flex-wrap">
-            {morada.imagemUrl && !imagemSrc && (
-              <Button
-                variant="outline"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30 mr-auto"
-                onClick={() => salvarImagem(null)}
-                disabled={imagemLoading}
-              >
-                Remover imagem
-              </Button>
-            )}
-            {imagemSrc && (
-              <Button variant="outline" size="sm" onClick={() => imagemInputRef.current?.click()} className="mr-auto">
-                Trocar imagem
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => { setImagemDialogOpen(false); setImagemSrc(null); }}>
-              Cancelar
-            </Button>
-            <Button onClick={confirmCrop} disabled={!imagemSrc || imagemLoading} className="gap-1.5">
-              {imagemLoading
-                ? <><div className="h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Salvando...</>
-                : "Salvar"
-              }
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Imagem da Morada */}
+      <ImageCropDialog
+        open={imagemDialogOpen}
+        onOpenChange={setImagemDialogOpen}
+        title="Imagem de identificação"
+        hasImage={!!morada.imagemUrl}
+        onSave={(base64) => salvarImagem(base64)}
+        onRemove={() => salvarImagem(null)}
+      />
     </div>
   );
 }

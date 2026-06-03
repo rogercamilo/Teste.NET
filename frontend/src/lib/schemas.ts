@@ -86,7 +86,7 @@ export const CreateFormandoSchema = z.object({
   email: z.string().email("E-mail inválido").max(255).optional().or(z.literal("")).default(""),
   ativo: z.boolean().optional(),
   motivoInatividade: MotivoInatividadeEnum.optional().nullable(),
-  foto: z.string().url("URL inválida").max(2048).optional().nullable(),
+  foto: z.string().max(2_000_000).optional().nullable(),
   turmaId: z.string().optional().nullable(),
   moradaId: z.string().optional().nullable(),
   totalFormacoes: z.number().int().min(0).optional(),

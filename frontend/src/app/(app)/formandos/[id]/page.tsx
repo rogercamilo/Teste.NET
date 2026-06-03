@@ -48,7 +48,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatPhone } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -68,6 +69,7 @@ import {
   Activity,
   AlertCircle,
   ArrowLeft,
+  Camera,
   ArrowRight,
   Award,
   BarChart3,
@@ -149,6 +151,7 @@ export default function FormandoDetailPage({
   });
 
   const [avancarOpen, setAvancarOpen] = useState(false);
+  const [fotoDialogOpen, setFotoDialogOpen] = useState(false);
 
 
   const [avaliacaoOpen, setAvaliacaoOpen] = useState(false);
@@ -652,13 +655,22 @@ export default function FormandoDetailPage({
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          <Avatar className="h-16 w-16 shrink-0">
-            <AvatarFallback
-              className={`text-lg font-bold ${NIVEL_CORES[formando.nivelFormativo]}`}
-            >
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <button
+            type="button"
+            onClick={() => setFotoDialogOpen(true)}
+            className="relative h-16 w-16 shrink-0 group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            title="Alterar foto"
+          >
+            <Avatar className="h-16 w-16">
+              {formando.foto && <AvatarImage src={formando.foto} alt={formando.nome} />}
+              <AvatarFallback className={`text-lg font-bold ${NIVEL_CORES[formando.nivelFormativo]}`}>
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <span className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="h-5 w-5 text-white" />
+            </span>
+          </button>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold text-foreground">{formando.nome}</h1>
@@ -2345,6 +2357,26 @@ export default function FormandoDetailPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Foto do Formando */}
+      <ImageCropDialog
+        open={fotoDialogOpen}
+        onOpenChange={setFotoDialogOpen}
+        title={`Foto de ${formando.nome}`}
+        hasImage={!!formando.foto}
+        onSave={(base64) => {
+          setFormandos((prev) =>
+            prev.map((f) => (f.id === id ? { ...f, foto: base64 } : f))
+          );
+          toast.success("Foto atualizada.");
+        }}
+        onRemove={() => {
+          setFormandos((prev) =>
+            prev.map((f) => (f.id === id ? { ...f, foto: undefined } : f))
+          );
+          toast.success("Foto removida.");
+        }}
+      />
 
       {/* Dialog: Avaliação de Perspectiva */}
       <Dialog open={!!perspectivaOpen} onOpenChange={(open) => !open && setPerspectivaOpen(null)}>
