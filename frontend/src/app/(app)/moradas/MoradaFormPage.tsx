@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useMoradas, usePlanos, useGrades, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
+import { useMoradas, usePlanos, useGrades, useComunidade, useEtapaLabels, useUsuarios } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   type Morada,
@@ -68,10 +68,6 @@ const EMPTY_FORM: FormState = {
   vigenciaFim: "",
 };
 
-const formadores = db.usuarios
-  .load()
-  .filter((u) => u.perfil === "formador_comunitario" && u.ativo);
-
 export default function MoradaFormPage() {
   const router = useRouter();
   const [, setMoradas] = useMoradas();
@@ -80,6 +76,8 @@ export default function MoradaFormPage() {
   const etapaLabels = useEtapaLabels();
   const [allPlanos] = usePlanos();
   const [allGrades] = useGrades();
+  const [allUsuarios] = useUsuarios();
+  const formadores = allUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
@@ -88,7 +86,7 @@ export default function MoradaFormPage() {
 
   const availablePlanos = allPlanos.filter(
     (p) =>
-      (p.status === "ativo" || p.status === "em-revisao") &&
+      p.status !== "arquivado" &&
       p.nivelFormativo === form.nivelFormativo
   );
 
@@ -107,7 +105,7 @@ export default function MoradaFormPage() {
     const matchingPlano = allPlanos.find(
       (p) =>
         p.nivelFormativo === nivel &&
-        (p.status === "ativo" || p.status === "em-revisao")
+        p.status !== "arquivado"
     );
     const matchingGrade = matchingPlano
       ? allGrades.find((g) => g.planoId === matchingPlano.id && g.ativo)

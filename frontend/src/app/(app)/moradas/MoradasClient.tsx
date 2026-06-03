@@ -362,7 +362,7 @@ export default function MoradasClient() {
                   if (v) {
                     const nivel = v as NivelFormativo;
                     const matchingPlano = allPlanos.find(
-                      (p) => p.nivelFormativo === nivel && (p.status === "ativo" || p.status === "em-revisao")
+                      (p) => p.nivelFormativo === nivel && p.status !== "arquivado"
                     );
                     const matchingGrade = matchingPlano
                       ? allGrades.find((g) => g.planoId === matchingPlano.id && g.ativo)
@@ -437,14 +437,14 @@ export default function MoradasClient() {
                   set("planoId")(v ?? "");
                   set("gradeId")("");
                 }}
-                items={Object.fromEntries(allPlanos.filter((p) => (p.status === "ativo" || p.status === "em-revisao") && p.nivelFormativo === form.nivelFormativo).map((p) => [p.id, p.nome]))}
+                items={Object.fromEntries(allPlanos.filter((p) => p.status !== "arquivado" && p.nivelFormativo === form.nivelFormativo).map((p) => [p.id, p.nome]))}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione o plano..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhum</SelectItem>
                   {allPlanos
                     .filter((p) =>
-                      (p.status === "ativo" || p.status === "em-revisao") &&
+                      p.status !== "arquivado" &&
                       p.nivelFormativo === form.nivelFormativo
                     )
                     .map((p) => (
