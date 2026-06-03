@@ -832,16 +832,16 @@ export default function FormandoDetailPage({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="jornada">
+      <Tabs defaultValue="visao-geral">
         <TabsList className="bg-muted/50 h-9">
+          <TabsTrigger value="visao-geral" className="text-xs h-7">
+            Visão geral
+          </TabsTrigger>
           <TabsTrigger value="jornada" className="text-xs h-7">
             Jornada Formativa
           </TabsTrigger>
           <TabsTrigger value="perspectivas" className="text-xs h-7">
             Perspectivas
-          </TabsTrigger>
-          <TabsTrigger value="visao-geral" className="text-xs h-7">
-            Visão geral
           </TabsTrigger>
           <TabsTrigger value="historico" className="text-xs h-7">
             Histórico de evolução
