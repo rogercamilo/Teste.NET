@@ -70,6 +70,7 @@ import { format, parseISO, differenceInYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
+import { applyPhoneMask, stripPhone } from "@/lib/utils";
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
@@ -180,7 +181,7 @@ export default function FormandosPage() {
       modalidade: f.modalidade,
       nivelFormativo: f.nivelFormativo,
       dataIngresso: f.dataIngresso,
-      telefone: f.telefone,
+      telefone: applyPhoneMask(f.telefone),
       email: f.email,
       moradaId: f.moradaId ?? "",
     });
@@ -221,7 +222,7 @@ export default function FormandosPage() {
       modalidade: form.modalidade,
       nivelFormativo,
       dataIngresso: form.dataIngresso,
-      telefone: form.telefone.trim(),
+      telefone: stripPhone(form.telefone),
       email: form.email.trim(),
       ativo: editing?.ativo ?? true,
       moradaId: form.moradaId || undefined,
@@ -497,7 +498,14 @@ export default function FormandosPage() {
               </div>
               <div className="grid gap-1.5">
                 <Label>Telefone</Label>
-                <Input value={form.telefone} onChange={(e) => set("telefone")(e.target.value)} placeholder="(85) 99999-0000" />
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  value={form.telefone}
+                  onChange={(e) => set("telefone")(applyPhoneMask(e.target.value))}
+                  placeholder="(xx) xxxxx-xxxx"
+                  maxLength={15}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">

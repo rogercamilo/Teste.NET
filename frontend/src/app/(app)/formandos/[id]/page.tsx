@@ -46,7 +46,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, formatPhone } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -690,7 +690,7 @@ export default function FormandoDetailPage({
                 <Mail className="h-3.5 w-3.5" /> {formando.email}
               </span>
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Phone className="h-3.5 w-3.5" /> {formando.telefone}
+                <Phone className="h-3.5 w-3.5" /> {formatPhone(formando.telefone)}
               </span>
             </div>
           </div>
@@ -1657,7 +1657,7 @@ export default function FormandoDetailPage({
               <div>
                 <CardTitle className="text-sm font-semibold">Histórico de evolução</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Formações do nível{" "}
+                  Formações da etapa formativa - {" "}
                   <span className="font-medium">
                     {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
                   </span>{" "}
@@ -1865,44 +1865,80 @@ export default function FormandoDetailPage({
         </TabsContent>
 
         {/* Dados Pessoais */}
-        <TabsContent value="dados" className="mt-4">
+        <TabsContent value="dados" className="mt-4 space-y-4">
+          {/* Identificação */}
           <Card className="border-0 shadow-sm">
-            <CardContent className="pt-5 space-y-4">
-              {[
-                { icon: User, label: "Nome completo", value: formando.nome },
-                {
-                  icon: Calendar,
-                  label: "Data de nascimento",
-                  value: `${format(parseISO(formando.dataNascimento), "dd/MM/yyyy")} (${idade} anos)`,
-                },
-                {
-                  icon: User,
-                  label: "Estado civil",
-                  value: ESTADO_CIVIL_LABELS[formando.estadoCivil],
-                },
-                {
-                  icon: MapPin,
-                  label: "Modalidade",
-                  value: MODALIDADE_LABELS[formando.modalidade],
-                },
-                {
-                  icon: Calendar,
-                  label: "Data de ingresso",
-                  value: format(parseISO(formando.dataIngresso), "dd/MM/yyyy"),
-                },
-                { icon: Mail, label: "E-mail", value: formando.email },
-                { icon: Phone, label: "Telefone", value: formando.telefone },
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{label}</p>
-                    <p className="text-sm font-medium text-foreground mt-0.5">{value}</p>
-                  </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Identificação</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="sm:col-span-2">
+                  <p className="text-xs text-muted-foreground">Nome completo</p>
+                  <p className="text-sm font-medium text-foreground mt-0.5">{formando.nome}</p>
                 </div>
-              ))}
+                <div>
+                  <p className="text-xs text-muted-foreground">Data de nascimento</p>
+                  <p className="text-sm font-medium text-foreground mt-0.5">
+                    {format(parseISO(formando.dataNascimento), "dd/MM/yyyy")}
+                    <span className="text-muted-foreground font-normal ml-1.5">({idade} anos)</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Estado civil</p>
+                  <p className="text-sm font-medium text-foreground mt-0.5">{ESTADO_CIVIL_LABELS[formando.estadoCivil]}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Formativo */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Formativo</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Modalidade</p>
+                  <p className="text-sm font-medium text-foreground mt-0.5">{MODALIDADE_LABELS[formando.modalidade]}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Data de ingresso</p>
+                  <p className="text-sm font-medium text-foreground mt-0.5">{format(parseISO(formando.dataIngresso), "dd/MM/yyyy")}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contato */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contato</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Telefone</p>
+                  <a
+                    href={`tel:${formando.telefone}`}
+                    className="text-sm font-medium text-foreground mt-0.5 flex items-center gap-1.5 hover:text-primary transition-colors"
+                  >
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                    {formatPhone(formando.telefone)}
+                  </a>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">E-mail</p>
+                  <a
+                    href={`mailto:${formando.email}`}
+                    className="text-sm font-medium text-foreground mt-0.5 flex items-center gap-1.5 hover:text-primary transition-colors truncate"
+                  >
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    {formando.email}
+                  </a>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
