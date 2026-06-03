@@ -150,6 +150,7 @@ export default function FormandoDetailPage({
 
   const [avancarOpen, setAvancarOpen] = useState(false);
 
+
   const [avaliacaoOpen, setAvaliacaoOpen] = useState(false);
   const [avaliacaoForm, setAvaliacaoForm] = useState<{
     periodoInicio: string;
@@ -434,9 +435,10 @@ export default function FormandoDetailPage({
     0
   );
   const etapasConcluidas = (formando.progressoEtapas ?? []).filter((p) => !!p.concluiuEm).length;
-  const inicioJornada = [...(formando.progressoEtapas ?? [])]
-    .sort((a, b) => (a.iniciouEm ?? "").localeCompare(b.iniciouEm ?? ""))
-    .find((p) => p.iniciouEm)?.iniciouEm;
+  const primeiraEtapa = [...(formando.progressoEtapas ?? [])]
+    .filter((p) => p.iniciouEm || p.dataMissaCompromisso)
+    .sort((a, b) => (a.iniciouEm ?? a.dataMissaCompromisso ?? "").localeCompare(b.iniciouEm ?? b.dataMissaCompromisso ?? ""))[0];
+  const inicioJornada = primeiraEtapa?.dataMissaCompromisso ?? primeiraEtapa?.iniciouEm;
 
   function handleSaveAvaliacao() {
     if (!avaliacaoForm.periodoInicio || !avaliacaoForm.periodoFim)
@@ -477,6 +479,7 @@ export default function FormandoDetailPage({
     setPerspectivaForm({ nota: "boa", texto: "" });
     toast.success(`Avaliação da perspectiva ${PERSPECTIV_LABELS[perspectivaOpen]} registrada.`);
   }
+
 
   async function handleSaveSolicitacao() {
     if (!solicitacaoForm.motivo.trim()) return toast.error("O motivo é obrigatório.");
@@ -957,6 +960,33 @@ export default function FormandoDetailPage({
                           <span className="text-xs text-muted-foreground/60">· Bloqueada</span>
                         )}
                       </div>
+
+                      {/* Datas formativas da etapa */}
+                      {!isLocked && (prog?.dataMissaCompromisso || prog?.iniciouEm || prog?.concluiuEm) && (
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
+                          {prog?.dataMissaCompromisso && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3 shrink-0" />
+                              <span className="font-medium">Missa:</span>{" "}
+                              {format(parseISO(prog.dataMissaCompromisso), "dd/MM/yyyy")}
+                            </span>
+                          )}
+                          {prog?.iniciouEm && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3 shrink-0" />
+                              <span className="font-medium">Início:</span>{" "}
+                              {format(parseISO(prog.iniciouEm), "dd/MM/yyyy")}
+                            </span>
+                          )}
+                          {prog?.concluiuEm && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3 shrink-0" />
+                              <span className="font-medium">Conclusão:</span>{" "}
+                              {format(parseISO(prog.concluiuEm), "dd/MM/yyyy")}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {/* Requisitos resumidos para etapas bloqueadas */}
                       {isLocked && (

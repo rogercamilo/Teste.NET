@@ -27,6 +27,8 @@ export type AuditAction =
   | "morada_deleted"
   | "morada_etapa_encerrada"
   | "morada_nova_etapa"
+  | "morada_datas_etapa_updated"
+  | "progresso_etapa_updated"
   | "formando_created"
   | "formando_updated"
   | "formando_deleted"

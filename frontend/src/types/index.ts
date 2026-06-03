@@ -27,6 +27,7 @@ export interface ProgressoEtapa {
   retirosPessoaisRealizados: number;
   iniciouEm?: string;
   concluiuEm?: string;
+  dataMissaCompromisso?: string;
 }
 
 export interface RequisitosEtapa {

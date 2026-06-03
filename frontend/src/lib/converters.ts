@@ -53,6 +53,7 @@ export type PrismaFormando = {
     id: string; formandoId: string; nivelFormativo: string;
     formacoesComunitariasRealizadas: number; retirosComunitariosRealizados: number;
     retirosPessoaisRealizados: number; iniciouEm: Date | null; concluiuEm: Date | null;
+    dataMissaCompromisso: Date | null;
   }[];
 };
 
@@ -175,6 +176,7 @@ export function toFormando(f: PrismaFormando): Formando {
       retirosPessoaisRealizados: p.retirosPessoaisRealizados,
       iniciouEm: p.iniciouEm?.toISOString().split("T")[0],
       concluiuEm: p.concluiuEm?.toISOString().split("T")[0],
+      dataMissaCompromisso: p.dataMissaCompromisso?.toISOString().split("T")[0],
     })),
   };
 }

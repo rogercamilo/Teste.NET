@@ -47,8 +47,12 @@ export async function POST(request: Request, { params }: Params) {
     }
     const nextNivel = NIVEL_SEQUENCE[currentIdx + 1];
 
-    const body = await request.json().catch(() => ({})) as { vigenciaInicio?: string };
+    const body = await request.json().catch(() => ({})) as {
+      vigenciaInicio?: string;
+      dataMissaCompromisso?: string;
+    };
     const vigenciaInicio = body.vigenciaInicio ? new Date(body.vigenciaInicio) : new Date();
+    const dataMissaCompromisso = body.dataMissaCompromisso ? new Date(body.dataMissaCompromisso) : null;
 
     const updated = await prisma.$transaction(async (tx) => {
       const moradaAtualizada = await tx.morada.update({
@@ -69,11 +73,12 @@ export async function POST(request: Request, { params }: Params) {
         });
         await tx.progressoEtapa.upsert({
           where: { formandoId_nivelFormativo: { formandoId: formando.id, nivelFormativo: nextNivel } },
-          update: { iniciouEm: vigenciaInicio },
+          update: { iniciouEm: vigenciaInicio, dataMissaCompromisso },
           create: {
             formandoId: formando.id,
             nivelFormativo: nextNivel,
             iniciouEm: vigenciaInicio,
+            dataMissaCompromisso,
           },
         });
       }

@@ -229,6 +229,7 @@ model ProgressoEtapa {
   retirosPessoaisRealizados       Int      @default(0)
   iniciouEm                       DateTime?
   concluiuEm                      DateTime?
+  dataMissaCompromisso            DateTime?
 
   formando                        Formando @relation(fields: [formandoId], references: [id], onDelete: Cascade)
 
