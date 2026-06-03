@@ -23,6 +23,8 @@ import {
   TIPO_EVENTO_CORES,
   NOTA_ADESAO_LABELS,
   NOTA_ADESAO_CORES,
+  NOTA_ADESAO_DOT,
+  PERSPECTIV_LABELS,
   getProximaEtapa,
   podeAvancarEtapa,
   totalRequerido,
@@ -35,6 +37,7 @@ import {
   type DocumentoAnexo,
   type NotaAdesao,
   type TipoDesligamento,
+  type PerspectivFormativa,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -150,6 +153,12 @@ export default function FormandoDetailPage({
     notaAdesao: NotaAdesao;
     textoAvaliacao: string;
   }>({ periodoInicio: "", periodoFim: "", notaAdesao: "boa", textoAvaliacao: "" });
+
+  const [perspectivaOpen, setPerspectivaOpen] = useState<PerspectivFormativa | null>(null);
+  const [perspectivaForm, setPerspectivaForm] = useState<{ nota: NotaAdesao; texto: string }>({
+    nota: "boa",
+    texto: "",
+  });
 
   const [solicitacaoOpen, setSolicitacaoOpen] = useState(false);
   const [solicitacaoForm, setSolicitacaoForm] = useState({
@@ -443,6 +452,24 @@ export default function FormandoDetailPage({
     setAvaliacaoOpen(false);
     setAvaliacaoForm({ periodoInicio: "", periodoFim: "", notaAdesao: "boa", textoAvaliacao: "" });
     toast.success("Avaliação de adesão registrada.");
+  }
+
+  function handleSavePerspectiva() {
+    if (!perspectivaOpen) return;
+    const novo: EventoFormando = {
+      id: `ev${Date.now()}`,
+      formandoId: id,
+      formadorId: userId,
+      tipo: "avaliacao-adesao",
+      perspectiva: perspectivaOpen,
+      notaAdesao: perspectivaForm.nota,
+      textoAvaliacao: perspectivaForm.texto.trim() || undefined,
+      criadoEm: new Date().toISOString(),
+    };
+    setEventos((prev) => [...prev, novo]);
+    setPerspectivaOpen(null);
+    setPerspectivaForm({ nota: "boa", texto: "" });
+    toast.success(`Avaliação da perspectiva ${PERSPECTIV_LABELS[perspectivaOpen]} registrada.`);
   }
 
   async function handleSaveSolicitacao() {
@@ -810,6 +837,9 @@ export default function FormandoDetailPage({
           <TabsTrigger value="jornada" className="text-xs h-7">
             Jornada Formativa
           </TabsTrigger>
+          <TabsTrigger value="perspectivas" className="text-xs h-7">
+            Perspectivas
+          </TabsTrigger>
           <TabsTrigger value="visao-geral" className="text-xs h-7">
             Visão geral
           </TabsTrigger>
@@ -997,6 +1027,128 @@ export default function FormandoDetailPage({
               })}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Perspectivas Formativas */}
+        <TabsContent value="perspectivas" className="mt-4 space-y-4">
+          {(() => {
+            const PERSPECTIVAS_INFO: Record<PerspectivFormativa, { desc: string; cor: string; bg: string }> = {
+              humana: {
+                desc: "Autoconhecimento, maturidade afetiva, vida equilibrada e crescimento integral.",
+                cor: "text-violet-700",
+                bg: "bg-violet-50 border-violet-200",
+              },
+              espiritual: {
+                desc: "Intimidade com Deus, vida de oração, vida sacramental e devoção.",
+                cor: "text-blue-700",
+                bg: "bg-blue-50 border-blue-200",
+              },
+              comunitaria: {
+                desc: "Vivência fraterna, comunhão de bens, partilha e vivência apostólica.",
+                cor: "text-emerald-700",
+                bg: "bg-emerald-50 border-emerald-200",
+              },
+            };
+
+            const perspectivas: PerspectivFormativa[] = ["humana", "espiritual", "comunitaria"];
+
+            return (
+              <>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Avalie a adesão de {formando.nome} em cada perspectiva formativa.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {perspectivas.map((persp) => {
+                    const avaliacoesPersp = formandoEventos
+                      .filter((e) => e.tipo === "avaliacao-adesao" && e.perspectiva === persp)
+                      .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+                    const ultimaNota = avaliacoesPersp[0]?.notaAdesao;
+                    const info = PERSPECTIVAS_INFO[persp];
+
+                    return (
+                      <Card key={persp} className="border shadow-sm">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CardTitle className={`text-sm font-semibold ${info.cor}`}>
+                                  Perspectiva {PERSPECTIV_LABELS[persp]}
+                                </CardTitle>
+                                {ultimaNota ? (
+                                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${NOTA_ADESAO_CORES[ultimaNota]}`}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${NOTA_ADESAO_DOT[ultimaNota]}`} />
+                                    {NOTA_ADESAO_LABELS[ultimaNota]}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground/60 italic">Sem avaliação</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">{info.desc}</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="shrink-0 h-8 text-xs"
+                              onClick={() => {
+                                setPerspectivaOpen(persp);
+                                setPerspectivaForm({ nota: "boa", texto: "" });
+                              }}
+                            >
+                              <Plus className="h-3.5 w-3.5 mr-1" />
+                              Avaliar
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        {avaliacoesPersp.length > 0 && (
+                          <CardContent className="pt-0">
+                            <div className="space-y-2">
+                              {avaliacoesPersp.slice(0, 3).map((ev) => (
+                                <div key={ev.id} className={`rounded-lg border px-3 py-2 ${info.bg}`}>
+                                  <div className="flex items-center justify-between gap-2 mb-1">
+                                    <div className="flex items-center gap-2">
+                                      {ev.notaAdesao && (
+                                        <Badge variant="outline" className={`text-[10px] h-4 px-1.5 ${NOTA_ADESAO_CORES[ev.notaAdesao]}`}>
+                                          {NOTA_ADESAO_LABELS[ev.notaAdesao]}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {format(parseISO(ev.criadoEm), "d 'de' MMM 'de' yyyy", { locale: ptBR })}
+                                    </span>
+                                  </div>
+                                  {ev.textoAvaliacao && (
+                                    <p className="text-xs text-foreground leading-relaxed line-clamp-2">
+                                      {ev.textoAvaliacao}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                              {avaliacoesPersp.length > 3 && (
+                                <p className="text-xs text-muted-foreground text-center pt-1">
+                                  + {avaliacoesPersp.length - 3} avaliação{avaliacoesPersp.length - 3 !== 1 ? "ões" : ""} anterior{avaliacoesPersp.length - 3 !== 1 ? "es" : ""}
+                                </p>
+                              )}
+                            </div>
+                          </CardContent>
+                        )}
+                        {avaliacoesPersp.length === 0 && (
+                          <CardContent className="pt-0">
+                            <div className={`rounded-lg border border-dashed px-3 py-4 text-center ${info.bg}`}>
+                              <p className="text-xs text-muted-foreground">
+                                Nenhuma avaliação registrada para esta perspectiva.
+                              </p>
+                            </div>
+                          </CardContent>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
         </TabsContent>
 
         {/* Visão geral da jornada formativa */}
@@ -2118,6 +2270,55 @@ export default function FormandoDetailPage({
               Cancelar
             </Button>
             <Button onClick={handleSaveAvaliacao}>Salvar avaliação</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Avaliação de Perspectiva */}
+      <Dialog open={!!perspectivaOpen} onOpenChange={(open) => !open && setPerspectivaOpen(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {perspectivaOpen ? `Perspectiva ${PERSPECTIV_LABELS[perspectivaOpen]}` : "Avaliação de Perspectiva"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-5 py-2">
+            <div className="grid gap-2">
+              <span className="text-xs font-medium text-foreground">Nota de adesão</span>
+              <div className="grid grid-cols-2 gap-2">
+                {(["otima", "boa", "regular", "insuficiente"] as NotaAdesao[]).map((nota) => (
+                  <button
+                    key={nota}
+                    type="button"
+                    onClick={() => setPerspectivaForm((p) => ({ ...p, nota }))}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all",
+                      perspectivaForm.nota === nota
+                        ? `${NOTA_ADESAO_CORES[nota]} border-current ring-2 ring-offset-1 ring-current/30`
+                        : "border-border/60 bg-card text-muted-foreground hover:border-border"
+                    )}
+                  >
+                    <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", NOTA_ADESAO_DOT[nota])} />
+                    {NOTA_ADESAO_LABELS[nota]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Observação <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Textarea
+                placeholder="Descreva suas percepções sobre esta perspectiva..."
+                value={perspectivaForm.texto}
+                onChange={(e) => setPerspectivaForm((p) => ({ ...p, texto: e.target.value }))}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPerspectivaOpen(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSavePerspectiva}>Salvar avaliação</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
