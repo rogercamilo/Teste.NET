@@ -9,6 +9,8 @@ import {
   useComentarios,
   useEventosFormando,
   useComunidade,
+  useMoradas,
+  useGrades,
 } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
@@ -125,6 +127,8 @@ export default function FormandoDetailPage({
   const [comentarios, setComentarios] = useComentarios();
   const [eventos, setEventos] = useEventosFormando();
   const [comunidade] = useComunidade();
+  const [moradas] = useMoradas();
+  const [grades] = useGrades();
 
   const userId = (session?.user as { id?: string })?.id ?? "u0";
   const userName = session?.user?.name ?? "Formador";
@@ -282,7 +286,9 @@ export default function FormandoDetailPage({
   const progAtual = (formando.progressoEtapas ?? []).find(
     (p) => p.nivel === formando.nivelFormativo
   );
-  const totalAtual = totalRequerido(formando.nivelFormativo);
+  const moradaDoFormando = moradas.find((m) => m.id === formando.moradaId);
+  const gradeDoFormando = grades.find((g) => g.id === moradaDoFormando?.gradeId);
+  const totalAtual = gradeDoFormando?.totalFormacoes ?? totalRequerido(formando.nivelFormativo);
   const realizadosAtual = progAtual
     ? progAtual.formacoesComunitariasRealizadas +
       progAtual.retirosComunitariosRealizados +
@@ -727,7 +733,7 @@ export default function FormandoDetailPage({
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
               <p className="text-2xl font-bold text-foreground">{realizadosAtual}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">de {totalAtual} formações</p>
+              <p className="text-xs text-muted-foreground mt-0.5">de {totalAtual} formações</p>
             </div>
             <div className="text-center">
               <p
@@ -742,7 +748,7 @@ export default function FormandoDetailPage({
               >
                 {progressoPct}%
               </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">progresso</p>
+              <p className="text-xs text-muted-foreground mt-0.5">progresso</p>
             </div>
             <div className="text-center">
               {taxaPresencaAtual !== null ? (
@@ -759,18 +765,18 @@ export default function FormandoDetailPage({
                   >
                     {taxaPresencaAtual}%
                   </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">frequência</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">frequência</p>
                 </>
               ) : (
                 <>
                   <p className="text-2xl font-bold text-muted-foreground/40">—</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">frequência</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">frequência</p>
                 </>
               )}
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-foreground">{avaliacoesRealizadas.length}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">pareceres</p>
+              <p className="text-xs text-muted-foreground mt-0.5">pareceres</p>
             </div>
           </div>
 
