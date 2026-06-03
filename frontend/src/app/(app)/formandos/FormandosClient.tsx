@@ -516,7 +516,9 @@ export default function FormandosClient({
               <div className="grid gap-1.5">
                 <Label>Estado civil</Label>
                 <Select value={form.estadoCivil} onValueChange={(v) => v && set("estadoCivil")(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>{ESTADO_CIVIL_LABELS[form.estadoCivil]}</SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {Object.entries(ESTADO_CIVIL_LABELS).map(([k, v]) => (
                       <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -546,7 +548,9 @@ export default function FormandosClient({
               <div className="grid gap-1.5">
                 <Label>Modalidade</Label>
                 <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>{MODALIDADE_LABELS[form.modalidade]}</SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="presencial">Presencial</SelectItem>
                     <SelectItem value="online">Online</SelectItem>
@@ -569,7 +573,15 @@ export default function FormandosClient({
                   if (m) set("nivelFormativo")(m.nivelFormativo);
                 }}
               >
-                <SelectTrigger><SelectValue placeholder={`Selecione a ${termoMorada.toLowerCase()}...`} /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>
+                    {(() => {
+                      if (!form.moradaId) return `Selecione a ${termoMorada.toLowerCase()}...`;
+                      const m = initialMoradas.find((x) => x.id === form.moradaId);
+                      return m ? `${m.nome} — ${etapaLabels[m.nivelFormativo]}` : `Selecione a ${termoMorada.toLowerCase()}...`;
+                    })()}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhuma</SelectItem>
                   {initialMoradas.filter((m) => m.ativo).map((m) => (
@@ -587,7 +599,11 @@ export default function FormandosClient({
                 onValueChange={(v) => !selectedMorada && v && set("nivelFormativo")(v)}
                 disabled={!!selectedMorada}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>
+                    {etapaLabels[selectedMorada?.nivelFormativo ?? form.nivelFormativo]}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((n) => (
                     <SelectItem key={n} value={n}>{etapaLabels[n]}</SelectItem>
