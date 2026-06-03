@@ -27,16 +27,39 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   };
 
   let orgBranding = { onboardingConcluido: true, temaCor: null as string | null, nomePlataforma: null as string | null, nome: "" };
+  let comunidadeInitial: import("@/types").ComunidadeConfig | undefined;
 
   if (sessionUser.organizacaoId && sessionUser.role !== "super_admin") {
     const org = await prisma.organizacao.findUnique({
       where: { id: sessionUser.organizacaoId },
-      // logoUrl é TEXT potencialmente grande (base64) — carregado client-side via useComunidade
-      select: { onboardingConcluido: true, temaCor: true, nomePlataforma: true, nome: true },
+      select: {
+        onboardingConcluido: true, temaCor: true, nomePlataforma: true, nome: true,
+        descricao: true, endereco: true, missao: true, anoFundacao: true,
+        termoMorada: true, termoFormando: true, termoFormador: true,
+        termoPreDiscipulado: true, termoDiscipulado: true,
+        termoPrimeirasPromessas: true, termoFormacaoPermanente: true,
+        // logoUrl excluído intencionalmente: campo TEXT grande (base64), não usado no layout
+      },
     });
     if (org) {
       orgBranding = { ...orgBranding, ...org };
       if (!org.onboardingConcluido && isAdmin(sessionUser.role)) redirect("/onboarding");
+      comunidadeInitial = {
+        nome: org.nome,
+        descricao: org.descricao ?? "",
+        endereco: org.endereco ?? "",
+        missao: org.missao ?? "",
+        anoFundacao: org.anoFundacao ?? "",
+        termoMorada: org.termoMorada ?? undefined,
+        termoFormando: org.termoFormando ?? undefined,
+        termoFormador: org.termoFormador ?? undefined,
+        termoPreDiscipulado: org.termoPreDiscipulado ?? undefined,
+        termoDiscipulado: org.termoDiscipulado ?? undefined,
+        termoPrimeirasPromessas: org.termoPrimeirasPromessas ?? undefined,
+        termoFormacaoPermanente: org.termoFormacaoPermanente ?? undefined,
+        nomePlataforma: org.nomePlataforma ?? undefined,
+        temaCor: org.temaCor ?? undefined,
+      };
     }
   }
 
@@ -53,7 +76,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
-      <ComunidadeProvider>
+      <ComunidadeProvider initialData={comunidadeInitial}>
         {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
         <ThemeApplier themeKey={orgBranding.temaCor} />
         <PrimeiroAcessoModal primeiroAcesso={primeiroAcesso} />

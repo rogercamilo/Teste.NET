@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import type { ComunidadeConfig } from "@/types";
 
 const DEFAULT_COMUNIDADE: ComunidadeConfig = {
@@ -17,17 +17,19 @@ type ComunidadeCtx = [ComunidadeConfig, (c: ComunidadeConfig) => void];
 
 export const ComunidadeContext = createContext<ComunidadeCtx>([DEFAULT_COMUNIDADE, () => {}]);
 
-export function ComunidadeProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ComunidadeConfig>(DEFAULT_COMUNIDADE);
-
-  useEffect(() => {
-    fetch("/api/organizacao")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: ComunidadeConfig | null) => {
-        if (data) setState({ ...DEFAULT_COMUNIDADE, ...data });
-      })
-      .catch(() => {});
-  }, []);
+// initialData comes from the Server Component layout — eliminates the client-side
+// fetch on mount that was causing a flash of default terminology on every page.
+export function ComunidadeProvider({
+  children,
+  initialData,
+}: {
+  children: ReactNode;
+  initialData?: Partial<ComunidadeConfig>;
+}) {
+  const [state, setState] = useState<ComunidadeConfig>({
+    ...DEFAULT_COMUNIDADE,
+    ...initialData,
+  });
 
   const save = (c: ComunidadeConfig) => {
     setState(c);

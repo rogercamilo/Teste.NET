@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanos, useMoradas } from "@/lib/data-store";
 import {
   STATUS_PLANO_LABELS,
   NIVEL_FORMATIVO_LABELS,
@@ -10,6 +9,7 @@ import {
   type StatusPlano,
   type PlanoFormativo,
   type NivelFormativo,
+  type Morada,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,14 +63,15 @@ const STATUS_DOT: Record<StatusPlano, string> = {
 interface PlanosClientProps {
   role: string;
   moradaId: string | null;
+  initialPlanos: PlanoFormativo[];
+  initialMoradas: Morada[];
 }
 
 const PAGE_SIZE = 10;
 
-export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
+export default function PlanosClient({ role, moradaId, initialPlanos, initialMoradas }: PlanosClientProps) {
   const router = useRouter();
-  const [planos, setPlanos] = usePlanos();
-  const [moradas] = useMoradas();
+  const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<PlanoFormativo | null>(null);
@@ -80,13 +81,13 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
 
   const minhaMorada =
     role === "formador_comunitario" && moradaId
-      ? moradas.find((m) => m.id === moradaId)
+      ? initialMoradas.find((m) => m.id === moradaId)
       : null;
   const nivelRestrito: NivelFormativo | null = minhaMorada?.nivelFormativo ?? null;
 
   const visiblePlanos = nivelRestrito
-    ? planos.filter((p) => p.nivelFormativo === nivelRestrito)
-    : planos;
+    ? initialPlanos.filter((p) => p.nivelFormativo === nivelRestrito)
+    : initialPlanos;
 
   const filtered = visiblePlanos.filter((p) =>
     p.nome.toLowerCase().includes(search.toLowerCase())
@@ -98,13 +99,18 @@ export default function PlanosClient({ role, moradaId }: PlanosClientProps) {
     setDeleteOpen(true);
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!toDelete) return;
-    localStorage.removeItem(`doc_${toDelete.id}`);
-    setPlanos((prev) => prev.filter((p) => p.id !== toDelete.id));
-    setDeleteOpen(false);
-    setToDelete(null);
-    toast.success("Plano excluído.");
+    try {
+      const res = await fetch(`/api/planos/${toDelete.id}`, { method: "DELETE" });
+      if (!res.ok) return toast.error("Erro ao excluir plano.");
+      toast.success("Plano excluído.");
+      setDeleteOpen(false);
+      setToDelete(null);
+      startTransition(() => router.refresh());
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    }
   }
 
   return (

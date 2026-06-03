@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useMoradas, useFormandos, usePlanos, useGrades, useUsuarios, useComunidade } from "@/lib/data-store";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useTermos } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   type Morada,
   type NivelFormativo,
+  type PlanoFormativo,
+  type GradeFormativa,
+  type Usuario,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,16 +83,27 @@ const EMPTY_FORM: FormState = {
 };
 
 const PAGE_SIZE = 10;
+const JSON_HEADERS = { "Content-Type": "application/json" };
 
-export default function MoradasClient() {
-  const [moradas, setMoradas] = useMoradas();
-  const [allFormandos, setFormandos] = useFormandos();
-  const [allPlanos] = usePlanos();
-  const [allGrades] = useGrades();
-  const [allUsuarios] = useUsuarios();
-  const [comunidade] = useComunidade();
-  const termoMorada = comunidade.termoMorada?.trim() || "Morada";
-  const formadores = allUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
+interface MoradasClientProps {
+  initialMoradas: Morada[];
+  initialPlanos: PlanoFormativo[];
+  initialGrades: GradeFormativa[];
+  initialFormadores: Usuario[];
+  formandoCounts: Record<string, number>;
+}
+
+export default function MoradasClient({
+  initialMoradas,
+  initialPlanos,
+  initialGrades,
+  initialFormadores,
+  formandoCounts,
+}: MoradasClientProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
+  const { morada: termoMorada } = useTermos();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -99,7 +114,7 @@ export default function MoradasClient() {
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const filtered = moradas.filter((m) =>
+  const filtered = initialMoradas.filter((m) =>
     m.nome.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -130,53 +145,62 @@ export default function MoradasClient() {
     setDeleteOpen(true);
   }
 
-  const availableGrades = allGrades.filter(
+  const availableGrades = initialGrades.filter(
     (g) => g.nivelFormativo === form.nivelFormativo && (form.planoId === "" || g.planoId === form.planoId)
   );
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório.");
     if (form.vigenciaFim && form.vigenciaInicio && form.vigenciaFim <= form.vigenciaInicio)
       return toast.error("Data de término deve ser posterior à data de início.");
 
-    const today = new Date().toISOString().split("T")[0];
-    const hasFormador = !!form.formadorId;
-    const payload: Morada = {
-      id: editing?.id ?? `m${Date.now()}`,
-      nome: form.nome.trim(),
-      nivelFormativo: form.nivelFormativo,
-      formadorId: form.formadorId || undefined,
-      planoId: form.planoId || undefined,
-      gradeId: form.gradeId || undefined,
-      vigenciaInicio: form.vigenciaInicio || undefined,
-      vigenciaFim: form.vigenciaFim || undefined,
-      // Nova morada sem formador nasce inativa; edição preserva o status atual
-      ativo: editing?.ativo ?? hasFormador,
-      criadoEm: editing?.criadoEm ?? today,
-    };
+    if (!editing) return; // criar usa /moradas/nova
 
-    if (editing) {
-      setMoradas((prev) => prev.map((m) => (m.id === editing.id ? payload : m)));
+    setSaving(true);
+    try {
+      const payload = {
+        nome: form.nome.trim(),
+        nivelFormativo: form.nivelFormativo,
+        formadorId: form.formadorId || undefined,
+        planoId: form.planoId || undefined,
+        gradeId: form.gradeId || undefined,
+        vigenciaInicio: form.vigenciaInicio || undefined,
+        vigenciaFim: form.vigenciaFim || undefined,
+      };
+      const res = await fetch(`/api/moradas/${editing.id}`, {
+        method: "PUT",
+        headers: JSON_HEADERS,
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return toast.error((err as { error?: string }).error ?? "Erro ao salvar.");
+      }
       toast.success(`${termoMorada} atualizada com sucesso!`);
-    } else {
-      setMoradas((prev) => [...prev, payload]);
-      const msg = hasFormador
-        ? `${termoMorada} criada com sucesso!`
-        : `${termoMorada} criada como inativa (sem formador responsável).`;
-      toast.success(msg);
+      setDialogOpen(false);
+      startTransition(() => router.refresh());
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setSaving(false);
     }
-    setDialogOpen(false);
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!editing) return;
-    setMoradas((prev) => prev.filter((m) => m.id !== editing.id));
-    setFormandos((prev) =>
-      prev.map((f) => (f.moradaId === editing.id ? { ...f, moradaId: undefined } : f))
-    );
-    setDeleteOpen(false);
-    setEditing(null);
-    toast.success(`${termoMorada} excluída.`);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/moradas/${editing.id}`, { method: "DELETE" });
+      if (!res.ok) return toast.error("Erro ao excluir.");
+      toast.success(`${termoMorada} excluída.`);
+      setDeleteOpen(false);
+      setEditing(null);
+      startTransition(() => router.refresh());
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -185,7 +209,7 @@ export default function MoradasClient() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{termoMorada}s</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {moradas.filter((m) => m.ativo).length} {termoMorada.toLowerCase()}s ativas
+            {initialMoradas.filter((m) => m.ativo).length} {termoMorada.toLowerCase()}s ativas
           </p>
         </div>
         <Link href="/moradas/nova" className={buttonVariants({ size: "sm" })}>
@@ -196,7 +220,7 @@ export default function MoradasClient() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((nivel) => {
-          const count = moradas.filter((m) => m.nivelFormativo === nivel).length;
+          const count = initialMoradas.filter((m) => m.nivelFormativo === nivel).length;
           return (
             <div key={nivel} className="p-3 rounded-xl border border-border/60 shadow-sm bg-card flex items-center gap-2.5">
               <span className="text-xl">{NIVEL_ICONS[nivel]}</span>
@@ -230,10 +254,10 @@ export default function MoradasClient() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((morada) => {
-          const formador = allUsuarios.find((u) => u.id === morada.formadorId);
-          const plano = allPlanos.find((p) => p.id === morada.planoId);
-          const grade = allGrades.find((g) => g.id === morada.gradeId);
-          const totalFormandos = allFormandos.filter((f) => f.moradaId === morada.id).length;
+          const formador = initialFormadores.find((u) => u.id === morada.formadorId);
+          const plano = initialPlanos.find((p) => p.id === morada.planoId);
+          const grade = initialGrades.find((g) => g.id === morada.gradeId);
+          const totalFormandos = formandoCounts[morada.id] ?? 0;
 
           return (
             <Card key={morada.id} className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group">
@@ -361,11 +385,11 @@ export default function MoradasClient() {
                 onValueChange={(v) => {
                   if (v) {
                     const nivel = v as NivelFormativo;
-                    const matchingPlano = allPlanos.find(
+                    const matchingPlano = initialPlanos.find(
                       (p) => p.nivelFormativo === nivel && p.status !== "arquivado"
                     );
                     const matchingGrade = matchingPlano
-                      ? allGrades.find((g) => g.planoId === matchingPlano.id && g.ativo)
+                      ? initialGrades.find((g) => g.planoId === matchingPlano.id && g.ativo)
                       : undefined;
                     setForm((prev) => ({
                       ...prev,
@@ -410,14 +434,14 @@ export default function MoradasClient() {
               <Select
                 value={form.formadorId}
                 onValueChange={(v) => set("formadorId")(v ?? "")}
-                items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}
+                items={Object.fromEntries(initialFormadores.map((u) => [u.id, u.nome]))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o formador (opcional)..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhum</SelectItem>
-                  {formadores.map((u) => (
+                  {initialFormadores.map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                   ))}
                 </SelectContent>
@@ -437,12 +461,12 @@ export default function MoradasClient() {
                   set("planoId")(v ?? "");
                   set("gradeId")("");
                 }}
-                items={Object.fromEntries(allPlanos.filter((p) => p.status !== "arquivado" && p.nivelFormativo === form.nivelFormativo).map((p) => [p.id, p.nome]))}
+                items={Object.fromEntries(initialPlanos.filter((p) => p.status !== "arquivado" && p.nivelFormativo === form.nivelFormativo).map((p) => [p.id, p.nome]))}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione o plano..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhum</SelectItem>
-                  {allPlanos
+                  {initialPlanos
                     .filter((p) =>
                       p.status !== "arquivado" &&
                       p.nivelFormativo === form.nivelFormativo
@@ -479,8 +503,10 @@ export default function MoradasClient() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>{editing ? "Salvar alterações" : `Criar ${termoMorada.toLowerCase()}`}</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : editing ? "Salvar alterações" : `Criar ${termoMorada.toLowerCase()}`}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -496,8 +522,10 @@ export default function MoradasClient() {
             <span className="font-medium text-foreground">{editing?.nome}</span>? Esta ação não pode ser desfeita.
           </p>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={saving}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={saving}>
+              {saving ? "Excluindo..." : "Excluir"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

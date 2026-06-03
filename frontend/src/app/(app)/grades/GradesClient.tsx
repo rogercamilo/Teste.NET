@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useGrades, useMoradas } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   type NivelFormativo,
   type GradeFormativa,
+  type Morada,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,27 +56,28 @@ const EIXO_COLORS = [
 interface GradesClientProps {
   role: string;
   moradaId: string | null;
+  initialGrades: GradeFormativa[];
+  initialMoradas: Morada[];
 }
 
-export default function GradesClient({ role, moradaId }: GradesClientProps) {
+export default function GradesClient({ role, moradaId, initialGrades, initialMoradas }: GradesClientProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const canEdit = role !== "formador_comunitario";
 
   const PAGE_SIZE = 10;
-  const [grades, setGrades] = useGrades();
-  const [moradas, setMoradas] = useMoradas();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<GradeFormativa | null>(null);
   const [page, setPage] = useState(1);
 
   const minhaMorada =
     role === "formador_comunitario" && moradaId
-      ? moradas.find((m) => m.id === moradaId)
+      ? initialMoradas.find((m) => m.id === moradaId)
       : null;
   const nivelRestrito: NivelFormativo | null = minhaMorada?.nivelFormativo ?? null;
   const visibleGrades = nivelRestrito
-    ? grades.filter((g) => g.nivelFormativo === nivelRestrito)
-    : grades;
+    ? initialGrades.filter((g) => g.nivelFormativo === nivelRestrito)
+    : initialGrades;
 
   function openDelete(g: GradeFormativa, e: React.MouseEvent) {
     e.stopPropagation();
@@ -84,18 +85,21 @@ export default function GradesClient({ role, moradaId }: GradesClientProps) {
     setDeleteOpen(true);
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!toDelete) return;
-    if (toDelete.documentoAnexoId) {
-      fetch(`/api/arquivos/${toDelete.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+    try {
+      if (toDelete.documentoAnexoId) {
+        fetch(`/api/arquivos/${toDelete.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+      }
+      const res = await fetch(`/api/grades/${toDelete.id}`, { method: "DELETE" });
+      if (!res.ok) return toast.error("Erro ao excluir grade.");
+      toast.success("Grade excluída.");
+      setDeleteOpen(false);
+      setToDelete(null);
+      startTransition(() => router.refresh());
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
     }
-    setGrades((prev) => prev.filter((g) => g.id !== toDelete.id));
-    setMoradas((prev) =>
-      prev.map((m) => (m.gradeId === toDelete.id ? { ...m, gradeId: undefined } : m))
-    );
-    setDeleteOpen(false);
-    setToDelete(null);
-    toast.success("Grade excluída.");
   }
 
   return (
