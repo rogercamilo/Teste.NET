@@ -2196,7 +2196,6 @@ export default function FormandoDetailPage({
                   onValueChange={(v) =>
                     v && setRegistroForm((prev) => ({ ...prev, presente: v }))
                   }
-                  items={{ true: "Presente", false: "Ausente" }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -2244,7 +2243,6 @@ export default function FormandoDetailPage({
                 onValueChange={(v) =>
                   v && setComentarioForm((prev) => ({ ...prev, tipo: v as TipoComentario }))
                 }
-                items={TIPO_COMENTARIO_LABELS}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -2322,7 +2320,6 @@ export default function FormandoDetailPage({
                 onValueChange={(v) =>
                   v && setAvaliacaoForm((p) => ({ ...p, notaAdesao: v as NotaAdesao }))
                 }
-                items={NOTA_ADESAO_LABELS}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -2578,7 +2575,6 @@ export default function FormandoDetailPage({
                     tipoDesligamento: v as TipoDesligamento,
                   }))
                 }
-                items={{ voluntario: "Voluntário", compulsorio: "Compulsório (Demissão)" }}
               >
                 <SelectTrigger>
                   <SelectValue />
