@@ -81,6 +81,7 @@ model Organizacao {
   convites             ConviteUsuario[]
   configuracao         ConfiguracaoOrg?
   pushSubscriptions    PushSubscription[]
+  relatorios           RelatorioEtapa[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -135,6 +136,7 @@ model Usuario {
   agendamentos       Agendamento[]
   privacyAcceptances PrivacyAcceptance[]
   convitesEnviados   ConviteUsuario[]
+  relatoriosRedigidos RelatorioEtapa[]
 
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
@@ -209,6 +211,7 @@ model Formando {
   comentarios         ComentarioFormando[]
   eventos             EventoFormando[]
   compromissos        Compromisso[]
+  relatorios          RelatorioEtapa[]
 
   @@index([organizacaoId])
   @@index([moradaId])
@@ -685,6 +688,37 @@ model DeletionRequest {
   @@index([usuarioId])
   @@index([organizacaoId])
   @@index([status])
+}
+
+// ==========================================================
+// RELATORIO DE ETAPA — 1 por formando por nivelFormativo
+// ==========================================================
+
+model RelatorioEtapa {
+  id                   String    @id @default(cuid())
+  organizacaoId        String
+  formandoId           String
+  formadorId           String
+  nivelFormativo       String    // NivelFormativo
+  avaliacaoHumana      String?   // NotaAdesao
+  avaliacaoEspiritual  String?   // NotaAdesao
+  avaliacaoComunitaria String?   // NotaAdesao
+  textoNarrativo       String?   @db.Text
+  pontosForteza        String?   @db.Text
+  desafios             String?   @db.Text
+  recomendacao         String?   // RecomendacaoEtapa
+  textoRecomendacao    String?   @db.Text
+  status               String    @default("rascunho") // StatusRelatorio
+  criadoEm             DateTime  @default(now())
+  atualizadoEm         DateTime  @updatedAt
+
+  organizacao          Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando             Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  formador             Usuario     @relation(fields: [formadorId], references: [id])
+
+  @@unique([formandoId, nivelFormativo])
+  @@index([organizacaoId])
+  @@index([formandoId])
 }
 
 // ==========================================================

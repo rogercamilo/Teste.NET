@@ -2,6 +2,7 @@ import type {
   Agendamento, ComentarioFormando, EventoFormando, Formacao,
   Formando, ProgressoEtapa, GradeFormativa, Eixo, Etapa,
   Morada, PlanoFormativo, EixoPlano, RetiroPlano, PresencaFormacao,
+  RelatorioEtapa, NotaAdesao, NivelFormativo, RecomendacaoEtapa, StatusRelatorio,
 } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -247,5 +248,31 @@ export function toPresenca(p: PrismaPresenca): PresencaFormacao {
     formandoNome: p.formandoNome,
     nivelFormativo: p.nivelFormativo as PresencaFormacao["nivelFormativo"],
     presente: p.presente, justificativa: p.justificativa ?? undefined,
+  };
+}
+
+export type PrismaRelatorio = {
+  id: string; organizacaoId: string; formandoId: string; formadorId: string;
+  nivelFormativo: string; avaliacaoHumana: string | null; avaliacaoEspiritual: string | null;
+  avaliacaoComunitaria: string | null; textoNarrativo: string | null;
+  pontosForteza: string | null; desafios: string | null; recomendacao: string | null;
+  textoRecomendacao: string | null; status: string; criadoEm: Date; atualizadoEm: Date;
+};
+
+export function toRelatorio(r: PrismaRelatorio): RelatorioEtapa {
+  return {
+    id: r.id, formandoId: r.formandoId, formadorId: r.formadorId,
+    nivelFormativo: r.nivelFormativo as NivelFormativo,
+    avaliacaoHumana: r.avaliacaoHumana as NotaAdesao | undefined ?? undefined,
+    avaliacaoEspiritual: r.avaliacaoEspiritual as NotaAdesao | undefined ?? undefined,
+    avaliacaoComunitaria: r.avaliacaoComunitaria as NotaAdesao | undefined ?? undefined,
+    textoNarrativo: r.textoNarrativo ?? undefined,
+    pontosForteza: r.pontosForteza ?? undefined,
+    desafios: r.desafios ?? undefined,
+    recomendacao: r.recomendacao as RecomendacaoEtapa | undefined ?? undefined,
+    textoRecomendacao: r.textoRecomendacao ?? undefined,
+    status: r.status as StatusRelatorio,
+    criadoEm: r.criadoEm.toISOString(),
+    atualizadoEm: r.atualizadoEm.toISOString(),
   };
 }

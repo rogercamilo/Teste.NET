@@ -292,6 +292,27 @@ export interface EventoFormando {
   documentos?: DocumentoAnexo[];
 }
 
+export type StatusRelatorio = "rascunho" | "finalizado";
+export type RecomendacaoEtapa = "avanca" | "repete" | "licenca" | "desligamento";
+
+export interface RelatorioEtapa {
+  id: string;
+  formandoId: string;
+  formadorId: string;
+  nivelFormativo: NivelFormativo;
+  avaliacaoHumana?: NotaAdesao;
+  avaliacaoEspiritual?: NotaAdesao;
+  avaliacaoComunitaria?: NotaAdesao;
+  textoNarrativo?: string;
+  pontosForteza?: string;
+  desafios?: string;
+  recomendacao?: RecomendacaoEtapa;
+  textoRecomendacao?: string;
+  status: StatusRelatorio;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
 export interface Compromisso {
   id: string;
   formadorId: string;
@@ -552,6 +573,30 @@ export function podeAvancarEtapa(formando: Formando): boolean {
     prog.retirosPessoaisRealizados >= req.retirosPessoais
   );
 }
+
+export const STATUS_RELATORIO_LABELS: Record<StatusRelatorio, string> = {
+  rascunho: "Rascunho",
+  finalizado: "Finalizado",
+};
+
+export const STATUS_RELATORIO_CORES: Record<StatusRelatorio, string> = {
+  rascunho: "bg-amber-100 text-amber-700 border-amber-200",
+  finalizado: "bg-emerald-100 text-emerald-700 border-emerald-200",
+};
+
+export const RECOMENDACAO_LABELS: Record<RecomendacaoEtapa, string> = {
+  avanca: "Avança para próxima etapa",
+  repete: "Repete a etapa atual",
+  licenca: "Entra em licença",
+  desligamento: "Desligamento",
+};
+
+export const RECOMENDACAO_CORES: Record<RecomendacaoEtapa, string> = {
+  avanca: "bg-emerald-100 text-emerald-700",
+  repete: "bg-amber-100 text-amber-700",
+  licenca: "bg-violet-100 text-violet-700",
+  desligamento: "bg-red-100 text-red-700",
+};
 
 export interface ComunidadeConfig {
   nome: string;

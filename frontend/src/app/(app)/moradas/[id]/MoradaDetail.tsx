@@ -18,7 +18,11 @@ import {
   type PresencaFormacao,
   type ComentarioFormando,
   type TipoComentario,
+  type RelatorioEtapa,
+  NIVEL_FORMATIVO_LABELS,
+  STATUS_RELATORIO_CORES,
 } from "@/types";
+import { RelatorioDialog } from "./RelatorioDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -26,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -56,6 +60,7 @@ import {
   Camera,
   CheckCircle2,
   ClipboardList,
+  FileText,
   Flag,
   Home,
   Mail,
@@ -167,6 +172,42 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [novoFormandoId, setNovoFormandoId] = useState("");
   const [novoTipo, setNovoTipo] = useState<TipoComentario>("observacao");
   const [novoTexto, setNovoTexto] = useState("");
+
+  // Relatórios state
+  const [relatorios, setRelatorios] = useState<RelatorioEtapa[]>([]);
+  const [relatoriosLoaded, setRelatoriosLoaded] = useState(false);
+  const [relatorioDialogOpen, setRelatorioDialogOpen] = useState(false);
+  const [relatorioFormando, setRelatorioFormando] = useState<Formando | null>(null);
+  const [relatorioSelecionado, setRelatorioSelecionado] = useState<RelatorioEtapa | null>(null);
+
+  async function loadRelatorios() {
+    if (relatoriosLoaded) return;
+    try {
+      const res = await fetch(`/api/relatorios?moradaId=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRelatorios(data);
+      }
+    } finally {
+      setRelatoriosLoaded(true);
+    }
+  }
+
+  function abrirRelatorio(formando: Formando) {
+    const rel = relatorios.find(
+      (r) => r.formandoId === formando.id && r.nivelFormativo === formando.nivelFormativo
+    ) ?? null;
+    setRelatorioFormando(formando);
+    setRelatorioSelecionado(rel);
+    setRelatorioDialogOpen(true);
+  }
+
+  function onRelatorioSaved(r: RelatorioEtapa) {
+    setRelatorios((prev) => {
+      const idx = prev.findIndex((x) => x.id === r.id);
+      return idx >= 0 ? prev.map((x) => (x.id === r.id ? r : x)) : [...prev, r];
+    });
+  }
 
   // Formandos tab CRUD state
   const [formSearch, setFormSearch] = useState("");
@@ -655,6 +696,10 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             <MessageSquare className="h-3.5 w-3.5" />
             Comentários
           </TabsTrigger>
+          <TabsTrigger value="relatorios" className="text-xs h-7 gap-1.5" onClick={loadRelatorios}>
+            <FileText className="h-3.5 w-3.5" />
+            Relatórios
+          </TabsTrigger>
         </TabsList>
 
         {/* TAB RESUMO */}
@@ -1118,6 +1163,65 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             </div>
           )}
         </TabsContent>
+
+        {/* TAB RELATÓRIOS */}
+        <TabsContent value="relatorios" className="mt-4 space-y-3">
+          {!relatoriosLoaded ? (
+            <p className="text-sm text-muted-foreground text-center py-8">Carregando relatórios...</p>
+          ) : formandosDaMorada.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Nenhum {termoFormando.toLowerCase()} nesta {termoMorada.toLowerCase()}.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {formandosDaMorada.filter((f) => f.ativo).map((formando) => {
+                const rel = relatorios.find(
+                  (r) => r.formandoId === formando.id && r.nivelFormativo === formando.nivelFormativo
+                );
+                const initials = formando.nome.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase();
+                return (
+                  <Card key={formando.id} className="border-0 shadow-sm">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9 shrink-0">
+                          {formando.foto && <AvatarImage src={formando.foto} alt={formando.nome} />}
+                          <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{formando.nome}</p>
+                          <p className="text-xs text-muted-foreground">{NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {rel ? (
+                            <span className={cn(
+                              "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border",
+                              STATUS_RELATORIO_CORES[rel.status]
+                            )}>
+                              {rel.status === "rascunho" ? "Rascunho" : "Finalizado"}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Não iniciado</span>
+                          )}
+                          <Button
+                            size="sm"
+                            variant={rel ? (rel.status === "finalizado" ? "outline" : "secondary") : "default"}
+                            className="h-7 text-xs"
+                            onClick={() => abrirRelatorio(formando)}
+                          >
+                            {rel ? (rel.status === "finalizado" ? "Ver" : "Editar") : "Iniciar"}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Edit Morada Dialog */}
@@ -1444,6 +1548,18 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         onSave={(base64) => salvarImagem(base64)}
         onRemove={() => salvarImagem(null)}
       />
+
+      {/* Relatório Dialog */}
+      {relatorioDialogOpen && relatorioFormando && (
+        <RelatorioDialog
+          open={relatorioDialogOpen}
+          onClose={() => setRelatorioDialogOpen(false)}
+          formando={relatorioFormando}
+          nivelFormativo={relatorioFormando.nivelFormativo}
+          relatorio={relatorioSelecionado}
+          onSaved={onRelatorioSaved}
+        />
+      )}
     </div>
   );
 }
