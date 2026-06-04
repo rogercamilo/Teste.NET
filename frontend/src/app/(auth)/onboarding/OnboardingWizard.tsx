@@ -241,7 +241,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
         {/* Header */}
         <div className="text-center mb-8">
           <img
-            src="/brand/Formattio-horizontal.svg"
+            src="/brand/formatio-horizontal.svg"
             alt="Formattio"
             className="h-8 mx-auto mb-6"
           />

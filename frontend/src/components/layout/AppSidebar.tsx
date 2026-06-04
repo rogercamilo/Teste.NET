@@ -96,7 +96,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
         <div className="flex items-center gap-2.5 px-2">
           {isSuperAdmin ? (
             <img
-              src="/brand/Formattio-symbol.svg"
+              src="/brand/formatio-symbol.svg"
               alt="Formattio"
               width={32}
               height={32}

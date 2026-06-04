@@ -87,7 +87,7 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
               </div>
             ) : (
               <img
-                src="/brand/Formattio-symbol-mono-white.svg"
+                src="/brand/formatio-symbol-mono-white.svg"
                 alt="Formattio"
                 width={80}
                 height={80}
@@ -118,7 +118,7 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
               />
             ) : (
               <img
-                src="/brand/Formattio-symbol.svg"
+                src="/brand/formatio-symbol.svg"
                 alt="Formattio"
                 width={40}
                 height={40}

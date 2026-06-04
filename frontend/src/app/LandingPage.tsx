@@ -18,7 +18,7 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          <img src="/brand/Formattio-horizontal-on-dark.svg" alt="Formattio" height={32} className="h-8 w-auto" />
+          <img src="/brand/formatio-horizontal-on-dark.svg" alt="Formattio" height={32} className="h-8 w-auto" />
         </Link>
 
         {/* Desktop nav */}
@@ -658,7 +658,7 @@ function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center mb-3">
-              <img src="/brand/Formattio-horizontal-on-dark.svg" alt="Formattio" height={28} className="h-7 w-auto" />
+              <img src="/brand/formatio-horizontal-on-dark.svg" alt="Formattio" height={28} className="h-7 w-auto" />
             </Link>
             <p className="text-xs text-slate-500 leading-relaxed">
               Plataforma de gestão formativa para comunidades e organizações religiosas.

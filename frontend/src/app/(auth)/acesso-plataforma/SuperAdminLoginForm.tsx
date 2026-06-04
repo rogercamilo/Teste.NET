@@ -59,7 +59,7 @@ export default function SuperAdminLoginForm() {
             }
           </div>
           <img
-            src="/brand/Formattio-symbol-mono-white.svg"
+            src="/brand/formatio-symbol-mono-white.svg"
             alt="Formattio"
             width={32}
             height={32}

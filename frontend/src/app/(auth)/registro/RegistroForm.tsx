@@ -65,7 +65,7 @@ export default function RegistroForm() {
         <div className="relative z-10 flex flex-col items-center text-center text-primary-foreground max-w-sm">
           <div className="mb-8">
             <img
-              src="/brand/Formattio-symbol-mono-white.svg"
+              src="/brand/formatio-symbol-mono-white.svg"
               alt="Formattio"
               width={80}
               height={80}
@@ -97,7 +97,7 @@ export default function RegistroForm() {
         {/* Mobile logo */}
         <div className="flex items-center justify-center mb-8 lg:hidden">
           <img
-            src="/brand/Formattio-symbol.svg"
+            src="/brand/formatio-symbol.svg"
             alt="Formattio"
             width={40}
             height={40}
