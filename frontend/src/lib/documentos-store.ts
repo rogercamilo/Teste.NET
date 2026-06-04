@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Server-side document store.
  * Metadata: data/documentos-meta.json
  * Files:    data/documentos/<id><ext>
@@ -21,7 +21,7 @@ export interface DocumentoMeta {
   tipoEvento: string;
   uploadadoPor: string;
   uploadadoPorNome: string;
-  moradaId?: string;
+  grupoFormacaoId?: string;
   nome: string;
   tamanho: number;
   tipo: string;
@@ -55,14 +55,14 @@ function writeMeta(metas: DocumentoMeta[]): void {
 export function listDocumentos(filters?: {
   eventoId?: string;
   formandoId?: string;
-  moradaId?: string;
+  grupoFormacaoId?: string;
   uploadadoPor?: string;
 }): DocumentoMeta[] {
   let all = readMeta();
   if (!filters) return all;
   if (filters.eventoId) all = all.filter((d) => d.eventoId === filters.eventoId);
   if (filters.formandoId) all = all.filter((d) => d.formandoId === filters.formandoId);
-  if (filters.moradaId) all = all.filter((d) => d.moradaId === filters.moradaId);
+  if (filters.grupoFormacaoId) all = all.filter((d) => d.grupoFormacaoId === filters.grupoFormacaoId);
   if (filters.uploadadoPor) all = all.filter((d) => d.uploadadoPor === filters.uploadadoPor);
   return all;
 }

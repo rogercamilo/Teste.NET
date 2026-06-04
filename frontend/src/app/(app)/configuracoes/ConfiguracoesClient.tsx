@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useComunidade, useTermos, useEtapaLabels, useMoradas, db } from "@/lib/data-store";
+import { useComunidade, useTermos, useEtapaLabels, useGruposFormacao, db } from "@/lib/data-store";
 import { passwordErrorMessage } from "@/lib/password-validation";
 import type { UserPublic } from "@/lib/users-store";
 import {
@@ -661,8 +661,8 @@ type UsuarioForm = {
   nome: string;
   email: string;
   perfil: PerfilUsuario;
-  moradaId: string;
-  moradaModo: "existente" | "provisoria";
+  grupoFormacaoId: string;
+  grupoFormacaoModo: "existente" | "provisoria";
   nomeProvisorio: string;
   nivelFormativoProvisorio: NivelFormativo;
   ativo: boolean;
@@ -675,8 +675,8 @@ const EMPTY_USUARIO_FORM: UsuarioForm = {
   nome: "",
   email: "",
   perfil: "formador_comunitario",
-  moradaId: "",
-  moradaModo: "existente",
+  grupoFormacaoId: "",
+  grupoFormacaoModo: "existente",
   nomeProvisorio: "",
   nivelFormativoProvisorio: "pre-discipulado",
   ativo: true,
@@ -689,12 +689,12 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
   const etapaLabels = useEtapaLabels();
   const [usuarios, setUsuarios] = useState<UserPublic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [allMoradas] = useMoradas();
+  const [allMoradas] = useGruposFormacao();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteForm, setInviteForm] = useState({ nome: "", email: "", perfil: "formador_comunitario", moradaId: "" });
+  const [inviteForm, setInviteForm] = useState({ nome: "", email: "", perfil: "formador_comunitario", grupoFormacaoId: "" });
   const [inviteSaving, setInviteSaving] = useState(false);
   const [tempPasswordDialog, setTempPasswordDialog] = useState<{
     nome: string;
@@ -751,7 +751,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
     setInviteSaving(false);
     if (!res.ok) { toast.error(data.error ?? "Falha ao criar convite"); return; }
     setInviteOpen(false);
-    setInviteForm({ nome: "", email: "", perfil: "formador_comunitario", moradaId: "" });
+    setInviteForm({ nome: "", email: "", perfil: "formador_comunitario", grupoFormacaoId: "" });
     if (data.emailSent) {
       toast.success("Convite enviado por e-mail!");
     } else {
@@ -765,8 +765,8 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
       nome: u.nome,
       email: u.email,
       perfil: u.perfil,
-      moradaId: u.moradaId ?? "",
-      moradaModo: "existente",
+      grupoFormacaoId: u.grupoFormacaoId ?? "",
+      grupoFormacaoModo: "existente",
       nomeProvisorio: "",
       nivelFormativoProvisorio: "pre-discipulado",
       ativo: u.ativo,
@@ -809,10 +809,10 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
       toast.error("As senhas não conferem."); return;
     }
     if (form.perfil === "formador_comunitario") {
-      if (form.moradaModo === "existente" && !form.moradaId) {
+      if (form.grupoFormacaoModo === "existente" && !form.grupoFormacaoId) {
         toast.error("Selecione uma morada ou escolha criar com nome provisório."); return;
       }
-      if (form.moradaModo === "provisoria" && !form.nomeProvisorio.trim()) {
+      if (form.grupoFormacaoModo === "provisoria" && !form.nomeProvisorio.trim()) {
         toast.error("Informe um nome provisório para a morada."); return;
       }
     }
@@ -824,7 +824,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
           nome: form.nome.trim(),
           email: form.email.trim(),
           perfil: form.perfil,
-          moradaId: form.perfil === "formador_comunitario" ? form.moradaId || undefined : undefined,
+          grupoFormacaoId: form.perfil === "formador_comunitario" ? form.grupoFormacaoId || undefined : undefined,
           ativo: form.ativo,
         };
         if (form.password) body.password = form.password;
@@ -842,9 +842,9 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
         toast.success("Usuário atualizado com sucesso!");
         setDialogOpen(false);
       } else {
-        const moradaIdParaEnviar =
-          form.perfil === "formador_comunitario" && form.moradaModo === "existente"
-            ? form.moradaId || undefined
+        const grupoFormacaoIdParaEnviar =
+          form.perfil === "formador_comunitario" && form.grupoFormacaoModo === "existente"
+            ? form.grupoFormacaoId || undefined
             : undefined;
 
         const res = await fetch("/api/users", {
@@ -855,7 +855,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
             email: form.email.trim(),
             password: form.gerarSenhaAuto ? undefined : form.password,
             perfil: form.perfil,
-            moradaId: moradaIdParaEnviar,
+            grupoFormacaoId: grupoFormacaoIdParaEnviar,
             ativo: form.ativo,
           }),
         });
@@ -866,8 +866,8 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
         const created = await res.json() as UserPublic & { tempPassword?: string; emailSent?: boolean };
 
         // Criar morada provisória e vincular ao formador
-        if (form.perfil === "formador_comunitario" && form.moradaModo === "provisoria") {
-          const novaMorada = {
+        if (form.perfil === "formador_comunitario" && form.grupoFormacaoModo === "provisoria") {
+          const novoGrupoFormacao = {
             id: `m${Date.now()}`,
             nome: form.nomeProvisorio.trim(),
             nivelFormativo: form.nivelFormativoProvisorio,
@@ -875,13 +875,13 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
             ativo: true,
             criadoEm: new Date().toISOString().split("T")[0],
           };
-          db.moradas.save([...db.moradas.load(), novaMorada]);
+          db.gruposFormacao.save([...db.gruposFormacao.load(), novoGrupoFormacao]);
           await fetch(`/api/users/${created.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ moradaId: novaMorada.id }),
+            body: JSON.stringify({ grupoFormacaoId: novoGrupoFormacao.id }),
           });
-          created.moradaId = novaMorada.id;
+          created.grupoFormacaoId = novoGrupoFormacao.id;
         }
 
         setUsuarios((prev) => [...prev, created]);
@@ -912,7 +912,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
     toast.success("Usuário excluído.");
   }
 
-  const moradaDoFormulario = allMoradas.find((m) => m.id === form.moradaId);
+  const grupoFormacaoDoFormulario = allMoradas.find((m) => m.id === form.grupoFormacaoId);
 
   return (
     <div className="space-y-4">
@@ -985,7 +985,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
               </TableRow>
             )}
             {filtered.map((usuario) => {
-              const morada = allMoradas.find((m) => m.id === usuario.moradaId);
+              const grupoFormacao = allMoradas.find((m) => m.id === usuario.grupoFormacaoId);
               const isCurrentUser = usuario.id === currentUserId;
               return (
                 <TableRow key={usuario.id} className="hover:bg-muted/20 transition-colors">
@@ -1031,10 +1031,10 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                    {morada ? (
+                    {grupoFormacao ? (
                       <span className="flex items-center gap-1">
                         <Home className="h-3 w-3 shrink-0" />
-                        {morada.nome}
+                        {grupoFormacao.nome}
                       </span>
                     ) : (
                       <span className="text-muted-foreground/50">—</span>
@@ -1274,9 +1274,9 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                   <div className="flex rounded-lg border border-border overflow-hidden">
                     <button
                       type="button"
-                      onClick={() => set("moradaModo")("existente")}
+                      onClick={() => set("grupoFormacaoModo")("existente")}
                       className={`flex-1 py-2 px-3 text-xs font-medium transition-colors ${
-                        form.moradaModo === "existente"
+                        form.grupoFormacaoModo === "existente"
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-muted"
                       }`}
@@ -1285,9 +1285,9 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => set("moradaModo")("provisoria")}
+                      onClick={() => set("grupoFormacaoModo")("provisoria")}
                       className={`flex-1 py-2 px-3 text-xs font-medium transition-colors border-l border-border ${
-                        form.moradaModo === "provisoria"
+                        form.grupoFormacaoModo === "provisoria"
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-muted"
                       }`}
@@ -1297,14 +1297,14 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                   </div>
                 )}
 
-                {form.moradaModo === "existente" ? (
+                {form.grupoFormacaoModo === "existente" ? (
                   <div className="grid gap-1.5">
                     <Label>
-                      Morada vinculada <span className="text-destructive">*</span>
+                      GrupoFormacao vinculada <span className="text-destructive">*</span>
                     </Label>
                     <Select
-                      value={form.moradaId}
-                      onValueChange={(v) => v && set("moradaId")(v)}
+                      value={form.grupoFormacaoId}
+                      onValueChange={(v) => v && set("grupoFormacaoId")(v)}
                       items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, `${m.nome} — ${etapaLabels[m.nivelFormativo]}`]))}
                     >
                       <SelectTrigger>
@@ -1320,9 +1320,9 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                           ))}
                       </SelectContent>
                     </Select>
-                    {moradaDoFormulario && (
+                    {grupoFormacaoDoFormulario && (
                       <p className="text-xs text-muted-foreground">
-                        Nível: {etapaLabels[moradaDoFormulario.nivelFormativo]}
+                        Nível: {etapaLabels[grupoFormacaoDoFormulario.nivelFormativo]}
                       </p>
                     )}
                   </div>
@@ -1335,7 +1335,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                       <Input
                         value={form.nomeProvisorio}
                         onChange={(e) => set("nomeProvisorio")(e.target.value)}
-                        placeholder="Ex: Morada do João"
+                        placeholder="Ex: GrupoFormacao do João"
                       />
                       <p className="text-xs text-muted-foreground">
                         Pode ser ajustado depois no CRUD de Moradas.
@@ -1551,8 +1551,8 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Morada (opcional)</label>
                 <Select
-                  value={inviteForm.moradaId || "none"}
-                  onValueChange={(v) => v && setInviteForm((f) => ({ ...f, moradaId: v === "none" ? "" : v }))}
+                  value={inviteForm.grupoFormacaoId || "none"}
+                  onValueChange={(v) => v && setInviteForm((f) => ({ ...f, grupoFormacaoId: v === "none" ? "" : v }))}
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Selecionar morada" />
@@ -1767,8 +1767,8 @@ function ComunidadeTab() {
               <span className="font-normal text-muted-foreground text-xs">(padrão: "Grupo de Formação")</span>
             </Label>
             <Input
-              value={form.termoMorada ?? ""}
-              onChange={(e) => handleChange("termoMorada", e.target.value)}
+              value={form.termoGrupoFormacao ?? ""}
+              onChange={(e) => handleChange("termoGrupoFormacao", e.target.value)}
               placeholder="Grupo de Formação"
               className="max-w-xs h-9 text-sm"
             />
@@ -1873,7 +1873,7 @@ function ComunidadeTab() {
             <p className="text-xs font-medium text-muted-foreground">Prévia na navegação</p>
             <div className="flex flex-wrap gap-2">
               {[
-                { emoji: "🏠", label: `${form.termoMorada?.trim() || "Grupo de Formação"}s` },
+                { emoji: "🏠", label: `${form.termoGrupoFormacao?.trim() || "Grupo de Formação"}s` },
                 { emoji: "👥", label: `${form.termoFormando?.trim() || "Formando"}s` },
               ].map(({ emoji, label }) => (
                 <span
@@ -2752,11 +2752,11 @@ function EmailTab() {
 /* ─── TAB: SISTEMA ──────────────────────────────────────────────── */
 
 function SistemaTab() {
-  const { morada: termoMorada } = useTermos();
+  const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [resetOpen, setResetOpen] = useState(false);
   const [counts] = useState(() => ({
     formandos: db.formandos.load().length,
-    moradas: db.moradas.load().length,
+    gruposFormacao: db.gruposFormacao.load().length,
     planos: db.planos.load().length,
     grades: db.grades.load().length,
     usuarios: db.usuarios.load().length,
@@ -2769,7 +2769,7 @@ function SistemaTab() {
       exportadoEm: new Date().toISOString(),
       versao: "3",
       formandos: db.formandos.load(),
-      moradas: db.moradas.load(),
+      moradas: db.gruposFormacao.load(),
       planos: db.planos.load(),
       grades: db.grades.load(),
       usuarios: db.usuarios.load(),
@@ -2839,7 +2839,7 @@ function SistemaTab() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
               { label: "Formandos", count: counts.formandos },
-              { label: `${termoMorada}s`, count: counts.moradas },
+              { label: `${termoGrupoFormacao}s`, count: counts.gruposFormacao },
               { label: "Usuários", count: counts.usuarios },
               { label: "Planos", count: counts.planos },
               { label: "Grades", count: counts.grades },

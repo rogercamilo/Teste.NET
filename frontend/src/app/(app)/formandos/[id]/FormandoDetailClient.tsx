@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -113,12 +113,12 @@ interface Props {
   eventos: import("@/types").EventoFormando[];
   presencas: import("@/types").PresencaFormacao[];
   agendamentos: import("@/types").Agendamento[];
-  morada: import("@/types").Morada | null;
+  morada: import("@/types").GrupoFormacao | null;
   todasMoradas: { id: string; nome: string; nivelFormativo: string }[];
   userId: string;
   userName: string;
   userRole: string;
-  userMoradaId: string | null;
+  userGrupoFormacaoId: string | null;
   termoFormando: string;
   termoFormador: string;
 }
@@ -135,7 +135,7 @@ export default function FormandoDetailClient({
   userId,
   userName,
   userRole: _userRole,
-  userMoradaId,
+  userGrupoFormacaoId,
   termoFormando,
   termoFormador,
 }: Props) {
@@ -170,7 +170,7 @@ export default function FormandoDetailClient({
     dataIngresso: "",
     telefone: "",
     email: "",
-    moradaId: "",
+    grupoFormacaoId: "",
   });
 
 
@@ -272,7 +272,7 @@ export default function FormandoDetailClient({
       fd.append("formandoId", formandoId);
       fd.append("formandoNome", formandoNome);
       fd.append("tipoEvento", tipoEvento);
-      if (userMoradaId) fd.append("moradaId", userMoradaId);
+      if (userGrupoFormacaoId) fd.append("grupoFormacaoId", userGrupoFormacaoId);
       const res = await fetch("/api/documentos", { method: "POST", body: fd });
       if (!res.ok) {
         const msg = await res.text();
@@ -591,7 +591,7 @@ export default function FormandoDetailClient({
     if (!editForm.nome.trim()) return toast.error("Nome é obrigatório.");
     if (!editForm.email.trim()) return toast.error("E-mail é obrigatório.");
     if (!editForm.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
-    const moradaSelecionada = todasMoradas.find((m) => m.id === editForm.moradaId);
+    const moradaSelecionada = todasMoradas.find((m) => m.id === editForm.grupoFormacaoId);
     const nivelFormativo = moradaSelecionada
       ? (moradaSelecionada.nivelFormativo as typeof editForm.nivelFormativo)
       : editForm.nivelFormativo;
@@ -604,7 +604,7 @@ export default function FormandoDetailClient({
           estadoCivil: editForm.estadoCivil, modalidade: editForm.modalidade,
           nivelFormativo, dataIngresso: editForm.dataIngresso,
           telefone: stripPhone(editForm.telefone), email: editForm.email.trim(),
-          moradaId: editForm.moradaId || null,
+          grupoFormacaoId: editForm.grupoFormacaoId || null,
         }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Erro");
@@ -697,7 +697,7 @@ export default function FormandoDetailClient({
                   dataIngresso: formando.dataIngresso,
                   telefone: applyPhoneMask(formando.telefone),
                   email: formando.email,
-                  moradaId: formando.moradaId ?? "",
+                  grupoFormacaoId: formando.grupoFormacaoId ?? "",
                 });
                 setEditOpen(true);
               }}
@@ -2935,22 +2935,22 @@ export default function FormandoDetailClient({
             <div className="grid gap-1.5">
               <Label>Morada</Label>
               <Select
-                value={editForm.moradaId}
+                value={editForm.grupoFormacaoId}
                 onValueChange={(v) => {
-                  const m = moradas.find((x) => x.id === v);
+                  const m = todasMoradas.find((x) => x.id === v);
                   setEditForm((p) => ({
                     ...p,
-                    moradaId: v ?? "",
-                    ...(m ? { nivelFormativo: m.nivelFormativo } : {}),
+                    grupoFormacaoId: v ?? "",
+                    ...(m ? { nivelFormativo: m.nivelFormativo as import("@/types").NivelFormativo } : {}),
                   }));
                 }}
               >
                 <SelectTrigger>
                   <SelectValue>
-                    {editForm.moradaId
+                    {editForm.grupoFormacaoId
                       ? (() => {
-                          const m = todasMoradas.find((x) => x.id === editForm.moradaId);
-                          return m ? `${m.nome} — ${NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}` : "Selecione a morada...";
+                          const m = todasMoradas.find((x) => x.id === editForm.grupoFormacaoId);
+                          return m ? `${m.nome} — ${NIVEL_FORMATIVO_LABELS[m.nivelFormativo as import("@/types").NivelFormativo]}` : "Selecione a morada...";
                         })()
                       : "Nenhuma"}
                   </SelectValue>
@@ -2959,7 +2959,7 @@ export default function FormandoDetailClient({
                   <SelectItem value="">Nenhuma</SelectItem>
                   {todasMoradas.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
-                      {m.nome} — {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
+                      {m.nome} — {NIVEL_FORMATIVO_LABELS[m.nivelFormativo as import("@/types").NivelFormativo]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -2970,7 +2970,7 @@ export default function FormandoDetailClient({
               <Select
                 value={editForm.nivelFormativo}
                 onValueChange={(v) => v && setEditForm((p) => ({ ...p, nivelFormativo: v as typeof editForm.nivelFormativo }))}
-                disabled={!!todasMoradas.find((m) => m.id === editForm.moradaId)}
+                disabled={!!todasMoradas.find((m) => m.id === editForm.grupoFormacaoId)}
               >
                 <SelectTrigger>
                   <SelectValue>{NIVEL_FORMATIVO_LABELS[editForm.nivelFormativo]}</SelectValue>
@@ -2981,7 +2981,7 @@ export default function FormandoDetailClient({
                   ))}
                 </SelectContent>
               </Select>
-              {todasMoradas.find((m) => m.id === editForm.moradaId) && (
+              {todasMoradas.find((m) => m.id === editForm.grupoFormacaoId) && (
                 <p className="text-xs text-muted-foreground">Definido automaticamente pela morada selecionada.</p>
               )}
             </div>

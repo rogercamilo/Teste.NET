@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toAgendamento, toFormando, toPresenca } from "@/lib/converters";
@@ -8,12 +8,12 @@ export default async function PresencaPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const user = session.user as { role?: string; organizacaoId?: string; moradaId?: string | null };
+  const user = session.user as { role?: string; organizacaoId?: string; grupoFormacaoId?: string | null };
   if (!user.organizacaoId) redirect("/login");
 
   const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
   if (user.role === "formador_comunitario") {
-    where.moradaId = user.moradaId ?? null;
+    where.grupoFormacaoId = user.grupoFormacaoId ?? null;
   }
 
   const [agendamentosRaw, formandosRaw, presencasRaw] = await Promise.all([
@@ -37,7 +37,7 @@ export default async function PresencaPage() {
       initialFormandos={formandosRaw.map(toFormando)}
       initialPresencas={presencasRaw.map(toPresenca)}
       role={user.role ?? "formador_comunitario"}
-      moradaId={user.moradaId ?? null}
+      grupoFormacaoId={user.grupoFormacaoId ?? null}
     />
   );
 }

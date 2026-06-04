@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
@@ -46,7 +46,7 @@ const TIPO_EVENTO_LABELS: Record<string, string> = {
 
 type SessionUser = {
   role?: string;
-  moradaId?: string | null;
+  grupoFormacaoId?: string | null;
 };
 
 const PAGE_SIZE = 10;

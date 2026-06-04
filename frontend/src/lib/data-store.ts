@@ -1,4 +1,4 @@
-/**
+﻿/**
  * API-backed persistence layer.
  * Hooks load from the REST API on mount and sync writes back via CRUD endpoints.
  * The `db` object provides a synchronous in-memory cache for non-reactive reads;
@@ -16,7 +16,7 @@ import type {
   PlanoFormativo,
   GradeFormativa,
   HistoricoFormando,
-  Morada,
+  GrupoFormacao,
   Formando,
   ComentarioFormando,
   PresencaFormacao,
@@ -45,7 +45,7 @@ export const db = {
   formacoes: makeDbEntity<Formacao>("formacoes", []),
   planos: makeDbEntity<PlanoFormativo>("planos", []),
   grades: makeDbEntity<GradeFormativa>("grades", []),
-  moradas: makeDbEntity<Morada>("moradas", []),
+  gruposFormacao: makeDbEntity<GrupoFormacao>("gruposFormacao", []),
   formandos: makeDbEntity<Formando>("formandos", []),
   historico: makeDbEntity<HistoricoFormando>("historico", []),
   comentarios: makeDbEntity<ComentarioFormando>("comentarios", []),
@@ -170,8 +170,8 @@ export function usePlanos(): [PlanoFormativo[], Setter<PlanoFormativo>] {
 export function useGrades(): [GradeFormativa[], Setter<GradeFormativa>] {
   return useApiEntity("grades", db.grades);
 }
-export function useMoradas(): [Morada[], Setter<Morada>] {
-  return useApiEntity("moradas", db.moradas);
+export function useGruposFormacao(): [GrupoFormacao[], Setter<GrupoFormacao>] {
+  return useApiEntity("gruposFormacao", db.gruposFormacao);
 }
 export function useFormandos(): [Formando[], Setter<Formando>] {
   return useApiEntity("formandos", db.formandos);
@@ -213,7 +213,7 @@ export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => voi
 // Termos helper (unchanged)
 // ---------------------------------------------------------------------------
 export interface Termos {
-  morada: string;
+  grupoFormacao: string;
   formando: string;
   formador: string;
 }
@@ -221,7 +221,7 @@ export interface Termos {
 export function useTermos(): Termos {
   const [comunidade] = useComunidade();
   return {
-    morada: comunidade.termoMorada?.trim() || "Grupo de Formação",
+    grupoFormacao: comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação",
     formando: comunidade.termoFormando?.trim() || "Formando",
     formador: comunidade.termoFormador?.trim() || "Formador Comunitário",
   };

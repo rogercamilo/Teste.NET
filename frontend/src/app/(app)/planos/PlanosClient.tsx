@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,7 @@ import {
   type StatusPlano,
   type PlanoFormativo,
   type NivelFormativo,
-  type Morada,
+  type GrupoFormacao,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -62,14 +62,14 @@ const STATUS_DOT: Record<StatusPlano, string> = {
 
 interface PlanosClientProps {
   role: string;
-  moradaId: string | null;
+  grupoFormacaoId: string | null;
   initialPlanos: PlanoFormativo[];
-  initialMoradas: Morada[];
+  initialGruposFormacao: GrupoFormacao[];
 }
 
 const PAGE_SIZE = 10;
 
-export default function PlanosClient({ role, moradaId, initialPlanos, initialMoradas }: PlanosClientProps) {
+export default function PlanosClient({ role, grupoFormacaoId, initialPlanos, initialGruposFormacao }: PlanosClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
@@ -79,11 +79,11 @@ export default function PlanosClient({ role, moradaId, initialPlanos, initialMor
 
   const isAdmin = role === "formador_geral" || role === "administrador";
 
-  const minhaMorada =
-    role === "formador_comunitario" && moradaId
-      ? initialMoradas.find((m) => m.id === moradaId)
+  const meuGrupoFormacao =
+    role === "formador_comunitario" && grupoFormacaoId
+      ? initialGruposFormacao.find((m) => m.id === grupoFormacaoId)
       : null;
-  const nivelRestrito: NivelFormativo | null = minhaMorada?.nivelFormativo ?? null;
+  const nivelRestrito: NivelFormativo | null = meuGrupoFormacao?.nivelFormativo ?? null;
 
   const visiblePlanos = nivelRestrito
     ? initialPlanos.filter((p) => p.nivelFormativo === nivelRestrito)

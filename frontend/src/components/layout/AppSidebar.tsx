@@ -26,7 +26,7 @@ export interface AppSidebarUser {
   name: string;
   email: string;
   role: string;
-  moradaId?: string | null;
+  grupoFormacaoId?: string | null;
 }
 
 interface AppSidebarProps {
@@ -40,7 +40,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   // Logo carregada client-side via useComunidade para evitar transferir base64 no SSR
   const logo = comunidade.logoUrl ?? null;
 
-  const morada = comunidade.termoMorada?.trim() || "Morada";
+  const grupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Morada";
   const formando = comunidade.termoFormando?.trim() || "Formando";
   const formador = comunidade.termoFormador?.trim() || "Formador Comunitário";
 
@@ -58,11 +58,11 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
     : isGestao
     ? navGroupsGestao
     : navGroupsFormador.map((g) => {
-        if (g.label === "Minha Morada" && user.moradaId && !isGestao) {
+        if (g.label === "Minha Morada" && user.grupoFormacaoId && !isGestao) {
           return {
             ...g,
             items: [
-              { title: "Visão Geral", href: `/moradas/${user.moradaId}`, icon: Home },
+              { title: "Visão Geral", href: `/grupos-formacao/${user.grupoFormacaoId}`, icon: Home },
               ...g.items,
             ],
           };
@@ -73,11 +73,11 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   // Apply custom terminology
   const navGroups: NavGroup[] = baseGroups.map((g) => ({
     ...g,
-    label: g.label === "Minha Morada" ? `Minha ${morada}` : g.label,
+    label: g.label === "Minha Morada" ? `Minha ${grupoFormacao}` : g.label,
     items: g.items.map((item) => ({
       ...item,
       title:
-        item.title === "Moradas" ? `${morada}s` :
+        item.title === "Moradas" ? `${grupoFormacao}s` :
         item.title === "Formandos" ? `${formando}s` :
         item.title,
     })),

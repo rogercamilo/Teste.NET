@@ -85,7 +85,10 @@ export type AuditAction =
   | "admin_credentials_reset"
   | "push_subscribed"
   | "push_unsubscribed"
-  | "push_notification_sent";
+  | "push_notification_sent"
+  | "relatorio_created"
+  | "relatorio_updated"
+  | "relatorio_finalizado";
 
 export interface AuditEntry {
   timestamp: string;

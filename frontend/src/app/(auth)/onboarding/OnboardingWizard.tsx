@@ -22,7 +22,7 @@ interface OrgData {
   logoUrl: string | null;
   temaCor: string;
   planoAssinatura: string;
-  termoMorada: string;
+  termoGrupoFormacao: string;
   termoFormando: string;
   termoFormador: string;
   termoPreDiscipulado: string;
@@ -89,7 +89,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
   const [plano, setPlano] = useState(org.planoAssinatura ?? "GRATUITO");
 
   // Step 4 — terminology
-  const [termoMorada, setTermoMorada] = useState(org.termoMorada);
+  const [termoGrupoFormacao, setTermoGrupoFormacao] = useState(org.termoGrupoFormacao);
   const [termoFormando, setTermoFormando] = useState(org.termoFormando);
   const [termoFormador, setTermoFormador] = useState(org.termoFormador);
   const [termoPreDiscipulado, setTermoPreDiscipulado] = useState(org.termoPreDiscipulado);
@@ -98,9 +98,9 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
   const [termoFormacaoPermanente, setTermoFormacaoPermanente] = useState(org.termoFormacaoPermanente);
 
   // Step 5 — first morada
-  const [moradaNome, setMoradaNome] = useState("");
-  const [moradaLocalReuniao, setMoradaLocalReuniao] = useState("");
-  const [moradaNivel, setMoradaNivel] = useState("pre-discipulado");
+  const [grupoFormacaoNome, setGrupoFormacaoNome] = useState("");
+  const [grupoFormacaoLocalReuniao, setGrupoFormacaoLocalReuniao] = useState("");
+  const [grupoFormacaoNivel, setGrupoFormacaoNivel] = useState("pre-discipulado");
 
   function handleLogoFile(file: File) {
     if (!file.type.startsWith("image/")) { setError("Selecione um arquivo de imagem."); return; }
@@ -147,7 +147,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        termoMorada, termoFormando, termoFormador,
+        termoGrupoFormacao, termoFormando, termoFormador,
         termoPreDiscipulado, termoDiscipulado, termoPrimeirasPromessas, termoFormacaoPermanente,
       }),
     });
@@ -162,11 +162,11 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
     });
     if (!flagRes.ok) throw new Error("Falha ao concluir onboarding");
 
-    if (moradaNome.trim()) {
-      const res = await fetch("/api/moradas", {
+    if (grupoFormacaoNome.trim()) {
+      const res = await fetch("/api/grupos-formacao", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: moradaNome.trim(), localReuniao: moradaLocalReuniao || undefined, nivelFormativo: moradaNivel }),
+        body: JSON.stringify({ nome: grupoFormacaoNome.trim(), localReuniao: grupoFormacaoLocalReuniao || undefined, nivelFormativo: grupoFormacaoNivel }),
       });
       if (!res.ok) {
         const data = await res.json() as { error?: string };
@@ -430,8 +430,8 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="termoMorada">Grupo de formação <span className="font-normal text-muted-foreground">(Ex: "Morada", "Célula")</span></Label>
-                <Input id="termoMorada" value={termoMorada} onChange={(e) => setTermoMorada(e.target.value)} className="h-10" />
+                <Label htmlFor="termoGrupoFormacao">Grupo de formação <span className="font-normal text-muted-foreground">(Ex: "Morada", "Célula")</span></Label>
+                <Input id="termoGrupoFormacao" value={termoGrupoFormacao} onChange={(e) => setTermoGrupoFormacao(e.target.value)} className="h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="termoFormando">Membro do grupo <span className="font-normal text-muted-foreground">(Ex: "Formando")</span></Label>
@@ -475,19 +475,19 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="moradaNome">Nome do grupo de formação</Label>
-                <Input id="moradaNome" placeholder={`Ex: ${termoMorada || "Grupo de Formação"} São João`} value={moradaNome} onChange={(e) => setMoradaNome(e.target.value)} className="h-10" />
+                <Label htmlFor="grupoFormacaoNome">Nome do grupo de formação</Label>
+                <Input id="grupoFormacaoNome" placeholder={`Ex: ${termoGrupoFormacao || "Grupo de Formação"} São João`} value={grupoFormacaoNome} onChange={(e) => setGrupoFormacaoNome(e.target.value)} className="h-10" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="moradaLocalReuniao">Local de reunião</Label>
-                <Input id="moradaLocalReuniao" placeholder="Ex: Paróquia São João, Salão 2" value={moradaLocalReuniao} onChange={(e) => setMoradaLocalReuniao(e.target.value)} className="h-10" />
+                <Label htmlFor="grupoFormacaoLocalReuniao">Local de reunião</Label>
+                <Input id="grupoFormacaoLocalReuniao" placeholder="Ex: Paróquia São João, Salão 2" value={grupoFormacaoLocalReuniao} onChange={(e) => setGrupoFormacaoLocalReuniao(e.target.value)} className="h-10" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="moradaNivel">Etapa formativa</Label>
+                <Label htmlFor="grupoFormacaoNivel">Etapa formativa</Label>
                 <select
-                  id="moradaNivel"
-                  value={moradaNivel}
-                  onChange={(e) => setMoradaNivel(e.target.value)}
+                  id="grupoFormacaoNivel"
+                  value={grupoFormacaoNivel}
+                  onChange={(e) => setGrupoFormacaoNivel(e.target.value)}
                   className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="pre-discipulado">{termoPreDiscipulado || "Pré-Discipulado"}</option>

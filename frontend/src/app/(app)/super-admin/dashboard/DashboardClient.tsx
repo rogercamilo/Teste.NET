@@ -24,7 +24,7 @@ interface Metricas {
   orgsCanceladas: number;
   orgsCortesia: number;
   totalFormandos: number;
-  totalMoradas: number;
+  totalGruposFormacao: number;
   totalUsuarios: number;
   planoBreakdown: Record<string, number>;
   mrrEstimado: number;
@@ -37,7 +37,7 @@ interface ServicosData {
   storage: { provider: "r2" | "local"; totalArquivos: number; totalBytes: number; totalMB: number };
   topOrgsStorage: { organizacaoId: string; nome: string; arquivos: number; bytes: number; mb: number }[];
   db: {
-    formandos: number; moradas: number; usuarios: number; agendamentos: number;
+    formandos: number; gruposFormacao: number; usuarios: number; agendamentos: number;
     presencas: number; formacoes: number; auditLogs: number; arquivos: number;
   };
   recentUploads: {
@@ -319,7 +319,7 @@ function TabVisaoGeral({ metricas, mrrFmt }: { metricas: Metricas; mrrFmt: strin
           <CardContent className="px-4 pb-4 space-y-3">
             {[
               { icon: Users, label: "Formandos", value: metricas.totalFormandos },
-              { icon: Home, label: "Moradas", value: metricas.totalMoradas },
+              { icon: Home, label: "Moradas", value: metricas.totalGruposFormacao },
               { icon: UserSquare, label: "Usuários", value: metricas.totalUsuarios },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-center justify-between">
@@ -398,7 +398,7 @@ function TabServicos({ data }: { data: ServicosData }) {
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               {[
                 { label: "Formandos", value: data.db.formandos },
-                { label: "Moradas", value: data.db.moradas },
+                { label: "Moradas", value: data.db.gruposFormacao },
                 { label: "Usuários", value: data.db.usuarios },
                 { label: "Agendamentos", value: data.db.agendamentos },
                 { label: "Presenças", value: data.db.presencas },

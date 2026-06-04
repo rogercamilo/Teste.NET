@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   NIVEL_FORMATIVO_LABELS,
@@ -100,13 +100,13 @@ const PERFIL_SUBTITULO: Record<PerfilUsuario, string> = {
 interface Props {
   stats: DashboardStats | null;
   perfil: PerfilUsuario;
-  moradaNome?: string | null;
+  grupoFormacaoNome?: string | null;
   semMorada?: boolean;
 }
 
 // ── Componente principal ───────────────────────────────────────────────────
 
-export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada }: Props) {
+export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, semMorada }: Props) {
   const router = useRouter();
   const termos = useTermos();
   const stats = rawStats ?? EMPTY_STATS;
@@ -114,7 +114,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
   const isAdmin = perfil === "formador_geral" || perfil === "administrador";
 
   const subtitulo = isFC
-    ? (moradaNome ?? `Visão da sua ${termos.morada.toLowerCase()}`)
+    ? (grupoFormacaoNome ?? `Visão da sua ${termos.grupoFormacao.toLowerCase()}`)
     : PERFIL_SUBTITULO[perfil];
 
   if (semMorada) {
@@ -123,7 +123,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Visão da sua {termos.morada.toLowerCase()} —{" "}
+            Visão da sua {termos.grupoFormacao.toLowerCase()} —{" "}
             {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
@@ -131,9 +131,9 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
           <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
             <Home className="h-7 w-7 text-muted-foreground/60" />
           </div>
-          <h2 className="text-base font-semibold text-foreground mb-1">Sem {termos.morada.toLowerCase()} atribuída</h2>
+          <h2 className="text-base font-semibold text-foreground mb-1">Sem {termos.grupoFormacao.toLowerCase()} atribuída</h2>
           <p className="text-sm text-muted-foreground max-w-sm">
-            Você ainda não foi associado a uma {termos.morada.toLowerCase()}. Entre em contacto com o administrador da sua organização para ser incluído numa {termos.morada.toLowerCase()}.
+            Você ainda não foi associado a uma {termos.grupoFormacao.toLowerCase()}. Entre em contacto com o administrador da sua organização para ser incluído numa {termos.grupoFormacao.toLowerCase()}.
           </p>
         </div>
       </div>
@@ -221,7 +221,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                 </p>
                 <p className="text-3xl font-bold text-foreground mt-1">
                   {isFC
-                    ? (stats.taxaPresencaMorada != null ? `${stats.taxaPresencaMorada}%` : "—")
+                    ? (stats.taxaPresencaGrupoFormacao != null ? `${stats.taxaPresencaGrupoFormacao}%` : "—")
                     : `${stats.taxaRealizacao}%`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -244,9 +244,9 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
               <CardContent className="pt-5 pb-4 px-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total de {termos.morada}s</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">{stats.totalMoradas ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{termos.morada}s cadastradas</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total de {termos.grupoFormacao}s</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats.totalGruposFormacao ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{termos.grupoFormacao}s cadastradas</p>
                   </div>
                   <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
                     <Home className="h-4.5 w-4.5 text-violet-600" />
@@ -261,7 +261,7 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
                   <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planos Formativos</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats.totalPlanosAtivos ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{termos.morada}s com plano em vigor</p>
+                    <p className="text-xs text-muted-foreground mt-1">{termos.grupoFormacao}s com plano em vigor</p>
                   </div>
                   <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center">
                     <FileText className="h-4.5 w-4.5 text-blue-600" />
@@ -273,12 +273,12 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
 
           {/* Alertas de compliance — só exibe se houver algum problema */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {(["moradasSemPlano", "moradasComGradeExpirada", "fcsSemMorada"] as const).map((key) => {
+            {(["gruposFormacaoSemPlano", "gruposFormacaoComGradeExpirada", "fcsSemGrupoFormacao"] as const).map((key) => {
               const val = stats[key] ?? 0;
               const labels: Record<typeof key, { title: string; sub: string }> = {
-                moradasSemPlano: { title: `${termos.morada}s sem plano`, sub: "Aguardando planejamento formativo" },
-                moradasComGradeExpirada: { title: `${termos.morada}s sem grade vigente`, sub: "Requerem nova programação" },
-                fcsSemMorada: { title: `Formadores sem ${termos.morada.toLowerCase()}`, sub: `Aguardando atribuição de ${termos.morada.toLowerCase()}` },
+                gruposFormacaoSemPlano: { title: `${termos.grupoFormacao}s sem plano`, sub: "Aguardando planejamento formativo" },
+                gruposFormacaoComGradeExpirada: { title: `${termos.grupoFormacao}s sem grade vigente`, sub: "Requerem nova programação" },
+                fcsSemGrupoFormacao: { title: `Formadores sem ${termos.grupoFormacao.toLowerCase()}`, sub: `Aguardando atribuição de ${termos.grupoFormacao.toLowerCase()}` },
               };
               const hasAlert = val > 0;
               return (
@@ -643,20 +643,20 @@ export function DashboardClient({ stats: rawStats, perfil, moradaNome, semMorada
       )}
 
       {/* ── FG/Admin: Moradas ── */}
-      {isAdmin && (stats.moradasResumo?.length ?? 0) > 0 && (
+      {isAdmin && (stats.gruposFormacaoResumo?.length ?? 0) > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">{termos.morada}s</h2>
-            <Link href="/moradas" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+            <h2 className="text-sm font-semibold text-foreground">{termos.grupoFormacao}s</h2>
+            <Link href="/grupos-formacao" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
               Ver todas
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {(stats.moradasResumo ?? []).map((m) => (
+            {(stats.gruposFormacaoResumo ?? []).map((m) => (
               <button
                 key={m.id}
                 type="button"
-                onClick={() => router.push(`/moradas/${m.id}`)}
+                onClick={() => router.push(`/grupos-formacao/${m.id}`)}
                 className="text-left rounded-xl border border-border/60 bg-card shadow-sm p-4 hover:shadow-md hover:border-border transition-all group"
               >
                 <div className="flex items-start justify-between gap-2 mb-3">

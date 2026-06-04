@@ -1,7 +1,7 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toFormando, toComentario, toEvento, toPresenca, toAgendamento, toMorada } from "@/lib/converters";
+import { toFormando, toComentario, toEvento, toPresenca, toAgendamento, toGrupoFormacao } from "@/lib/converters";
 import type { SessionUser } from "@/lib/auth-helpers";
 import type { DocumentoAnexo } from "@/types";
 import FormandoDetailClient from "./FormandoDetailClient";
@@ -17,12 +17,12 @@ export default async function FormandoDetailPage({
 
   if (!user?.organizacaoId) redirect("/login");
 
-  const moradaFilter =
-    user.role === "formador_comunitario" ? { moradaId: user.moradaId ?? null } : {};
+  const grupoFormacaoFilter =
+    user.role === "formador_comunitario" ? { grupoFormacaoId: user.grupoFormacaoId ?? null } : {};
 
   const [formandoRow, org] = await Promise.all([
     prisma.formando.findFirst({
-      where: { id, organizacaoId: user.organizacaoId, deletedAt: null, ...moradaFilter },
+      where: { id, organizacaoId: user.organizacaoId, deletedAt: null, ...grupoFormacaoFilter },
       include: { progressoEtapas: true },
     }),
     prisma.organizacao.findUnique({
@@ -33,7 +33,7 @@ export default async function FormandoDetailPage({
 
   if (!formandoRow) redirect("/formandos");
 
-  const [comentariosRows, eventosRows, presencasRows, moradaRow, todasMoradasRows] =
+  const [comentariosRows, eventosRows, presencasRows, grupoFormacaoRow, todosGruposFormacaoRows] =
     await Promise.all([
       prisma.comentarioFormando.findMany({
         where: { formandoId: id, organizacaoId: user.organizacaoId },
@@ -48,10 +48,10 @@ export default async function FormandoDetailPage({
         where: { formandoId: id, organizacaoId: user.organizacaoId },
         orderBy: { data: "desc" },
       }),
-      formandoRow.moradaId
-        ? prisma.morada.findFirst({ where: { id: formandoRow.moradaId } })
+      formandoRow.grupoFormacaoId
+        ? prisma.grupoFormacao.findFirst({ where: { id: formandoRow.grupoFormacaoId } })
         : Promise.resolve(null),
-      prisma.morada.findMany({
+      prisma.grupoFormacao.findMany({
         where: { organizacaoId: user.organizacaoId, ativo: true },
         select: { id: true, nome: true, nivelFormativo: true },
         orderBy: { nome: "asc" },
@@ -62,7 +62,7 @@ export default async function FormandoDetailPage({
     where: {
       organizacaoId: user.organizacaoId,
       nivelFormativo: formandoRow.nivelFormativo,
-      ...(formandoRow.moradaId ? { moradaId: formandoRow.moradaId } : {}),
+      ...(formandoRow.grupoFormacaoId ? { grupoFormacaoId: formandoRow.grupoFormacaoId } : {}),
       deletedAt: null,
     },
     orderBy: { dataInicio: "desc" },
@@ -70,9 +70,9 @@ export default async function FormandoDetailPage({
 
   // Grade total from the formando's morada grade
   let gradeTotal: number | null = null;
-  if (moradaRow?.gradeId) {
+  if (grupoFormacaoRow?.gradeId) {
     const grade = await prisma.gradeFormativa.findUnique({
-      where: { id: moradaRow.gradeId },
+      where: { id: grupoFormacaoRow.gradeId },
       select: { totalFormacoes: true },
     });
     gradeTotal = grade?.totalFormacoes ?? null;
@@ -100,12 +100,12 @@ export default async function FormandoDetailPage({
       }))}
       presencas={presencasRows.map(toPresenca)}
       agendamentos={agendamentosRows.map(toAgendamento)}
-      morada={moradaRow ? toMorada(moradaRow) : null}
-      todasMoradas={todasMoradasRows}
+      morada={grupoFormacaoRow ? toGrupoFormacao(grupoFormacaoRow) : null}
+      todasMoradas={todosGruposFormacaoRows}
       userId={user.id!}
       userName={session?.user?.name ?? "Formador"}
       userRole={user.role ?? "formador_comunitario"}
-      userMoradaId={user.moradaId ?? null}
+      userGrupoFormacaoId={user.grupoFormacaoId ?? null}
       termoFormando={org?.termoFormando?.trim() || "Formando"}
       termoFormador={org?.termoFormador?.trim() || "Formador Comunitário"}
     />

@@ -1,7 +1,7 @@
-import type {
+﻿import type {
   Agendamento, ComentarioFormando, EventoFormando, Formacao,
   Formando, ProgressoEtapa, GradeFormativa, Eixo, Etapa,
-  Morada, PlanoFormativo, EixoPlano, RetiroPlano, PresencaFormacao,
+  GrupoFormacao, PlanoFormativo, EixoPlano, RetiroPlano, PresencaFormacao,
   RelatorioEtapa, NotaAdesao, NivelFormativo, RecomendacaoEtapa, StatusRelatorio,
 } from "@/types";
 
@@ -12,7 +12,7 @@ import type {
 export type PrismaAgendamento = {
   id: string; organizacaoId: string; formacaoId: string; formacaoTema: string;
   nivelFormativo: string; tipoFormacao: string; formadorId: string; formadorNome: string;
-  moradaId: string | null;
+  grupoFormacaoId: string | null;
   dataInicio: Date; dataFim: Date; local: string | null; linkOnline: string | null;
   status: string; participantes: number; observacoes: string | null;
   googleCalendarEventId: string | null; criadoEm: Date;
@@ -49,7 +49,7 @@ export type PrismaFormando = {
   id: string; organizacaoId: string; nome: string; dataNascimento: Date; estadoCivil: string;
   modalidade: string; nivelFormativo: string; dataIngresso: Date; telefone: string; email: string;
   ativo: boolean; motivoInatividade: string | null; foto: string | null; turmaId: string | null;
-  moradaId: string | null; totalFormacoes: number; formacoesRealizadas: number;
+  grupoFormacaoId: string | null; totalFormacoes: number; formacoesRealizadas: number;
   progressoEtapas: {
     id: string; formandoId: string; nivelFormativo: string;
     formacoesComunitariasRealizadas: number; retirosComunitariosRealizados: number;
@@ -70,7 +70,7 @@ export type PrismaGrade = {
   }[];
 };
 
-export type PrismaMorada = {
+export type PrismaGrupoFormacao = {
   id: string; organizacaoId: string; nome: string; localReuniao: string | null;
   nivelFormativo: string; formadorId: string | null; planoId: string | null;
   gradeId: string | null; vigenciaInicio: Date | null; vigenciaFim: Date | null;
@@ -101,7 +101,7 @@ export function toAgendamento(a: PrismaAgendamento): Agendamento {
     nivelFormativo: a.nivelFormativo as Agendamento["nivelFormativo"],
     tipoFormacao: a.tipoFormacao as Agendamento["tipoFormacao"],
     formadorId: a.formadorId, formadorNome: a.formadorNome,
-    moradaId: a.moradaId ?? undefined,
+    grupoFormacaoId: a.grupoFormacaoId ?? undefined,
     dataInicio: a.dataInicio.toISOString(), dataFim: a.dataFim.toISOString(),
     local: a.local ?? undefined, linkOnline: a.linkOnline ?? undefined,
     status: a.status as Agendamento["status"], participantes: a.participantes,
@@ -168,7 +168,7 @@ export function toFormando(f: PrismaFormando): Formando {
     telefone: f.telefone, email: f.email, ativo: f.ativo,
     motivoInatividade: f.motivoInatividade as Formando["motivoInatividade"] ?? undefined,
     foto: f.foto ?? undefined, turmaId: f.turmaId ?? undefined,
-    moradaId: f.moradaId ?? undefined,
+    grupoFormacaoId: f.grupoFormacaoId ?? undefined,
     totalFormacoes: f.totalFormacoes, formacoesRealizadas: f.formacoesRealizadas,
     progressoEtapas: f.progressoEtapas.map((p): ProgressoEtapa => ({
       nivel: p.nivelFormativo as ProgressoEtapa["nivel"],
@@ -206,10 +206,10 @@ export function toGrade(g: PrismaGrade): GradeFormativa {
   };
 }
 
-export function toMorada(m: PrismaMorada): Morada {
+export function toGrupoFormacao(m: PrismaGrupoFormacao): GrupoFormacao {
   return {
     id: m.id, nome: m.nome, localReuniao: m.localReuniao ?? undefined,
-    nivelFormativo: m.nivelFormativo as Morada["nivelFormativo"],
+    nivelFormativo: m.nivelFormativo as GrupoFormacao["nivelFormativo"],
     formadorId: m.formadorId ?? undefined, planoId: m.planoId ?? undefined,
     gradeId: m.gradeId ?? undefined,
     vigenciaInicio: m.vigenciaInicio?.toISOString().split("T")[0],

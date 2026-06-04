@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useMoradas, usePlanos, useGrades, useComunidade, useEtapaLabels, useUsuarios } from "@/lib/data-store";
+import { useGruposFormacao, usePlanos, useGrades, useComunidade, useEtapaLabels, useUsuarios } from "@/lib/data-store";
 import {
   NIVEL_CORES,
-  type Morada,
+  type GrupoFormacao,
   type NivelFormativo,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,11 +68,11 @@ const EMPTY_FORM: FormState = {
   vigenciaFim: "",
 };
 
-export default function MoradaFormPage() {
+export default function GrupoFormacaoFormPage() {
   const router = useRouter();
-  const [, setMoradas] = useMoradas();
+  const [, setMoradas] = useGruposFormacao();
   const [comunidade] = useComunidade();
-  const termoMorada = comunidade.termoMorada?.trim() || "Morada";
+  const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Morada";
   const etapaLabels = useEtapaLabels();
   const [allPlanos] = usePlanos();
   const [allGrades] = useGrades();
@@ -130,7 +130,7 @@ export default function MoradaFormPage() {
     setSaving(true);
     try {
       const today = new Date().toISOString().split("T")[0];
-      const payload: Morada = {
+      const payload: GrupoFormacao = {
         id: `m${Date.now()}`,
         nome: form.nome.trim(),
         nivelFormativo: form.nivelFormativo,
@@ -146,10 +146,10 @@ export default function MoradaFormPage() {
       await setMoradas((prev) => [...prev, payload]);
       toast.success(
         hasFormador
-          ? `${termoMorada} criada com sucesso!`
-          : `${termoMorada} criada como inativa (sem formador responsável).`
+          ? `${termoGrupoFormacao} criada com sucesso!`
+          : `${termoGrupoFormacao} criada como inativa (sem formador responsável).`
       );
-      router.push("/moradas");
+      router.push("/grupos-formacao");
     } finally {
       setSaving(false);
     }
@@ -160,18 +160,18 @@ export default function MoradaFormPage() {
       {/* Header */}
       <div>
         <Link
-          href="/moradas"
+          href="/grupos-formacao"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
-          {termoMorada}s
+          {termoGrupoFormacao}s
         </Link>
         <h1 className="text-2xl font-semibold text-foreground">
-          Nova {termoMorada}
+          Nova {termoGrupoFormacao}
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           Preencha os dados abaixo para criar uma nova{" "}
-          {termoMorada.toLowerCase()} formativa
+          {termoGrupoFormacao.toLowerCase()} formativa
         </p>
       </div>
 
@@ -185,13 +185,13 @@ export default function MoradaFormPage() {
 
               <div className="space-y-1.5">
                 <Label>
-                  Nome da {termoMorada}{" "}
+                  Nome da {termoGrupoFormacao}{" "}
                   <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   value={form.nome}
                   onChange={(e) => set("nome")(e.target.value)}
-                  placeholder={`Ex.: ${termoMorada} São João Bosco`}
+                  placeholder={`Ex.: ${termoGrupoFormacao} São João Bosco`}
                   autoFocus
                 />
               </div>
@@ -285,7 +285,7 @@ export default function MoradaFormPage() {
                   <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
                     <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
                     <p className="text-xs text-amber-700 dark:text-amber-400">
-                      Sem formador, a {termoMorada.toLowerCase()} será criada
+                      Sem formador, a {termoGrupoFormacao.toLowerCase()} será criada
                       como <strong>inativa</strong>.
                     </p>
                   </div>
@@ -358,7 +358,7 @@ export default function MoradaFormPage() {
 
           {/* Ações — encerram o fluxo do formulário */}
           <div className="flex items-center justify-between pt-2 pb-2 border-t border-border/60">
-            <Button variant="outline" onClick={() => router.push("/moradas")}>
+            <Button variant="outline" onClick={() => router.push("/grupos-formacao")}>
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving || !form.nome.trim()}>
@@ -368,7 +368,7 @@ export default function MoradaFormPage() {
                   Criando...
                 </span>
               ) : (
-                `Criar ${termoMorada.toLowerCase()}`
+                `Criar ${termoGrupoFormacao.toLowerCase()}`
               )}
             </Button>
           </div>
@@ -395,7 +395,7 @@ export default function MoradaFormPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-foreground truncate">
-                      {form.nome.trim() || `Nova ${termoMorada}`}
+                      {form.nome.trim() || `Nova ${termoGrupoFormacao}`}
                     </h3>
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <Badge

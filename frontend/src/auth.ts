@@ -1,4 +1,4 @@
-import NextAuth, { CredentialsSignin } from "next-auth";
+﻿import NextAuth, { CredentialsSignin } from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
@@ -62,7 +62,7 @@ const providers: NextAuthConfig["providers"] = [
         name: user.nome,
         email: user.email,
         role: user.perfil,
-        moradaId: user.moradaId ?? null,
+        grupoFormacaoId: user.grupoFormacaoId ?? null,
         organizacaoId: user.organizacaoId,
         primeiroAcesso: user.primeiroAcesso ?? false,
         passwordChangedAt: user.passwordChangedAt?.getTime() ?? null,
@@ -101,7 +101,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (dbUser) {
             token.id = dbUser.id;
             token.role = dbUser.perfil;
-            token.moradaId = dbUser.moradaId ?? null;
+            token.grupoFormacaoId = dbUser.grupoFormacaoId ?? null;
             token.organizacaoId = dbUser.organizacaoId;
             token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
             token.passwordChangedAt = dbUser.passwordChangedAt?.getTime() ?? null;
@@ -112,7 +112,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } else {
           token.id = user.id;
           token.role = (user as { role?: string }).role ?? "formador_comunitario";
-          token.moradaId = (user as { moradaId?: string | null }).moradaId ?? null;
+          token.grupoFormacaoId = (user as { grupoFormacaoId?: string | null }).grupoFormacaoId ?? null;
           token.organizacaoId = (user as { organizacaoId?: string }).organizacaoId ?? null;
           token.primeiroAcesso =
             (user as { primeiroAcesso?: boolean }).primeiroAcesso ?? false;
@@ -135,7 +135,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
-          token.moradaId = dbUser.moradaId ?? null;
+          token.grupoFormacaoId = dbUser.grupoFormacaoId ?? null;
           token.role = dbUser.perfil;
           token.organizacaoId = dbUser.organizacaoId;
           token._lastDbCheck = now;
@@ -147,8 +147,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         (session.user as { role?: string }).role = token.role as string;
-        (session.user as { moradaId?: string | null }).moradaId =
-          token.moradaId as string | null;
+        (session.user as { grupoFormacaoId?: string | null }).grupoFormacaoId =
+          token.grupoFormacaoId as string | null;
         (session.user as { organizacaoId?: string | null }).organizacaoId =
           token.organizacaoId as string | null;
         (session.user as { primeiroAcesso?: boolean }).primeiroAcesso =

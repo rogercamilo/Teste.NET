@@ -37,7 +37,7 @@ interface OrgRow {
   cortesiaExpiresAt: string | null;
   cortesiaMotivo: string | null;
   criadoEm: string;
-  _count: { moradas: number; formandos: number; usuarios: number };
+  _count: { gruposFormacao: number; formandos: number; usuarios: number };
 }
 
 interface Metricas {
@@ -48,7 +48,7 @@ interface Metricas {
   orgsCanceladas: number;
   orgsCortesia: number;
   totalFormandos: number;
-  totalMoradas: number;
+  totalGruposFormacao: number;
   totalUsuarios: number;
   planoBreakdown: Record<string, number>;
   mrrEstimado: number;
@@ -363,7 +363,7 @@ export default function SuperAdminClient() {
                           {org.status}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center text-sm">{org._count.moradas}</TableCell>
+                      <TableCell className="text-center text-sm">{org._count.gruposFormacao}</TableCell>
                       <TableCell className="text-center text-sm">{org._count.formandos}</TableCell>
                       <TableCell className="text-center text-sm">{org._count.usuarios}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -580,7 +580,7 @@ export default function SuperAdminClient() {
               <CardContent className="px-4 pb-4 space-y-3">
                 {[
                   { icon: Users, label: "Formandos", value: metricas.totalFormandos },
-                  { icon: Building2, label: "Moradas", value: metricas.totalMoradas },
+                  { icon: Building2, label: "Moradas", value: metricas.totalGruposFormacao },
                   { icon: Users, label: "Usuários", value: metricas.totalUsuarios },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-center justify-between">

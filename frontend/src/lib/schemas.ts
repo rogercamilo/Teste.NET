@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 // ── Enums compartilhados ──────────────────────────────────────────────────────
 
@@ -61,7 +61,7 @@ export const CreateUserSchema = z.object({
   email: z.string().email("E-mail inválido").max(255),
   password: z.string().min(8, "Senha deve ter ao menos 8 caracteres").max(128).optional(),
   perfil: PerfilEnum.optional(),
-  moradaId: z.string().cuid("ID inválido").optional().or(z.literal("")).transform((v) => v || undefined),
+  grupoFormacaoId: z.string().cuid("ID inválido").optional().or(z.literal("")).transform((v) => v || undefined),
   ativo: z.boolean().optional(),
 });
 
@@ -69,7 +69,7 @@ export const UpdateUserSchema = z.object({
   nome: nonEmptyString(255).optional(),
   email: z.string().email("E-mail inválido").max(255).optional(),
   perfil: PerfilEnum.optional(),
-  moradaId: z.string().optional().nullable(),
+  grupoFormacaoId: z.string().optional().nullable(),
   ativo: z.boolean().optional(),
 });
 
@@ -88,7 +88,7 @@ export const CreateFormandoSchema = z.object({
   motivoInatividade: MotivoInatividadeEnum.optional().nullable(),
   foto: z.string().max(2_000_000).optional().nullable(),
   turmaId: z.string().optional().nullable(),
-  moradaId: z.string().optional().nullable(),
+  grupoFormacaoId: z.string().optional().nullable(),
   totalFormacoes: z.number().int().min(0).optional(),
   formacoesRealizadas: z.number().int().min(0).optional(),
   progressoEtapas: z
@@ -109,7 +109,7 @@ export const UpdateFormandoSchema = CreateFormandoSchema.partial();
 
 // ── Morada ────────────────────────────────────────────────────────────────────
 
-export const CreateMoradaSchema = z.object({
+export const CreateGrupoFormacaoSchema = z.object({
   nome: nonEmptyString(255),
   localReuniao: optionalString(500),
   nivelFormativo: NivelFormativoEnum.optional(),
@@ -122,7 +122,7 @@ export const CreateMoradaSchema = z.object({
   ativo: z.boolean().optional(),
 });
 
-export const UpdateMoradaSchema = CreateMoradaSchema.partial();
+export const UpdateGrupoFormacaoSchema = CreateGrupoFormacaoSchema.partial();
 
 // ── Organização ───────────────────────────────────────────────────────────────
 
@@ -140,7 +140,7 @@ export const UpdateOrganizacaoSchema = z.object({
     .regex(/^\d{0,4}$/, "Ano inválido")
     .optional()
     .nullable(),
-  termoMorada: nonEmptyString(100).optional(),
+  termoGrupoFormacao: nonEmptyString(100).optional(),
   termoFormando: nonEmptyString(100).optional(),
   termoFormador: nonEmptyString(100).optional(),
   termoPreDiscipulado: nonEmptyString(100).optional(),
@@ -167,7 +167,7 @@ export const CreateConviteSchema = z.object({
   email: z.string().email("E-mail inválido").max(255),
   nome: nonEmptyString(255),
   perfil: PerfilEnum,
-  moradaId: z.string().optional().nullable(),
+  grupoFormacaoId: z.string().optional().nullable(),
 });
 
 // ── Agendamento ───────────────────────────────────────────────────────────────
@@ -177,7 +177,7 @@ export const CreateAgendamentoSchema = z.object({
   formacaoTema: optionalString(500).default(""),
   nivelFormativo: NivelFormativoEnum.optional(),
   tipoFormacao: TipoFormacaoEnum.optional(),
-  moradaId: z.string().optional().nullable(),
+  grupoFormacaoId: z.string().optional().nullable(),
   dataInicio: isoDatetime,
   dataFim: isoDatetime.optional(),
   local: optionalString(500).nullable(),

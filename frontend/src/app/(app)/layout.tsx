@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     id?: string;
     role?: string;
     organizacaoId?: string;
-    moradaId?: string | null;
+    grupoFormacaoId?: string | null;
     primeiroAcesso?: boolean;
   };
 
@@ -35,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       select: {
         onboardingConcluido: true, temaCor: true, nomePlataforma: true, nome: true,
         descricao: true, endereco: true, missao: true, anoFundacao: true,
-        termoMorada: true, termoFormando: true, termoFormador: true,
+        termoGrupoFormacao: true, termoFormando: true, termoFormador: true,
         termoPreDiscipulado: true, termoDiscipulado: true,
         termoPrimeirasPromessas: true, termoFormacaoPermanente: true,
         // logoUrl excluído intencionalmente: campo TEXT grande (base64), não usado no layout
@@ -50,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         endereco: org.endereco ?? "",
         missao: org.missao ?? "",
         anoFundacao: org.anoFundacao ?? "",
-        termoMorada: org.termoMorada ?? undefined,
+        termoGrupoFormacao: org.termoGrupoFormacao ?? undefined,
         termoFormando: org.termoFormando ?? undefined,
         termoFormador: org.termoFormador ?? undefined,
         termoPreDiscipulado: org.termoPreDiscipulado ?? undefined,
@@ -67,7 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     name: sessionUser.name ?? "Usuário",
     email: sessionUser.email ?? "",
     role: sessionUser.role ?? "formador_comunitario",
-    moradaId: sessionUser.moradaId ?? null,
+    grupoFormacaoId: sessionUser.grupoFormacaoId ?? null,
   };
 
   const primeiroAcesso = sessionUser.primeiroAcesso ?? false;

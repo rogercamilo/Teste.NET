@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -12,7 +12,7 @@ import {
   totalRequerido,
   type Formando,
   type GradeFormativa,
-  type Morada,
+  type GrupoFormacao,
   type NivelFormativo,
   type Modalidade,
   type ProgressoEtapa,
@@ -103,7 +103,7 @@ type FormState = {
   dataIngresso: string;
   telefone: string;
   email: string;
-  moradaId: string;
+  grupoFormacaoId: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -115,32 +115,32 @@ const EMPTY_FORM: FormState = {
   dataIngresso: new Date().toISOString().split("T")[0],
   telefone: "",
   email: "",
-  moradaId: "",
+  grupoFormacaoId: "",
 };
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
 interface FormandosClientProps {
   initialFormandos: Formando[];
-  initialMoradas: Morada[];
+  initialGruposFormacao: GrupoFormacao[];
   initialGrades: GradeFormativa[];
   role: string;
-  moradaId: string | null;
+  grupoFormacaoId: string | null;
 }
 
 export default function FormandosClient({
   initialFormandos,
-  initialMoradas,
+  initialGruposFormacao,
   initialGrades,
   role,
-  moradaId: userMoradaId,
+  grupoFormacaoId: userGrupoFormacaoId,
 }: FormandosClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isFC = role === "formador_comunitario";
 
   const etapaLabels = useEtapaLabels();
-  const { formando: termoFormando, morada: termoMorada } = useTermos();
+  const { formando: termoFormando, grupoFormacao: termoGrupoFormacao } = useTermos();
 
   const PAGE_SIZE = 10;
   const [search, setSearch] = useState("");
@@ -152,7 +152,7 @@ export default function FormandosClient({
   const [editing, setEditing] = useState<Formando | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [linkGradeState, setLinkGradeState] = useState<{ moradaId: string; nivelFormativo: NivelFormativo } | null>(null);
+  const [linkGradeState, setLinkGradeState] = useState<{ grupoFormacaoId: string; nivelFormativo: NivelFormativo } | null>(null);
   const [selectedGradeId, setSelectedGradeId] = useState("");
   const [linkGradeSaving, setLinkGradeSaving] = useState(false);
 
@@ -169,7 +169,7 @@ export default function FormandosClient({
 
   function openCreate() {
     setEditing(null);
-    setForm({ ...EMPTY_FORM, moradaId: "" });
+    setForm({ ...EMPTY_FORM, grupoFormacaoId: "" });
     setDialogOpen(true);
   }
 
@@ -186,7 +186,7 @@ export default function FormandosClient({
       dataIngresso: f.dataIngresso,
       telefone: applyPhoneMask(f.telefone),
       email: f.email,
-      moradaId: f.moradaId ?? "",
+      grupoFormacaoId: f.grupoFormacaoId ?? "",
     });
     setDialogOpen(true);
   }
@@ -204,8 +204,8 @@ export default function FormandosClient({
     if (!form.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
     if (!form.dataIngresso) return toast.error("Data de ingresso é obrigatória.");
 
-    const morada = initialMoradas.find((m) => m.id === form.moradaId);
-    const nivelFormativo = morada ? morada.nivelFormativo : form.nivelFormativo;
+    const grupoFormacao = initialGruposFormacao.find((m) => m.id === form.grupoFormacaoId);
+    const nivelFormativo = grupoFormacao ? grupoFormacao.nivelFormativo : form.nivelFormativo;
 
     const progressoEtapas: ProgressoEtapa[] = editing?.progressoEtapas ?? [
       {
@@ -228,7 +228,7 @@ export default function FormandosClient({
       email: form.email.trim(),
       ativo: editing?.ativo ?? true,
       foto: editing?.foto,
-      moradaId: form.moradaId || undefined,
+      grupoFormacaoId: form.grupoFormacaoId || undefined,
       totalFormacoes: editing?.totalFormacoes ?? totalRequerido(nivelFormativo),
       formacoesRealizadas: editing?.formacoesRealizadas ?? 0,
       progressoEtapas,
@@ -284,12 +284,12 @@ export default function FormandosClient({
     if (!linkGradeState || !selectedGradeId) return;
     setLinkGradeSaving(true);
     try {
-      const morada = initialMoradas.find((m) => m.id === linkGradeState.moradaId);
-      if (!morada) return;
-      const res = await fetch(`/api/moradas/${linkGradeState.moradaId}`, {
+      const grupoFormacao = initialGruposFormacao.find((m) => m.id === linkGradeState.grupoFormacaoId);
+      if (!grupoFormacao) return;
+      const res = await fetch(`/api/grupos-formacao/${linkGradeState.grupoFormacaoId}`, {
         method: "PUT",
         headers: JSON_HEADERS,
-        body: JSON.stringify({ ...morada, gradeId: selectedGradeId }),
+        body: JSON.stringify({ ...grupoFormacao, gradeId: selectedGradeId }),
       });
       if (!res.ok) throw new Error();
       toast.success("Grade vinculada com sucesso!");
@@ -303,7 +303,7 @@ export default function FormandosClient({
     }
   }
 
-  const selectedMorada = initialMoradas.find((m) => m.id === form.moradaId);
+  const selectedGrupoFormacao = initialGruposFormacao.find((m) => m.id === form.grupoFormacaoId);
 
   return (
     <div className="space-y-5 animate-in-fast">
@@ -376,8 +376,8 @@ export default function FormandosClient({
       {view === "grid" && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((formando) => {
-            const morada = formando.moradaId ? initialMoradas.find((m) => m.id === formando.moradaId) : null;
-            const semGrade = !!formando.moradaId && !morada?.gradeId;
+            const grupoFormacao = formando.grupoFormacaoId ? initialGruposFormacao.find((m) => m.id === formando.grupoFormacaoId) : null;
+            const semGrade = !!formando.grupoFormacaoId && !grupoFormacao?.gradeId;
             return (
               <FormandoCard
                 key={formando.id}
@@ -387,7 +387,7 @@ export default function FormandosClient({
                 onDelete={openDelete}
                 onVincularGrade={!isFC ? (mId, nivel) => {
                   setSelectedGradeId("");
-                  setLinkGradeState({ moradaId: mId, nivelFormativo: nivel });
+                  setLinkGradeState({ grupoFormacaoId: mId, nivelFormativo: nivel });
                 } : undefined}
               />
             );
@@ -443,8 +443,8 @@ export default function FormandosClient({
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {(() => {
-                        const morada = formando.moradaId ? initialMoradas.find((m) => m.id === formando.moradaId) : null;
-                        const semGrade = !!formando.moradaId && !morada?.gradeId;
+                        const grupoFormacao = formando.grupoFormacaoId ? initialGruposFormacao.find((m) => m.id === formando.grupoFormacaoId) : null;
+                        const semGrade = !!formando.grupoFormacaoId && !grupoFormacao?.gradeId;
                         return (
                           <div className="flex items-center gap-2">
                             <Progress value={progresso} className="h-1.5 w-20" />
@@ -452,7 +452,7 @@ export default function FormandosClient({
                               {formando.formacoesRealizadas}/{formando.totalFormacoes}
                             </span>
                             {semGrade && (
-                              <span title={`${termoMorada} sem grade vinculada`}>
+                              <span title={`${termoGrupoFormacao} sem grade vinculada`}>
                                 <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                               </span>
                             )}
@@ -564,27 +564,27 @@ export default function FormandosClient({
               </div>
             </div>
             <div className="grid gap-1.5">
-              <Label>{termoMorada}</Label>
+              <Label>{termoGrupoFormacao}</Label>
               <Select
-                value={form.moradaId}
+                value={form.grupoFormacaoId}
                 onValueChange={(v) => {
-                  set("moradaId")(v ?? "");
-                  const m = initialMoradas.find((m) => m.id === v);
+                  set("grupoFormacaoId")(v ?? "");
+                  const m = initialGruposFormacao.find((m) => m.id === v);
                   if (m) set("nivelFormativo")(m.nivelFormativo);
                 }}
               >
                 <SelectTrigger>
                   <SelectValue>
                     {(() => {
-                      if (!form.moradaId) return `Selecione a ${termoMorada.toLowerCase()}...`;
-                      const m = initialMoradas.find((x) => x.id === form.moradaId);
-                      return m ? `${m.nome} — ${etapaLabels[m.nivelFormativo]}` : `Selecione a ${termoMorada.toLowerCase()}...`;
+                      if (!form.grupoFormacaoId) return `Selecione a ${termoGrupoFormacao.toLowerCase()}...`;
+                      const m = initialGruposFormacao.find((x) => x.id === form.grupoFormacaoId);
+                      return m ? `${m.nome} — ${etapaLabels[m.nivelFormativo]}` : `Selecione a ${termoGrupoFormacao.toLowerCase()}...`;
                     })()}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhuma</SelectItem>
-                  {initialMoradas.filter((m) => m.ativo).map((m) => (
+                  {initialGruposFormacao.filter((m) => m.ativo).map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.nome} — {etapaLabels[m.nivelFormativo]}
                     </SelectItem>
@@ -595,13 +595,13 @@ export default function FormandosClient({
             <div className="grid gap-1.5">
               <Label>Etapa Formativa <span className="text-destructive">*</span></Label>
               <Select
-                value={selectedMorada ? selectedMorada.nivelFormativo : form.nivelFormativo}
-                onValueChange={(v) => !selectedMorada && v && set("nivelFormativo")(v)}
-                disabled={!!selectedMorada}
+                value={selectedGrupoFormacao ? selectedGrupoFormacao.nivelFormativo : form.nivelFormativo}
+                onValueChange={(v) => !selectedGrupoFormacao && v && set("nivelFormativo")(v)}
+                disabled={!!selectedGrupoFormacao}
               >
                 <SelectTrigger>
                   <SelectValue>
-                    {etapaLabels[selectedMorada?.nivelFormativo ?? form.nivelFormativo]}
+                    {etapaLabels[selectedGrupoFormacao?.nivelFormativo ?? form.nivelFormativo]}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -610,7 +610,7 @@ export default function FormandosClient({
                   ))}
                 </SelectContent>
               </Select>
-              {selectedMorada && (
+              {selectedGrupoFormacao && (
                 <p className="text-xs text-muted-foreground">
                   Definido automaticamente pela morada selecionada.
                 </p>
@@ -715,12 +715,12 @@ function FormandoCard({
   semGrade: boolean;
   onEdit: (f: Formando, e: React.MouseEvent) => void;
   onDelete: (f: Formando, e: React.MouseEvent) => void;
-  onVincularGrade?: (moradaId: string, nivelFormativo: NivelFormativo) => void;
+  onVincularGrade?: (grupoFormacaoId: string, nivelFormativo: NivelFormativo) => void;
 }) {
   const router = useRouter();
   const [isPendingFoto, startFotoTransition] = useTransition();
   const etapaLabels = useEtapaLabels();
-  const { morada: termoMoradaCard } = useTermos();
+  const { grupoFormacao: termoGrupoFormacaoCard } = useTermos();
   const [fotoDialogOpen, setFotoDialogOpen] = useState(false);
 
   const progresso = Math.round(
@@ -819,11 +819,11 @@ function FormandoCard({
             <div className="flex items-center justify-between gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-xs text-amber-700 mt-1">
               <div className="flex items-center gap-1.5">
                 <AlertTriangle className="h-3 w-3 shrink-0" />
-                <span>{termoMoradaCard} sem grade vinculada</span>
+                <span>{termoGrupoFormacaoCard} sem grade vinculada</span>
               </div>
-              {onVincularGrade && formando.moradaId && (
+              {onVincularGrade && formando.grupoFormacaoId && (
                 <button
-                  onClick={(e) => { e.preventDefault(); onVincularGrade(formando.moradaId!, formando.nivelFormativo); }}
+                  onClick={(e) => { e.preventDefault(); onVincularGrade(formando.grupoFormacaoId!, formando.nivelFormativo); }}
                   className="flex items-center gap-1 font-medium underline underline-offset-2 hover:text-amber-900 transition-colors whitespace-nowrap"
                 >
                   <Link2 className="h-3 w-3" />

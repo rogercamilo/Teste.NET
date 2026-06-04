@@ -1,17 +1,17 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toFormacao, toGrade, toMorada } from "@/lib/converters";
+import { toFormacao, toGrade, toGrupoFormacao } from "@/lib/converters";
 import FormacoesClient from "./FormacoesClient";
 
 export default async function FormacoesPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const user = session.user as { role?: string; organizacaoId?: string; moradaId?: string | null };
+  const user = session.user as { role?: string; organizacaoId?: string; grupoFormacaoId?: string | null };
   if (!user.organizacaoId) redirect("/login");
 
-  const [formacoesRaw, gradesRaw, moradasRaw] = await Promise.all([
+  const [formacoesRaw, gradesRaw, gruposFormacaoRaw] = await Promise.all([
     prisma.formacao.findMany({
       where: {
         OR: [
@@ -27,7 +27,7 @@ export default async function FormacoesPage() {
       include: { eixos: { include: { etapas: true } } },
       orderBy: { nome: "asc" },
     }),
-    prisma.morada.findMany({
+    prisma.grupoFormacao.findMany({
       where: { organizacaoId: user.organizacaoId },
       orderBy: { nome: "asc" },
     }),
@@ -37,9 +37,9 @@ export default async function FormacoesPage() {
     <FormacoesClient
       initialFormacoes={formacoesRaw.map(toFormacao)}
       initialGrades={gradesRaw.map(toGrade)}
-      initialMoradas={moradasRaw.map(toMorada)}
+      initialGruposFormacao={gruposFormacaoRaw.map(toGrupoFormacao)}
       role={user.role ?? "formador_comunitario"}
-      moradaId={user.moradaId ?? null}
+      grupoFormacaoId={user.grupoFormacaoId ?? null}
     />
   );
 }

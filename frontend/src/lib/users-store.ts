@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Server-side user store backed by PostgreSQL via Prisma.
  * Drop-in replacement for the previous JSON-file implementation.
  * NEVER import this module in client components.
@@ -17,7 +17,7 @@ export interface UserAuth {
   email: string;
   passwordHash?: string;
   perfil: PerfilUsuario;
-  moradaId?: string;
+  grupoFormacaoId?: string;
   ativo: boolean;
   criadoEm: string;
   primeiroAcesso?: boolean;
@@ -108,7 +108,7 @@ function toUserAuth(u: {
   email: string;
   passwordHash: string | null;
   perfil: PerfilUsuario;
-  moradaId: string | null;
+  grupoFormacaoId: string | null;
   ativo: boolean;
   criadoEm: Date;
   primeiroAcesso: boolean;
@@ -123,7 +123,7 @@ function toUserAuth(u: {
     email: u.email,
     passwordHash: u.passwordHash ?? undefined,
     perfil: u.perfil as UserAuth["perfil"],
-    moradaId: u.moradaId ?? undefined,
+    grupoFormacaoId: u.grupoFormacaoId ?? undefined,
     ativo: u.ativo,
     criadoEm: u.criadoEm.toISOString().split("T")[0],
     primeiroAcesso: u.primeiroAcesso,
@@ -241,7 +241,7 @@ export async function createUser(
       email: data.email,
       passwordHash,
       perfil: data.perfil as PerfilUsuario,
-      moradaId: data.moradaId ?? null,
+      grupoFormacaoId: data.grupoFormacaoId ?? null,
       ativo: data.ativo,
       primeiroAcesso: tempPassword !== undefined ? true : (data.primeiroAcesso ?? false),
     },
@@ -270,7 +270,7 @@ export async function updateUser(
       ...(rest.nome !== undefined && { nome: rest.nome }),
       ...(rest.email !== undefined && { email: rest.email }),
       ...(rest.perfil !== undefined && { perfil: rest.perfil as PerfilUsuario }),
-      ...(rest.moradaId !== undefined && { moradaId: rest.moradaId ?? null }),
+      ...(rest.grupoFormacaoId !== undefined && { grupoFormacaoId: rest.grupoFormacaoId ?? null }),
       ...(rest.ativo !== undefined && { ativo: rest.ativo }),
       ...(rest.primeiroAcesso !== undefined && { primeiroAcesso: rest.primeiroAcesso }),
       ...(rest.mfaEnabled !== undefined && { mfaEnabled: rest.mfaEnabled }),

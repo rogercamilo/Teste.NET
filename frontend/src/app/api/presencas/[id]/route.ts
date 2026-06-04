@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -35,12 +35,12 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.presencaFormacao.findFirst({
       where: { id, organizacaoId: user.organizacaoId },
-      ...(user.role === "formador_comunitario" && { include: { formando: { select: { moradaId: true } } } }),
+      ...(user.role === "formador_comunitario" && { include: { formando: { select: { grupoFormacaoId: true } } } }),
     });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     if (user.role === "formador_comunitario") {
-      const formando = existing as typeof existing & { formando: { moradaId: string | null } };
-      if (!user.moradaId || formando.formando.moradaId !== user.moradaId) {
+      const formando = existing as typeof existing & { formando: { grupoFormacaoId: string | null } };
+      if (!user.grupoFormacaoId || formando.formando.grupoFormacaoId !== user.grupoFormacaoId) {
         return NextResponse.json({ error: "Sem permissão para editar esta presença" }, { status: 403 });
       }
     }
@@ -69,12 +69,12 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const existing = await prisma.presencaFormacao.findFirst({
       where: { id, organizacaoId: user.organizacaoId },
-      ...(user.role === "formador_comunitario" && { include: { formando: { select: { moradaId: true } } } }),
+      ...(user.role === "formador_comunitario" && { include: { formando: { select: { grupoFormacaoId: true } } } }),
     });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     if (user.role === "formador_comunitario") {
-      const formando = existing as typeof existing & { formando: { moradaId: string | null } };
-      if (!user.moradaId || formando.formando.moradaId !== user.moradaId) {
+      const formando = existing as typeof existing & { formando: { grupoFormacaoId: string | null } };
+      if (!user.grupoFormacaoId || formando.formando.grupoFormacaoId !== user.grupoFormacaoId) {
         return NextResponse.json({ error: "Sem permissão para excluir esta presença" }, { status: 403 });
       }
     }

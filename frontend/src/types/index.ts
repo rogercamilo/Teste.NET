@@ -1,4 +1,4 @@
-export type NivelFormativo =
+﻿export type NivelFormativo =
   | "pre-discipulado"
   | "discipulado"
   | "primeiras-promessas"
@@ -38,7 +38,7 @@ export interface RequisitosEtapa {
   duracaoAnos: number;
 }
 
-export interface Morada {
+export interface GrupoFormacao {
   id: string;
   nome: string;
   localReuniao?: string;
@@ -61,7 +61,7 @@ export interface Usuario {
   avatar?: string;
   ativo: boolean;
   criadoEm: string;
-  moradaId?: string;
+  grupoFormacaoId?: string;
 }
 
 export interface Formando {
@@ -78,7 +78,7 @@ export interface Formando {
   motivoInatividade?: "desligamento-voluntario" | "desligamento-compulsorio" | "licenca";
   foto?: string;
   turmaId?: string;
-  moradaId?: string;
+  grupoFormacaoId?: string;
   totalFormacoes: number;
   formacoesRealizadas: number;
   progressoEtapas: ProgressoEtapa[];
@@ -203,7 +203,7 @@ export interface Agendamento {
   linkOnline?: string;
   status: StatusFormacao;
   participantes: number;
-  moradaId?: string;
+  grupoFormacaoId?: string;
   observacoes?: string;
   googleCalendarEventId?: string;
   criadoEm: string;
@@ -341,7 +341,7 @@ export interface DashboardStats {
   proximasFormacoes: Agendamento[];
 
   // FC — presença e acompanhamento (últimos 90 dias)
-  taxaPresencaMorada?: number | null;
+  taxaPresencaGrupoFormacao?: number | null;
   formandosPresenca?: {
     id: string; nome: string; nivelFormativo: NivelFormativo;
     totalSessoes: number; sessoesCom: number;
@@ -354,13 +354,13 @@ export interface DashboardStats {
   }[];
 
   // FG/Admin — visão estratégica
-  totalMoradas?: number;
+  totalGruposFormacao?: number;
   totalPlanosAtivos?: number;
-  moradasSemPlano?: number;
-  moradasSemGrade?: number;
-  moradasComGradeExpirada?: number;
-  fcsSemMorada?: number;
-  moradasResumo?: {
+  gruposFormacaoSemPlano?: number;
+  gruposFormacaoSemGrade?: number;
+  gruposFormacaoComGradeExpirada?: number;
+  fcsSemGrupoFormacao?: number;
+  gruposFormacaoResumo?: {
     id: string; nome: string; nivelFormativo: NivelFormativo;
     totalFormandos: number; formandosAtivos: number;
     temPlano: boolean; temGrade: boolean; formadorNome?: string;
@@ -605,7 +605,7 @@ export interface ComunidadeConfig {
   missao: string;
   anoFundacao: string;
   /** Termo personalizado para "Morada" (ex.: Grupo, Célula, Casa) */
-  termoMorada?: string;
+  termoGrupoFormacao?: string;
   /** Termo personalizado para "Formando" (ex.: Membro, Participante) */
   termoFormando?: string;
   /** Termo personalizado para "Formador Comunitário" (ex.: Líder, Coordenador) */

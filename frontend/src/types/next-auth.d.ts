@@ -1,4 +1,4 @@
-import type { PerfilUsuario } from "@/types";
+﻿import type { PerfilUsuario } from "@/types";
 
 declare module "next-auth" {
   interface Session {
@@ -8,7 +8,7 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       role: PerfilUsuario;
-      moradaId: string | null;
+      grupoFormacaoId: string | null;
       organizacaoId: string | null;
       primeiroAcesso: boolean;
     };

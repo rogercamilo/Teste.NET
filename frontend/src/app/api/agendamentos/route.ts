@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         tipoFormacao: body.tipoFormacao ?? "comunitaria",
         formadorId,
         formadorNome,
-        moradaId: body.moradaId ?? user.moradaId ?? null,
+        grupoFormacaoId: body.grupoFormacaoId ?? user.grupoFormacaoId ?? null,
         dataInicio: new Date(body.dataInicio),
         dataFim: new Date(body.dataFim ?? body.dataInicio),
         local: body.local ?? null,

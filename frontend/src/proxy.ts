@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
@@ -119,7 +119,7 @@ export default auth(function proxy(req) {
 
   // super_admin não tem acesso a funcionalidades operacionais das organizações
   const superAdminBlocked = [
-    "/dashboard", "/formandos", "/moradas", "/formacoes",
+    "/dashboard", "/formandos", "/grupos-formacao", "/formacoes",
     "/planos", "/grades", "/presenca", "/agenda",
     "/documentos", "/comentarios", "/viewer",
   ];

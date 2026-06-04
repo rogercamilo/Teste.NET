@@ -1,17 +1,17 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toPlano, toMorada } from "@/lib/converters";
+import { toPlano, toGrupoFormacao } from "@/lib/converters";
 import PlanosClient from "./PlanosClient";
 
 export default async function PlanosPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const user = session.user as { role?: string; organizacaoId?: string; moradaId?: string | null };
+  const user = session.user as { role?: string; organizacaoId?: string; grupoFormacaoId?: string | null };
   if (!user.organizacaoId) redirect("/login");
 
-  const [planosRaw, moradasRaw] = await Promise.all([
+  const [planosRaw, gruposFormacaoRaw] = await Promise.all([
     prisma.planoFormativo.findMany({
       where: { organizacaoId: user.organizacaoId },
       include: {
@@ -20,7 +20,7 @@ export default async function PlanosPage() {
       },
       orderBy: { criadoEm: "desc" },
     }),
-    prisma.morada.findMany({
+    prisma.grupoFormacao.findMany({
       where: { organizacaoId: user.organizacaoId },
       orderBy: { nome: "asc" },
     }),
@@ -29,9 +29,9 @@ export default async function PlanosPage() {
   return (
     <PlanosClient
       role={user.role ?? "formador_comunitario"}
-      moradaId={user.moradaId ?? null}
+      grupoFormacaoId={user.grupoFormacaoId ?? null}
       initialPlanos={planosRaw.map(toPlano)}
-      initialMoradas={moradasRaw.map(toMorada)}
+      initialGruposFormacao={gruposFormacaoRaw.map(toGrupoFormacao)}
     />
   );
 }

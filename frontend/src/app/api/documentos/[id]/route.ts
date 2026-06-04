@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteFile, readLocalFile, localFileExists } from "@/lib/storage";
 import { logAction, getClientIp } from "@/lib/audit-log";
@@ -8,12 +8,12 @@ import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
 
 function canRead(
-  doc: { uploadedById: string | null; moradaId: string | null },
+  doc: { uploadedById: string | null; grupoFormacaoId: string | null },
   user: SessionUser
 ): boolean {
   if (user.role === "administrador" || user.role === "formador_geral") return true;
   if (doc.uploadedById === user.id) return true;
-  if (doc.moradaId && doc.moradaId === user.moradaId) return true;
+  if (doc.grupoFormacaoId && doc.grupoFormacaoId === user.grupoFormacaoId) return true;
   return false;
 }
 

@@ -13,7 +13,7 @@ interface UsageMetric {
 
 interface Usage {
   plano: string;
-  moradas: UsageMetric;
+  gruposFormacao: UsageMetric;
   formandos: UsageMetric;
   storage: UsageMetric;
 }
@@ -28,7 +28,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function QuotaWarningBanner({ role }: { role?: string }) {
-  const { morada: termoMorada } = useTermos();
+  const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [usage, setUsage] = useState<Usage | null>(null);
   const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
 
@@ -55,7 +55,7 @@ export default function QuotaWarningBanner({ role }: { role?: string }) {
   if (!canSee || dismissed || !usage) return null;
 
   const metrics = [
-    { label: `${termoMorada}s`, metric: usage.moradas, format: (v: number) => String(v) },
+    { label: `${termoGrupoFormacao}s`, metric: usage.gruposFormacao, format: (v: number) => String(v) },
     { label: "Formandos", metric: usage.formandos, format: (v: number) => String(v) },
     { label: "Armazenamento", metric: usage.storage, format: formatBytes },
   ];

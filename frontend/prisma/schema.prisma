@@ -42,7 +42,7 @@ model Organizacao {
   endereco             String?
   missao               String?
   anoFundacao          String?
-  termoMorada               String            @default("Grupo de Formação")
+  termoGrupoFormacao        String            @default("Grupo de Formação") @map("termo_morada")
   termoFormando             String            @default("Formando")
   termoFormador             String            @default("Formador Comunitário")
   termoPreDiscipulado       String            @default("Pré-Discipulado")
@@ -66,7 +66,7 @@ model Organizacao {
   atualizadoEm         DateTime          @updatedAt
 
   usuarios             Usuario[]
-  moradas              Morada[]
+  gruposFormacao       GrupoFormacao[]
   formandos            Formando[]
   planosFormativos     PlanoFormativo[]
   gradesFormativas     GradeFormativa[]
@@ -113,7 +113,7 @@ model Usuario {
   email          String
   passwordHash   String?
   perfil         PerfilUsuario
-  moradaId       String?
+  grupoFormacaoId  String?       @map("morada_id")
   ativo             Boolean       @default(true)
   primeiroAcesso    Boolean       @default(false)
   mfaSecret         String?       @db.Text
@@ -124,10 +124,10 @@ model Usuario {
   atualizadoEm     DateTime      @updatedAt
 
   organizacao    Organizacao   @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  // Morada à qual este usuário está vinculado (formador_comunitario)
-  morada         Morada?       @relation("UsuarioMorada", fields: [moradaId], references: [id])
-  // Moradas das quais este usuário é formador responsável
-  moradasFormadas Morada[]     @relation("MoradaFormador")
+  // GrupoFormacao ao qual este usuário está vinculado (formador_comunitario)
+  grupoFormacao   GrupoFormacao?  @relation("UsuarioGrupoFormacao", fields: [grupoFormacaoId], references: [id])
+  // GruposFormacao dos quais este usuário é formador responsável
+  gruposFormados  GrupoFormacao[] @relation("GrupoFormacaoFormador")
   auditLogs      AuditLog[]
   comentarios    ComentarioFormando[]
   eventos        EventoFormando[]
@@ -144,10 +144,10 @@ model Usuario {
 }
 
 // ==========================================================
-// MORADA
+// GRUPO FORMACAO
 // ==========================================================
 
-model Morada {
+model GrupoFormacao {
   id             String    @id @default(cuid())
   organizacaoId  String
   nome           String
@@ -165,15 +165,16 @@ model Morada {
   criadoEm      DateTime  @default(now())
   atualizadoEm  DateTime  @updatedAt
 
-  organizacao    Organizacao    @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formador       Usuario?       @relation("MoradaFormador", fields: [formadorId], references: [id])
+  organizacao    Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formador       Usuario?        @relation("GrupoFormacaoFormador", fields: [formadorId], references: [id])
   plano          PlanoFormativo? @relation(fields: [planoId], references: [id])
   grade          GradeFormativa? @relation(fields: [gradeId], references: [id])
   formandos      Formando[]
   agendamentos   Agendamento[]
-  // Usuários vinculados a esta morada (formadores_comunitarios)
-  usuarios       Usuario[]      @relation("UsuarioMorada")
+  // Usuários vinculados a este grupo de formação (formadores_comunitarios)
+  usuarios       Usuario[]       @relation("UsuarioGrupoFormacao")
 
+  @@map("morada")
   @@index([organizacaoId])
   @@index([formadorId])
 }
@@ -196,16 +197,16 @@ model Formando {
   ativo               Boolean   @default(true)
   motivoInatividade   String?
   foto                String?
-  turmaId             String?
-  moradaId            String?
-  totalFormacoes      Int       @default(0)
+  turmaId               String?
+  grupoFormacaoId       String?   @map("morada_id")
+  totalFormacoes        Int       @default(0)
   formacoesRealizadas Int       @default(0)
   deletedAt           DateTime?
   criadoEm           DateTime  @default(now())
   atualizadoEm       DateTime  @updatedAt
 
   organizacao         Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  morada              Morada?         @relation(fields: [moradaId], references: [id])
+  grupoFormacao       GrupoFormacao?  @relation(fields: [grupoFormacaoId], references: [id])
   progressoEtapas     ProgressoEtapa[]
   presencas           PresencaFormacao[]
   comentarios         ComentarioFormando[]
@@ -214,7 +215,7 @@ model Formando {
   relatorios          RelatorioEtapa[]
 
   @@index([organizacaoId])
-  @@index([moradaId])
+  @@index([grupoFormacaoId])
   @@index([organizacaoId, ativo])
   @@index([deletedAt])
 }
@@ -264,7 +265,7 @@ model PlanoFormativo {
   organizacao      Organizacao?    @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   eixos            EixoPlano[]
   gradesFormativas GradeFormativa[]
-  moradas          Morada[]
+  gruposFormacao   GrupoFormacao[]
   retiros          RetiroPlano[]
 
   @@index([organizacaoId])
@@ -340,7 +341,7 @@ model GradeFormativa {
   organizacao      Organizacao?   @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   plano            PlanoFormativo @relation(fields: [planoId], references: [id])
   eixos            Eixo[]
-  moradas          Morada[]
+  gruposFormacao   GrupoFormacao[]
 
   @@index([organizacaoId])
 }
@@ -438,7 +439,7 @@ model Agendamento {
   tipoFormacao          String    // TipoFormacao
   formadorId            String
   formadorNome          String
-  moradaId              String?
+  grupoFormacaoId       String?   @map("morada_id")
   dataInicio            DateTime
   dataFim               DateTime
   local                 String?
@@ -453,14 +454,14 @@ model Agendamento {
 
   organizacao           Organizacao  @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   formacao              Formacao     @relation(fields: [formacaoId], references: [id])
-  formador              Usuario      @relation(fields: [formadorId], references: [id])
-  morada                Morada?      @relation(fields: [moradaId], references: [id], onDelete: SetNull)
+  formador              Usuario        @relation(fields: [formadorId], references: [id])
+  grupoFormacao         GrupoFormacao? @relation(fields: [grupoFormacaoId], references: [id], onDelete: SetNull)
   presencas             PresencaFormacao[]
 
   @@index([organizacaoId])
   @@index([dataInicio])
   @@index([status])
-  @@index([moradaId])
+  @@index([grupoFormacaoId])
   @@index([organizacaoId, status, dataInicio])
   @@index([deletedAt])
 }
@@ -601,9 +602,9 @@ model Arquivo {
   eventoId        String?
   formandoId      String?
   formandoNome    String?
-  tipoEvento      String?
-  moradaId        String?
-  criadoEm       DateTime @default(now())
+  tipoEvento        String?
+  grupoFormacaoId   String?   @map("morada_id")
+  criadoEm         DateTime  @default(now())
 
   organizacao     Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   evento          EventoFormando? @relation(fields: [eventoId], references: [id], onDelete: SetNull)
@@ -622,10 +623,10 @@ model ConviteUsuario {
   id            String        @id @default(cuid())
   organizacaoId String
   email         String
-  nome          String
-  perfil        PerfilUsuario
-  moradaId      String?
-  token         String        @unique @default(cuid())
+  nome              String
+  perfil            PerfilUsuario
+  grupoFormacaoId   String?   @map("morada_id")
+  token             String    @unique @default(cuid())
   expiresAt     DateTime
   aceitoEm      DateTime?
   criadoPorId   String

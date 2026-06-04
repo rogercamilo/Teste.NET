@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,7 @@ import {
   type Agendamento,
   type NivelFormativo,
   type Formacao,
-  type Morada,
+  type GrupoFormacao,
 } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -88,7 +88,7 @@ type FormState = {
   local: string;
   participantes: string;
   observacoes: string;
-  moradaId: string;
+  grupoFormacaoId: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -98,25 +98,25 @@ const EMPTY_FORM: FormState = {
   local: "",
   participantes: "",
   observacoes: "",
-  moradaId: "",
+  grupoFormacaoId: "",
 };
 
 interface AgendaClientProps {
   initialAgendamentos: Agendamento[];
   initialFormacoes: Formacao[];
-  initialMoradas: Morada[];
+  initialGruposFormacao: GrupoFormacao[];
   role: string;
   userId: string;
-  moradaId: string | null;
+  grupoFormacaoId: string | null;
 }
 
 export default function AgendaClient({
   initialAgendamentos,
   initialFormacoes,
-  initialMoradas,
+  initialGruposFormacao,
   role,
   userId,
-  moradaId: userMoradaId,
+  grupoFormacaoId: userGrupoFormacaoId,
 }: AgendaClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -129,7 +129,7 @@ export default function AgendaClient({
   const [novoOpen, setNovoOpen] = useState(false);
 
   const meus = isFC
-    ? initialAgendamentos.filter((a) => a.moradaId === userMoradaId || a.formadorId === userId)
+    ? initialAgendamentos.filter((a) => a.grupoFormacaoId === userGrupoFormacaoId || a.formadorId === userId)
     : initialAgendamentos;
 
   const filtered = meus.filter((a) =>
@@ -311,9 +311,9 @@ export default function AgendaClient({
         open={novoOpen}
         onClose={() => setNovoOpen(false)}
         formacoes={initialFormacoes}
-        moradas={initialMoradas}
+        gruposFormacao={initialGruposFormacao}
         userId={userId}
-        userMoradaId={userMoradaId}
+        userGrupoFormacaoId={userGrupoFormacaoId}
         isFC={isFC}
         onSaved={() => startTransition(() => router.refresh())}
       />
@@ -325,22 +325,22 @@ function AgendamentoFormDialog({
   open,
   onClose,
   formacoes,
-  moradas,
+  gruposFormacao,
   userId,
-  userMoradaId,
+  userGrupoFormacaoId,
   isFC,
   onSaved,
 }: {
   open: boolean;
   onClose: () => void;
   formacoes: Formacao[];
-  moradas: Morada[];
+  gruposFormacao: GrupoFormacao[];
   userId: string;
-  userMoradaId: string | null;
+  userGrupoFormacaoId: string | null;
   isFC: boolean;
   onSaved: () => void;
 }) {
-  const { morada: termoMorada } = useTermos();
+  const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
@@ -355,7 +355,7 @@ function AgendamentoFormDialog({
       const formacao = formacoes.find((f) => f.id === form.formacaoId);
       const dataInicioISO = new Date(form.dataInicio).toISOString();
       const dataFimISO = form.dataFim ? new Date(form.dataFim).toISOString() : dataInicioISO;
-      const moradaIdFinal = isFC ? (userMoradaId ?? undefined) : (form.moradaId || undefined);
+      const grupoFormacaoIdFinal = isFC ? (userGrupoFormacaoId ?? undefined) : (form.grupoFormacaoId || undefined);
 
       const payload = {
         formacaoId: form.formacaoId,
@@ -363,7 +363,7 @@ function AgendamentoFormDialog({
         nivelFormativo: formacao?.nivelFormativo ?? "pre-discipulado",
         tipoFormacao: formacao?.tipoFormacao ?? "comunitaria",
         formadorId: userId,
-        moradaId: moradaIdFinal,
+        grupoFormacaoId: grupoFormacaoIdFinal,
         dataInicio: dataInicioISO,
         dataFim: dataFimISO,
         local: form.local.trim() || undefined,
@@ -435,15 +435,15 @@ function AgendamentoFormDialog({
               <Input type="number" min="0" value={form.participantes} onChange={(e) => set("participantes")(e.target.value)} placeholder="0" />
             </div>
           </div>
-          {!isFC && moradas.length > 0 && (
+          {!isFC && gruposFormacao.length > 0 && (
             <div className="grid gap-1.5">
-              <Label>{termoMorada}</Label>
-              <Select value={form.moradaId} onValueChange={(v) => v && set("moradaId")(v)}>
+              <Label>{termoGrupoFormacao}</Label>
+              <Select value={form.grupoFormacaoId} onValueChange={(v) => v && set("grupoFormacaoId")(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder={`Selecionar ${termoMorada.toLowerCase()} (opcional)...`} />
+                  <SelectValue placeholder={`Selecionar ${termoGrupoFormacao.toLowerCase()} (opcional)...`} />
                 </SelectTrigger>
                 <SelectContent>
-                  {moradas.map((m) => (
+                  {gruposFormacao.map((m) => (
                     <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
                   ))}
                 </SelectContent>

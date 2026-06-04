@@ -1,24 +1,24 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toMorada, toPlano, toGrade } from "@/lib/converters";
+import { toGrupoFormacao, toPlano, toGrade } from "@/lib/converters";
 import type { Usuario } from "@/types";
-import MoradasClient from "./MoradasClient";
+import GruposFormacaoClient from "./GruposFormacaoClient";
 
 export default async function MoradasPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const user = session.user as { role?: string; organizacaoId?: string; moradaId?: string | null };
+  const user = session.user as { role?: string; organizacaoId?: string; grupoFormacaoId?: string | null };
 
-  if (user.role === "formador_comunitario" && user.moradaId) {
-    redirect(`/moradas/${user.moradaId}`);
+  if (user.role === "formador_comunitario" && user.grupoFormacaoId) {
+    redirect(`/grupos-formacao/${user.grupoFormacaoId}`);
   }
 
   if (!user.organizacaoId) redirect("/login");
 
-  const [moradasRaw, planosRaw, gradesRaw, formadoresRaw, formandoCountsRaw] = await Promise.all([
-    prisma.morada.findMany({
+  const [gruposFormacaoRaw, planosRaw, gradesRaw, formadoresRaw, formandoCountsRaw] = await Promise.all([
+    prisma.grupoFormacao.findMany({
       where: { organizacaoId: user.organizacaoId },
       orderBy: { nome: "asc" },
     }),
@@ -38,11 +38,11 @@ export default async function MoradasPage() {
         perfil: { in: ["formador_comunitario", "formador_geral"] },
         ativo: true,
       },
-      select: { id: true, nome: true, email: true, perfil: true, ativo: true, moradaId: true, criadoEm: true },
+      select: { id: true, nome: true, email: true, perfil: true, ativo: true, grupoFormacaoId: true, criadoEm: true },
       orderBy: { nome: "asc" },
     }),
     prisma.formando.groupBy({
-      by: ["moradaId"],
+      by: ["grupoFormacaoId"],
       where: { organizacaoId: user.organizacaoId, deletedAt: null },
       _count: { id: true },
     }),
@@ -50,7 +50,7 @@ export default async function MoradasPage() {
 
   const formandoCounts: Record<string, number> = {};
   for (const row of formandoCountsRaw) {
-    if (row.moradaId) formandoCounts[row.moradaId] = row._count.id;
+    if (row.grupoFormacaoId) formandoCounts[row.grupoFormacaoId] = row._count.id;
   }
 
   const formadores: Usuario[] = formadoresRaw.map((u) => ({
@@ -59,13 +59,13 @@ export default async function MoradasPage() {
     email: u.email,
     perfil: u.perfil as Usuario["perfil"],
     ativo: u.ativo,
-    moradaId: u.moradaId ?? undefined,
+    grupoFormacaoId: u.grupoFormacaoId ?? undefined,
     criadoEm: u.criadoEm.toISOString(),
   }));
 
   return (
-    <MoradasClient
-      initialMoradas={moradasRaw.map(toMorada)}
+    <GruposFormacaoClient
+      initialGruposFormacao={gruposFormacaoRaw.map(toGrupoFormacao)}
       initialPlanos={planosRaw.map(toPlano)}
       initialGrades={gradesRaw.map(toGrade)}
       initialFormadores={formadores}

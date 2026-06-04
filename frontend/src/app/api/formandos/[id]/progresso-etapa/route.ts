@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -38,13 +38,13 @@ export async function PATCH(request: Request, { params }: Params) {
     // Valida que o formando pertence à organização (e à morada do FC, se aplicável)
     const formando = await prisma.formando.findFirst({
       where: { id, organizacaoId: user.organizacaoId },
-      select: { id: true, moradaId: true },
+      select: { id: true, grupoFormacaoId: true },
     });
     if (!formando) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
     if (isFC) {
-      const userWithMorada = user as SU & { moradaId?: string | null };
-      if (userWithMorada.moradaId && formando.moradaId !== userWithMorada.moradaId) {
+      const userWithMorada = user as SU & { grupoFormacaoId?: string | null };
+      if (userWithMorada.grupoFormacaoId && formando.grupoFormacaoId !== userWithMorada.grupoFormacaoId) {
         return NextResponse.json({ error: "Sem permissão para editar este formando" }, { status: 403 });
       }
     }

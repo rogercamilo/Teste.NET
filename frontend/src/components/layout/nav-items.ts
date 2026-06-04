@@ -1,4 +1,4 @@
-import {
+﻿import {
   BookOpen,
   Calendar,
   ClipboardList,
@@ -45,7 +45,7 @@ export const navGroupsGestao: NavGroup[] = [
   {
     label: "Gestão",
     items: [
-      { title: "Moradas", href: "/moradas", icon: Home },
+      { title: "Moradas", href: "/grupos-formacao", icon: Home },
       { title: "Formandos", href: "/formandos", icon: Users },
       { title: "Documentos", href: "/documentos", icon: FolderOpen },
     ],

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * D2.5 — Importação de dados do localStorage para PostgreSQL.
  * Endpoint exclusivo para administradores: recebe JSON exportado do browser
  * e cria/atualiza registros no banco com upsert (idempotente).
@@ -23,7 +23,8 @@ function validEnum<T extends string>(value: unknown, values: readonly T[], fallb
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
 
 interface ImportPayload {
-  moradas?: unknown[];
+  gruposFormacao?: unknown[];
+  moradas?: unknown[]; // compat legado
   formandos?: unknown[];
   agendamentos?: unknown[];
   comentarios?: unknown[];
@@ -60,17 +61,17 @@ export async function POST(request: Request) {
 
   try {
     // Moradas — skip IDs already in this org; createMany handles true duplicates
-    if (Array.isArray(body.moradas) && body.moradas.length > 0) {
-      const validRows = (body.moradas as Record<string, unknown>[]).filter(
+    if (Array.isArray(body.gruposFormacao) && body.gruposFormacao.length > 0) {
+      const validRows = (body.gruposFormacao as Record<string, unknown>[]).filter(
         (row) => row.id && row.nome && row.nivelFormativo
       );
       if (validRows.length > 0) {
         const ids = validRows.map((r) => String(r.id));
-        const existing = await prisma.morada.findMany({ where: { id: { in: ids }, organizacaoId: orgId }, select: { id: true } });
+        const existing = await prisma.grupoFormacao.findMany({ where: { id: { in: ids }, organizacaoId: orgId }, select: { id: true } });
         const existingIds = new Set(existing.map((r) => r.id));
         const toCreate = validRows.filter((r) => !existingIds.has(String(r.id)));
         if (toCreate.length > 0) {
-          await prisma.morada.createMany({
+          await prisma.grupoFormacao.createMany({
             data: toCreate.map((row) => ({
               id: String(row.id),
               organizacaoId: orgId,
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
           });
         }
       }
-      results.moradas = validRows.length;
+      results.gruposFormacao = validRows.length;
     }
 
     // Formandos — skip IDs already in this org; createMany handles true duplicates
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
               telefone: row.telefone ? String(row.telefone) : "",
               email: row.email ? String(row.email) : "",
               ativo: row.ativo !== false,
-              moradaId: row.moradaId ? String(row.moradaId) : null,
+              grupoFormacaoId: row.grupoFormacaoId ? String(row.grupoFormacaoId) : null,
             })),
             skipDuplicates: true,
           });

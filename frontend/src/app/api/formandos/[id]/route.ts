@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
@@ -19,20 +19,20 @@ export async function GET(_req: Request, { params }: Params) {
     const { id } = await params;
     if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
     const where: Record<string, unknown> = { id, organizacaoId: user.organizacaoId };
-    if (user.role === "formador_comunitario") where.moradaId = user.moradaId ?? null;
+    if (user.role === "formador_comunitario") where.grupoFormacaoId = user.grupoFormacaoId ?? null;
 
     const row = await prisma.formando.findFirst({
       where: { ...where, deletedAt: null },
-      include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
+      include: { progressoEtapas: true, grupoFormacao: { select: { gradeId: true } } },
     });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
-    const { morada, ...rest } = row;
+    const { grupoFormacao, ...rest } = row;
     let totalFormacoes = rest.totalFormacoes;
 
-    if (morada?.gradeId) {
+    if (grupoFormacao?.gradeId) {
       const grade = await prisma.gradeFormativa.findUnique({
-        where: { id: morada.gradeId },
+        where: { id: grupoFormacao!.gradeId! },
         select: { totalFormacoes: true },
       });
       if (grade && grade.totalFormacoes > 0) totalFormacoes = grade.totalFormacoes;
@@ -67,7 +67,7 @@ export async function PUT(request: Request, { params }: Params) {
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
     // formador_comunitario só pode editar formandos da própria morada
-    if (user.role === "formador_comunitario" && existing.moradaId !== (user.moradaId ?? null)) {
+    if (user.role === "formador_comunitario" && existing.grupoFormacaoId !== (user.grupoFormacaoId ?? null)) {
       return NextResponse.json({ error: "Sem permissão para editar formandos de outra morada" }, { status: 403 });
     }
 
@@ -75,9 +75,9 @@ export async function PUT(request: Request, { params }: Params) {
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 
-    if (body.moradaId) {
-      const morada = await prisma.morada.findFirst({ where: { id: body.moradaId, organizacaoId: user.organizacaoId } });
-      if (!morada) return NextResponse.json({ error: "Morada não encontrada" }, { status: 400 });
+    if (body.grupoFormacaoId) {
+      const grupoFormacao = await prisma.grupoFormacao.findFirst({ where: { id: body.grupoFormacaoId, organizacaoId: user.organizacaoId } });
+      if (!grupoFormacao) return NextResponse.json({ error: "Grupo de formação não encontrado" }, { status: 400 });
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -96,7 +96,7 @@ export async function PUT(request: Request, { params }: Params) {
           motivoInatividade: body.motivoInatividade || null,
           ...(body.foto !== undefined ? { foto: body.foto || null } : {}),
           turmaId: body.turmaId || null,
-          moradaId: body.moradaId || null,
+          grupoFormacaoId: body.grupoFormacaoId || null,
           totalFormacoes: body.totalFormacoes,
           formacoesRealizadas: body.formacoesRealizadas,
         },

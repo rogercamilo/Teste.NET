@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -7,7 +7,7 @@ import {
   NIVEL_CORES,
   type NivelFormativo,
   type GradeFormativa,
-  type Morada,
+  type GrupoFormacao,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -55,12 +55,12 @@ const EIXO_COLORS = [
 
 interface GradesClientProps {
   role: string;
-  moradaId: string | null;
+  grupoFormacaoId: string | null;
   initialGrades: GradeFormativa[];
-  initialMoradas: Morada[];
+  initialGruposFormacao: GrupoFormacao[];
 }
 
-export default function GradesClient({ role, moradaId, initialGrades, initialMoradas }: GradesClientProps) {
+export default function GradesClient({ role, grupoFormacaoId, initialGrades, initialGruposFormacao }: GradesClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const canEdit = role !== "formador_comunitario";
@@ -70,11 +70,11 @@ export default function GradesClient({ role, moradaId, initialGrades, initialMor
   const [toDelete, setToDelete] = useState<GradeFormativa | null>(null);
   const [page, setPage] = useState(1);
 
-  const minhaMorada =
-    role === "formador_comunitario" && moradaId
-      ? initialMoradas.find((m) => m.id === moradaId)
+  const meuGrupoFormacao =
+    role === "formador_comunitario" && grupoFormacaoId
+      ? initialGruposFormacao.find((m) => m.id === grupoFormacaoId)
       : null;
-  const nivelRestrito: NivelFormativo | null = minhaMorada?.nivelFormativo ?? null;
+  const nivelRestrito: NivelFormativo | null = meuGrupoFormacao?.nivelFormativo ?? null;
   const visibleGrades = nivelRestrito
     ? initialGrades.filter((g) => g.nivelFormativo === nivelRestrito)
     : initialGrades;

@@ -55,9 +55,9 @@ export async function POST(request: Request) {
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const { formandoId, texto, tipo, formadorNome } = parsedBody.data;
 
-    const moradaFilter = user.role === "formador_comunitario" ? { moradaId: user.moradaId ?? null } : {};
+    const grupoFormacaoFilter = user.role === "formador_comunitario" ? { grupoFormacaoId: user.grupoFormacaoId ?? null } : {};
     const formando = await prisma.formando.findFirst({
-      where: { id: formandoId, organizacaoId: user.organizacaoId, ...moradaFilter },
+      where: { id: formandoId, organizacaoId: user.organizacaoId, ...grupoFormacaoFilter },
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 

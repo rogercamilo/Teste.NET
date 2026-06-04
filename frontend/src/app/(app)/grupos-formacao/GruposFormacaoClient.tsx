@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -6,7 +6,7 @@ import { useTermos } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
-  type Morada,
+  type GrupoFormacao,
   type NivelFormativo,
   type PlanoFormativo,
   type GradeFormativa,
@@ -85,36 +85,36 @@ const EMPTY_FORM: FormState = {
 const PAGE_SIZE = 10;
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
-interface MoradasClientProps {
-  initialMoradas: Morada[];
+interface GruposFormacaoClientProps {
+  initialGruposFormacao: GrupoFormacao[];
   initialPlanos: PlanoFormativo[];
   initialGrades: GradeFormativa[];
   initialFormadores: Usuario[];
   formandoCounts: Record<string, number>;
 }
 
-export default function MoradasClient({
-  initialMoradas,
+export default function GruposFormacaoClient({
+  initialGruposFormacao,
   initialPlanos,
   initialGrades,
   initialFormadores,
   formandoCounts,
-}: MoradasClientProps) {
+}: GruposFormacaoClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
-  const { morada: termoMorada } = useTermos();
+  const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [editing, setEditing] = useState<Morada | null>(null);
+  const [editing, setEditing] = useState<GrupoFormacao | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [page, setPage] = useState(1);
 
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const filtered = initialMoradas.filter((m) =>
+  const filtered = initialGruposFormacao.filter((m) =>
     m.nome.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -124,7 +124,7 @@ export default function MoradasClient({
     setDialogOpen(true);
   }
 
-  function openEdit(m: Morada, e: React.MouseEvent) {
+  function openEdit(m: GrupoFormacao, e: React.MouseEvent) {
     e.stopPropagation();
     setEditing(m);
     setForm({
@@ -139,7 +139,7 @@ export default function MoradasClient({
     setDialogOpen(true);
   }
 
-  function openDelete(m: Morada, e: React.MouseEvent) {
+  function openDelete(m: GrupoFormacao, e: React.MouseEvent) {
     e.stopPropagation();
     setEditing(m);
     setDeleteOpen(true);
@@ -154,7 +154,7 @@ export default function MoradasClient({
     if (form.vigenciaFim && form.vigenciaInicio && form.vigenciaFim <= form.vigenciaInicio)
       return toast.error("Data de término deve ser posterior à data de início.");
 
-    if (!editing) return; // criar usa /moradas/nova
+    if (!editing) return; // criar usa /grupos-formacao/nova
 
     setSaving(true);
     try {
@@ -167,7 +167,7 @@ export default function MoradasClient({
         vigenciaInicio: form.vigenciaInicio || undefined,
         vigenciaFim: form.vigenciaFim || undefined,
       };
-      const res = await fetch(`/api/moradas/${editing.id}`, {
+      const res = await fetch(`/api/grupos-formacao/${editing.id}`, {
         method: "PUT",
         headers: JSON_HEADERS,
         body: JSON.stringify(payload),
@@ -176,7 +176,7 @@ export default function MoradasClient({
         const err = await res.json().catch(() => ({}));
         return toast.error((err as { error?: string }).error ?? "Erro ao salvar.");
       }
-      toast.success(`${termoMorada} atualizada com sucesso!`);
+      toast.success(`${termoGrupoFormacao} atualizada com sucesso!`);
       setDialogOpen(false);
       startTransition(() => router.refresh());
     } catch {
@@ -190,9 +190,9 @@ export default function MoradasClient({
     if (!editing) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/moradas/${editing.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/grupos-formacao/${editing.id}`, { method: "DELETE" });
       if (!res.ok) return toast.error("Erro ao excluir.");
-      toast.success(`${termoMorada} excluída.`);
+      toast.success(`${termoGrupoFormacao} excluída.`);
       setDeleteOpen(false);
       setEditing(null);
       startTransition(() => router.refresh());
@@ -207,20 +207,20 @@ export default function MoradasClient({
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{termoMorada}s</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{termoGrupoFormacao}s</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {initialMoradas.filter((m) => m.ativo).length} {termoMorada.toLowerCase()}s ativas
+            {initialGruposFormacao.filter((m) => m.ativo).length} {termoGrupoFormacao.toLowerCase()}s ativas
           </p>
         </div>
-        <Link href="/moradas/nova" className={buttonVariants({ size: "sm" })}>
+        <Link href="/grupos-formacao/nova" className={buttonVariants({ size: "sm" })}>
           <Plus className="h-4 w-4 mr-1.5" />
-          Nova {termoMorada}
+          Nova {termoGrupoFormacao}
         </Link>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as NivelFormativo[]).map((nivel) => {
-          const count = initialMoradas.filter((m) => m.nivelFormativo === nivel).length;
+          const count = initialGruposFormacao.filter((m) => m.nivelFormativo === nivel).length;
           return (
             <div key={nivel} className="p-3 rounded-xl border border-border/60 shadow-sm bg-card flex items-center gap-2.5">
               <span className="text-xl">{NIVEL_ICONS[nivel]}</span>
@@ -238,7 +238,7 @@ export default function MoradasClient({
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
-          placeholder={`Buscar ${termoMorada.toLowerCase()}...`}
+          placeholder={`Buscar ${termoGrupoFormacao.toLowerCase()}...`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-8 h-9 text-sm"
@@ -248,39 +248,39 @@ export default function MoradasClient({
       {filtered.length === 0 && (
         <div className="flex flex-col items-center py-16 text-center">
           <Home className="h-12 w-12 text-muted-foreground/30 mb-3" />
-          <p className="font-medium text-foreground">Nenhuma {termoMorada.toLowerCase()} encontrada</p>
+          <p className="font-medium text-foreground">Nenhuma {termoGrupoFormacao.toLowerCase()} encontrada</p>
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((morada) => {
-          const formador = initialFormadores.find((u) => u.id === morada.formadorId);
-          const plano = initialPlanos.find((p) => p.id === morada.planoId);
-          const grade = initialGrades.find((g) => g.id === morada.gradeId);
-          const totalFormandos = formandoCounts[morada.id] ?? 0;
+        {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((grupoFormacao) => {
+          const formador = initialFormadores.find((u) => u.id === grupoFormacao.formadorId);
+          const plano = initialPlanos.find((p) => p.id === grupoFormacao.planoId);
+          const grade = initialGrades.find((g) => g.id === grupoFormacao.gradeId);
+          const totalFormandos = formandoCounts[grupoFormacao.id] ?? 0;
 
           return (
-            <Card key={morada.id} className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group">
+            <Card key={grupoFormacao.id} className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-xl">
-                      {NIVEL_ICONS[morada.nivelFormativo]}
+                      {NIVEL_ICONS[grupoFormacao.nivelFormativo]}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-semibold text-foreground">{morada.nome}</h3>
-                        <Badge variant="outline" className={`text-xs ${NIVEL_CORES[morada.nivelFormativo]}`}>
-                          {NIVEL_FORMATIVO_LABELS[morada.nivelFormativo]}
+                        <h3 className="text-sm font-semibold text-foreground">{grupoFormacao.nome}</h3>
+                        <Badge variant="outline" className={`text-xs ${NIVEL_CORES[grupoFormacao.nivelFormativo]}`}>
+                          {NIVEL_FORMATIVO_LABELS[grupoFormacao.nivelFormativo]}
                         </Badge>
-                        {!morada.ativo && (
+                        {!grupoFormacao.ativo && (
                           <Badge variant="outline" className="text-xs bg-slate-100 text-slate-500">
                             Inativa
                           </Badge>
                         )}
                       </div>
-                      {morada.localReuniao && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{morada.localReuniao}</p>
+                      {grupoFormacao.localReuniao && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{grupoFormacao.localReuniao}</p>
                       )}
                     </div>
                   </div>
@@ -292,12 +292,12 @@ export default function MoradasClient({
                       <MoreHorizontal className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => openEdit(morada, e)}>
+                      <DropdownMenuItem onClick={(e) => openEdit(grupoFormacao, e)}>
                         <Pencil className="h-4 w-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" onClick={(e) => openDelete(morada, e)}>
+                      <DropdownMenuItem variant="destructive" onClick={(e) => openDelete(grupoFormacao, e)}>
                         <Trash2 className="h-4 w-4 mr-2" />
                         Excluir
                       </DropdownMenuItem>
@@ -315,16 +315,16 @@ export default function MoradasClient({
                       Sem formador responsável
                     </p>
                   )}
-                  {(morada.vigenciaInicio || morada.vigenciaFim) && (
+                  {(grupoFormacao.vigenciaInicio || grupoFormacao.vigenciaFim) && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3 shrink-0" />
                       <span className="font-medium text-foreground">Vigência:</span>{" "}
-                      {morada.vigenciaInicio
-                        ? format(parseISO(morada.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })
+                      {grupoFormacao.vigenciaInicio
+                        ? format(parseISO(grupoFormacao.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })
                         : "—"}{" "}
                       até{" "}
-                      {morada.vigenciaFim
-                        ? format(parseISO(morada.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })
+                      {grupoFormacao.vigenciaFim
+                        ? format(parseISO(grupoFormacao.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })
                         : "—"}
                     </p>
                   )}
@@ -346,7 +346,7 @@ export default function MoradasClient({
                     <span>{totalFormandos} formandos</span>
                   </div>
                   <Link
-                    href={`/moradas/${morada.id}`}
+                    href={`/grupos-formacao/${grupoFormacao.id}`}
                     className="flex items-center gap-1 text-xs text-primary hover:underline font-medium"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -366,7 +366,7 @@ export default function MoradasClient({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? `Editar ${termoMorada}` : `Nova ${termoMorada}`}</DialogTitle>
+            <DialogTitle>{editing ? `Editar ${termoGrupoFormacao}` : `Nova ${termoGrupoFormacao}`}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
@@ -374,7 +374,7 @@ export default function MoradasClient({
               <Input
                 value={form.nome}
                 onChange={(e) => set("nome")(e.target.value)}
-                placeholder={`Ex.: ${termoMorada} São João Bosco`}
+                placeholder={`Ex.: ${termoGrupoFormacao} São João Bosco`}
               />
             </div>
 
@@ -448,7 +448,7 @@ export default function MoradasClient({
               </Select>
               {!form.formadorId && !editing && (
                 <p className="text-xs text-amber-600">
-                  Sem formador, a {termoMorada.toLowerCase()} será criada como inativa.
+                  Sem formador, a {termoGrupoFormacao.toLowerCase()} será criada como inativa.
                 </p>
               )}
             </div>
@@ -505,7 +505,7 @@ export default function MoradasClient({
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Salvando..." : editing ? "Salvar alterações" : `Criar ${termoMorada.toLowerCase()}`}
+              {saving ? "Salvando..." : editing ? "Salvar alterações" : `Criar ${termoGrupoFormacao.toLowerCase()}`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -515,10 +515,10 @@ export default function MoradasClient({
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Excluir {termoMorada.toLowerCase()}</DialogTitle>
+            <DialogTitle>Excluir {termoGrupoFormacao.toLowerCase()}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Tem certeza que deseja excluir a {termoMorada.toLowerCase()}{" "}
+            Tem certeza que deseja excluir a {termoGrupoFormacao.toLowerCase()}{" "}
             <span className="font-medium text-foreground">{editing?.nome}</span>? Esta ação não pode ser desfeita.
           </p>
           <DialogFooter className="gap-2">

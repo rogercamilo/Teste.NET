@@ -15,7 +15,7 @@ const ORG_SELECT = {
   cortesiaExpiresAt: true,
   cortesiaMotivo: true,
   criadoEm: true,
-  _count: { select: { moradas: true, formandos: true, usuarios: true } },
+  _count: { select: { gruposFormacao: true, formandos: true, usuarios: true } },
 } as const;
 
 export async function GET(request: Request) {

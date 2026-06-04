@@ -13,7 +13,7 @@ async function checkEntityInOrg(entityType: string, entityId: string, orgId: str
   switch (entityType) {
     case "formando": return !!(await prisma.formando.findFirst(q));
     case "formacao": return !!(await prisma.formacao.findFirst(q));
-    case "morada": return !!(await prisma.morada.findFirst(q));
+    case "morada": return !!(await prisma.grupoFormacao.findFirst(q));
     case "grade": return !!(await prisma.gradeFormativa.findFirst(q));
     case "plano": return !!(await prisma.planoFormativo.findFirst(q));
     default: return false;

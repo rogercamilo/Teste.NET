@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/users-store";
 import { validatePassword } from "@/lib/password-validation";
@@ -91,7 +91,7 @@ export async function POST(request: Request, { params }: Params) {
           email: found.email,
           passwordHash,
           perfil: found.perfil,
-          moradaId: found.moradaId ?? null,
+          grupoFormacaoId: found.grupoFormacaoId ?? null,
           ativo: true,
           primeiroAcesso: false,
         },

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { findById, updateUser, deleteUser, toPublic } from "@/lib/users-store";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -30,7 +30,7 @@ export async function PUT(request: Request, ctx: Ctx) {
     const nome = typeof body.nome === "string" ? body.nome.trim() : undefined;
     const email = typeof body.email === "string" ? body.email.trim() : undefined;
     const perfilRaw = body.perfil as string | undefined;
-    const moradaId = typeof body.moradaId === "string" ? body.moradaId : (body.moradaId === null ? undefined : undefined);
+    const grupoFormacaoId = typeof body.grupoFormacaoId === "string" ? body.grupoFormacaoId : (body.grupoFormacaoId === null ? undefined : undefined);
     const ativo = typeof body.ativo === "boolean" ? body.ativo : undefined;
     const password = typeof body.password === "string" ? body.password : undefined;
 
@@ -50,7 +50,7 @@ export async function PUT(request: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
-    const updated = await updateUser(id, { nome, email, perfil, moradaId, ativo, password, organizacaoId: orgId });
+    const updated = await updateUser(id, { nome, email, perfil, grupoFormacaoId, ativo, password, organizacaoId: orgId });
     if (!updated) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
 
     logAction("user_updated", actor.id ?? undefined, getClientIp(request), { targetId: id }, orgId);

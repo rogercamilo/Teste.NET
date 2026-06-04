@@ -1,15 +1,15 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
-import { canAddMorada } from "@/lib/plan-limits";
+import { canAddGrupoFormacao } from "@/lib/plan-limits";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
-import { CreateMoradaSchema, parseBody } from "@/lib/schemas";
+import { CreateGrupoFormacaoSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
-import type { Morada } from "@/types";
+import type { GrupoFormacao } from "@/types";
 
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
-type PrismaMorada = {
+type PrismaGrupoFormacao = {
   id: string; organizacaoId: string; nome: string; localReuniao: string | null;
   nivelFormativo: string; formadorId: string | null; planoId: string | null;
   gradeId: string | null; vigenciaInicio: Date | null; vigenciaFim: Date | null;
@@ -17,7 +17,7 @@ type PrismaMorada = {
 };
 
 
-import { toMorada } from "@/lib/converters";
+import { toGrupoFormacao } from "@/lib/converters";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -31,15 +31,15 @@ export async function GET(request: Request) {
     const orderBy = { nome: "asc" as const };
 
     if (!pagination) {
-      const rows = await prisma.morada.findMany({ where, orderBy });
-      return NextResponse.json(rows.map(toMorada));
+      const rows = await prisma.grupoFormacao.findMany({ where, orderBy });
+      return NextResponse.json(rows.map(toGrupoFormacao));
     }
 
     const [rows, total] = await Promise.all([
-      prisma.morada.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
-      prisma.morada.count({ where }),
+      prisma.grupoFormacao.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.grupoFormacao.count({ where }),
     ]);
-    return NextResponse.json(rows.map(toMorada), { headers: paginationHeaders(total, pagination) });
+    return NextResponse.json(rows.map(toGrupoFormacao), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     logError("moradas GET", err);
     return NextResponse.json({ error: "Falha ao carregar moradas" }, { status: 500 });
@@ -58,11 +58,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(CreateMoradaSchema, await request.json());
+    const parsed = parseBody(CreateGrupoFormacaoSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 
-    const limitCheck = await canAddMorada(user.organizacaoId!);
+    const limitCheck = await canAddGrupoFormacao(user.organizacaoId!);
     if (!limitCheck.allowed) {
       return NextResponse.json({ error: limitCheck.reason }, { status: 403 });
     }
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     }
 
     const row = await prisma.$transaction(async (tx) => {
-      const created = await tx.morada.create({
+      const created = await tx.grupoFormacao.create({
         data: {
           organizacaoId: user.organizacaoId!,
           nome: body.nome,
@@ -90,12 +90,12 @@ export async function POST(request: Request) {
         },
       });
       if (body.formadorId) {
-        await tx.usuario.update({ where: { id: body.formadorId }, data: { moradaId: created.id } });
+        await tx.usuario.update({ where: { id: body.formadorId }, data: { grupoFormacaoId: created.id } });
       }
       return created;
     });
     logAction("morada_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
-    return NextResponse.json(toMorada(row), { status: 201 });
+    return NextResponse.json(toGrupoFormacao(row), { status: 201 });
   } catch (err) {
     logError("moradas POST", err);
     return NextResponse.json({ error: "Falha ao criar morada" }, { status: 500 });

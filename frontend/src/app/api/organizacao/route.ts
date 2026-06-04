@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const org = await prisma.organizacao.findUnique({
       where: { id: user.organizacaoId },
-      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
@@ -26,7 +26,7 @@ export async function GET() {
       endereco: org.endereco ?? "",
       missao: org.missao ?? "",
       anoFundacao: org.anoFundacao ?? "",
-      termoMorada: org.termoMorada,
+      termoGrupoFormacao: org.termoGrupoFormacao,
       termoFormando: org.termoFormando,
       termoFormador: org.termoFormador,
       termoPreDiscipulado: org.termoPreDiscipulado,
@@ -64,7 +64,7 @@ export async function PUT(request: Request) {
         endereco: body.endereco || null,
         missao: body.missao || null,
         anoFundacao: body.anoFundacao || null,
-        termoMorada: body.termoMorada || undefined,
+        termoGrupoFormacao: body.termoGrupoFormacao || undefined,
         termoFormando: body.termoFormando || undefined,
         termoFormador: body.termoFormador || undefined,
         termoPreDiscipulado: body.termoPreDiscipulado || undefined,
@@ -77,7 +77,7 @@ export async function PUT(request: Request) {
         ...(body.planoAssinatura ? { planoAssinatura: body.planoAssinatura } : {}),
         ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
-      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
     const config: ComunidadeConfig = {
@@ -86,7 +86,7 @@ export async function PUT(request: Request) {
       endereco: updated.endereco ?? "",
       missao: updated.missao ?? "",
       anoFundacao: updated.anoFundacao ?? "",
-      termoMorada: updated.termoMorada,
+      termoGrupoFormacao: updated.termoGrupoFormacao,
       termoFormando: updated.termoFormando,
       termoFormador: updated.termoFormador,
       termoPreDiscipulado: updated.termoPreDiscipulado,

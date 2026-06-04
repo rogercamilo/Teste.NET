@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { TrendingUp, AlertTriangle } from "lucide-react";
@@ -12,7 +12,7 @@ interface UsageMetric {
 
 interface Usage {
   plano: "GRATUITO" | "ESSENCIAL" | "PROFISSIONAL";
-  moradas: UsageMetric;
+  gruposFormacao: UsageMetric;
   formandos: UsageMetric;
   storage: UsageMetric;
 }
@@ -64,7 +64,7 @@ function UsageBar({ label, metric, formatValue }: {
 }
 
 export default function PlanUsage() {
-  const { morada: termoMorada } = useTermos();
+  const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -89,7 +89,7 @@ export default function PlanUsage() {
   if (!usage) return null;
 
   const hasWarning =
-    (usage.moradas.percentUsed >= 80 && usage.moradas.limit !== null) ||
+    (usage.gruposFormacao.percentUsed >= 80 && usage.gruposFormacao.limit !== null) ||
     (usage.formandos.percentUsed >= 80 && usage.formandos.limit !== null) ||
     (usage.storage.percentUsed >= 80 && usage.storage.limit !== null);
 
@@ -106,7 +106,7 @@ export default function PlanUsage() {
       </div>
 
       <div className="space-y-4">
-        <UsageBar label={`${termoMorada}s`} metric={usage.moradas} />
+        <UsageBar label={`${termoGrupoFormacao}s`} metric={usage.gruposFormacao} />
         <UsageBar label="Formandos" metric={usage.formandos} />
         <UsageBar label="Armazenamento" metric={usage.storage} formatValue={formatBytes} />
       </div>

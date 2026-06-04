@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import OnboardingWizard from "./OnboardingWizard";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +12,7 @@ export default async function OnboardingPage() {
     where: { id: user.organizacaoId },
     select: {
       id: true, nome: true, descricao: true, endereco: true, missao: true,
-      anoFundacao: true, termoMorada: true, termoFormando: true, termoFormador: true,
+      anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true,
       termoPreDiscipulado: true, termoDiscipulado: true,
       termoPrimeirasPromessas: true, termoFormacaoPermanente: true,
       onboardingConcluido: true, logoUrl: true, temaCor: true, planoAssinatura: true,

@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
-import { usePresencas, useComentarios, useFormandos, useMoradas, usePlanos, useGrades, useUsuarios, useAgendamentos, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
+import { usePresencas, useComentarios, useFormandos, useGruposFormacao, usePlanos, useGrades, useUsuarios, useAgendamentos, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   MODALIDADE_LABELS,
@@ -10,7 +10,7 @@ import {
   TIPO_COMENTARIO_CORES,
   TIPO_COMENTARIO_LABELS,
   totalRequerido,
-  type Morada,
+  type GrupoFormacao,
   type Formando,
   type Modalidade,
   type NivelFormativo,
@@ -89,7 +89,7 @@ import { format, parseISO, differenceInYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
-interface MoradaDetailProps {
+interface GrupoFormacaoDetailProps {
   id: string;
   userRole: string;
   userId: string;
@@ -144,29 +144,29 @@ const EMPTY_FORMANDO_FORM: FormandoFormState = {
   email: "",
 };
 
-export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps) {
+export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoFormacaoDetailProps) {
   const isAdmin = userRole === "administrador";
   const isFC = userRole === "formador_comunitario";
 
-  const [allMoradas] = useMoradas();
+  const [allGruposFormacao] = useGruposFormacao();
   const [allPlanos] = usePlanos();
   const [allGrades] = useGrades();
   const [allUsuarios] = useUsuarios();
-  const [morada, setMorada] = useState<Morada | undefined>(undefined);
+  const [grupoFormacao, setGrupoFormacao] = useState<GrupoFormacao | undefined>(undefined);
   const [allFormandos, setAllFormandos] = useFormandos();
   const [allAgendamentos] = useAgendamentos();
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
-  const termoMorada = comunidade.termoMorada?.trim() || "Grupo de Formação";
+  const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação";
   const etapaLabels = useEtapaLabels();
 
-  // Inicializa a morada a partir do cache reativo (não substitui edições locais)
+  // Inicializa o grupo de formação a partir do cache reativo (não substitui edições locais)
   useEffect(() => {
-    if (!morada && allMoradas.length > 0) {
-      setMorada(allMoradas.find((m) => m.id === id));
+    if (!grupoFormacao && allGruposFormacao.length > 0) {
+      setGrupoFormacao(allGruposFormacao.find((m) => m.id === id));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allMoradas, id]);
+  }, [allGruposFormacao, id]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ nome: "", localReuniao: "" });
@@ -191,7 +191,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   async function loadRelatorios() {
     if (relatoriosLoaded) return;
     try {
-      const res = await fetch(`/api/relatorios?moradaId=${id}`);
+      const res = await fetch(`/api/relatorios?grupoFormacaoId=${id}`);
       if (res.ok) {
         const data = await res.json();
         setRelatorios(data);
@@ -240,27 +240,27 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [datasEtapaForm, setDatasEtapaForm] = useState({ dataMissaCompromisso: "", iniciouEm: "" });
   const [datasEtapaLoading, setDatasEtapaLoading] = useState(false);
 
-  // Imagem da morada
+  // Imagem do grupo de formação
   const [imagemDialogOpen, setImagemDialogOpen] = useState(false);
   const [imagemLoading, setImagemLoading] = useState(false);
 
-  if (!morada) {
+  if (!grupoFormacao) {
     return (
       <div className="flex flex-col items-center py-20">
-        <p className="text-muted-foreground">{termoMorada} não encontrada.</p>
-        <Link href="/moradas" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-4")}>
+        <p className="text-muted-foreground">{termoGrupoFormacao} não encontrada.</p>
+        <Link href="/grupos-formacao" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-4")}>
           Voltar
         </Link>
       </div>
     );
   }
 
-  const formador = allUsuarios.find((u) => u.id === morada.formadorId);
-  const plano = allPlanos.find((p) => p.id === morada.planoId);
-  const grade = allGrades.find((g) => g.id === morada.gradeId);
-  const formandosDaMorada = allFormandos.filter((f) => f.moradaId === morada.id);
+  const formador = allUsuarios.find((u) => u.id === grupoFormacao.formadorId);
+  const plano = allPlanos.find((p) => p.id === grupoFormacao.planoId);
+  const grade = allGrades.find((g) => g.id === grupoFormacao.gradeId);
+  const formandosDaMorada = allFormandos.filter((f) => f.grupoFormacaoId === grupoFormacao.id);
   const agendamentosDaMorada = allAgendamentos.filter(
-    (a) => a.moradaId === morada.id
+    (a) => a.grupoFormacaoId === grupoFormacao.id
   );
   const realizadas = agendamentosDaMorada.filter(
     (a) => a.status === "realizada" || a.status === "confirmada"
@@ -281,7 +281,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   });
 
   // Compute next etapa options (must follow sequence)
-  const currentNivelIdx = NIVEL_SEQUENCE.indexOf(morada.nivelFormativo);
+  const currentNivelIdx = NIVEL_SEQUENCE.indexOf(grupoFormacao.nivelFormativo);
   const nextEtapaOptions: NivelFormativo[] =
     currentNivelIdx < NIVEL_SEQUENCE.length - 1
       ? [NIVEL_SEQUENCE[currentNivelIdx + 1]]
@@ -332,24 +332,24 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   }
 
   function openEdit() {
-    if (!morada) return;
-    setEditForm({ nome: morada.nome, localReuniao: morada.localReuniao ?? "" });
+    if (!grupoFormacao) return;
+    setEditForm({ nome: grupoFormacao.nome, localReuniao: grupoFormacao.localReuniao ?? "" });
     setEditOpen(true);
   }
 
   async function handleEditSave() {
     if (!editForm.nome.trim()) return toast.error("Nome é obrigatório.");
-    const res = await fetch(`/api/moradas/${id}`, {
+    const res = await fetch(`/api/grupos-formacao/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nome: editForm.nome.trim(), localReuniao: editForm.localReuniao.trim() || null }),
     });
     if (!res.ok) return toast.error("Erro ao salvar. Tente novamente.");
     const updated = await res.json();
-    setMorada(updated);
-    db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
+    setGrupoFormacao(updated);
+    db.gruposFormacao.save(allGruposFormacao.map((m) => (m.id === updated.id ? updated : m)));
     setEditOpen(false);
-    toast.success(`${termoMorada} atualizada!`);
+    toast.success(`${termoGrupoFormacao} atualizada!`);
   }
 
   function handleSalvarPresenca() {
@@ -357,7 +357,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   }
 
   function handleSalvarComentario() {
-    if (!morada) return;
+    if (!grupoFormacao) return;
     if (!novoFormandoId || !novoTexto.trim()) return;
     const formando = allFormandos.find((f) => f.id === novoFormandoId);
     if (!formando) return;
@@ -416,7 +416,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     if (!formandoForm.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
     if (!formandoForm.dataIngresso) return toast.error("Data de ingresso é obrigatória.");
 
-    const nivelFormativo = morada!.nivelFormativo;
+    const nivelFormativo = grupoFormacao!.nivelFormativo;
     const progressoEtapas: ProgressoEtapa[] = editingFormando?.progressoEtapas ?? [
       {
         nivel: nivelFormativo,
@@ -438,7 +438,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
       telefone: formandoForm.telefone.trim(),
       email: formandoForm.email.trim(),
       ativo: editingFormando?.ativo ?? true,
-      moradaId: morada!.id,
+      grupoFormacaoId: grupoFormacao!.id,
       totalFormacoes: editingFormando?.totalFormacoes ?? totalRequerido(nivelFormativo),
       formacoesRealizadas: editingFormando?.formacoesRealizadas ?? 0,
       progressoEtapas,
@@ -467,7 +467,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     setEncerrarLoading(true);
     const body: Record<string, string> = {};
     if (encerrarForm.encerradoEm) body.encerradoEm = encerrarForm.encerradoEm;
-    const res = await fetch(`/api/moradas/${id}/encerrar-etapa`, {
+    const res = await fetch(`/api/grupos-formacao/${id}/encerrar-etapa`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -478,8 +478,8 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
       return toast.error(err.error ?? "Erro ao encerrar etapa.");
     }
     const updated = await res.json();
-    setMorada(updated);
-    db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
+    setGrupoFormacao(updated);
+    db.gruposFormacao.save(allGruposFormacao.map((m) => (m.id === updated.id ? updated : m)));
     setEncerrarOpen(false);
     toast.success("Etapa encerrada com sucesso!");
   }
@@ -494,7 +494,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     if (!novaEtapaForm.vigenciaInicio) return toast.error("Data de início é obrigatória.");
     if (!novaEtapaForm.dataMissaCompromisso) return toast.error("Data da missa de compromisso é obrigatória.");
     setNovaEtapaLoading(true);
-    const res = await fetch(`/api/moradas/${id}/nova-etapa`, {
+    const res = await fetch(`/api/grupos-formacao/${id}/nova-etapa`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -508,15 +508,15 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
       return toast.error(err.error ?? "Erro ao iniciar nova etapa.");
     }
     const updated = await res.json();
-    setMorada(updated);
-    db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
+    setGrupoFormacao(updated);
+    db.gruposFormacao.save(allGruposFormacao.map((m) => (m.id === updated.id ? updated : m)));
     setNovaEtapaOpen(false);
     toast.success("Nova etapa formativa iniciada!");
   }
 
   // Datas da Etapa Atual
   function openDatasEtapa() {
-    setDatasEtapaForm({ dataMissaCompromisso: "", iniciouEm: morada?.vigenciaInicio?.split("T")[0] ?? "" });
+    setDatasEtapaForm({ dataMissaCompromisso: "", iniciouEm: grupoFormacao?.vigenciaInicio?.split("T")[0] ?? "" });
     setDatasEtapaOpen(true);
   }
 
@@ -524,7 +524,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     if (!datasEtapaForm.dataMissaCompromisso) return toast.error("Data da missa de compromisso é obrigatória.");
     if (!datasEtapaForm.iniciouEm) return toast.error("Data de início das atividades é obrigatória.");
     setDatasEtapaLoading(true);
-    const res = await fetch(`/api/moradas/${id}/datas-etapa`, {
+    const res = await fetch(`/api/grupos-formacao/${id}/datas-etapa`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -543,7 +543,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
 
   async function salvarImagem(imagemUrl: string | null) {
     setImagemLoading(true);
-    const res = await fetch(`/api/moradas/${id}`, {
+    const res = await fetch(`/api/grupos-formacao/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imagemUrl }),
@@ -555,8 +555,8 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
       return;
     }
     const updated = await res.json();
-    setMorada(updated);
-    db.moradas.save(allMoradas.map((m) => (m.id === updated.id ? updated : m)));
+    setGrupoFormacao(updated);
+    db.gruposFormacao.save(allGruposFormacao.map((m) => (m.id === updated.id ? updated : m)));
     toast.success(imagemUrl ? "Imagem atualizada!" : "Imagem removida.");
   }
 
@@ -567,11 +567,11 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
     <div className="space-y-5">
       <div>
         <Link
-          href="/moradas"
+          href="/grupos-formacao"
           className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "mb-3 -ml-1 text-muted-foreground")}
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
-          {termoMorada}s
+          {termoGrupoFormacao}s
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -579,17 +579,17 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             <div
               className={cn(
                 "h-14 w-14 rounded-xl overflow-hidden flex items-center justify-center text-2xl",
-                morada.imagemUrl ? "bg-muted" : "bg-primary/10",
+                grupoFormacao.imagemUrl ? "bg-muted" : "bg-primary/10",
                 (isFC || isAdmin) && "cursor-pointer"
               )}
               onClick={() => (isFC || isAdmin) && setImagemDialogOpen(true)}
               title={(isFC || isAdmin) ? "Clique para alterar a imagem" : undefined}
             >
-              {morada.imagemUrl ? (
+              {grupoFormacao.imagemUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={morada.imagemUrl} alt={morada.nome} className="h-full w-full object-cover" />
+                <img src={grupoFormacao.imagemUrl} alt={grupoFormacao.nome} className="h-full w-full object-cover" />
               ) : (
-                NIVEL_ICONS[morada.nivelFormativo] ?? "🏠"
+                NIVEL_ICONS[grupoFormacao.nivelFormativo] ?? "🏠"
               )}
               {(isFC || isAdmin) && (
                 <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/imagem:opacity-100 transition-opacity flex items-center justify-center">
@@ -600,44 +600,44 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold text-foreground">{morada.nome}</h1>
-              <Badge variant="outline" className={NIVEL_CORES[morada.nivelFormativo]}>
-                {etapaLabels[morada.nivelFormativo]}
+              <h1 className="text-2xl font-semibold text-foreground">{grupoFormacao.nome}</h1>
+              <Badge variant="outline" className={NIVEL_CORES[grupoFormacao.nivelFormativo]}>
+                {etapaLabels[grupoFormacao.nivelFormativo]}
               </Badge>
               <Badge
                 variant="outline"
-                className={morada.ativo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500"}
+                className={grupoFormacao.ativo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500"}
               >
-                {morada.ativo ? "Ativa" : "Inativa"}
+                {grupoFormacao.ativo ? "Ativa" : "Inativa"}
               </Badge>
             </div>
-            {morada.localReuniao && (
+            {grupoFormacao.localReuniao && (
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5" />
-                {morada.localReuniao}
+                {grupoFormacao.localReuniao}
               </p>
             )}
-            {(morada.vigenciaInicio || morada.vigenciaFim) && (
+            {(grupoFormacao.vigenciaInicio || grupoFormacao.vigenciaFim) && (
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
-                {morada.vigenciaInicio
-                  ? format(parseISO(morada.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })
+                {grupoFormacao.vigenciaInicio
+                  ? format(parseISO(grupoFormacao.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })
                   : "—"}{" "}
                 até{" "}
-                {morada.vigenciaFim
-                  ? format(parseISO(morada.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })
+                {grupoFormacao.vigenciaFim
+                  ? format(parseISO(grupoFormacao.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })
                   : "—"}
               </p>
             )}
           </div>
           <div className="flex gap-2 shrink-0 flex-wrap">
-            {(isFC || isAdmin) && !morada.vigenciaFim && (
+            {(isFC || isAdmin) && !grupoFormacao.vigenciaFim && (
               <Button variant="outline" size="sm" onClick={openDatasEtapa} className="gap-1.5 text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 Datas da Etapa
               </Button>
             )}
-            {(isFC || isAdmin) && !morada.vigenciaFim && currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
+            {(isFC || isAdmin) && !grupoFormacao.vigenciaFim && currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
               <Button variant="outline" size="sm" onClick={() => { setEncerrarForm({ encerradoEm: "" }); setEncerrarOpen(true); }} className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50">
                 <Flag className="h-4 w-4" />
                 Encerrar Etapa
@@ -647,9 +647,9 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
               <Button
                 variant="outline" size="sm"
                 onClick={openNovaEtapa}
-                disabled={!morada.vigenciaFim}
+                disabled={!grupoFormacao.vigenciaFim}
                 className="gap-1.5"
-                title={!morada.vigenciaFim ? "Encerre a etapa atual antes de avançar" : undefined}
+                title={!grupoFormacao.vigenciaFim ? "Encerre a etapa atual antes de avançar" : undefined}
               >
                 <TrendingUp className="h-4 w-4" />
                 Nova Etapa
@@ -745,17 +745,17 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{NIVEL_ICONS[morada.nivelFormativo] ?? "🏠"}</span>
+                  <span className="text-lg">{NIVEL_ICONS[grupoFormacao.nivelFormativo] ?? "🏠"}</span>
                   <div>
                     <p className="text-xs font-medium text-foreground">
-                      {etapaLabels[morada.nivelFormativo]}
+                      {etapaLabels[grupoFormacao.nivelFormativo]}
                     </p>
-                    {morada.vigenciaInicio && morada.vigenciaFim ? (
+                    {grupoFormacao.vigenciaInicio && grupoFormacao.vigenciaFim ? (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                         <Calendar className="h-3 w-3" />
-                        {format(parseISO(morada.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })}
+                        {format(parseISO(grupoFormacao.vigenciaInicio), "dd/MM/yyyy", { locale: ptBR })}
                         {" — "}
-                        {format(parseISO(morada.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })}
+                        {format(parseISO(grupoFormacao.vigenciaFim), "dd/MM/yyyy", { locale: ptBR })}
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground mt-0.5">Vigência não definida</p>
@@ -893,7 +893,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                 <Users className="h-10 w-10 text-muted-foreground/40 mb-3" />
                 <p className="text-sm font-medium text-muted-foreground">
                   {formandosDaMorada.length === 0
-                    ? `Nenhum ${termoFormando.toLowerCase()} nesta ${termoMorada.toLowerCase()}`
+                    ? `Nenhum ${termoFormando.toLowerCase()} nesta ${termoGrupoFormacao.toLowerCase()}`
                     : "Nenhum resultado encontrado"}
                 </p>
                 {formandosDaMorada.length === 0 && (
@@ -1179,7 +1179,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           ) : formandosDaMorada.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Nenhum {termoFormando.toLowerCase()} nesta {termoMorada.toLowerCase()}.</p>
+              <p className="text-sm">Nenhum {termoFormando.toLowerCase()} nesta {termoGrupoFormacao.toLowerCase()}.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1318,7 +1318,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar {termoMorada}</DialogTitle>
+            <DialogTitle>Editar {termoGrupoFormacao}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
@@ -1353,10 +1353,10 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
               <p className="font-medium mb-1">Etapa a encerrar:</p>
-              <p>{NIVEL_ICONS[morada.nivelFormativo]} {etapaLabels[morada.nivelFormativo]}</p>
+              <p>{NIVEL_ICONS[grupoFormacao.nivelFormativo]} {etapaLabels[grupoFormacao.nivelFormativo]}</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Esta ação registará a data de encerramento da etapa atual na {termoMorada.toLowerCase()} e em todos os {termoFormando.toLowerCase()}s associados. Após o encerramento, o botão <span className="font-medium text-foreground">Nova Etapa</span> ficará disponível.
+              Esta ação registará a data de encerramento da etapa atual na {termoGrupoFormacao.toLowerCase()} e em todos os {termoFormando.toLowerCase()}s associados. Após o encerramento, o botão <span className="font-medium text-foreground">Nova Etapa</span> ficará disponível.
             </p>
             <div className="grid gap-1.5">
               <Label>Data de encerramento <span className="text-destructive">*</span></Label>
@@ -1390,7 +1390,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{NIVEL_ICONS[morada.nivelFormativo]} {etapaLabels[morada.nivelFormativo]}</span></p>
+              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{NIVEL_ICONS[grupoFormacao.nivelFormativo]} {etapaLabels[grupoFormacao.nivelFormativo]}</span></p>
               <p className="mt-1">Próxima etapa: <span className="font-medium text-foreground">{NIVEL_ICONS[nextEtapaOptions[0]] ?? ""} {etapaLabels[nextEtapaOptions[0]]}</span></p>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -1433,7 +1433,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              As datas serão registradas para todos os {termoFormando.toLowerCase()}s da {termoMorada.toLowerCase()}.
+              As datas serão registradas para todos os {termoFormando.toLowerCase()}s da {termoGrupoFormacao.toLowerCase()}.
             </p>
             <div className="grid gap-1.5">
               <Label>Data da Missa de Compromisso <span className="text-destructive">*</span></Label>
@@ -1599,8 +1599,8 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
             </div>
             <div className="grid gap-1.5">
               <Label>Etapa Formativa</Label>
-              <Input value={etapaLabels[morada.nivelFormativo]} disabled className="bg-muted/50" />
-              <p className="text-xs text-muted-foreground">Definida automaticamente pela {termoMorada.toLowerCase()}.</p>
+              <Input value={etapaLabels[grupoFormacao.nivelFormativo]} disabled className="bg-muted/50" />
+              <p className="text-xs text-muted-foreground">Definida automaticamente pela {termoGrupoFormacao.toLowerCase()}.</p>
             </div>
           </div>
           <DialogFooter className="gap-2">
@@ -1634,7 +1634,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
         open={imagemDialogOpen}
         onOpenChange={setImagemDialogOpen}
         title="Imagem de identificação"
-        hasImage={!!morada.imagemUrl}
+        hasImage={!!grupoFormacao.imagemUrl}
         onSave={(base64) => salvarImagem(base64)}
         onRemove={() => salvarImagem(null)}
       />

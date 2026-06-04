@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   Agendamento,
   ComentarioFormando,
   Compromisso,
@@ -8,13 +8,13 @@ import type {
   Formando,
   GradeFormativa,
   HistoricoFormando,
-  Morada,
+  GrupoFormacao,
   PlanoFormativo,
   PresencaFormacao,
   Usuario,
 } from "@/types";
 
-export const mockMoradas: Morada[] = [
+export const mockGruposFormacao: GrupoFormacao[] = [
   {
     id: "m1",
     nome: "Morada São João Bosco",
@@ -60,7 +60,7 @@ export const mockUsuarios: Usuario[] = [
     nome: "Carlos Mendes",
     email: "carlos.mendes@exemplo.org",
     perfil: "formador_comunitario",
-    moradaId: "m1",
+    grupoFormacaoId: "m1",
     ativo: true,
     criadoEm: "2024-02-15",
   },
@@ -69,7 +69,7 @@ export const mockUsuarios: Usuario[] = [
     nome: "Maria Silva",
     email: "maria.silva@exemplo.org",
     perfil: "formador_comunitario",
-    moradaId: "m2",
+    grupoFormacaoId: "m2",
     ativo: true,
     criadoEm: "2024-03-01",
   },
@@ -87,7 +87,7 @@ export const mockFormandos: Formando[] = [
     telefone: "(85) 99999-0001",
     email: "lucas.pereira@email.com",
     ativo: true,
-    moradaId: "m1",
+    grupoFormacaoId: "m1",
     totalFormacoes: 114,
     formacoesRealizadas: 89,
     progressoEtapas: [
@@ -111,7 +111,7 @@ export const mockFormandos: Formando[] = [
     telefone: "(85) 99999-0002",
     email: "juliana.martins@email.com",
     ativo: true,
-    moradaId: "m1",
+    grupoFormacaoId: "m1",
     totalFormacoes: 114,
     formacoesRealizadas: 71,
     progressoEtapas: [
@@ -143,7 +143,7 @@ export const mockFormandos: Formando[] = [
     telefone: "(85) 99999-0003",
     email: "rafael.souza@email.com",
     ativo: true,
-    moradaId: "m2",
+    grupoFormacaoId: "m2",
     totalFormacoes: 57,
     formacoesRealizadas: 52,
     progressoEtapas: [
@@ -183,7 +183,7 @@ export const mockFormandos: Formando[] = [
     telefone: "(85) 99999-0004",
     email: "fernanda.lima@email.com",
     ativo: true,
-    moradaId: "m1",
+    grupoFormacaoId: "m1",
     totalFormacoes: 114,
     formacoesRealizadas: 54,
     progressoEtapas: [
@@ -207,7 +207,7 @@ export const mockFormandos: Formando[] = [
     telefone: "(85) 99999-0005",
     email: "thiago.alves@email.com",
     ativo: true,
-    moradaId: "m2",
+    grupoFormacaoId: "m2",
     totalFormacoes: 57,
     formacoesRealizadas: 49,
     progressoEtapas: [
@@ -255,7 +255,7 @@ export const mockFormandos: Formando[] = [
     telefone: "(85) 99999-0006",
     email: "camila.rodrigues@email.com",
     ativo: true,
-    moradaId: "m2",
+    grupoFormacaoId: "m2",
     totalFormacoes: 114,
     formacoesRealizadas: 43,
     progressoEtapas: [

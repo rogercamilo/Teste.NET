@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Fragment } from "react";
 import Link from "next/link";
@@ -22,7 +22,7 @@ type BreadcrumbSegment = { label: string; href: string };
 
 const NAMED_ACTIONS = new Set(["novo", "nova", "editar"]);
 
-function buildBreadcrumbs(pathname: string, morada: string, formando: string): BreadcrumbSegment[] {
+function buildBreadcrumbs(pathname: string, grupoFormacao: string, formando: string): BreadcrumbSegment[] {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return [{ label: "Dashboard", href: "/dashboard" }];
 
@@ -57,17 +57,17 @@ function buildBreadcrumbs(pathname: string, morada: string, formando: string): B
     grades:     { parent: "Pedagógico",        parentHref: "/planos",    label: "Grades Formativas"   },
     formacoes:  { parent: "Pedagógico",        parentHref: "/formacoes", label: "Formações"           },
     formandos:  { parent: "Gestão",            parentHref: "/formandos", label: `${formando}s`        },
-    moradas:    { parent: "Gestão",            parentHref: "/moradas",   label: `${morada}s`          },
-    documentos: { parent: "Gestão",            parentHref: "/moradas",   label: "Documentos"          },
-    presenca:   { parent: `Minha ${morada}`,   parentHref: "/presenca",  label: "Gestão de Presença"  },
-    comentarios:{ parent: `Minha ${morada}`,   parentHref: "/presenca",  label: "Comentários"         },
+    "grupos-formacao": { parent: "Gestão",     parentHref: "/grupos-formacao",   label: `${grupoFormacao}s`          },
+    documentos: { parent: "Gestão",            parentHref: "/grupos-formacao",   label: "Documentos"          },
+    presenca:   { parent: `Minha ${grupoFormacao}`,   parentHref: "/presenca",  label: "Gestão de Presença"  },
+    comentarios:{ parent: `Minha ${grupoFormacao}`,   parentHref: "/presenca",  label: "Comentários"         },
   };
 
   const subLabels: Record<string, Record<string, string>> = {
     planos:    { novo: "Novo Plano",     editar: "Editar Plano"     },
     grades:    { novo: "Nova Grade",     editar: "Editar Grade"     },
     formacoes: { novo: "Nova Formação",  editar: "Editar Formação"  },
-    moradas:   { nova: `Nova ${morada}`                             },
+    "grupos-formacao": { nova: `Nova ${grupoFormacao}`              },
   };
 
   const section = sectionMap[root];
@@ -105,9 +105,9 @@ function buildBreadcrumbs(pathname: string, morada: string, formando: string): B
 
 export function AppTopbar() {
   const pathname = usePathname();
-  const { morada, formando } = useTermos();
+  const { grupoFormacao, formando } = useTermos();
 
-  const breadcrumbs = buildBreadcrumbs(pathname, morada, formando);
+  const breadcrumbs = buildBreadcrumbs(pathname, grupoFormacao, formando);
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 bg-background/80 backdrop-blur-sm border-b border-border/60 px-4">

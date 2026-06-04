@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { subMonths, startOfMonth, endOfMonth, format } from "date-fns";
@@ -11,7 +11,7 @@ const PERFIL_FC = "formador_comunitario" as const;
 
 async function getDashboardData(
   organizacaoId: string,
-  moradaId: string | null = null,
+  grupoFormacaoId: string | null = null,
   userId: string | null = null,
   perfil: PerfilUsuario = "formador_comunitario",
 ): Promise<DashboardStats> {
@@ -21,8 +21,8 @@ async function getDashboardData(
   const sixMonthsAgo = startOfMonth(subMonths(now, 5));
 
   // formador_comunitario: escopo reduzido à morada e às sessões que conduz
-  const formandoBase = moradaId ? { organizacaoId, moradaId } : { organizacaoId };
-  const agendamentoBase = (userId && moradaId) ? { organizacaoId, formadorId: userId } : { organizacaoId };
+  const formandoBase = grupoFormacaoId ? { organizacaoId, grupoFormacaoId } : { organizacaoId };
+  const agendamentoBase = (userId && grupoFormacaoId) ? { organizacaoId, formadorId: userId } : { organizacaoId };
 
   const [
     totalFormandos,
@@ -125,16 +125,16 @@ async function getDashboardData(
   };
 
   // ── FC: presença e acompanhamento ─────────────────────────────────────────
-  if (perfil === PERFIL_FC && moradaId) {
+  if (perfil === PERFIL_FC && grupoFormacaoId) {
     const threeMonthsAgo = subMonths(now, 3);
     const [formandosDaMorada, presencas90d, avaliacoesPerspectiva] = await Promise.all([
       prisma.formando.findMany({
-        where: { organizacaoId, moradaId, ativo: true },
+        where: { organizacaoId, grupoFormacaoId, ativo: true },
         select: { id: true, nome: true, nivelFormativo: true },
         orderBy: { nome: "asc" },
       }),
       prisma.presencaFormacao.findMany({
-        where: { organizacaoId, data: { gte: threeMonthsAgo }, formando: { moradaId } },
+        where: { organizacaoId, data: { gte: threeMonthsAgo }, formando: { grupoFormacaoId } },
         select: { formandoId: true, presente: true },
       }),
       // Última avaliação de adesão por formando × perspectiva
@@ -143,7 +143,7 @@ async function getDashboardData(
           organizacaoId,
           tipo: "avaliacao-adesao",
           perspectiva: { not: null },
-          formando: { moradaId },
+          formando: { grupoFormacaoId },
         },
         select: { formandoId: true, perspectiva: true, notaAdesao: true, criadoEm: true },
         orderBy: { criadoEm: "desc" },
@@ -187,7 +187,7 @@ async function getDashboardData(
 
     return {
       ...baseStats,
-      taxaPresencaMorada: totalS > 0 ? Math.round((totalP / totalS) * 100) : null,
+      taxaPresencaGrupoFormacao: totalS > 0 ? Math.round((totalP / totalS) * 100) : null,
       formandosPresenca,
     };
   }
@@ -195,9 +195,9 @@ async function getDashboardData(
   // ── FG/Admin: visão estratégica ───────────────────────────────────────────
   if (perfil === "formador_geral" || perfil === "administrador") {
     const threeMonthsAgo = subMonths(now, 3);
-    const [moradasData, formandosAtivosGrp, totalPlanosAtivos, moradasSemPlano, moradasSemGrade, moradasComGradeExpirada, fcsSemMorada, presencasPorMorada] =
+    const [moradasData, formandosAtivosGrp, totalPlanosAtivos, gruposFormacaoSemPlano, gruposFormacaoSemGrade, gruposFormacaoComGradeExpirada, fcsSemGrupoFormacao, presencasPorGrupoFormacao] =
       await Promise.all([
-        prisma.morada.findMany({
+        prisma.grupoFormacao.findMany({
           where: { organizacaoId, ativo: true },
           select: {
             id: true, nome: true, nivelFormativo: true, planoId: true, gradeId: true,
@@ -208,50 +208,50 @@ async function getDashboardData(
           orderBy: { nome: "asc" },
         }),
         prisma.formando.groupBy({
-          by: ["moradaId"],
-          where: { organizacaoId, ativo: true, moradaId: { not: null } },
+          by: ["grupoFormacaoId"],
+          where: { organizacaoId, ativo: true, grupoFormacaoId: { not: null } },
           _count: { id: true },
         }),
         prisma.planoFormativo.count({
           where: { OR: [{ organizacaoId }, { isGlobal: true }], status: "ativo" },
         }),
-        prisma.morada.count({ where: { organizacaoId, ativo: true, planoId: null } }),
-        prisma.morada.count({ where: { organizacaoId, ativo: true, gradeId: null } }),
+        prisma.grupoFormacao.count({ where: { organizacaoId, ativo: true, planoId: null } }),
+        prisma.grupoFormacao.count({ where: { organizacaoId, ativo: true, gradeId: null } }),
         // Moradas que têm grade mas a etapa foi encerrada (vigenciaFim definida)
-        prisma.morada.count({ where: { organizacaoId, ativo: true, gradeId: { not: null }, vigenciaFim: { not: null } } }),
+        prisma.grupoFormacao.count({ where: { organizacaoId, ativo: true, gradeId: { not: null }, vigenciaFim: { not: null } } }),
         prisma.usuario.count({
-          where: { organizacaoId, perfil: "formador_comunitario", ativo: true, moradaId: null },
+          where: { organizacaoId, perfil: "formador_comunitario", ativo: true, grupoFormacaoId: null },
         }),
         // Taxa de presença por morada nos últimos 90 dias (via formando)
         prisma.presencaFormacao.findMany({
           where: { organizacaoId, data: { gte: threeMonthsAgo } },
-          select: { presente: true, formando: { select: { moradaId: true } } },
+          select: { presente: true, formando: { select: { grupoFormacaoId: true } } },
         }),
       ]);
 
-    const ativosMap = new Map(formandosAtivosGrp.map((g) => [g.moradaId!, g._count.id]));
+    const ativosMap = new Map(formandosAtivosGrp.map((g) => [g.grupoFormacaoId!, g._count.id]));
 
     // Agrega presença por morada em memória
-    const presencaMoradaMap = new Map<string, { total: number; presentes: number }>();
-    for (const p of presencasPorMorada) {
-      const mid = p.formando?.moradaId;
+    const presencaGrupoFormacaoMap = new Map<string, { total: number; presentes: number }>();
+    for (const p of presencasPorGrupoFormacao) {
+      const mid = p.formando?.grupoFormacaoId;
       if (!mid) continue;
-      const e = presencaMoradaMap.get(mid) ?? { total: 0, presentes: 0 };
+      const e = presencaGrupoFormacaoMap.get(mid) ?? { total: 0, presentes: 0 };
       e.total++;
       if (p.presente) e.presentes++;
-      presencaMoradaMap.set(mid, e);
+      presencaGrupoFormacaoMap.set(mid, e);
     }
 
     return {
       ...baseStats,
-      totalMoradas: moradasData.length,
+      totalGruposFormacao: moradasData.length,
       totalPlanosAtivos,
-      moradasSemPlano,
-      moradasSemGrade,
-      moradasComGradeExpirada,
-      fcsSemMorada,
-      moradasResumo: moradasData.map((m) => {
-        const pres = presencaMoradaMap.get(m.id);
+      gruposFormacaoSemPlano,
+      gruposFormacaoSemGrade,
+      gruposFormacaoComGradeExpirada,
+      fcsSemGrupoFormacao,
+      gruposFormacaoResumo: moradasData.map((m) => {
+        const pres = presencaGrupoFormacaoMap.get(m.id);
         const taxaPresenca = pres && pres.total > 0
           ? Math.round((pres.presentes / pres.total) * 100)
           : null;
@@ -274,7 +274,7 @@ async function getDashboardData(
   return baseStats;
 }
 
-type SU = { organizacaoId?: string; role?: string; id?: string; moradaId?: string | null };
+type SU = { organizacaoId?: string; role?: string; id?: string; grupoFormacaoId?: string | null };
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -283,18 +283,18 @@ export default async function DashboardPage() {
 
   const perfil = (user.role ?? "formador_comunitario") as PerfilUsuario;
   const isFormadorComunitario = perfil === "formador_comunitario";
-  const moradaId = isFormadorComunitario ? (user.moradaId ?? null) : null;
-  const semMorada = isFormadorComunitario && !moradaId;
+  const grupoFormacaoId = isFormadorComunitario ? (user.grupoFormacaoId ?? null) : null;
+  const semMorada = isFormadorComunitario && !grupoFormacaoId;
 
-  let moradaNome: string | null = null;
-  if (moradaId) {
-    const morada = await prisma.morada.findUnique({ where: { id: moradaId }, select: { nome: true } });
-    moradaNome = morada?.nome ?? null;
+  let grupoFormacaoNome: string | null = null;
+  if (grupoFormacaoId) {
+    const grupoFormacao = await prisma.grupoFormacao.findUnique({ where: { id: grupoFormacaoId }, select: { nome: true } });
+    grupoFormacaoNome = grupoFormacao?.nome ?? null;
   }
 
   const stats = semMorada
     ? null
-    : await getDashboardData(user.organizacaoId, moradaId, user.id ?? null, perfil).catch(() => null);
+    : await getDashboardData(user.organizacaoId, grupoFormacaoId, user.id ?? null, perfil).catch(() => null);
 
-  return <DashboardClient stats={stats} perfil={perfil} moradaNome={moradaNome} semMorada={semMorada} />;
+  return <DashboardClient stats={stats} perfil={perfil} grupoFormacaoNome={grupoFormacaoNome} semMorada={semMorada} />;
 }

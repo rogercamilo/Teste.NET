@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
@@ -24,19 +24,19 @@ export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const moradaId = searchParams.get("moradaId");
+    const grupoFormacaoId = searchParams.get("grupoFormacaoId");
     const where: Record<string, unknown> = { organizacaoId: user.organizacaoId, deletedAt: null };
 
     if (user.role === "formador_comunitario") {
-      where.moradaId = user.moradaId ?? null;
-    } else if (moradaId) {
-      where.moradaId = moradaId;
+      where.grupoFormacaoId = user.grupoFormacaoId ?? null;
+    } else if (grupoFormacaoId) {
+      where.grupoFormacaoId = grupoFormacaoId;
     }
 
     const pagination = parsePagination(searchParams);
     const findManyArgs = {
       where,
-      include: { progressoEtapas: true, morada: { select: { gradeId: true } } },
+      include: { progressoEtapas: true, grupoFormacao: { select: { gradeId: true } } },
       orderBy: { nome: "asc" as const },
     };
 
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
       : [await prisma.formando.findMany({ ...findManyArgs, take: UNBOUNDED_CAP }), null];
 
     const gradeIds = [...new Set(
-      rows.map((r) => r.morada?.gradeId).filter((id): id is string => !!id)
+      rows.map((r) => r.grupoFormacao?.gradeId).filter((id): id is string => !!id)
     )];
     const gradeMap = new Map<string, number>();
     if (gradeIds.length > 0) {
@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     // Only query formacao counts for rows that don't have a grade-based total
     const niveisWithoutGrade = [...new Set(
       rows
-        .filter((r) => !r.morada?.gradeId || !gradeMap.has(r.morada.gradeId))
+        .filter((r) => !r.grupoFormacao?.gradeId || !gradeMap.has(r.grupoFormacao.gradeId))
         .map((r) => r.nivelFormativo)
     )];
     const countByNivel = new Map<string, number>();
@@ -80,8 +80,8 @@ export async function GET(request: Request) {
     }
 
     const data = rows.map((r) => {
-      const { morada, ...rest } = r;
-      const gradeTotal = morada?.gradeId ? gradeMap.get(morada.gradeId) : undefined;
+      const { grupoFormacao, ...rest } = r;
+      const gradeTotal = grupoFormacao?.gradeId ? gradeMap.get(grupoFormacao.gradeId) : undefined;
       const nivelTotal = countByNivel.get(r.nivelFormativo);
       const totalFormacoes = (gradeTotal ?? nivelTotal) || rest.totalFormacoes;
       return toFormando({ ...rest, totalFormacoes });
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: limitCheck.reason }, { status: 403 });
     }
 
-    if (user.role === "formador_comunitario" && body.moradaId && body.moradaId !== user.moradaId) {
+    if (user.role === "formador_comunitario" && body.grupoFormacaoId && body.grupoFormacaoId !== user.grupoFormacaoId) {
       return NextResponse.json({ error: "Sem permissão para criar formandos em outra morada" }, { status: 403 });
     }
 
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
         motivoInatividade: body.motivoInatividade ?? null,
         foto: body.foto ?? null,
         turmaId: body.turmaId ?? null,
-        moradaId: body.moradaId ?? null,
+        grupoFormacaoId: body.grupoFormacaoId ?? null,
         totalFormacoes: body.totalFormacoes ?? 0,
         formacoesRealizadas: body.formacoesRealizadas ?? 0,
         progressoEtapas: {

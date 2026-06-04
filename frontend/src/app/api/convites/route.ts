@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const where = { organizacaoId: user.organizacaoId };
   const orderBy = { criadoEm: "desc" as const };
   const select = {
-    id: true, email: true, nome: true, perfil: true, moradaId: true,
+    id: true, email: true, nome: true, perfil: true, grupoFormacaoId: true,
     expiresAt: true, aceitoEm: true, criadoEm: true,
     criadoPor: { select: { nome: true } },
   };
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   try {
     const parsed = parseBody(CreateConviteSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-    const { email, nome, moradaId } = parsed.data;
+    const { email, nome, grupoFormacaoId } = parsed.data;
     // Administradores de organização só podem convidar formador_comunitario ou administrador
     const perfil = parsed.data.perfil === "formador_geral" ? "administrador" : parsed.data.perfil;
 
@@ -80,11 +80,11 @@ export async function POST(request: Request) {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 48);
 
-    if (moradaId) {
-      const morada = await prisma.morada.findFirst({
-        where: { id: moradaId, organizacaoId: user.organizacaoId },
+    if (grupoFormacaoId) {
+      const grupoFormacao = await prisma.grupoFormacao.findFirst({
+        where: { id: grupoFormacaoId, organizacaoId: user.organizacaoId },
       });
-      if (!morada) return NextResponse.json({ error: "Morada não encontrada" }, { status: 404 });
+      if (!grupoFormacao) return NextResponse.json({ error: "Grupo de formação não encontrado" }, { status: 404 });
     }
 
     const convite = await prisma.conviteUsuario.create({
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         email: email.toLowerCase().trim(),
         nome: nome.trim(),
         perfil: perfil as PerfilUsuario,
-        moradaId: moradaId || null,
+        grupoFormacaoId: grupoFormacaoId || null,
         expiresAt,
         criadoPorId: user.id!,
       },

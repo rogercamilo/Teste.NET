@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
         orderBy: { criadoEm: "asc" },
         take: 5000,
       }),
-      prisma.morada.findMany({
+      prisma.grupoFormacao.findMany({
         where: { organizacaoId: orgId },
         select: { id: true, nome: true, nivelFormativo: true, ativo: true, criadoEm: true },
         orderBy: { criadoEm: "asc" },
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
         where: { organizacaoId: orgId, deletedAt: null },
         select: {
           id: true, nome: true, email: true, telefone: true, dataNascimento: true,
-          nivelFormativo: true, ativo: true, moradaId: true, criadoEm: true,
+          nivelFormativo: true, ativo: true, grupoFormacaoId: true, criadoEm: true,
         },
         orderBy: { criadoEm: "asc" },
         take: 10000,

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logError } from "@/lib/audit-log";
@@ -29,7 +29,7 @@ export async function GET() {
       orgsCanceladas,
       orgsCortesia,
       totalFormandos,
-      totalMoradas,
+      totalGruposFormacao,
       totalUsuarios,
       orgsPorPlano,
       crescimento30d,
@@ -43,7 +43,7 @@ export async function GET() {
       prisma.organizacao.count({ where: { status: "CANCELADO" } }),
       prisma.organizacao.count({ where: { cortesia: true } }),
       prisma.formando.count(),
-      prisma.morada.count(),
+      prisma.grupoFormacao.count(),
       prisma.usuario.count({ where: { deletedAt: null } }),
       prisma.organizacao.groupBy({ by: ["planoAssinatura"], _count: { id: true } }),
       prisma.organizacao.count({ where: { criadoEm: { gte: inicio30d } } }),
@@ -77,7 +77,7 @@ export async function GET() {
       orgsCanceladas,
       orgsCortesia,
       totalFormandos,
-      totalMoradas,
+      totalGruposFormacao,
       totalUsuarios,
       planoBreakdown,
       mrrEstimado,

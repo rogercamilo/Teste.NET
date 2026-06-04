@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -8,7 +8,7 @@ import {
   MODALIDADE_LABELS,
   type Formacao,
   type GradeFormativa,
-  type Morada,
+  type GrupoFormacao,
   type NivelFormativo,
   type Modalidade,
 } from "@/types";
@@ -73,17 +73,17 @@ const PAGE_SIZE = 10;
 interface FormacoesClientProps {
   initialFormacoes: Formacao[];
   initialGrades: GradeFormativa[];
-  initialMoradas: Morada[];
+  initialGruposFormacao: GrupoFormacao[];
   role: string;
-  moradaId: string | null;
+  grupoFormacaoId: string | null;
 }
 
 export default function FormacoesClient({
   initialFormacoes,
   initialGrades,
-  initialMoradas,
+  initialGruposFormacao,
   role,
-  moradaId,
+  grupoFormacaoId,
 }: FormacoesClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -91,7 +91,7 @@ export default function FormacoesClient({
   const canEdit = role === "formador_geral" || role === "administrador";
   const isFormadorComunitario = role === "formador_comunitario";
 
-  const myMorada = isFormadorComunitario ? initialMoradas.find((m) => m.id === moradaId) : undefined;
+  const myMorada = isFormadorComunitario ? initialGruposFormacao.find((m) => m.id === grupoFormacaoId) : undefined;
   const myNivel = myMorada?.nivelFormativo;
 
   const [search, setSearch] = useState("");

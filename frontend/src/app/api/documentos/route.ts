@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   const formandoId = formData.get("formandoId") as string;
   const formandoNome = (formData.get("formandoNome") as string) || "";
   const tipoEvento = (formData.get("tipoEvento") as string) || "";
-  const moradaId = (formData.get("moradaId") as string) || user.moradaId || undefined;
+  const grupoFormacaoId = (formData.get("grupoFormacaoId") as string) || user.grupoFormacaoId || undefined;
 
   if (!file || !eventoId || !formandoId) {
     return Response.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       formandoId,
       formandoNome,
       tipoEvento,
-      moradaId: moradaId ?? null,
+      grupoFormacaoId: grupoFormacaoId ?? null,
     },
   });
 
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
     const isAdminRole = user.role === "administrador" || user.role === "formador_geral";
     const effectiveWhere = isAdminRole
       ? where
-      : { ...where, OR: [{ uploadedById: user.id }, { moradaId: user.moradaId ?? undefined }] };
+      : { ...where, OR: [{ uploadedById: user.id }, { grupoFormacaoId: user.grupoFormacaoId ?? undefined }] };
     const pagination = parsePagination(url.searchParams);
     const orderBy = { criadoEm: "desc" as const };
 
@@ -154,12 +154,12 @@ export async function GET(request: NextRequest) {
       id: string; nome: string; tamanho: number; tipo: string;
       eventoId: string | null; formandoId: string | null; formandoNome: string | null;
       tipoEvento: string | null; uploadedById: string | null; uploadedByNome: string | null;
-      moradaId: string | null; criadoEm: Date;
+      grupoFormacaoId: string | null; criadoEm: Date;
     }) => ({
       id: d.id, nome: d.nome, tamanho: d.tamanho, tipo: d.tipo,
       eventoId: d.eventoId, formandoId: d.formandoId, formandoNome: d.formandoNome,
       tipoEvento: d.tipoEvento, uploadadoPor: d.uploadedById,
-      uploadadoPorNome: d.uploadedByNome, moradaId: d.moradaId,
+      uploadadoPorNome: d.uploadedByNome, grupoFormacaoId: d.grupoFormacaoId,
       criadoEm: d.criadoEm.toISOString(),
     });
 

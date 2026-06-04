@@ -1,16 +1,16 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import type { PlanoAssinatura } from "@prisma/client";
 
 export interface PlanLimits {
-  moradas: number;
+  gruposFormacao: number;
   formandos: number;
   storageBytes: number;
 }
 
 const LIMITS: Record<PlanoAssinatura, PlanLimits> = {
-  GRATUITO: { moradas: 1, formandos: 30, storageBytes: 500 * 1024 * 1024 },
-  ESSENCIAL: { moradas: 3, formandos: 150, storageBytes: 2 * 1024 * 1024 * 1024 },
-  PROFISSIONAL: { moradas: Infinity, formandos: Infinity, storageBytes: Infinity },
+  GRATUITO: { gruposFormacao: 1, formandos: 30, storageBytes: 500 * 1024 * 1024 },
+  ESSENCIAL: { gruposFormacao: 3, formandos: 150, storageBytes: 2 * 1024 * 1024 * 1024 },
+  PROFISSIONAL: { gruposFormacao: Infinity, formandos: Infinity, storageBytes: Infinity },
 };
 
 export function getLimits(plano: PlanoAssinatura): PlanLimits {
@@ -48,26 +48,26 @@ async function fetchOrgForLimits(orgId: string): Promise<OrgAccess> {
 
 // ── Verificações de limite ────────────────────────────────────────────────────
 
-export async function canAddMorada(orgId: string): Promise<LimitCheckResult> {
+export async function canAddGrupoFormacao(orgId: string): Promise<LimitCheckResult> {
   const org = await fetchOrgForLimits(orgId);
   if (!org.ok) return { allowed: false, reason: org.reason };
 
   const limits = getLimits(org.planoAssinatura);
-  if (limits.moradas === Infinity) return { allowed: true };
+  if (limits.gruposFormacao === Infinity) return { allowed: true };
 
-  const current = await prisma.morada.count({ where: { organizacaoId: orgId } });
-  const percentUsed = Math.round((current / limits.moradas) * 100);
+  const current = await prisma.grupoFormacao.count({ where: { organizacaoId: orgId } });
+  const percentUsed = Math.round((current / limits.gruposFormacao) * 100);
 
-  if (current >= limits.moradas) {
+  if (current >= limits.gruposFormacao) {
     return {
       allowed: false,
-      reason: `Limite de ${limits.moradas} morada(s) atingido no plano ${org.planoAssinatura}`,
+      reason: `Limite de ${limits.gruposFormacao} morada(s) atingido no plano ${org.planoAssinatura}`,
       current,
-      limit: limits.moradas,
+      limit: limits.gruposFormacao,
       percentUsed,
     };
   }
-  return { allowed: true, current, limit: limits.moradas, percentUsed };
+  return { allowed: true, current, limit: limits.gruposFormacao, percentUsed };
 }
 
 export async function canAddFormando(orgId: string): Promise<LimitCheckResult> {
@@ -129,8 +129,8 @@ export async function getUsage(orgId: string) {
 
   const limits = getLimits(org.planoAssinatura);
 
-  const [moradasCount, formandosCount, storageResult] = await Promise.all([
-    prisma.morada.count({ where: { organizacaoId: orgId } }),
+  const [gruposFormacaoCount, formandosCount, storageResult] = await Promise.all([
+    prisma.grupoFormacao.count({ where: { organizacaoId: orgId } }),
     prisma.formando.count({ where: { organizacaoId: orgId, deletedAt: null } }),
     prisma.arquivo.aggregate({ where: { organizacaoId: orgId }, _sum: { tamanho: true } }),
   ]);
@@ -139,10 +139,10 @@ export async function getUsage(orgId: string) {
 
   return {
     plano: org.planoAssinatura,
-    moradas: {
-      current: moradasCount,
-      limit: limits.moradas === Infinity ? null : limits.moradas,
-      percentUsed: limits.moradas === Infinity ? 0 : Math.round((moradasCount / limits.moradas) * 100),
+    gruposFormacao: {
+      current: gruposFormacaoCount,
+      limit: limits.gruposFormacao === Infinity ? null : limits.gruposFormacao,
+      percentUsed: limits.gruposFormacao === Infinity ? 0 : Math.round((gruposFormacaoCount / limits.gruposFormacao) * 100),
     },
     formandos: {
       current: formandosCount,

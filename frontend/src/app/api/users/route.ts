@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { listUsers, countUsers, createUser, findByEmail, toPublic } from "@/lib/users-store";
 import { sendWelcomeEmail } from "@/lib/email";
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   try {
     const parsed = parseBody(CreateUserSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-    const { nome, email, password, perfil, moradaId, ativo } = parsed.data;
+    const { nome, email, password, perfil, grupoFormacaoId, ativo } = parsed.data;
 
     if (await findByEmail(email, actor.organizacaoId)) {
       return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       email,
       password: password || undefined,
       perfil: perfilSanitizado as "administrador" | "formador_comunitario",
-      moradaId,
+      grupoFormacaoId,
       ativo: ativo ?? true,
       organizacaoId: actor.organizacaoId,
     });

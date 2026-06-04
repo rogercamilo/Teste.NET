@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
@@ -13,18 +13,18 @@ export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const moradaId = searchParams.get("moradaId");
+    const grupoFormacaoId = searchParams.get("grupoFormacaoId");
 
-    if (!moradaId) return NextResponse.json({ error: "moradaId obrigatório" }, { status: 400 });
+    if (!grupoFormacaoId) return NextResponse.json({ error: "grupoFormacaoId obrigatório" }, { status: 400 });
 
     // FC só pode acessar sua própria morada
-    if (user.role === "formador_comunitario" && user.moradaId !== moradaId) {
+    if (user.role === "formador_comunitario" && user.grupoFormacaoId !== grupoFormacaoId) {
       return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 
     // Busca formandos ativos da morada para filtrar os relatórios
     const formandos = await prisma.formando.findMany({
-      where: { moradaId, organizacaoId: user.organizacaoId, ativo: true },
+      where: { grupoFormacaoId, organizacaoId: user.organizacaoId, ativo: true },
       select: { id: true },
     });
     const formandoIds = formandos.map((f) => f.id);
@@ -60,9 +60,9 @@ export async function POST(request: Request) {
     }
 
     // Verifica acesso ao formando
-    const moradaFilter = user.role === "formador_comunitario" ? { moradaId: user.moradaId ?? null } : {};
+    const grupoFormacaoFilter = user.role === "formador_comunitario" ? { grupoFormacaoId: user.grupoFormacaoId ?? null } : {};
     const formando = await prisma.formando.findFirst({
-      where: { id: formandoId, organizacaoId: user.organizacaoId, ...moradaFilter },
+      where: { id: formandoId, organizacaoId: user.organizacaoId, ...grupoFormacaoFilter },
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 

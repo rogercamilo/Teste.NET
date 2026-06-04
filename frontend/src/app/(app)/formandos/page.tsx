@@ -1,7 +1,7 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toFormando, toMorada, toGrade } from "@/lib/converters";
+import { toFormando, toGrupoFormacao, toGrade } from "@/lib/converters";
 import FormandosClient from "./FormandosClient";
 
 export default async function FormandosPage() {
@@ -11,23 +11,23 @@ export default async function FormandosPage() {
   const user = session.user as {
     role?: string;
     organizacaoId?: string;
-    moradaId?: string | null;
+    grupoFormacaoId?: string | null;
   };
 
   // FC always goes directly to their morada — redirect server-side (no flash)
-  if (user.role === "formador_comunitario" && user.moradaId) {
-    redirect(`/moradas/${user.moradaId}`);
+  if (user.role === "formador_comunitario" && user.grupoFormacaoId) {
+    redirect(`/grupos-formacao/${user.grupoFormacaoId}`);
   }
 
   if (!user.organizacaoId) redirect("/login");
 
-  const [formandosRaw, moradasRaw, gradesRaw] = await Promise.all([
+  const [formandosRaw, gruposFormacaoRaw, gradesRaw] = await Promise.all([
     prisma.formando.findMany({
       where: { organizacaoId: user.organizacaoId, deletedAt: null },
       include: { progressoEtapas: true },
       orderBy: { nome: "asc" },
     }),
-    prisma.morada.findMany({
+    prisma.grupoFormacao.findMany({
       where: { organizacaoId: user.organizacaoId },
       orderBy: { nome: "asc" },
     }),
@@ -41,10 +41,10 @@ export default async function FormandosPage() {
   return (
     <FormandosClient
       initialFormandos={formandosRaw.map(toFormando)}
-      initialMoradas={moradasRaw.map(toMorada)}
+      initialGruposFormacao={gruposFormacaoRaw.map(toGrupoFormacao)}
       initialGrades={gradesRaw.map(toGrade)}
       role={user.role ?? "formador_comunitario"}
-      moradaId={user.moradaId ?? null}
+      grupoFormacaoId={user.grupoFormacaoId ?? null}
     />
   );
 }

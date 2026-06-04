@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -32,7 +32,7 @@ interface PresencaClientProps {
   initialFormandos: Formando[];
   initialPresencas: PresencaFormacao[];
   role: string;
-  moradaId: string | null;
+  grupoFormacaoId: string | null;
 }
 
 const PAGE_SIZE = 10;
@@ -43,7 +43,7 @@ export default function PresencaClient({
   initialFormandos,
   initialPresencas,
   role,
-  moradaId: userMoradaId,
+  grupoFormacaoId: userGrupoFormacaoId,
 }: PresencaClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -55,7 +55,7 @@ export default function PresencaClient({
 
   const nivelRestrito =
     role === "formador_comunitario"
-      ? initialAgendamentos.find((a) => a.moradaId === userMoradaId)?.nivelFormativo ?? undefined
+      ? initialAgendamentos.find((a) => a.grupoFormacaoId === userGrupoFormacaoId)?.nivelFormativo ?? undefined
       : undefined;
 
   const realizadas = useMemo(
@@ -65,11 +65,11 @@ export default function PresencaClient({
           const statusOk = a.status === "realizada" || a.status === "confirmada";
           if (!statusOk) return false;
           if (nivelRestrito) return a.nivelFormativo === nivelRestrito;
-          if (role === "formador_comunitario" && userMoradaId) return a.moradaId === userMoradaId;
+          if (role === "formador_comunitario" && userGrupoFormacaoId) return a.grupoFormacaoId === userGrupoFormacaoId;
           return true;
         })
         .sort((a, b) => b.dataInicio.localeCompare(a.dataInicio)),
-    [initialAgendamentos, nivelRestrito, role, userMoradaId]
+    [initialAgendamentos, nivelRestrito, role, userGrupoFormacaoId]
   );
 
   const [agendamentoId, setAgendamentoId] = useState<string>(() => realizadas[0]?.id ?? "");
@@ -81,12 +81,12 @@ export default function PresencaClient({
     return initialFormandos.filter((f) => {
       if (!f.ativo) return false;
       if (f.nivelFormativo !== agendamento.nivelFormativo) return false;
-      if (role === "formador_comunitario" && userMoradaId) {
-        return f.moradaId === userMoradaId;
+      if (role === "formador_comunitario" && userGrupoFormacaoId) {
+        return f.grupoFormacaoId === userGrupoFormacaoId;
       }
       return true;
     });
-  }, [agendamento, initialFormandos, role, userMoradaId]);
+  }, [agendamento, initialFormandos, role, userGrupoFormacaoId]);
 
   const getPresenca = (formandoId: string) =>
     presencas.find((p) => p.agendamentoId === agendamentoId && p.formandoId === formandoId)?.presente ?? false;
