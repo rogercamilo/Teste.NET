@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { usePresencas, useComentarios, useFormandos, useMoradas, usePlanos, useGrades, useUsuarios, useAgendamentos, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
 import {
@@ -138,6 +139,7 @@ const EMPTY_FORMANDO_FORM: FormandoFormState = {
 };
 
 export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps) {
+  const router = useRouter();
   const isAdmin = userRole === "administrador";
   const isFC = userRole === "formador_comunitario";
 
@@ -1209,7 +1211,11 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                             size="sm"
                             variant={rel ? (rel.status === "finalizado" ? "outline" : "secondary") : "default"}
                             className="h-7 text-xs"
-                            onClick={() => abrirRelatorio(formando)}
+                            onClick={() =>
+                              rel?.status === "finalizado"
+                                ? router.push(`/formandos/${formando.id}`)
+                                : abrirRelatorio(formando)
+                            }
                           >
                             {rel ? (rel.status === "finalizado" ? "Ver" : "Editar") : "Iniciar"}
                           </Button>
