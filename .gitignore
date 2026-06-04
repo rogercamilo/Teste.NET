@@ -1,5 +1,9 @@
 # Claude Code local settings
-.claude/settings.local.json
+.claude/
+.vscode/
+
+# Documentos de projeto (briefings, relatórios jurídicos, etc.)
+Documentos/
 
 # Node
 node_modules/

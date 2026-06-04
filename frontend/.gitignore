@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local file storage (uploads em dev — em prod usa R2)
+/data/arquivos/
+/data/documentos/
+/data/arquivos-meta.json
+/data/documentos-meta.json
