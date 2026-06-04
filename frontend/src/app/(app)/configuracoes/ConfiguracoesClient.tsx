@@ -7,8 +7,10 @@ import { passwordErrorMessage } from "@/lib/password-validation";
 import type { UserPublic } from "@/lib/users-store";
 import {
   PERFIL_USUARIO_LABELS,
+  TIPO_ORGANIZACAO_LABELS,
   type PerfilUsuario,
   type NivelFormativo,
+  type TipoOrganizacao,
   type ComunidadeConfig,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -870,6 +872,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
           const novoGrupoFormacao = {
             id: `m${Date.now()}`,
             nome: form.nomeProvisorio.trim(),
+            tipo: "estruturado" as const,
             nivelFormativo: form.nivelFormativoProvisorio,
             formadorId: created.id,
             ativo: true,
@@ -1305,7 +1308,7 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                     <Select
                       value={form.grupoFormacaoId}
                       onValueChange={(v) => v && set("grupoFormacaoId")(v)}
-                      items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, `${m.nome} — ${etapaLabels[m.nivelFormativo]}`]))}
+                      items={Object.fromEntries(allMoradas.filter((m) => m.ativo).map((m) => [m.id, m.nivelFormativo ? `${m.nome} — ${etapaLabels[m.nivelFormativo]}` : m.nome]))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a morada..." />
@@ -1315,14 +1318,16 @@ function UsuariosTab({ currentUserId }: { currentUserId: string }) {
                           .filter((m) => m.ativo)
                           .map((m) => (
                             <SelectItem key={m.id} value={m.id}>
-                              {m.nome} — {etapaLabels[m.nivelFormativo]}
+                              {m.nivelFormativo ? `${m.nome} — ${etapaLabels[m.nivelFormativo]}` : m.nome}
                             </SelectItem>
                           ))}
                       </SelectContent>
                     </Select>
                     {grupoFormacaoDoFormulario && (
                       <p className="text-xs text-muted-foreground">
-                        Nível: {etapaLabels[grupoFormacaoDoFormulario.nivelFormativo]}
+                        {grupoFormacaoDoFormulario.nivelFormativo
+                          ? `Nível: ${etapaLabels[grupoFormacaoDoFormulario.nivelFormativo]}`
+                          : "Grupo Livre"}
                       </p>
                     )}
                   </div>
@@ -1687,6 +1692,20 @@ function ComunidadeTab() {
               placeholder="Nome oficial da comunidade"
             />
           </div>
+
+          {comunidade.tipoOrganizacao && (
+            <div className="grid gap-1.5">
+              <Label>Tipo de organização</Label>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs bg-muted/50 text-foreground border-border font-normal px-2.5 py-1">
+                  {TIPO_ORGANIZACAO_LABELS[comunidade.tipoOrganizacao as TipoOrganizacao]}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Definido no cadastro. Para alterar, entre em contato com o suporte.
+              </p>
+            </div>
+          )}
 
           <div className="grid gap-1.5">
             <Label>

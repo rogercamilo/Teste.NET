@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useGruposFormacao, usePlanos, useGrades, useComunidade, useEtapaLabels, useUsuarios } from "@/lib/data-store";
 import {
   NIVEL_CORES,
+  TIPO_GRUPO_FORMACAO_LABELS,
   type GrupoFormacao,
   type NivelFormativo,
+  type TipoGrupoFormacao,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +52,7 @@ const NIVEIS: NivelFormativo[] = [
 
 type FormState = {
   nome: string;
+  tipo: TipoGrupoFormacao;
   nivelFormativo: NivelFormativo;
   formadorId: string;
   planoId: string;
@@ -58,27 +61,27 @@ type FormState = {
   vigenciaFim: string;
 };
 
-const EMPTY_FORM: FormState = {
-  nome: "",
-  nivelFormativo: "pre-discipulado",
-  formadorId: "",
-  planoId: "",
-  gradeId: "",
-  vigenciaInicio: "",
-  vigenciaFim: "",
-};
-
 export default function GrupoFormacaoFormPage() {
   const router = useRouter();
   const [, setMoradas] = useGruposFormacao();
   const [comunidade] = useComunidade();
-  const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Morada";
+  const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação";
+  const tipoOrg = comunidade.tipoOrganizacao ?? "nova_comunidade";
   const etapaLabels = useEtapaLabels();
   const [allPlanos] = usePlanos();
   const [allGrades] = useGrades();
   const [allUsuarios] = useUsuarios();
   const formadores = allUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState<FormState>(() => ({
+    nome: "",
+    tipo: tipoOrg === "nova_comunidade" ? "estruturado" : "livre",
+    nivelFormativo: "pre-discipulado",
+    formadorId: "",
+    planoId: "",
+    gradeId: "",
+    vigenciaInicio: "",
+    vigenciaFim: "",
+  }));
   const [saving, setSaving] = useState(false);
 
   const set = (field: keyof FormState) => (value: string) =>
@@ -102,10 +105,9 @@ export default function GrupoFormacaoFormPage() {
   const hasFormador = !!form.formadorId;
 
   function handleNivelChange(nivel: NivelFormativo) {
+    if (form.tipo !== "estruturado") return;
     const matchingPlano = allPlanos.find(
-      (p) =>
-        p.nivelFormativo === nivel &&
-        p.status !== "arquivado"
+      (p) => p.nivelFormativo === nivel && p.status !== "arquivado"
     );
     const matchingGrade = matchingPlano
       ? allGrades.find((g) => g.planoId === matchingPlano.id && g.ativo)
@@ -115,6 +117,15 @@ export default function GrupoFormacaoFormPage() {
       nivelFormativo: nivel,
       planoId: matchingPlano?.id ?? "",
       gradeId: matchingGrade?.id ?? "",
+    }));
+  }
+
+  function handleTipoChange(tipo: TipoGrupoFormacao) {
+    setForm((prev) => ({
+      ...prev,
+      tipo,
+      // limpar plano/grade se mudar para livre
+      ...(tipo === "livre" ? { planoId: "", gradeId: "" } : {}),
     }));
   }
 
@@ -133,7 +144,8 @@ export default function GrupoFormacaoFormPage() {
       const payload: GrupoFormacao = {
         id: `m${Date.now()}`,
         nome: form.nome.trim(),
-        nivelFormativo: form.nivelFormativo,
+        tipo: form.tipo,
+        nivelFormativo: form.tipo === "estruturado" ? form.nivelFormativo : undefined,
         formadorId: form.formadorId || undefined,
         planoId: form.planoId || undefined,
         gradeId: form.gradeId || undefined,
@@ -146,8 +158,8 @@ export default function GrupoFormacaoFormPage() {
       await setMoradas((prev) => [...prev, payload]);
       toast.success(
         hasFormador
-          ? `${termoGrupoFormacao} criada com sucesso!`
-          : `${termoGrupoFormacao} criada como inativa (sem formador responsável).`
+          ? `${termoGrupoFormacao} criado com sucesso!`
+          : `${termoGrupoFormacao} criado como inativo (sem formador responsável).`
       );
       router.push("/grupos-formacao");
     } finally {
@@ -196,36 +208,71 @@ export default function GrupoFormacaoFormPage() {
                 />
               </div>
 
+              {/* Tipo de grupo */}
               <div className="space-y-2">
-                <Label>
-                  Etapa Formativa <span className="text-destructive">*</span>
-                </Label>
+                <Label>Tipo de grupo <span className="text-destructive">*</span></Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {NIVEIS.map((nivel) => (
+                  {(["estruturado", "livre"] as TipoGrupoFormacao[]).map((t) => (
                     <button
-                      key={nivel}
+                      key={t}
                       type="button"
-                      onClick={() => handleNivelChange(nivel)}
-                      className={`flex items-center gap-2.5 p-3 rounded-xl border-2 text-left transition-all ${
-                        form.nivelFormativo === nivel
+                      onClick={() => handleTipoChange(t)}
+                      className={`flex flex-col items-start gap-1 p-3 rounded-xl border-2 text-left transition-all ${
+                        form.tipo === t
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
                       }`}
                     >
-                      <span className="text-lg">{NIVEL_ICONS[nivel]}</span>
-                      <span
-                        className={`text-xs font-medium leading-tight ${
-                          form.nivelFormativo === nivel
-                            ? "text-primary"
-                            : "text-foreground"
-                        }`}
-                      >
-                        {etapaLabels[nivel]}
+                      <span className={`text-xs font-semibold ${form.tipo === t ? "text-primary" : "text-foreground"}`}>
+                        {TIPO_GRUPO_FORMACAO_LABELS[t]}
+                      </span>
+                      <span className="text-xs text-muted-foreground leading-snug">
+                        {t === "estruturado" ? "Etapas canônicas e progressão formal." : "Oração, retiros ou cursos pontuais."}
                       </span>
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Etapa formativa — só para grupos estruturados */}
+              {form.tipo === "estruturado" && (
+                <div className="space-y-2">
+                  <Label>
+                    Etapa Formativa <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {NIVEIS.map((nivel) => (
+                      <button
+                        key={nivel}
+                        type="button"
+                        onClick={() => handleNivelChange(nivel)}
+                        className={`flex items-center gap-2.5 p-3 rounded-xl border-2 text-left transition-all ${
+                          form.nivelFormativo === nivel
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
+                        }`}
+                      >
+                        <span className="text-lg">{NIVEL_ICONS[nivel]}</span>
+                        <span
+                          className={`text-xs font-medium leading-tight ${
+                            form.nivelFormativo === nivel
+                              ? "text-primary"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {etapaLabels[nivel]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {form.tipo === "livre" && (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                  Grupos livres não possuem etapa formativa definida.
+                </p>
+              )}
 
             </CardContent>
           </Card>
@@ -294,7 +341,8 @@ export default function GrupoFormacaoFormPage() {
             </CardContent>
           </Card>
 
-          {/* Vinculação Formativa */}
+          {/* Vinculação Formativa — só para grupos estruturados */}
+          {form.tipo === "estruturado" && (
           <Card className="border-0 shadow-sm">
             <CardContent className="pt-5 pb-5 space-y-4">
               <SectionHeader icon={<Layers className="h-3.5 w-3.5 text-primary" />} title="Vinculação Formativa" />
@@ -355,6 +403,7 @@ export default function GrupoFormacaoFormPage() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* Ações — encerram o fluxo do formulário */}
           <div className="flex items-center justify-between pt-2 pb-2 border-t border-border/60">
@@ -391,19 +440,25 @@ export default function GrupoFormacaoFormPage() {
               <CardContent className="p-5">
                 <div className="flex items-start gap-3">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-xl">
-                    {NIVEL_ICONS[form.nivelFormativo]}
+                    {form.tipo === "estruturado" ? NIVEL_ICONS[form.nivelFormativo] : "🕊️"}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-foreground truncate">
-                      {form.nome.trim() || `Nova ${termoGrupoFormacao}`}
+                      {form.nome.trim() || `Novo ${termoGrupoFormacao}`}
                     </h3>
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${NIVEL_CORES[form.nivelFormativo]}`}
-                      >
-                        {etapaLabels[form.nivelFormativo]}
-                      </Badge>
+                      {form.tipo === "estruturado" ? (
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${NIVEL_CORES[form.nivelFormativo]}`}
+                        >
+                          {etapaLabels[form.nivelFormativo]}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs bg-slate-100 text-slate-600 border-slate-200">
+                          Livre
+                        </Badge>
+                      )}
                       <Badge
                         variant="outline"
                         className={`text-xs ${
@@ -412,7 +467,7 @@ export default function GrupoFormacaoFormPage() {
                             : "bg-slate-100 text-slate-500"
                         }`}
                       >
-                        {hasFormador ? "Ativa" : "Inativa"}
+                        {hasFormador ? "Ativo" : "Inativo"}
                       </Badge>
                     </div>
                   </div>
@@ -474,7 +529,9 @@ export default function GrupoFormacaoFormPage() {
             <div className="space-y-2 py-1">
               {[
                 { label: "Nome preenchido", done: !!form.nome.trim() },
-                { label: "Etapa formativa selecionada", done: true },
+                ...(form.tipo === "estruturado"
+                  ? [{ label: "Etapa formativa selecionada", done: true }]
+                  : []),
                 {
                   label: "Formador responsável",
                   done: hasFormador,
@@ -485,11 +542,9 @@ export default function GrupoFormacaoFormPage() {
                   done: !!(form.vigenciaInicio && form.vigenciaFim),
                   optional: true,
                 },
-                {
-                  label: "Plano formativo vinculado",
-                  done: !!form.planoId,
-                  optional: true,
-                },
+                ...(form.tipo === "estruturado"
+                  ? [{ label: "Plano formativo vinculado", done: !!form.planoId, optional: true }]
+                  : []),
               ].map(({ label, done, optional }) => (
                 <div key={label} className="flex items-center gap-2">
                   <CheckCircle2
