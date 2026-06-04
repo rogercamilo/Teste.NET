@@ -31,12 +31,25 @@ enum StatusOrganizacao {
   CANCELADO
 }
 
+enum TipoOrganizacao {
+  nova_comunidade
+  grupo_oracao
+  instituto_religioso
+  centro_formativo
+}
+
+enum TipoGrupoFormacao {
+  estruturado
+  livre
+}
+
 // ==========================================================
 // ORGANIZACAO — raiz do tenant
 // ==========================================================
 
 model Organizacao {
   id                   String            @id @default(cuid())
+  tipoOrganizacao      TipoOrganizacao   @default(nova_comunidade)
   nome                 String
   descricao            String?
   endereco             String?
@@ -152,9 +165,9 @@ model GrupoFormacao {
   organizacaoId  String
   nome           String
   localReuniao   String?
-  // NivelFormativo como String para manter compatibilidade com tipos existentes
-  // valores: "pre-discipulado" | "discipulado" | "primeiras-promessas" | "formacao-permanente"
-  nivelFormativo String
+  // NivelFormativo: obrigatório para grupos estruturados, null para grupos livres
+  nivelFormativo String?
+  tipo           TipoGrupoFormacao @default(estruturado)
   formadorId     String?
   planoId        String?
   gradeId        String?
