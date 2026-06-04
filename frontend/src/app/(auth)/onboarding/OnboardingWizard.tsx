@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -8,13 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertCircle, Building2, Settings, Home, CheckCircle2,
-  ChevronRight, Palette, Upload, X, Check,
+  ChevronRight, Palette, Upload, X, Check, Users, BookOpen, GraduationCap, Heart,
 } from "lucide-react";
 import { THEME_PALETTES, applyThemePalette } from "@/lib/themes";
+import type { TipoOrganizacao, TipoGrupoFormacao } from "@/types";
+import { TIPO_ORGANIZACAO_LABELS } from "@/types";
 
 interface OrgData {
   id: string;
   nome: string;
+  tipoOrganizacao: string;
   descricao: string | null;
   endereco: string | null;
   missao: string | null;
@@ -67,6 +70,17 @@ const PLANOS = [
   },
 ];
 
+const TIPO_ORG_OPTIONS: {
+  key: TipoOrganizacao;
+  icon: React.ElementType;
+  desc: string;
+}[] = [
+  { key: "nova_comunidade", icon: Heart, desc: "Formação vocacional com etapas canônicas e progressão estruturada." },
+  { key: "grupo_oracao", icon: Users, desc: "Grupos de oração, aprofundamento bíblico e encontros espirituais." },
+  { key: "instituto_religioso", icon: GraduationCap, desc: "Instituto, seminário ou centro de formação religiosa." },
+  { key: "centro_formativo", icon: BookOpen, desc: "Centro de cursos, retiros e formações livres." },
+];
+
 export default function OnboardingWizard({ org }: { org: OrgData }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -76,6 +90,9 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
 
   // Step 1 — org info
   const [nome, setNome] = useState(org.nome);
+  const [tipoOrg, setTipoOrg] = useState<TipoOrganizacao>(
+    (org.tipoOrganizacao as TipoOrganizacao) ?? "nova_comunidade"
+  );
   const [descricao, setDescricao] = useState(org.descricao ?? "");
   const [endereco, setEndereco] = useState(org.endereco ?? "");
   const [missao, setMissao] = useState(org.missao ?? "");
@@ -97,9 +114,12 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
   const [termoPrimeirasPromessas, setTermoPrimeirasPromessas] = useState(org.termoPrimeirasPromessas);
   const [termoFormacaoPermanente, setTermoFormacaoPermanente] = useState(org.termoFormacaoPermanente);
 
-  // Step 5 — first morada
+  // Step 5 — first group
   const [grupoFormacaoNome, setGrupoFormacaoNome] = useState("");
   const [grupoFormacaoLocalReuniao, setGrupoFormacaoLocalReuniao] = useState("");
+  const [grupoTipo, setGrupoTipo] = useState<TipoGrupoFormacao>(
+    tipoOrg === "nova_comunidade" ? "estruturado" : "livre"
+  );
   const [grupoFormacaoNivel, setGrupoFormacaoNivel] = useState("pre-discipulado");
 
   function handleLogoFile(file: File) {
@@ -115,11 +135,16 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
     applyThemePalette(key);
   }
 
+  function handleTipoOrgSelect(tipo: TipoOrganizacao) {
+    setTipoOrg(tipo);
+    setGrupoTipo(tipo === "nova_comunidade" ? "estruturado" : "livre");
+  }
+
   async function saveStep1() {
     const res = await fetch("/api/organizacao", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, descricao, endereco, missao, anoFundacao }),
+      body: JSON.stringify({ nome, tipoOrganizacao: tipoOrg, descricao, endereco, missao, anoFundacao }),
     });
     if (!res.ok) throw new Error("Falha ao salvar organização");
   }
@@ -163,10 +188,16 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
     if (!flagRes.ok) throw new Error("Falha ao concluir onboarding");
 
     if (grupoFormacaoNome.trim()) {
+      const payload: Record<string, unknown> = {
+        nome: grupoFormacaoNome.trim(),
+        tipo: grupoTipo,
+        ...(grupoFormacaoLocalReuniao ? { localReuniao: grupoFormacaoLocalReuniao } : {}),
+        ...(grupoTipo === "estruturado" ? { nivelFormativo: grupoFormacaoNivel } : {}),
+      };
       const res = await fetch("/api/grupos-formacao", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: grupoFormacaoNome.trim(), localReuniao: grupoFormacaoLocalReuniao || undefined, nivelFormativo: grupoFormacaoNivel }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json() as { error?: string };
@@ -256,10 +287,39 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="font-semibold text-foreground">Sobre a organização</h2>
+
               <div className="space-y-1.5">
-                <Label htmlFor="nome">Nome da comunidade *</Label>
+                <Label htmlFor="nome">Nome da organização *</Label>
                 <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required className="h-10" />
               </div>
+
+              {/* Tipo de organização */}
+              <div className="space-y-2">
+                <Label>Tipo de organização *</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {TIPO_ORG_OPTIONS.map(({ key, icon: Icon, desc }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleTipoOrgSelect(key)}
+                      className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border-2 text-left transition-all ${
+                        tipoOrg === key
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className={`h-4 w-4 ${tipoOrg === key ? "text-primary" : "text-muted-foreground"}`} />
+                        <span className={`text-xs font-semibold leading-tight ${tipoOrg === key ? "text-primary" : "text-foreground"}`}>
+                          {TIPO_ORGANIZACAO_LABELS[key]}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-snug">{desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="descricao">Descrição</Label>
                 <Textarea id="descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2} />
@@ -445,7 +505,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                 <p className="text-xs font-medium text-foreground mb-3">Etapas do percurso formativo</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="termoPreDiscipulado">1.ª etapa <span className="font-normal text-muted-foreground">(Ex: "Postulantado", "Pré-Discipulado")</span></Label>
+                    <Label htmlFor="termoPreDiscipulado">1.ª etapa <span className="font-normal text-muted-foreground">(Ex: "Postulantado")</span></Label>
                     <Input id="termoPreDiscipulado" value={termoPreDiscipulado} onChange={(e) => setTermoPreDiscipulado(e.target.value)} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
@@ -453,7 +513,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                     <Input id="termoDiscipulado" value={termoDiscipulado} onChange={(e) => setTermoDiscipulado(e.target.value)} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="termoPrimeirasPromessas">3.ª etapa </Label>
+                    <Label htmlFor="termoPrimeirasPromessas">3.ª etapa</Label>
                     <Input id="termoPrimeirasPromessas" value={termoPrimeirasPromessas} onChange={(e) => setTermoPrimeirasPromessas(e.target.value)} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
@@ -465,7 +525,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
             </div>
           )}
 
-          {/* Step 5 — First morada */}
+          {/* Step 5 — First group */}
           {step === 5 && (
             <div className="space-y-4">
               <div>
@@ -474,28 +534,75 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
                   Opcional — pode adicionar seus grupos depois em Gestão → Grupos de formação.
                 </p>
               </div>
+
               <div className="space-y-1.5">
-                <Label htmlFor="grupoFormacaoNome">Nome do grupo de formação</Label>
-                <Input id="grupoFormacaoNome" placeholder={`Ex: ${termoGrupoFormacao || "Grupo de Formação"} São João`} value={grupoFormacaoNome} onChange={(e) => setGrupoFormacaoNome(e.target.value)} className="h-10" />
+                <Label htmlFor="grupoFormacaoNome">Nome do grupo</Label>
+                <Input id="grupoFormacaoNome" placeholder={`Ex: ${termoGrupoFormacao || "Grupo"} São João`} value={grupoFormacaoNome} onChange={(e) => setGrupoFormacaoNome(e.target.value)} className="h-10" />
               </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="grupoFormacaoLocalReuniao">Local de reunião</Label>
                 <Input id="grupoFormacaoLocalReuniao" placeholder="Ex: Paróquia São João, Salão 2" value={grupoFormacaoLocalReuniao} onChange={(e) => setGrupoFormacaoLocalReuniao(e.target.value)} className="h-10" />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="grupoFormacaoNivel">Etapa formativa</Label>
-                <select
-                  id="grupoFormacaoNivel"
-                  value={grupoFormacaoNivel}
-                  onChange={(e) => setGrupoFormacaoNivel(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="pre-discipulado">{termoPreDiscipulado || "Pré-Discipulado"}</option>
-                  <option value="discipulado">{termoDiscipulado || "Discipulado"}</option>
-                  <option value="primeiras-promessas">{termoPrimeirasPromessas || "Primeiras Promessas"}</option>
-                  <option value="formacao-permanente">{termoFormacaoPermanente || "Formação Permanente"}</option>
-                </select>
+
+              {/* Tipo do grupo */}
+              <div className="space-y-2">
+                <Label>Tipo de grupo</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGrupoTipo("estruturado")}
+                    className={`flex flex-col items-start gap-1 p-3 rounded-xl border-2 text-left transition-all ${
+                      grupoTipo === "estruturado"
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                        : "border-border hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <span className={`text-xs font-semibold ${grupoTipo === "estruturado" ? "text-primary" : "text-foreground"}`}>
+                      Estruturado
+                    </span>
+                    <p className="text-xs text-muted-foreground leading-snug">Etapas canônicas com progressão formal.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGrupoTipo("livre")}
+                    className={`flex flex-col items-start gap-1 p-3 rounded-xl border-2 text-left transition-all ${
+                      grupoTipo === "livre"
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                        : "border-border hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <span className={`text-xs font-semibold ${grupoTipo === "livre" ? "text-primary" : "text-foreground"}`}>
+                      Livre
+                    </span>
+                    <p className="text-xs text-muted-foreground leading-snug">Oração, aprofundamento ou curso pontual.</p>
+                  </button>
+                </div>
               </div>
+
+              {/* Etapa formativa — só para grupos estruturados */}
+              {grupoTipo === "estruturado" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="grupoFormacaoNivel">Etapa formativa</Label>
+                  <select
+                    id="grupoFormacaoNivel"
+                    value={grupoFormacaoNivel}
+                    onChange={(e) => setGrupoFormacaoNivel(e.target.value)}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="pre-discipulado">{termoPreDiscipulado || "Pré-Discipulado"}</option>
+                    <option value="discipulado">{termoDiscipulado || "Discipulado"}</option>
+                    <option value="primeiras-promessas">{termoPrimeirasPromessas || "Primeiras Promessas"}</option>
+                    <option value="formacao-permanente">{termoFormacaoPermanente || "Formação Permanente"}</option>
+                  </select>
+                </div>
+              )}
+
+              {grupoTipo === "livre" && (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                  Grupos livres não possuem etapa formativa definida.
+                </p>
+              )}
             </div>
           )}
 

@@ -11,7 +11,7 @@ export default async function OnboardingPage() {
   const org = await prisma.organizacao.findUnique({
     where: { id: user.organizacaoId },
     select: {
-      id: true, nome: true, descricao: true, endereco: true, missao: true,
+      id: true, nome: true, tipoOrganizacao: true, descricao: true, endereco: true, missao: true,
       anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true,
       termoPreDiscipulado: true, termoDiscipulado: true,
       termoPrimeirasPromessas: true, termoFormacaoPermanente: true,
