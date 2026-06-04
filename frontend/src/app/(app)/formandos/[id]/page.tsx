@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   useFormandos,
@@ -46,7 +47,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cn, formatPhone } from "@/lib/utils";
+import { cn, formatPhone, applyPhoneMask, stripPhone } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
@@ -122,6 +124,7 @@ export default function FormandoDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: session } = useSession();
   const [allFormandos, setFormandos] = useFormandos();
   const [agendamentos] = useAgendamentos();
@@ -152,6 +155,18 @@ export default function FormandoDetailPage({
 
   const [avancarOpen, setAvancarOpen] = useState(false);
   const [fotoDialogOpen, setFotoDialogOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    nome: "",
+    dataNascimento: "",
+    estadoCivil: "solteiro" as "solteiro" | "casado" | "divorciado" | "viuvo",
+    modalidade: "presencial" as "presencial" | "online" | "hibrida",
+    nivelFormativo: "pre-discipulado" as "pre-discipulado" | "discipulado" | "primeiras-promessas" | "formacao-permanente",
+    dataIngresso: "",
+    telefone: "",
+    email: "",
+    moradaId: "",
+  });
 
 
   const [avaliacaoOpen, setAvaliacaoOpen] = useState(false);
@@ -639,6 +654,39 @@ export default function FormandoDetailPage({
     toast.success(`${formando!.nome} avançou para ${NIVEL_FORMATIVO_LABELS[proximaEtapa]}.`);
   }
 
+  function handleEditSave() {
+    if (!editForm.nome.trim()) return toast.error("Nome é obrigatório.");
+    if (!editForm.email.trim()) return toast.error("E-mail é obrigatório.");
+    if (!editForm.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
+    if (!formando) return;
+
+    const moradaSelecionada = moradas.find((m) => m.id === editForm.moradaId);
+    const nivelFormativo = moradaSelecionada
+      ? moradaSelecionada.nivelFormativo
+      : editForm.nivelFormativo;
+
+    setFormandos((prev) =>
+      prev.map((f) =>
+        f.id === id
+          ? {
+              ...f,
+              nome: editForm.nome.trim(),
+              dataNascimento: editForm.dataNascimento,
+              estadoCivil: editForm.estadoCivil,
+              modalidade: editForm.modalidade,
+              nivelFormativo,
+              dataIngresso: editForm.dataIngresso,
+              telefone: stripPhone(editForm.telefone),
+              email: editForm.email.trim(),
+              moradaId: editForm.moradaId || undefined,
+            }
+          : f
+      )
+    );
+    toast.success("Dados atualizados com sucesso!");
+    setEditOpen(false);
+  }
+
   return (
     <div className="space-y-6 animate-in-fast">
       {/* Cabeçalho */}
@@ -707,10 +755,27 @@ export default function FormandoDetailPage({
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditForm({
+                  nome: formando.nome,
+                  dataNascimento: formando.dataNascimento,
+                  estadoCivil: formando.estadoCivil,
+                  modalidade: formando.modalidade,
+                  nivelFormativo: formando.nivelFormativo,
+                  dataIngresso: formando.dataIngresso,
+                  telefone: applyPhoneMask(formando.telefone),
+                  email: formando.email,
+                  moradaId: formando.moradaId ?? "",
+                });
+                setEditOpen(true);
+              }}
+            >
               Editar
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={() => router.push("/agenda")}>
               <Calendar className="h-4 w-4 mr-1.5" />
               Agendar
             </Button>
@@ -1453,7 +1518,7 @@ export default function FormandoDetailPage({
                                 </span>
                               </div>
                               <Progress value={pct} className="h-1" />
-                              <p className="text-[10px] text-muted-foreground">{desc}</p>
+                              <p className="text-[13px] text-muted-foreground">{desc}</p>
                             </div>
                           ))}
                         </div>
@@ -2847,6 +2912,159 @@ export default function FormandoDetailPage({
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Dialog: Editar Formando */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar {termoFormando}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-1.5">
+              <Label>Nome completo <span className="text-destructive">*</span></Label>
+              <Input
+                value={editForm.nome}
+                onChange={(e) => setEditForm((p) => ({ ...p, nome: e.target.value }))}
+                placeholder="Nome Sobrenome"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>Data de nascimento <span className="text-destructive">*</span></Label>
+                <Input
+                  type="date"
+                  value={editForm.dataNascimento}
+                  onChange={(e) => setEditForm((p) => ({ ...p, dataNascimento: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Estado civil</Label>
+                <Select
+                  value={editForm.estadoCivil}
+                  onValueChange={(v) => v && setEditForm((p) => ({ ...p, estadoCivil: v as typeof editForm.estadoCivil }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue>
+                      {({ solteiro: "Solteiro(a)", casado: "Casado(a)", divorciado: "Divorciado(a)", viuvo: "Viúvo(a)" })[editForm.estadoCivil]}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solteiro">Solteiro(a)</SelectItem>
+                    <SelectItem value="casado">Casado(a)</SelectItem>
+                    <SelectItem value="divorciado">Divorciado(a)</SelectItem>
+                    <SelectItem value="viuvo">Viúvo(a)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>E-mail <span className="text-destructive">*</span></Label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Telefone</Label>
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  value={editForm.telefone}
+                  onChange={(e) => setEditForm((p) => ({ ...p, telefone: applyPhoneMask(e.target.value) }))}
+                  placeholder="(xx) xxxxx-xxxx"
+                  maxLength={15}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>Modalidade</Label>
+                <Select
+                  value={editForm.modalidade}
+                  onValueChange={(v) => v && setEditForm((p) => ({ ...p, modalidade: v as typeof editForm.modalidade }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue>{MODALIDADE_LABELS[editForm.modalidade]}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="presencial">Presencial</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                    <SelectItem value="hibrida">Híbrida</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Data de ingresso <span className="text-destructive">*</span></Label>
+                <Input
+                  type="date"
+                  value={editForm.dataIngresso}
+                  onChange={(e) => setEditForm((p) => ({ ...p, dataIngresso: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Morada</Label>
+              <Select
+                value={editForm.moradaId}
+                onValueChange={(v) => {
+                  const m = moradas.find((x) => x.id === v);
+                  setEditForm((p) => ({
+                    ...p,
+                    moradaId: v ?? "",
+                    ...(m ? { nivelFormativo: m.nivelFormativo } : {}),
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue>
+                    {editForm.moradaId
+                      ? (() => {
+                          const m = moradas.find((x) => x.id === editForm.moradaId);
+                          return m ? `${m.nome} — ${NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}` : "Selecione a morada...";
+                        })()
+                      : "Nenhuma"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhuma</SelectItem>
+                  {moradas.filter((m) => m.ativo).map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.nome} — {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Etapa Formativa</Label>
+              <Select
+                value={editForm.nivelFormativo}
+                onValueChange={(v) => v && setEditForm((p) => ({ ...p, nivelFormativo: v as typeof editForm.nivelFormativo }))}
+                disabled={!!moradas.find((m) => m.id === editForm.moradaId)}
+              >
+                <SelectTrigger>
+                  <SelectValue>{NIVEL_FORMATIVO_LABELS[editForm.nivelFormativo]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(["pre-discipulado", "discipulado", "primeiras-promessas", "formacao-permanente"] as const).map((n) => (
+                    <SelectItem key={n} value={n}>{NIVEL_FORMATIVO_LABELS[n]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {moradas.find((m) => m.id === editForm.moradaId) && (
+                <p className="text-xs text-muted-foreground">Definido automaticamente pela morada selecionada.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEditSave}>Salvar alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
