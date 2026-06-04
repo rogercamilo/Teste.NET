@@ -95,14 +95,15 @@ export async function POST(request: Request) {
         formandoId,
         formadorId: user.id!,
         nivelFormativo,
-        avaliacaoHumana: notasSugeridas.humana,
-        avaliacaoEspiritual: notasSugeridas.espiritual,
-        avaliacaoComunitaria: notasSugeridas.comunitaria,
-        ...body.textoNarrativo !== undefined && { textoNarrativo: body.textoNarrativo },
-        ...body.pontosForteza !== undefined && { pontosForteza: body.pontosForteza },
-        ...body.desafios !== undefined && { desafios: body.desafios },
-        ...body.recomendacao !== undefined && { recomendacao: body.recomendacao },
-        ...body.textoRecomendacao !== undefined && { textoRecomendacao: body.textoRecomendacao },
+        // Body values take precedence over pre-populated suggestions
+        avaliacaoHumana: body.avaliacaoHumana !== undefined ? (body.avaliacaoHumana || null) : notasSugeridas.humana,
+        avaliacaoEspiritual: body.avaliacaoEspiritual !== undefined ? (body.avaliacaoEspiritual || null) : notasSugeridas.espiritual,
+        avaliacaoComunitaria: body.avaliacaoComunitaria !== undefined ? (body.avaliacaoComunitaria || null) : notasSugeridas.comunitaria,
+        ...body.textoNarrativo !== undefined && { textoNarrativo: body.textoNarrativo || null },
+        ...body.pontosForteza !== undefined && { pontosForteza: body.pontosForteza || null },
+        ...body.desafios !== undefined && { desafios: body.desafios || null },
+        ...body.recomendacao !== undefined && { recomendacao: body.recomendacao || null },
+        ...body.textoRecomendacao !== undefined && { textoRecomendacao: body.textoRecomendacao || null },
       },
     });
 

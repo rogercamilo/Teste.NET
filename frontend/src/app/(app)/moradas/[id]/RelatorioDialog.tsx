@@ -244,7 +244,9 @@ export function RelatorioDialog({
                     ) : (
                       <Select value={val} onValueChange={(v) => set(field, v as NotaAdesao)}>
                         <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Selecionar nota" />
+                          <SelectValue placeholder="Selecionar nota">
+                            {val ? NOTA_ADESAO_LABELS[val as NotaAdesao] : undefined}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {NOTAS.map((n) => (
@@ -337,7 +339,9 @@ export function RelatorioDialog({
               ) : (
                 <Select value={form.recomendacao} onValueChange={(v) => set("recomendacao", v as RecomendacaoEtapa)}>
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Selecionar recomendação" />
+                    <SelectValue placeholder="Selecionar recomendação">
+                      {form.recomendacao ? RECOMENDACAO_LABELS[form.recomendacao as RecomendacaoEtapa] : undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {RECOMENDACOES.map((r) => (
