@@ -26,6 +26,10 @@ export async function POST(request: Request, { params }: Params) {
   try {
     const grupoFormacao = await prisma.grupoFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!grupoFormacao) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (grupoFormacao.tipo !== "estruturado") {
+      return NextResponse.json({ error: "Operação não aplicável a grupos livres" }, { status: 400 });
+    }
+    const nivelFormativoStr: string = grupoFormacao.nivelFormativo!;
     if (isFC && (user as { grupoFormacaoId?: string | null }).grupoFormacaoId !== id) {
       return NextResponse.json({ error: "Sem permissão para encerrar esta etapa" }, { status: 403 });
     }
@@ -50,11 +54,11 @@ export async function POST(request: Request, { params }: Params) {
 
       for (const formando of formandos) {
         await tx.progressoEtapa.upsert({
-          where: { formandoId_nivelFormativo: { formandoId: formando.id, nivelFormativo: grupoFormacao.nivelFormativo } },
+          where: { formandoId_nivelFormativo: { formandoId: formando.id, nivelFormativo: nivelFormativoStr } },
           update: { concluiuEm: encerradoEm },
           create: {
             formandoId: formando.id,
-            nivelFormativo: grupoFormacao.nivelFormativo,
+            nivelFormativo: nivelFormativoStr,
             concluiuEm: encerradoEm,
           },
         });
@@ -63,7 +67,7 @@ export async function POST(request: Request, { params }: Params) {
       return moradaAtualizada;
     });
 
-    logAction("grupo_formacao_etapa_encerrada", user.id, getClientIp(request), { id, nivelFormativo: grupoFormacao.nivelFormativo }, user.organizacaoId);
+    logAction("grupo_formacao_etapa_encerrada", user.id, getClientIp(request), { id, nivelFormativo: nivelFormativoStr }, user.organizacaoId);
     return NextResponse.json(toGrupoFormacao(updated));
   } catch (err) {
     logError("moradas/[id]/encerrar-etapa POST", err);

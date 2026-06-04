@@ -34,6 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       where: { id: sessionUser.organizacaoId },
       select: {
         onboardingConcluido: true, temaCor: true, nomePlataforma: true, nome: true,
+        tipoOrganizacao: true,
         descricao: true, endereco: true, missao: true, anoFundacao: true,
         termoGrupoFormacao: true, termoFormando: true, termoFormador: true,
         termoPreDiscipulado: true, termoDiscipulado: true,
@@ -45,6 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       orgBranding = { ...orgBranding, ...org };
       if (!org.onboardingConcluido && isAdmin(sessionUser.role)) redirect("/onboarding");
       comunidadeInitial = {
+        tipoOrganizacao: org.tipoOrganizacao as import("@/types").TipoOrganizacao,
         nome: org.nome,
         descricao: org.descricao ?? "",
         endereco: org.endereco ?? "",

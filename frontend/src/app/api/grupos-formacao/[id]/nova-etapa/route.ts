@@ -34,6 +34,9 @@ export async function POST(request: Request, { params }: Params) {
   try {
     const grupoFormacao = await prisma.grupoFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!grupoFormacao) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (grupoFormacao.tipo !== "estruturado") {
+      return NextResponse.json({ error: "Operação não aplicável a grupos livres" }, { status: 400 });
+    }
     if (isFC && (user as { grupoFormacaoId?: string | null }).grupoFormacaoId !== id) {
       return NextResponse.json({ error: "Sem permissão para avançar esta etapa" }, { status: 403 });
     }

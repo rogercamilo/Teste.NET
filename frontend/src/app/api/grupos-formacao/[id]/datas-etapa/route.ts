@@ -26,6 +26,10 @@ export async function PATCH(request: Request, { params }: Params) {
   try {
     const grupoFormacao = await prisma.grupoFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!grupoFormacao) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (!grupoFormacao.nivelFormativo) {
+      return NextResponse.json({ error: "Operação não aplicável a grupos livres" }, { status: 400 });
+    }
+    const nivelFormativoStr: string = grupoFormacao.nivelFormativo;
 
     if (isFC && (user as SU & { grupoFormacaoId?: string | null }).grupoFormacaoId !== id) {
       return NextResponse.json({ error: "Sem permissão para editar este grupo de formação" }, { status: 403 });
@@ -53,14 +57,14 @@ export async function PATCH(request: Request, { params }: Params) {
     await prisma.$transaction(
       formandos.map((f) =>
         prisma.progressoEtapa.upsert({
-          where: { formandoId_nivelFormativo: { formandoId: f.id, nivelFormativo: grupoFormacao.nivelFormativo } },
+          where: { formandoId_nivelFormativo: { formandoId: f.id, nivelFormativo: nivelFormativoStr } },
           update: data,
-          create: { formandoId: f.id, nivelFormativo: grupoFormacao.nivelFormativo, ...data },
+          create: { formandoId: f.id, nivelFormativo: nivelFormativoStr, ...data },
         })
       )
     );
 
-    logAction("grupo_formacao_datas_etapa_updated", user.id, getClientIp(request), { id, nivelFormativo: grupoFormacao.nivelFormativo }, user.organizacaoId);
+    logAction("grupo_formacao_datas_etapa_updated", user.id, getClientIp(request), { id, nivelFormativo: nivelFormativoStr }, user.organizacaoId);
     return NextResponse.json({ ok: true, formandosAtualizados: formandos.length });
   } catch (err) {
     logError("moradas/[id]/datas-etapa PATCH", err);

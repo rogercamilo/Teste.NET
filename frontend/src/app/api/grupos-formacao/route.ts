@@ -9,15 +9,10 @@ import { limiters } from "@/lib/rate-limit";
 import type { GrupoFormacao } from "@/types";
 
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
-type PrismaGrupoFormacao = {
-  id: string; organizacaoId: string; nome: string; localReuniao: string | null;
-  nivelFormativo: string; formadorId: string | null; planoId: string | null;
-  gradeId: string | null; vigenciaInicio: Date | null; vigenciaFim: Date | null;
-  ativo: boolean; criadoEm: Date;
-};
 
 
 import { toGrupoFormacao } from "@/lib/converters";
+import type { PrismaGrupoFormacao } from "@/lib/converters";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -80,7 +75,8 @@ export async function POST(request: Request) {
           organizacaoId: user.organizacaoId!,
           nome: body.nome,
           localReuniao: body.localReuniao ?? null,
-          nivelFormativo: body.nivelFormativo ?? "pre-discipulado",
+          tipo: body.tipo ?? "estruturado",
+          nivelFormativo: body.nivelFormativo ?? null,
           formadorId: body.formadorId ?? null,
           planoId: body.planoId ?? null,
           gradeId: body.gradeId ?? null,

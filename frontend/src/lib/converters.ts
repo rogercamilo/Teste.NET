@@ -72,7 +72,7 @@ export type PrismaGrade = {
 
 export type PrismaGrupoFormacao = {
   id: string; organizacaoId: string; nome: string; localReuniao: string | null;
-  nivelFormativo: string; formadorId: string | null; planoId: string | null;
+  tipo: string; nivelFormativo: string | null; formadorId: string | null; planoId: string | null;
   gradeId: string | null; vigenciaInicio: Date | null; vigenciaFim: Date | null;
   imagemUrl: string | null; ativo: boolean; criadoEm: Date;
 };
@@ -209,7 +209,8 @@ export function toGrade(g: PrismaGrade): GradeFormativa {
 export function toGrupoFormacao(m: PrismaGrupoFormacao): GrupoFormacao {
   return {
     id: m.id, nome: m.nome, localReuniao: m.localReuniao ?? undefined,
-    nivelFormativo: m.nivelFormativo as GrupoFormacao["nivelFormativo"],
+    tipo: m.tipo as GrupoFormacao["tipo"],
+    nivelFormativo: m.nivelFormativo ? m.nivelFormativo as GrupoFormacao["nivelFormativo"] : undefined,
     formadorId: m.formadorId ?? undefined, planoId: m.planoId ?? undefined,
     gradeId: m.gradeId ?? undefined,
     vigenciaInicio: m.vigenciaInicio?.toISOString().split("T")[0],

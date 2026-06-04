@@ -74,7 +74,8 @@ export async function PUT(request: Request, { params }: Params) {
         data: {
           ...(body.nome !== undefined && { nome: body.nome }),
           ...(body.localReuniao !== undefined && { localReuniao: body.localReuniao ?? null }),
-          ...(body.nivelFormativo !== undefined && { nivelFormativo: body.nivelFormativo }),
+          ...(body.tipo !== undefined && { tipo: body.tipo }),
+          ...(body.nivelFormativo !== undefined && { nivelFormativo: body.nivelFormativo ?? null }),
           ...(body.formadorId !== undefined && { formadorId: body.formadorId ?? null }),
           ...(body.planoId !== undefined && { planoId: body.planoId ?? null }),
           ...(body.gradeId !== undefined && { gradeId: body.gradeId ?? null }),
