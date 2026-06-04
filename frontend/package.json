@@ -70,6 +70,7 @@
     "@vitest/coverage-v8": "^4.1.7",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "playwright": "^1.60.0",
     "prisma": "^6",
     "tailwindcss": "^4",
     "tsx": "^4",
