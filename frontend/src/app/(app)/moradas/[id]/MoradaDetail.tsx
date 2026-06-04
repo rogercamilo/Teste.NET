@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { usePresencas, useComentarios, useFormandos, useMoradas, usePlanos, useGrades, useUsuarios, useAgendamentos, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
 import {
@@ -22,6 +21,11 @@ import {
   type RelatorioEtapa,
   NIVEL_FORMATIVO_LABELS,
   STATUS_RELATORIO_CORES,
+  NOTA_ADESAO_LABELS,
+  NOTA_ADESAO_CORES,
+  PERSPECTIV_LABELS,
+  RECOMENDACAO_LABELS,
+  RECOMENDACAO_CORES,
 } from "@/types";
 import { RelatorioDialog } from "./RelatorioDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +65,8 @@ import {
   Camera,
   CheckCircle2,
   ClipboardList,
+  ChevronDown,
+  ChevronUp,
   FileText,
   Flag,
   Home,
@@ -139,7 +145,6 @@ const EMPTY_FORMANDO_FORM: FormandoFormState = {
 };
 
 export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps) {
-  const router = useRouter();
   const isAdmin = userRole === "administrador";
   const isFC = userRole === "formador_comunitario";
 
@@ -181,6 +186,7 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
   const [relatorioDialogOpen, setRelatorioDialogOpen] = useState(false);
   const [relatorioFormando, setRelatorioFormando] = useState<Formando | null>(null);
   const [relatorioSelecionado, setRelatorioSelecionado] = useState<RelatorioEtapa | null>(null);
+  const [expandedRelatorioId, setExpandedRelatorioId] = useState<string | null>(null);
 
   async function loadRelatorios() {
     if (relatoriosLoaded) return;
@@ -1182,9 +1188,11 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                   (r) => r.formandoId === formando.id && r.nivelFormativo === formando.nivelFormativo
                 );
                 const initials = formando.nome.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase();
+                const isExpanded = expandedRelatorioId === formando.id;
                 return (
-                  <Card key={formando.id} className="border-0 shadow-sm">
+                  <Card key={formando.id} className="border-0 shadow-sm overflow-hidden">
                     <CardContent className="p-3">
+                      {/* Linha do formando */}
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9 shrink-0">
                           {formando.foto && <AvatarImage src={formando.foto} alt={formando.nome} />}
@@ -1209,18 +1217,94 @@ export default function MoradaDetail({ id, userRole, userId }: MoradaDetailProps
                           )}
                           <Button
                             size="sm"
-                            variant={rel ? (rel.status === "finalizado" ? "outline" : "secondary") : "default"}
-                            className="h-7 text-xs"
-                            onClick={() =>
-                              rel?.status === "finalizado"
-                                ? router.push(`/formandos/${formando.id}`)
-                                : abrirRelatorio(formando)
-                            }
+                            variant={rel?.status === "finalizado" ? "outline" : rel ? "secondary" : "default"}
+                            className="h-7 text-xs gap-1"
+                            onClick={() => {
+                              if (rel?.status === "finalizado") {
+                                setExpandedRelatorioId(isExpanded ? null : formando.id);
+                              } else {
+                                abrirRelatorio(formando);
+                              }
+                            }}
                           >
-                            {rel ? (rel.status === "finalizado" ? "Ver" : "Editar") : "Iniciar"}
+                            {rel?.status === "finalizado" ? (
+                              <>
+                                Ver
+                                {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              </>
+                            ) : rel ? "Editar" : "Iniciar"}
                           </Button>
                         </div>
                       </div>
+
+                      {/* Conteúdo sanfona — só para relatórios finalizados */}
+                      {rel?.status === "finalizado" && isExpanded && (
+                        <div className="mt-4 pt-4 border-t border-border/50 space-y-4">
+                          {/* Avaliação por perspectiva */}
+                          {(rel.avaliacaoHumana || rel.avaliacaoEspiritual || rel.avaliacaoComunitaria) && (
+                            <div className="space-y-1.5">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Avaliação por Perspectiva</p>
+                              <div className="flex flex-wrap gap-2">
+                                {(["humana", "espiritual", "comunitaria"] as const).map((p) => {
+                                  const nota = p === "humana" ? rel.avaliacaoHumana
+                                    : p === "espiritual" ? rel.avaliacaoEspiritual
+                                    : rel.avaliacaoComunitaria;
+                                  if (!nota) return null;
+                                  return (
+                                    <div key={p} className="flex items-center gap-1.5">
+                                      <span className="text-xs text-muted-foreground">{PERSPECTIV_LABELS[p]}:</span>
+                                      <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium", NOTA_ADESAO_CORES[nota])}>
+                                        {NOTA_ADESAO_LABELS[nota]}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Narrativa */}
+                          {rel.textoNarrativo && (
+                            <div className="space-y-1">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Narrativa</p>
+                              <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{rel.textoNarrativo}</p>
+                            </div>
+                          )}
+
+                          {/* Pontos + Desafios */}
+                          {(rel.pontosForteza || rel.desafios) && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {rel.pontosForteza && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pontos de Fortaleza</p>
+                                  <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{rel.pontosForteza}</p>
+                                </div>
+                              )}
+                              {rel.desafios && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Desafios a Trabalhar</p>
+                                  <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{rel.desafios}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Recomendação */}
+                          {rel.recomendacao && (
+                            <div className="space-y-1.5">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recomendação</p>
+                              <div className="flex flex-wrap items-start gap-2">
+                                <span className={cn("inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium", RECOMENDACAO_CORES[rel.recomendacao])}>
+                                  {RECOMENDACAO_LABELS[rel.recomendacao]}
+                                </span>
+                                {rel.textoRecomendacao && (
+                                  <p className="text-sm text-muted-foreground leading-relaxed">{rel.textoRecomendacao}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );

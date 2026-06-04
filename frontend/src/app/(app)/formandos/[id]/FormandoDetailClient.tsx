@@ -17,9 +17,6 @@ import {
   NOTA_ADESAO_CORES,
   NOTA_ADESAO_DOT,
   PERSPECTIV_LABELS,
-  RECOMENDACAO_LABELS,
-  RECOMENDACAO_CORES,
-  STATUS_RELATORIO_CORES,
   getProximaEtapa,
   podeAvancarEtapa,
   totalRequerido,
@@ -124,7 +121,6 @@ interface Props {
   userMoradaId: string | null;
   termoFormando: string;
   termoFormador: string;
-  relatorioFinalizado: import("@/types").RelatorioEtapa | null;
 }
 
 export default function FormandoDetailClient({
@@ -142,7 +138,6 @@ export default function FormandoDetailClient({
   userMoradaId,
   termoFormando,
   termoFormador,
-  relatorioFinalizado,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -851,101 +846,6 @@ export default function FormandoDetailClient({
           ) : null}
         </CardContent>
       </Card>
-
-      {/* Relatório de Etapa Finalizado — exibido inline */}
-      {relatorioFinalizado && (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-semibold text-foreground">
-                  Relatório de Etapa — {NIVEL_FORMATIVO_LABELS[relatorioFinalizado.nivelFormativo]}
-                </span>
-              </div>
-              <span className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border",
-                STATUS_RELATORIO_CORES[relatorioFinalizado.status]
-              )}>
-                Finalizado
-              </span>
-            </div>
-
-            {/* Avaliação por perspectiva */}
-            {(relatorioFinalizado.avaliacaoHumana || relatorioFinalizado.avaliacaoEspiritual || relatorioFinalizado.avaliacaoComunitaria) && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Avaliação por Perspectiva</p>
-                <div className="flex flex-wrap gap-2">
-                  {(["humana", "espiritual", "comunitaria"] as const).map((p) => {
-                    const nota = p === "humana" ? relatorioFinalizado.avaliacaoHumana
-                      : p === "espiritual" ? relatorioFinalizado.avaliacaoEspiritual
-                      : relatorioFinalizado.avaliacaoComunitaria;
-                    if (!nota) return null;
-                    return (
-                      <div key={p} className="flex items-center gap-1.5">
-                        <span className="text-xs text-muted-foreground">{PERSPECTIV_LABELS[p]}:</span>
-                        <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium", NOTA_ADESAO_CORES[nota])}>
-                          {NOTA_ADESAO_LABELS[nota]}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Narrativa */}
-            {relatorioFinalizado.textoNarrativo && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Narrativa</p>
-                <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                  {relatorioFinalizado.textoNarrativo}
-                </p>
-              </div>
-            )}
-
-            {/* Pontos de fortaleza + Desafios */}
-            {(relatorioFinalizado.pontosForteza || relatorioFinalizado.desafios) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {relatorioFinalizado.pontosForteza && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pontos de Fortaleza</p>
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                      {relatorioFinalizado.pontosForteza}
-                    </p>
-                  </div>
-                )}
-                {relatorioFinalizado.desafios && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Desafios a Trabalhar</p>
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                      {relatorioFinalizado.desafios}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Recomendação */}
-            {relatorioFinalizado.recomendacao && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Recomendação</p>
-                <div className="flex flex-wrap items-start gap-2">
-                  <span className={cn("inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium", RECOMENDACAO_CORES[relatorioFinalizado.recomendacao])}>
-                    {RECOMENDACAO_LABELS[relatorioFinalizado.recomendacao]}
-                  </span>
-                  {relatorioFinalizado.textoRecomendacao && (
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {relatorioFinalizado.textoRecomendacao}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       <Tabs defaultValue="visao-geral">
         <TabsList className="bg-muted/50 h-9">
