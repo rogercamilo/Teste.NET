@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanos, useEtapaLabels, db } from "@/lib/data-store";
+import { useEtapaLabels } from "@/lib/data-store";
+import type { PlanoFormativo } from "@/types";
 import {
   STATUS_PLANO_LABELS,
   type StatusPlano,
@@ -82,33 +83,34 @@ function makeRetiro(tipo: "comunitario" | "pessoal", numero: number, planoId = "
   };
 }
 
-export default function PlanoFormPage({ id }: { id?: string }) {
+interface PlanoFormPageProps {
+  id?: string;
+  initialPlano?: PlanoFormativo;
+}
+
+export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) {
   const router = useRouter();
-  const [planos] = usePlanos();
   const etapaLabels = useEtapaLabels();
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [documentoFile, setDocumentoFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
-  const initialized = useRef(false);
   const isEditing = !!id;
 
-  useEffect(() => {
-    if (!id || initialized.current) return;
-    const p = planos.find((x) => x.id === id);
-    if (!p) return;
-    setForm({
-      nome: p.nome,
-      objetivos: p.objetivos,
-      fundamentacao: p.fundamentacao,
-      nivelFormativo: p.nivelFormativo,
-      status: p.status,
-      eixos: p.eixos,
-      retiros: p.retiros ?? [],
-      documentoNome: p.documentoAnexo ?? "",
-      documentoId: p.documentoAnexoId ?? "",
-    });
-    initialized.current = true;
-  }, [id, planos]);
+  const [form, setForm] = useState<FormState>(() => {
+    if (initialPlano) {
+      return {
+        nome: initialPlano.nome,
+        objetivos: initialPlano.objetivos,
+        fundamentacao: initialPlano.fundamentacao,
+        nivelFormativo: initialPlano.nivelFormativo,
+        status: initialPlano.status,
+        eixos: initialPlano.eixos,
+        retiros: initialPlano.retiros ?? [],
+        documentoNome: initialPlano.documentoAnexo ?? "",
+        documentoId: initialPlano.documentoAnexoId ?? "",
+      };
+    }
+    return EMPTY_FORM;
+  });
+  const [documentoFile, setDocumentoFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const set = (field: keyof Omit<FormState, "eixos" | "retiros">) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -199,7 +201,7 @@ export default function PlanoFormPage({ id }: { id?: string }) {
 
       if (isEditing && id) {
         // EDIT: entity already exists — upload document first, then PUT
-        const original = planos.find((p) => p.id === id);
+        const original = initialPlano;
         let documentoAnexo = form.documentoNome || undefined;
         let documentoAnexoId = form.documentoId || undefined;
 
@@ -235,10 +237,9 @@ export default function PlanoFormPage({ id }: { id?: string }) {
           toast.error((err as { error?: string }).error || "Erro ao atualizar plano");
           return;
         }
-        const updated = await res.json();
-        db.planos.save(db.planos.load().map((p) => (p.id === id ? updated : p)));
         toast.success("Plano atualizado com sucesso!");
         router.push(`/planos/${id}`);
+        router.refresh();
       } else {
         // CREATE: create plan first to get real ID, then upload document
         const createRes = await fetch("/api/planos", {
@@ -262,8 +263,8 @@ export default function PlanoFormPage({ id }: { id?: string }) {
           if (!uploadRes.ok) {
             // Plan created but document failed — navigate anyway, user can add later
             toast.warning(`Plano criado, mas o documento não pôde ser anexado: ${await uploadRes.text()}`);
-            db.planos.save([...db.planos.load(), created]);
             router.push("/planos");
+            router.refresh();
             return;
           }
           const uploaded = await uploadRes.json() as { id: string; nome: string };
@@ -276,9 +277,9 @@ export default function PlanoFormPage({ id }: { id?: string }) {
           if (updateRes.ok) created = await updateRes.json();
         }
 
-        db.planos.save([...db.planos.load(), created]);
         toast.success("Plano criado com sucesso!");
         router.push("/planos");
+        router.refresh();
       }
     } catch {
       toast.error("Falha de rede. Verifique sua conexão e tente novamente.");
@@ -287,7 +288,7 @@ export default function PlanoFormPage({ id }: { id?: string }) {
     }
   }
 
-  const conflito = planos.find((p) => p.nivelFormativo === form.nivelFormativo && p.id !== id);
+  const conflito = undefined; // conflito de nível verificado no servidor
   const retirosComunitarios = form.retiros.filter((r) => r.tipo === "comunitario");
   const retirosPessoais = form.retiros.filter((r) => r.tipo === "pessoal");
 
@@ -330,11 +331,6 @@ export default function PlanoFormPage({ id }: { id?: string }) {
                   ))}
                 </SelectContent>
               </Select>
-              {conflito && (
-                <p className="text-xs text-amber-600">
-                  Já existe um plano para esta etapa: <span className="font-medium">{conflito.nome}</span>
-                </p>
-              )}
             </div>
 
             <div className="grid gap-1.5">

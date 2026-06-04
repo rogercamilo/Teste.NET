@@ -1,5 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { toGrupoFormacao } from "@/lib/converters";
 import ConfiguracoesClient from "./ConfiguracoesClient";
 
 export default async function ConfiguracoesPage() {
@@ -9,9 +11,17 @@ export default async function ConfiguracoesPage() {
     name?: string | null;
     email?: string | null;
     role?: string;
+    organizacaoId?: string;
   };
 
   if (!sessionUser) redirect("/dashboard");
+
+  const gruposFormacao = sessionUser.organizacaoId
+    ? await prisma.grupoFormacao.findMany({
+        where: { organizacaoId: sessionUser.organizacaoId },
+        orderBy: { nome: "asc" },
+      })
+    : [];
 
   return (
     <ConfiguracoesClient
@@ -19,6 +29,7 @@ export default async function ConfiguracoesPage() {
       userName={sessionUser.name ?? "Usuário"}
       userEmail={sessionUser.email ?? ""}
       userRole={sessionUser.role ?? "formador_comunitario"}
+      initialGruposFormacao={gruposFormacao.map(toGrupoFormacao)}
     />
   );
 }

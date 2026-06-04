@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useFormacoes, useGrades, usePlanos, useEtapaLabels, useUsuarios } from "@/lib/data-store";
+import { useEtapaLabels } from "@/lib/data-store";
+import type { PlanoFormativo, GradeFormativa, Usuario, Formacao as FormacaoType } from "@/types";
 import {
   MODALIDADE_LABELS,
   TIPO_FORMACAO_LABELS,
@@ -63,19 +64,53 @@ const EMPTY_FORM: FormState = {
   documentoId: "",
 };
 
-export default function FormacaoFormPage({ id }: { id?: string }) {
+interface FormacaoFormPageProps {
+  id?: string;
+  initialFormacao?: FormacaoType;
+  initialGrades?: GradeFormativa[];
+  initialPlanos?: PlanoFormativo[];
+  initialUsuarios?: Usuario[];
+}
+
+export default function FormacaoFormPage({
+  id,
+  initialFormacao,
+  initialGrades = [],
+  initialPlanos = [],
+  initialUsuarios = [],
+}: FormacaoFormPageProps) {
   const router = useRouter();
-  const [formacoes, setFormacoes] = useFormacoes();
-  const [allGrades] = useGrades();
-  const [allPlanos] = usePlanos();
-  const [allUsuarios] = useUsuarios();
-  const formadores = allUsuarios.filter((u) => u.ativo);
+  const allGrades = initialGrades;
+  const allPlanos = initialPlanos;
+  const formadores = initialUsuarios.filter((u) => u.ativo);
   const etapaLabels = useEtapaLabels();
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const isEditing = !!id;
+
+  const [form, setForm] = useState<FormState>(() => {
+    if (initialFormacao) {
+      return {
+        tema: initialFormacao.tema,
+        objetivo: initialFormacao.objetivo,
+        descricao: initialFormacao.descricao,
+        nivelFormativo: initialFormacao.nivelFormativo,
+        tipoFormacao: initialFormacao.tipoFormacao,
+        formadorId: initialFormacao.formadorId,
+        cargaHoraria: String(initialFormacao.cargaHoraria),
+        modalidade: initialFormacao.modalidade,
+        gradeId: initialFormacao.gradeId ?? "",
+        eixoId: initialFormacao.eixoId ?? "",
+        eixoNome: initialFormacao.eixoNome ?? "",
+        numero: initialFormacao.numero ? String(initialFormacao.numero) : "",
+        observacoesFormador: initialFormacao.observacoesFormador ?? "",
+        materialApoio: initialFormacao.materialApoio ?? "",
+        documentoNome: initialFormacao.documentoAnexo ?? "",
+        documentoId: initialFormacao.documentoAnexoId ?? "",
+      };
+    }
+    return EMPTY_FORM;
+  });
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
-  const initialized = useRef(false);
-  const isEditing = !!id;
 
   // Eixos da grade selecionada, com nomeEtapa resolvido
   const gradeAtual = allGrades.find((g) => g.id === form.gradeId);
@@ -85,49 +120,17 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
     return { id: e.id, nome: e.nome, label: ep?.nomeEtapa ?? e.nome };
   }) ?? [];
 
-  // Próximo número disponível na grade
-  const proximoNumeroNaGrade = form.gradeId
-    ? Math.max(0, ...formacoes.filter((f) => f.gradeId === form.gradeId).map((f) => f.numero ?? 0)) + 1
-    : undefined;
-
-  useEffect(() => {
-    if (!id || initialized.current) return;
-    const f = formacoes.find((x) => x.id === id);
-    if (!f) return;
-    setForm({
-      tema: f.tema,
-      objetivo: f.objetivo,
-      descricao: f.descricao,
-      nivelFormativo: f.nivelFormativo,
-      tipoFormacao: f.tipoFormacao,
-      formadorId: f.formadorId,
-      cargaHoraria: String(f.cargaHoraria),
-      modalidade: f.modalidade,
-      gradeId: f.gradeId ?? "",
-      eixoId: f.eixoId ?? "",
-      eixoNome: f.eixoNome ?? "",
-      numero: f.numero ? String(f.numero) : "",
-      observacoesFormador: f.observacoesFormador ?? "",
-      materialApoio: f.materialApoio ?? "",
-      documentoNome: f.documentoAnexo ?? "",
-      documentoId: f.documentoAnexoId ?? "",
-    });
-    initialized.current = true;
-  }, [id, formacoes]);
-
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   function handleGradeChange(gradeId: string) {
     const grade = allGrades.find((g) => g.id === gradeId);
-    const nextNum =
-      Math.max(0, ...formacoes.filter((f) => f.gradeId === gradeId).map((f) => f.numero ?? 0)) + 1;
     setForm((prev) => ({
       ...prev,
       gradeId,
       eixoId: "",
       eixoNome: "",
-      numero: String(nextNum),
+      numero: prev.numero || "1",
       nivelFormativo: (grade?.nivelFormativo as NivelFormativo) ?? prev.nivelFormativo,
     }));
   }
@@ -159,9 +162,7 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
     setSaving(true);
     try {
       const formador = formadores.find((u) => u.id === form.formadorId);
-      const today = new Date().toISOString().split("T")[0];
-      const entId = id ?? `fm${Date.now()}`;
-      const existing = isEditing ? formacoes.find((f) => f.id === id) : undefined;
+      const entId = id ?? "new";
 
       let documentoAnexo = form.documentoNome || undefined;
       let documentoAnexoId = form.documentoId || undefined;
@@ -172,27 +173,21 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
         fd.append("entityType", "formacao");
         fd.append("entityId", entId);
         const res = await fetch("/api/arquivos", { method: "POST", body: fd });
-        if (!res.ok) {
-          toast.error(`Erro ao enviar documento: ${await res.text()}`);
-          return;
-        }
+        if (!res.ok) { toast.error(`Erro ao enviar documento: ${await res.text()}`); return; }
         const uploaded = await res.json() as { id: string; nome: string };
-        if (existing?.documentoAnexoId) {
-          fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+        if (initialFormacao?.documentoAnexoId) {
+          fetch(`/api/arquivos/${initialFormacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
         }
         documentoAnexo = uploaded.nome;
         documentoAnexoId = uploaded.id;
-      } else if (!form.documentoNome && existing?.documentoAnexoId) {
-        fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+      } else if (!form.documentoNome && initialFormacao?.documentoAnexoId) {
+        fetch(`/api/arquivos/${initialFormacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
         documentoAnexo = undefined;
         documentoAnexoId = undefined;
       }
 
       const gradeVinculada = allGrades.find((g) => g.id === form.gradeId);
-      const numeroFinal = form.numero ? Number(form.numero) : undefined;
-
-      const payload: Formacao = {
-        id: entId,
+      const payload = {
         tema: form.tema.trim(),
         objetivo: form.objetivo.trim(),
         descricao: form.descricao.trim(),
@@ -206,24 +201,31 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
         gradeNome: gradeVinculada?.nome || undefined,
         eixoId: form.eixoId || undefined,
         eixoNome: form.eixoNome.trim() || undefined,
-        numero: numeroFinal,
+        numero: form.numero ? Number(form.numero) : undefined,
         observacoesFormador: form.observacoesFormador.trim() || undefined,
         materialApoio: form.materialApoio.trim() || undefined,
         documentoAnexo,
         documentoAnexoId,
-        vezesUtilizada: existing?.vezesUtilizada ?? 0,
-        criadoEm: existing?.criadoEm ?? today,
       };
 
-      if (isEditing && id) {
-        await setFormacoes((prev) => prev.map((f) => (f.id === id ? payload : f)));
-        toast.success("Formação atualizada com sucesso!");
-        router.push(`/formacoes/${id}`);
-      } else {
-        await setFormacoes((prev) => [...prev, payload]);
-        toast.success("Formação criada com sucesso!");
-        router.push("/formacoes");
+      const res = await fetch(
+        isEditing && id ? `/api/formacoes/${id}` : "/api/formacoes",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? "Falha ao salvar formação");
       }
+      const saved = await res.json() as { id: string };
+      toast.success(isEditing ? "Formação atualizada com sucesso!" : "Formação criada com sucesso!");
+      router.push(isEditing ? `/formacoes/${id}` : `/formacoes/${saved.id}`);
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
       setSaving(false);
     }
@@ -378,18 +380,13 @@ export default function FormacaoFormPage({ id }: { id?: string }) {
                 )}
               </div>
               <div className="grid gap-1.5">
-                <Label>
-                  N° na grade
-                  {proximoNumeroNaGrade !== undefined && !form.numero && (
-                    <span className="ml-1 text-xs text-muted-foreground">(próximo: {proximoNumeroNaGrade})</span>
-                  )}
-                </Label>
+                <Label>N° na grade</Label>
                 <Input
                   type="number"
                   min="1"
                   value={form.numero}
                   onChange={(e) => set("numero")(e.target.value)}
-                  placeholder={proximoNumeroNaGrade !== undefined ? String(proximoNumeroNaGrade) : "—"}
+                  placeholder="—"
                   disabled={!form.gradeId}
                 />
               </div>

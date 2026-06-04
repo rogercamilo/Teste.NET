@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useComunidade, useTermos, useEtapaLabels, useGruposFormacao, db } from "@/lib/data-store";
+import { useComunidade, useTermos, useEtapaLabels, db } from "@/lib/data-store";
+import type { GrupoFormacao } from "@/types";
 import { passwordErrorMessage } from "@/lib/password-validation";
 import type { UserPublic } from "@/lib/users-store";
 import {
@@ -103,6 +104,7 @@ interface ConfiguracoesClientProps {
   userName: string;
   userEmail: string;
   userRole: string;
+  initialGruposFormacao: GrupoFormacao[];
 }
 
 function getInitials(name: string) {
@@ -119,6 +121,7 @@ export default function ConfiguracoesClient({
   userName,
   userEmail,
   userRole,
+  initialGruposFormacao,
 }: ConfiguracoesClientProps) {
   const isGestao = userRole === "administrador" || userRole === "formador_geral";
 
@@ -183,7 +186,7 @@ export default function ConfiguracoesClient({
 
         {isGestao && (
           <TabsContent value="usuarios" className="mt-4">
-            <UsuariosTab currentUserId={userId} />
+            <UsuariosTab currentUserId={userId} initialGruposFormacao={initialGruposFormacao} />
           </TabsContent>
         )}
 
@@ -687,11 +690,11 @@ const EMPTY_USUARIO_FORM: UsuarioForm = {
   gerarSenhaAuto: true,
 };
 
-function UsuariosTab({ currentUserId }: { currentUserId: string }) {
+function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: string; initialGruposFormacao: GrupoFormacao[] }) {
   const etapaLabels = useEtapaLabels();
   const [usuarios, setUsuarios] = useState<UserPublic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [allMoradas] = useGruposFormacao();
+  const allMoradas = initialGruposFormacao;
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);

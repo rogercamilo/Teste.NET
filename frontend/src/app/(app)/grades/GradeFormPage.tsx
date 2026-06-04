@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useGrades, useFormacoes, usePlanos, useUsuarios, useEtapaLabels, db } from "@/lib/data-store";
+import { useEtapaLabels } from "@/lib/data-store";
 import {
   MODALIDADE_LABELS,
   isAdmin,
@@ -11,8 +11,12 @@ import {
   type Eixo,
   type EixoPlano,
   type Formacao,
+  type PlanoFormativo,
+  type Usuario,
   type Modalidade,
 } from "@/types";
+
+type FormacaoType = Formacao;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,31 +115,36 @@ function emptyFormacao(): FormacaoInput {
   };
 }
 
-export default function GradeFormPage({ id, role }: { id?: string; role: string }) {
+interface GradeFormPageProps {
+  id?: string;
+  role: string;
+  initialGrade?: GradeFormativa;
+  initialFormacoes?: FormacaoType[];
+  initialPlanos?: PlanoFormativo[];
+  initialUsuarios?: Usuario[];
+}
+
+export default function GradeFormPage({
+  id,
+  role,
+  initialGrade,
+  initialFormacoes = [],
+  initialPlanos = [],
+  initialUsuarios = [],
+}: GradeFormPageProps) {
   const router = useRouter();
   const canManageFormacoes = isAdmin(role);
 
-  const [grades] = useGrades();
-  const [allFormacoes] = useFormacoes();
-  const [allPlanos] = usePlanos();
-  const [allUsuarios] = useUsuarios();
+  const allFormacoes = initialFormacoes;
+  const allPlanos = initialPlanos;
+  const allUsuarios = initialUsuarios;
   const etapaLabels = useEtapaLabels();
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [eixosComFormacoes, setEixosComFormacoes] = useState<EixoComFormacoes[]>([]);
-  const [documentoFile, setDocumentoFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
-  const formInitialized = useRef(false);
-  const eixosInitialized = useRef(false);
   const isEditing = !!id;
 
-  useEffect(() => {
-    if (!id) return;
-    const g = grades.find((x) => x.id === id);
-    if (!g) return;
-
-    // Inicializar formulário — só na primeira vez
-    if (!formInitialized.current) {
-      setForm({
+  const [form, setForm] = useState<FormState>(() => {
+    const g = initialGrade;
+    if (g) {
+      return {
         nome: g.nome,
         planoId: g.planoId,
         nivelFormativo: g.nivelFormativo,
@@ -147,41 +156,38 @@ export default function GradeFormPage({ id, role }: { id?: string; role: string 
         fundamentacao: g.fundamentacao ?? "",
         documentoNome: g.documentoAnexo ?? "",
         documentoId: g.documentoAnexoId ?? "",
-      });
-      formInitialized.current = true;
+      };
     }
+    return EMPTY_FORM;
+  });
 
-    // Inicializar eixos — aguarda planos carregarem (pode vir depois do grade)
-    if (canManageFormacoes && !eixosInitialized.current && allPlanos.length > 0) {
-      const plano = allPlanos.find((p) => p.id === g.planoId);
-      if (plano && plano.eixos.length > 0) {
-        const existingFormacoes = allFormacoes.filter((f) => f.gradeId === id);
-        setEixosComFormacoes(
-          plano.eixos.map((ep) => ({
-            eixoPlano: ep,
-            formacoes: existingFormacoes
-              .filter((f) => f.eixoNome === ep.nome)
-              .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999))
-              .map((f) => ({
-                tempId: f.id,
-                tema: f.tema,
-                objetivo: f.objetivo,
-                descricao: f.descricao,
-                formadorId: f.formadorId,
-                cargaHoraria: String(f.cargaHoraria),
-                modalidade: f.modalidade,
-                observacoesFormador: f.observacoesFormador ?? "",
-              })),
-            expanded: true,
-          }))
-        );
-      }
-      eixosInitialized.current = true;
-    } else if (!canManageFormacoes) {
-      eixosInitialized.current = true;
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, grades, allPlanos, allFormacoes]);
+  const [eixosComFormacoes, setEixosComFormacoes] = useState<EixoComFormacoes[]>(() => {
+    const g = initialGrade;
+    if (!g || !canManageFormacoes) return [];
+    const plano = initialPlanos.find((p) => p.id === g.planoId);
+    if (!plano || plano.eixos.length === 0) return [];
+    const existingFormacoes = initialFormacoes.filter((f) => f.gradeId === id);
+    return plano.eixos.map((ep) => ({
+      eixoPlano: ep,
+      formacoes: existingFormacoes
+        .filter((f) => f.eixoNome === ep.nome)
+        .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999))
+        .map((f) => ({
+          tempId: f.id,
+          tema: f.tema,
+          objetivo: f.objetivo,
+          descricao: f.descricao,
+          formadorId: f.formadorId,
+          cargaHoraria: String(f.cargaHoraria),
+          modalidade: f.modalidade,
+          observacoesFormador: f.observacoesFormador ?? "",
+        })),
+      expanded: true,
+    }));
+  });
+
+  const [documentoFile, setDocumentoFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -345,7 +351,7 @@ export default function GradeFormPage({ id, role }: { id?: string; role: string 
 
       if (isEditing && id) {
         // ── EDIÇÃO ──────────────────────────────────────────────────────
-        const existing = grades.find((g) => g.id === id);
+        const existing = initialGrade;
         let documentoAnexo = form.documentoNome || undefined;
         let documentoAnexoId = form.documentoId || undefined;
 
@@ -392,15 +398,12 @@ export default function GradeFormPage({ id, role }: { id?: string; role: string 
             )
           );
           const novas = await criarFormacoes(id, updated.eixos);
-          db.formacoes.save([
-            ...db.formacoes.load().filter((f) => f.gradeId !== id),
-            ...novas,
-          ]);
+          void novas;
         }
 
-        db.grades.save(db.grades.load().map((g) => (g.id === id ? updated : g)));
         toast.success("Grade atualizada com sucesso!");
         router.push(`/grades/${id}`);
+        router.refresh();
       } else {
         // ── CRIAÇÃO ─────────────────────────────────────────────────────
         const createRes = await fetch("/api/grades", {
@@ -417,7 +420,7 @@ export default function GradeFormPage({ id, role }: { id?: string; role: string 
 
         if (canManageFormacoes && eixosComFormacoes.length > 0) {
           const novas = await criarFormacoes(created.id, created.eixos);
-          db.formacoes.save([...db.formacoes.load(), ...novas]);
+          void novas;
         }
 
         if (documentoFile) {
@@ -439,9 +442,9 @@ export default function GradeFormPage({ id, role }: { id?: string; role: string 
           }
         }
 
-        db.grades.save([...db.grades.load(), created]);
         toast.success("Grade criada com sucesso!");
         router.push("/grades");
+        router.refresh();
       }
     } catch {
       toast.error("Falha de rede. Verifique sua conexão e tente novamente.");

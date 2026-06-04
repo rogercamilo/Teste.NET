@@ -1,8 +1,9 @@
 ﻿"use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
-import { usePresencas, useComentarios, useFormandos, useGruposFormacao, usePlanos, useGrades, useUsuarios, useAgendamentos, useComunidade, useEtapaLabels, db } from "@/lib/data-store";
+import { useComunidade, useEtapaLabels } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   MODALIDADE_LABELS,
@@ -19,6 +20,10 @@ import {
   type ComentarioFormando,
   type TipoComentario,
   type RelatorioEtapa,
+  type PlanoFormativo,
+  type GradeFormativa,
+  type Usuario,
+  type Agendamento,
   NIVEL_FORMATIVO_LABELS,
   STATUS_RELATORIO_CORES,
   NOTA_ADESAO_LABELS,
@@ -93,6 +98,15 @@ interface GrupoFormacaoDetailProps {
   id: string;
   userRole: string;
   userId: string;
+  initialGrupoFormacao: GrupoFormacao;
+  initialFormandos: Formando[];
+  initialAgendamentos: Agendamento[];
+  initialPresencas: PresencaFormacao[];
+  initialComentarios: ComentarioFormando[];
+  initialPlanos: PlanoFormativo[];
+  initialGrades: GradeFormativa[];
+  initialUsuarios: Usuario[];
+  initialRelatorios: RelatorioEtapa[];
 }
 
 const NIVEL_ICONS: Record<string, string> = {
@@ -144,62 +158,55 @@ const EMPTY_FORMANDO_FORM: FormandoFormState = {
   email: "",
 };
 
-export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoFormacaoDetailProps) {
+export default function GrupoFormacaoDetail({
+  id,
+  userRole,
+  userId,
+  initialGrupoFormacao,
+  initialFormandos,
+  initialAgendamentos,
+  initialPresencas,
+  initialComentarios,
+  initialPlanos,
+  initialGrades,
+  initialUsuarios,
+  initialRelatorios,
+}: GrupoFormacaoDetailProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const isAdmin = userRole === "administrador";
   const isFC = userRole === "formador_comunitario";
 
-  const [allGruposFormacao] = useGruposFormacao();
-  const [allPlanos] = usePlanos();
-  const [allGrades] = useGrades();
-  const [allUsuarios] = useUsuarios();
-  const [grupoFormacao, setGrupoFormacao] = useState<GrupoFormacao | undefined>(undefined);
-  const [allFormandos, setAllFormandos] = useFormandos();
-  const [allAgendamentos] = useAgendamentos();
+  const allPlanos = initialPlanos;
+  const allGrades = initialGrades;
+  const allUsuarios = initialUsuarios;
+  const allAgendamentos = initialAgendamentos;
+
+  const [grupoFormacao, setGrupoFormacao] = useState<GrupoFormacao>(initialGrupoFormacao);
+  const [allFormandos, setAllFormandos] = useState<Formando[]>(initialFormandos);
+  const [presencas, setPresencas] = useState<PresencaFormacao[]>(initialPresencas);
+  const [comentarios, setComentarios] = useState<ComentarioFormando[]>(initialComentarios);
+  const [relatorios, setRelatorios] = useState<RelatorioEtapa[]>(initialRelatorios);
+
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação";
   const etapaLabels = useEtapaLabels();
 
-  // Inicializa o grupo de formação a partir do cache reativo (não substitui edições locais)
-  useEffect(() => {
-    if (!grupoFormacao && allGruposFormacao.length > 0) {
-      setGrupoFormacao(allGruposFormacao.find((m) => m.id === id));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allGruposFormacao, id]);
-
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ nome: "", localReuniao: "" });
 
   const [agendamentoId, setAgendamentoId] = useState<string>("");
-  const [presencas, setPresencas] = usePresencas();
-
-  const [comentarios, setComentarios] = useComentarios();
   const [comentarioOpen, setComentarioOpen] = useState(false);
   const [novoFormandoId, setNovoFormandoId] = useState("");
   const [novoTipo, setNovoTipo] = useState<TipoComentario>("observacao");
   const [novoTexto, setNovoTexto] = useState("");
 
   // Relatórios state
-  const [relatorios, setRelatorios] = useState<RelatorioEtapa[]>([]);
-  const [relatoriosLoaded, setRelatoriosLoaded] = useState(false);
   const [relatorioDialogOpen, setRelatorioDialogOpen] = useState(false);
   const [relatorioFormando, setRelatorioFormando] = useState<Formando | null>(null);
   const [relatorioSelecionado, setRelatorioSelecionado] = useState<RelatorioEtapa | null>(null);
   const [expandedRelatorioId, setExpandedRelatorioId] = useState<string | null>(null);
-
-  async function loadRelatorios() {
-    if (relatoriosLoaded) return;
-    try {
-      const res = await fetch(`/api/relatorios?grupoFormacaoId=${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setRelatorios(data);
-      }
-    } finally {
-      setRelatoriosLoaded(true);
-    }
-  }
 
   function abrirRelatorio(formando: Formando) {
     const rel = relatorios.find(
@@ -244,17 +251,6 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
   const [imagemDialogOpen, setImagemDialogOpen] = useState(false);
   const [imagemLoading, setImagemLoading] = useState(false);
 
-  if (!grupoFormacao) {
-    return (
-      <div className="flex flex-col items-center py-20">
-        <p className="text-muted-foreground">{termoGrupoFormacao} não encontrada.</p>
-        <Link href="/grupos-formacao" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-4")}>
-          Voltar
-        </Link>
-      </div>
-    );
-  }
-
   const formador = allUsuarios.find((u) => u.id === grupoFormacao.formadorId);
   const plano = allPlanos.find((p) => p.id === grupoFormacao.planoId);
   const grade = allGrades.find((g) => g.id === grupoFormacao.gradeId);
@@ -297,6 +293,8 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
   }
 
   function togglePresenca(formandoId: string, formandoNome: string) {
+    const newPresente = !getPresenca(formandoId);
+    // Optimistic local update for instant feedback
     setPresencas((prev) => {
       const existente = prev.find(
         (p) => p.agendamentoId === agendamentoId && p.formandoId === formandoId
@@ -304,7 +302,7 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
       if (existente) {
         return prev.map((p) =>
           p.agendamentoId === agendamentoId && p.formandoId === formandoId
-            ? { ...p, presente: !p.presente }
+            ? { ...p, presente: newPresente }
             : p
         );
       }
@@ -319,10 +317,22 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
           formandoId,
           formandoNome,
           nivelFormativo: formando?.nivelFormativo ?? "pre-discipulado",
-          presente: true,
+          presente: newPresente,
         },
       ];
     });
+    // Persist to server silently (upsert)
+    fetch("/api/presencas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agendamentoId,
+        formandoId,
+        presente: newPresente,
+        formacaoTema: agendamento?.formacaoTema ?? "",
+        data: agendamento?.dataInicio.split("T")[0] ?? "",
+      }),
+    }).catch(() => {});
   }
 
   function calcPresencaFormando(formandoId: string) {
@@ -349,32 +359,27 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
     if (!res.ok) return toast.error("Erro ao salvar. Tente novamente.");
     const updated = await res.json();
     setGrupoFormacao(updated);
-    db.gruposFormacao.save(allGruposFormacao.map((m) => (m.id === updated.id ? updated : m)));
     setEditOpen(false);
-    toast.success(`${termoGrupoFormacao} atualizada!`);
+    toast.success(`${termoGrupoFormacao} atualizado!`);
+    startTransition(() => router.refresh());
   }
 
   function handleSalvarPresenca() {
     toast.success("Lista de presença salva com sucesso!");
   }
 
-  function handleSalvarComentario() {
-    if (!grupoFormacao) return;
+  async function handleSalvarComentario() {
     if (!novoFormandoId || !novoTexto.trim()) return;
     const formando = allFormandos.find((f) => f.id === novoFormandoId);
     if (!formando) return;
-    setComentarios((prev) => [
-      {
-        id: `c-${Date.now()}`,
-        formandoId: novoFormandoId,
-        formandoNome: formando.nome,
-        formadorId: userId,
-        texto: novoTexto.trim(),
-        tipo: novoTipo,
-        criadoEm: new Date().toISOString().split("T")[0],
-      },
-      ...prev,
-    ]);
+    const res = await fetch("/api/comentarios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formandoId: novoFormandoId, texto: novoTexto.trim(), tipo: novoTipo }),
+    });
+    if (!res.ok) { toast.error("Erro ao registrar comentário."); return; }
+    const created = await res.json() as ComentarioFormando;
+    setComentarios((prev) => [created, ...prev]);
     setComentarioOpen(false);
     setNovoFormandoId("");
     setNovoTexto("");
@@ -412,25 +417,14 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
     setDeleteFormandoOpen(true);
   }
 
-  function handleSaveFormando() {
+  async function handleSaveFormando() {
     if (!formandoForm.nome.trim()) return toast.error("Nome é obrigatório.");
     if (!formandoForm.email.trim()) return toast.error("E-mail é obrigatório.");
     if (!formandoForm.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
     if (!formandoForm.dataIngresso) return toast.error("Data de ingresso é obrigatória.");
 
-    const nivelFormativo: NivelFormativo = grupoFormacao!.nivelFormativo ?? "pre-discipulado";
-    const progressoEtapas: ProgressoEtapa[] = editingFormando?.progressoEtapas ?? [
-      {
-        nivel: nivelFormativo,
-        formacoesComunitariasRealizadas: 0,
-        retirosComunitariosRealizados: 0,
-        retirosPessoaisRealizados: 0,
-        iniciouEm: formandoForm.dataIngresso,
-      },
-    ];
-
-    const payload: Formando = {
-      id: editingFormando?.id ?? `f${Date.now()}`,
+    const nivelFormativo: NivelFormativo = grupoFormacao.nivelFormativo ?? "pre-discipulado";
+    const payload = {
       nome: formandoForm.nome.trim(),
       dataNascimento: formandoForm.dataNascimento,
       estadoCivil: formandoForm.estadoCivil,
@@ -439,29 +433,43 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
       dataIngresso: formandoForm.dataIngresso,
       telefone: formandoForm.telefone.trim(),
       email: formandoForm.email.trim(),
-      ativo: editingFormando?.ativo ?? true,
-      grupoFormacaoId: grupoFormacao!.id,
-      totalFormacoes: editingFormando?.totalFormacoes ?? totalRequerido(nivelFormativo),
-      formacoesRealizadas: editingFormando?.formacoesRealizadas ?? 0,
-      progressoEtapas,
+      grupoFormacaoId: grupoFormacao.id,
+      progressoEtapas: editingFormando?.progressoEtapas ?? [
+        {
+          nivel: nivelFormativo,
+          formacoesComunitariasRealizadas: 0,
+          retirosComunitariosRealizados: 0,
+          retirosPessoaisRealizados: 0,
+          iniciouEm: formandoForm.dataIngresso,
+        },
+      ],
     };
 
-    if (editingFormando) {
-      setAllFormandos((prev) => prev.map((f) => (f.id === editingFormando.id ? payload : f)));
-      toast.success(`${termoFormando} atualizado com sucesso!`);
-    } else {
-      setAllFormandos((prev) => [...prev, payload]);
-      toast.success(`${termoFormando} criado com sucesso!`);
+    const url = editingFormando ? `/api/formandos/${editingFormando.id}` : "/api/formandos";
+    const method = editingFormando ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as { error?: string };
+      return toast.error(err.error ?? "Erro ao salvar formando.");
     }
+    toast.success(editingFormando ? `${termoFormando} atualizado!` : `${termoFormando} criado!`);
     setFormDialogOpen(false);
+    startTransition(() => router.refresh());
   }
 
-  function handleDeleteFormando() {
+  async function handleDeleteFormando() {
     if (!editingFormando) return;
-    setAllFormandos((prev) => prev.filter((f) => f.id !== editingFormando.id));
+    const res = await fetch(`/api/formandos/${editingFormando.id}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Erro ao excluir formando."); return; }
     setDeleteFormandoOpen(false);
     setEditingFormando(null);
     toast.success(`${termoFormando} excluído.`);
+    startTransition(() => router.refresh());
   }
 
   // Encerrar Etapa Formativa
@@ -481,9 +489,9 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
     }
     const updated = await res.json();
     setGrupoFormacao(updated);
-    db.gruposFormacao.save(allGruposFormacao.map((m) => (m.id === updated.id ? updated : m)));
     setEncerrarOpen(false);
     toast.success("Etapa encerrada com sucesso!");
+    startTransition(() => router.refresh());
   }
 
   // Nova Etapa Formativa
@@ -511,9 +519,9 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
     }
     const updated = await res.json();
     setGrupoFormacao(updated);
-    db.gruposFormacao.save(allGruposFormacao.map((m) => (m.id === updated.id ? updated : m)));
     setNovaEtapaOpen(false);
     toast.success("Nova etapa formativa iniciada!");
+    startTransition(() => router.refresh());
   }
 
   // Datas da Etapa Atual
@@ -541,6 +549,7 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
     }
     setDatasEtapaOpen(false);
     toast.success("Datas da etapa registradas para todos os formandos.");
+    startTransition(() => router.refresh());
   }
 
   async function salvarImagem(imagemUrl: string | null) {
@@ -558,8 +567,8 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
     }
     const updated = await res.json();
     setGrupoFormacao(updated);
-    db.gruposFormacao.save(allGruposFormacao.map((m) => (m.id === updated.id ? updated : m)));
     toast.success(imagemUrl ? "Imagem atualizada!" : "Imagem removida.");
+    startTransition(() => router.refresh());
   }
 
   const presentes = formandosDaMorada.filter((f) => getPresenca(f.id)).length;
@@ -712,7 +721,7 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
             <MessageSquare className="h-3.5 w-3.5" />
             Comentários
           </TabsTrigger>
-          <TabsTrigger value="relatorios" className="text-xs h-7 gap-1.5" onClick={loadRelatorios}>
+          <TabsTrigger value="relatorios" className="text-xs h-7 gap-1.5">
             <FileText className="h-3.5 w-3.5" />
             Relatórios
           </TabsTrigger>
@@ -1182,9 +1191,7 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
 
         {/* TAB RELATÓRIOS */}
         <TabsContent value="relatorios" className="mt-4 space-y-3">
-          {!relatoriosLoaded ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Carregando relatórios...</p>
-          ) : formandosDaMorada.length === 0 ? (
+          {formandosDaMorada.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">Nenhum {termoFormando.toLowerCase()} nesta {termoGrupoFormacao.toLowerCase()}.</p>

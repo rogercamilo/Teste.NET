@@ -2,13 +2,15 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useGruposFormacao, usePlanos, useGrades, useComunidade, useEtapaLabels, useUsuarios } from "@/lib/data-store";
+import { useComunidade, useEtapaLabels } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   TIPO_GRUPO_FORMACAO_LABELS,
-  type GrupoFormacao,
+  type PlanoFormativo,
+  type GradeFormativa,
   type NivelFormativo,
   type TipoGrupoFormacao,
+  type Usuario,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -61,17 +63,25 @@ type FormState = {
   vigenciaFim: string;
 };
 
-export default function GrupoFormacaoFormPage() {
+interface GrupoFormacaoFormPageProps {
+  initialPlanos?: PlanoFormativo[];
+  initialGrades?: GradeFormativa[];
+  initialUsuarios?: Usuario[];
+}
+
+export default function GrupoFormacaoFormPage({
+  initialPlanos = [],
+  initialGrades = [],
+  initialUsuarios = [],
+}: GrupoFormacaoFormPageProps) {
   const router = useRouter();
-  const [, setMoradas] = useGruposFormacao();
   const [comunidade] = useComunidade();
   const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação";
   const tipoOrg = comunidade.tipoOrganizacao ?? "nova_comunidade";
   const etapaLabels = useEtapaLabels();
-  const [allPlanos] = usePlanos();
-  const [allGrades] = useGrades();
-  const [allUsuarios] = useUsuarios();
-  const formadores = allUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
+  const allPlanos = initialPlanos;
+  const allGrades = initialGrades;
+  const formadores = initialUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
   const [form, setForm] = useState<FormState>(() => ({
     nome: "",
     tipo: tipoOrg === "nova_comunidade" ? "estruturado" : "livre",
@@ -131,18 +141,12 @@ export default function GrupoFormacaoFormPage() {
 
   async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório.");
-    if (
-      form.vigenciaFim &&
-      form.vigenciaInicio &&
-      form.vigenciaFim <= form.vigenciaInicio
-    )
+    if (form.vigenciaFim && form.vigenciaInicio && form.vigenciaFim <= form.vigenciaInicio)
       return toast.error("Data de término deve ser posterior à data de início.");
 
     setSaving(true);
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const payload: GrupoFormacao = {
-        id: `m${Date.now()}`,
+      const payload = {
         nome: form.nome.trim(),
         tipo: form.tipo,
         nivelFormativo: form.tipo === "estruturado" ? form.nivelFormativo : undefined,
@@ -151,17 +155,25 @@ export default function GrupoFormacaoFormPage() {
         gradeId: form.gradeId || undefined,
         vigenciaInicio: form.vigenciaInicio || undefined,
         vigenciaFim: form.vigenciaFim || undefined,
-        ativo: hasFormador,
-        criadoEm: today,
       };
-
-      await setMoradas((prev) => [...prev, payload]);
+      const res = await fetch("/api/grupos-formacao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error ?? "Falha ao criar grupo de formação");
+      }
       toast.success(
         hasFormador
           ? `${termoGrupoFormacao} criado com sucesso!`
           : `${termoGrupoFormacao} criado como inativo (sem formador responsável).`
       );
       router.push("/grupos-formacao");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
       setSaving(false);
     }
