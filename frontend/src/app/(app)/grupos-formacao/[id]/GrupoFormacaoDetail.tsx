@@ -281,9 +281,11 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
   });
 
   // Compute next etapa options (must follow sequence)
-  const currentNivelIdx = NIVEL_SEQUENCE.indexOf(grupoFormacao.nivelFormativo);
+  const currentNivelIdx = grupoFormacao.nivelFormativo
+    ? NIVEL_SEQUENCE.indexOf(grupoFormacao.nivelFormativo)
+    : -1;
   const nextEtapaOptions: NivelFormativo[] =
-    currentNivelIdx < NIVEL_SEQUENCE.length - 1
+    currentNivelIdx >= 0 && currentNivelIdx < NIVEL_SEQUENCE.length - 1
       ? [NIVEL_SEQUENCE[currentNivelIdx + 1]]
       : ["formacao-permanente"];
 
@@ -416,7 +418,7 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
     if (!formandoForm.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
     if (!formandoForm.dataIngresso) return toast.error("Data de ingresso é obrigatória.");
 
-    const nivelFormativo = grupoFormacao!.nivelFormativo;
+    const nivelFormativo: NivelFormativo = grupoFormacao!.nivelFormativo ?? "pre-discipulado";
     const progressoEtapas: ProgressoEtapa[] = editingFormando?.progressoEtapas ?? [
       {
         nivel: nivelFormativo,
@@ -589,7 +591,7 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={grupoFormacao.imagemUrl} alt={grupoFormacao.nome} className="h-full w-full object-cover" />
               ) : (
-                NIVEL_ICONS[grupoFormacao.nivelFormativo] ?? "🏠"
+                grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"
               )}
               {(isFC || isAdmin) && (
                 <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/imagem:opacity-100 transition-opacity flex items-center justify-center">
@@ -601,9 +603,15 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold text-foreground">{grupoFormacao.nome}</h1>
-              <Badge variant="outline" className={NIVEL_CORES[grupoFormacao.nivelFormativo]}>
-                {etapaLabels[grupoFormacao.nivelFormativo]}
-              </Badge>
+              {grupoFormacao.nivelFormativo ? (
+                <Badge variant="outline" className={NIVEL_CORES[grupoFormacao.nivelFormativo]}>
+                  {etapaLabels[grupoFormacao.nivelFormativo]}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200">
+                  Grupo Livre
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className={grupoFormacao.ativo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500"}
@@ -745,10 +753,10 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{NIVEL_ICONS[grupoFormacao.nivelFormativo] ?? "🏠"}</span>
+                  <span className="text-lg">{grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"}</span>
                   <div>
                     <p className="text-xs font-medium text-foreground">
-                      {etapaLabels[grupoFormacao.nivelFormativo]}
+                      {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}
                     </p>
                     {grupoFormacao.vigenciaInicio && grupoFormacao.vigenciaFim ? (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
@@ -1353,7 +1361,7 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
               <p className="font-medium mb-1">Etapa a encerrar:</p>
-              <p>{NIVEL_ICONS[grupoFormacao.nivelFormativo]} {etapaLabels[grupoFormacao.nivelFormativo]}</p>
+              <p>{grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"} {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}</p>
             </div>
             <p className="text-sm text-muted-foreground">
               Esta ação registará a data de encerramento da etapa atual na {termoGrupoFormacao.toLowerCase()} e em todos os {termoFormando.toLowerCase()}s associados. Após o encerramento, o botão <span className="font-medium text-foreground">Nova Etapa</span> ficará disponível.
@@ -1390,7 +1398,7 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{NIVEL_ICONS[grupoFormacao.nivelFormativo]} {etapaLabels[grupoFormacao.nivelFormativo]}</span></p>
+              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"} {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}</span></p>
               <p className="mt-1">Próxima etapa: <span className="font-medium text-foreground">{NIVEL_ICONS[nextEtapaOptions[0]] ?? ""} {etapaLabels[nextEtapaOptions[0]]}</span></p>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -1599,7 +1607,7 @@ export default function GrupoFormacaoDetail({ id, userRole, userId }: GrupoForma
             </div>
             <div className="grid gap-1.5">
               <Label>Etapa Formativa</Label>
-              <Input value={etapaLabels[grupoFormacao.nivelFormativo]} disabled className="bg-muted/50" />
+              <Input value={grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"} disabled className="bg-muted/50" />
               <p className="text-xs text-muted-foreground">Definida automaticamente pela {termoGrupoFormacao.toLowerCase()}.</p>
             </div>
           </div>

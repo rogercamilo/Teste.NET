@@ -205,7 +205,7 @@ export default function FormandosClient({
     if (!form.dataIngresso) return toast.error("Data de ingresso é obrigatória.");
 
     const grupoFormacao = initialGruposFormacao.find((m) => m.id === form.grupoFormacaoId);
-    const nivelFormativo = grupoFormacao ? grupoFormacao.nivelFormativo : form.nivelFormativo;
+    const nivelFormativo = grupoFormacao?.nivelFormativo ?? form.nivelFormativo;
 
     const progressoEtapas: ProgressoEtapa[] = editing?.progressoEtapas ?? [
       {
@@ -570,7 +570,7 @@ export default function FormandosClient({
                 onValueChange={(v) => {
                   set("grupoFormacaoId")(v ?? "");
                   const m = initialGruposFormacao.find((m) => m.id === v);
-                  if (m) set("nivelFormativo")(m.nivelFormativo);
+                  if (m?.nivelFormativo) set("nivelFormativo")(m.nivelFormativo);
                 }}
               >
                 <SelectTrigger>
@@ -578,7 +578,7 @@ export default function FormandosClient({
                     {(() => {
                       if (!form.grupoFormacaoId) return `Selecione a ${termoGrupoFormacao.toLowerCase()}...`;
                       const m = initialGruposFormacao.find((x) => x.id === form.grupoFormacaoId);
-                      return m ? `${m.nome} — ${etapaLabels[m.nivelFormativo]}` : `Selecione a ${termoGrupoFormacao.toLowerCase()}...`;
+                      return m ? `${m.nome}${m.nivelFormativo ? ` — ${etapaLabels[m.nivelFormativo]}` : ""}` : `Selecione a ${termoGrupoFormacao.toLowerCase()}...`;
                     })()}
                   </SelectValue>
                 </SelectTrigger>
@@ -586,7 +586,7 @@ export default function FormandosClient({
                   <SelectItem value="">Nenhuma</SelectItem>
                   {initialGruposFormacao.filter((m) => m.ativo).map((m) => (
                     <SelectItem key={m.id} value={m.id}>
-                      {m.nome} — {etapaLabels[m.nivelFormativo]}
+                      {m.nome}{m.nivelFormativo ? ` — ${etapaLabels[m.nivelFormativo]}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

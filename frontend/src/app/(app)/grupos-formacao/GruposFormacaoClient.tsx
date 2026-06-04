@@ -129,7 +129,7 @@ export default function GruposFormacaoClient({
     setEditing(m);
     setForm({
       nome: m.nome,
-      nivelFormativo: m.nivelFormativo,
+      nivelFormativo: m.nivelFormativo ?? "pre-discipulado",
       formadorId: m.formadorId ?? "",
       planoId: m.planoId ?? "",
       gradeId: m.gradeId ?? "",
@@ -265,14 +265,20 @@ export default function GruposFormacaoClient({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-xl">
-                      {NIVEL_ICONS[grupoFormacao.nivelFormativo]}
+                      {grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-sm font-semibold text-foreground">{grupoFormacao.nome}</h3>
-                        <Badge variant="outline" className={`text-xs ${NIVEL_CORES[grupoFormacao.nivelFormativo]}`}>
-                          {NIVEL_FORMATIVO_LABELS[grupoFormacao.nivelFormativo]}
-                        </Badge>
+                        {grupoFormacao.nivelFormativo ? (
+                          <Badge variant="outline" className={`text-xs ${NIVEL_CORES[grupoFormacao.nivelFormativo]}`}>
+                            {NIVEL_FORMATIVO_LABELS[grupoFormacao.nivelFormativo]}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs bg-slate-100 text-slate-600 border-slate-200">
+                            Livre
+                          </Badge>
+                        )}
                         {!grupoFormacao.ativo && (
                           <Badge variant="outline" className="text-xs bg-slate-100 text-slate-500">
                             Inativa

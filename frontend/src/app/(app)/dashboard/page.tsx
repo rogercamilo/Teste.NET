@@ -200,7 +200,7 @@ async function getDashboardData(
         prisma.grupoFormacao.findMany({
           where: { organizacaoId, ativo: true },
           select: {
-            id: true, nome: true, nivelFormativo: true, planoId: true, gradeId: true,
+            id: true, nome: true, tipo: true, nivelFormativo: true, planoId: true, gradeId: true,
             vigenciaFim: true,
             formador: { select: { nome: true } },
             _count: { select: { formandos: true } },
@@ -257,7 +257,8 @@ async function getDashboardData(
           : null;
         return {
           id: m.id, nome: m.nome,
-          nivelFormativo: m.nivelFormativo as NivelFormativo,
+          tipo: m.tipo as import("@/types").TipoGrupoFormacao,
+          nivelFormativo: m.nivelFormativo ? m.nivelFormativo as NivelFormativo : undefined,
           totalFormandos: m._count.formandos,
           formandosAtivos: ativosMap.get(m.id) ?? 0,
           temPlano: !!m.planoId,

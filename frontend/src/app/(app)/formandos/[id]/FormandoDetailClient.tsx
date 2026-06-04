@@ -114,7 +114,7 @@ interface Props {
   presencas: import("@/types").PresencaFormacao[];
   agendamentos: import("@/types").Agendamento[];
   morada: import("@/types").GrupoFormacao | null;
-  todasMoradas: { id: string; nome: string; nivelFormativo: string }[];
+  todasMoradas: { id: string; nome: string; nivelFormativo: string | null }[];
   userId: string;
   userName: string;
   userRole: string;

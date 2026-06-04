@@ -664,9 +664,15 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
                     <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                       {m.nome}
                     </p>
-                    <Badge variant="outline" className={`mt-1 text-xs ${NIVEL_CORES[m.nivelFormativo]}`}>
-                      {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
-                    </Badge>
+                    {m.nivelFormativo ? (
+                      <Badge variant="outline" className={`mt-1 text-xs ${NIVEL_CORES[m.nivelFormativo]}`}>
+                        {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="mt-1 text-xs bg-slate-100 text-slate-600 border-slate-200">
+                        Livre
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1 shrink-0">
                     <span className={cn("inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium",
