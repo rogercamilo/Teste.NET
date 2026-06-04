@@ -4,6 +4,14 @@
   | "primeiras-promessas"
   | "formacao-permanente";
 
+export type TipoOrganizacao =
+  | "nova_comunidade"
+  | "grupo_oracao"
+  | "instituto_religioso"
+  | "centro_formativo";
+
+export type TipoGrupoFormacao = "estruturado" | "livre";
+
 export type StatusPlano = "rascunho" | "em-revisao" | "ativo" | "arquivado";
 export type StatusFormacao =
   | "agendada"
@@ -42,7 +50,8 @@ export interface GrupoFormacao {
   id: string;
   nome: string;
   localReuniao?: string;
-  nivelFormativo: NivelFormativo;
+  tipo: TipoGrupoFormacao;
+  nivelFormativo?: NivelFormativo;
   formadorId?: string;
   planoId?: string;
   gradeId?: string;
@@ -247,7 +256,11 @@ export type TipoEventoFormando =
   | "avaliacao-adesao"
   | "solicitacao-desligamento"
   | "desligamento"
-  | "licenca";
+  | "licenca"
+  | "retiro"
+  | "aprofundamento"
+  | "vigilia"
+  | "missao";
 
 export type NotaAdesao = "otima" | "boa" | "regular" | "insuficiente";
 
@@ -361,7 +374,7 @@ export interface DashboardStats {
   gruposFormacaoComGradeExpirada?: number;
   fcsSemGrupoFormacao?: number;
   gruposFormacaoResumo?: {
-    id: string; nome: string; nivelFormativo: NivelFormativo;
+    id: string; nome: string; tipo: TipoGrupoFormacao; nivelFormativo?: NivelFormativo;
     totalFormandos: number; formandosAtivos: number;
     temPlano: boolean; temGrade: boolean; formadorNome?: string;
     taxaPresenca?: number | null;   // últimos 90 dias, null = sem registros
@@ -507,6 +520,10 @@ export const TIPO_EVENTO_LABELS: Record<TipoEventoFormando, string> = {
   "solicitacao-desligamento": "Solicitação de Desligamento",
   desligamento: "Desligamento Compulsório",
   licenca: "Registro de Licença",
+  retiro: "Retiro",
+  aprofundamento: "Aprofundamento",
+  vigilia: "Vigília",
+  missao: "Missão",
 };
 
 export const TIPO_EVENTO_CORES: Record<TipoEventoFormando, string> = {
@@ -514,6 +531,10 @@ export const TIPO_EVENTO_CORES: Record<TipoEventoFormando, string> = {
   "solicitacao-desligamento": "bg-amber-100 text-amber-700",
   desligamento: "bg-red-100 text-red-700",
   licenca: "bg-violet-100 text-violet-700",
+  retiro: "bg-orange-100 text-orange-700",
+  aprofundamento: "bg-teal-100 text-teal-700",
+  vigilia: "bg-indigo-100 text-indigo-700",
+  missao: "bg-rose-100 text-rose-700",
 };
 
 export const NOTA_ADESAO_LABELS: Record<NotaAdesao, string> = {
@@ -598,8 +619,21 @@ export const RECOMENDACAO_CORES: Record<RecomendacaoEtapa, string> = {
   desligamento: "bg-red-100 text-red-700",
 };
 
+export const TIPO_ORGANIZACAO_LABELS: Record<TipoOrganizacao, string> = {
+  nova_comunidade: "Nova Comunidade",
+  grupo_oracao: "Grupo de Oração",
+  instituto_religioso: "Instituto Religioso",
+  centro_formativo: "Centro Formativo",
+};
+
+export const TIPO_GRUPO_FORMACAO_LABELS: Record<TipoGrupoFormacao, string> = {
+  estruturado: "Estruturado",
+  livre: "Livre",
+};
+
 export interface ComunidadeConfig {
   nome: string;
+  tipoOrganizacao?: TipoOrganizacao;
   descricao: string;
   endereco: string;
   missao: string;

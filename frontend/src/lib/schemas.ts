@@ -9,6 +9,15 @@ export const NivelFormativoEnum = z.enum([
   "formacao-permanente",
 ]);
 
+export const TipoOrganizacaoEnum = z.enum([
+  "nova_comunidade",
+  "grupo_oracao",
+  "instituto_religioso",
+  "centro_formativo",
+]);
+
+export const TipoGrupoFormacaoEnum = z.enum(["estruturado", "livre"]);
+
 export const EstadoCivilEnum = z.enum(["solteiro", "casado", "divorciado", "viuvo"]);
 
 export const ModalidadeEnum = z.enum(["presencial", "online", "hibrida"]);
@@ -112,7 +121,8 @@ export const UpdateFormandoSchema = CreateFormandoSchema.partial();
 export const CreateGrupoFormacaoSchema = z.object({
   nome: nonEmptyString(255),
   localReuniao: optionalString(500),
-  nivelFormativo: NivelFormativoEnum.optional(),
+  tipo: TipoGrupoFormacaoEnum.optional(),
+  nivelFormativo: NivelFormativoEnum.optional().nullable(),
   formadorId: z.string().optional().nullable(),
   planoId: z.string().optional().nullable(),
   gradeId: z.string().optional().nullable(),
@@ -130,6 +140,7 @@ export const PlanoAssinaturaEnum = z.enum(["GRATUITO", "ESSENCIAL", "PROFISSIONA
 
 export const UpdateOrganizacaoSchema = z.object({
   nome: nonEmptyString(255).optional(),
+  tipoOrganizacao: TipoOrganizacaoEnum.optional(),
   planoAssinatura: PlanoAssinaturaEnum.optional(),
   descricao: optionalString(2000).nullable(),
   endereco: optionalString(500).nullable(),
@@ -266,6 +277,10 @@ export const TipoEventoEnum = z.enum([
   "solicitacao-desligamento",
   "desligamento",
   "licenca",
+  "retiro",
+  "aprofundamento",
+  "vigilia",
+  "missao",
 ]);
 
 export const NotaAdesaoEnum = z.enum(["otima", "boa", "regular", "insuficiente"]);
