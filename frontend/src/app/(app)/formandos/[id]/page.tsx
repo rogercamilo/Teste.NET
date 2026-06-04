@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toFormando, toComentario, toEvento, toPresenca, toAgendamento, toMorada } from "@/lib/converters";
+import { toFormando, toComentario, toEvento, toPresenca, toAgendamento, toMorada, toRelatorio } from "@/lib/converters";
 import type { SessionUser } from "@/lib/auth-helpers";
 import type { DocumentoAnexo } from "@/types";
 import FormandoDetailClient from "./FormandoDetailClient";
@@ -78,6 +78,18 @@ export default async function FormandoDetailPage({
     gradeTotal = grade?.totalFormacoes ?? null;
   }
 
+  // Relatório finalizado da etapa atual (para exibição inline)
+  const relatorioRow = await prisma.relatorioEtapa.findUnique({
+    where: {
+      formandoId_nivelFormativo: {
+        formandoId: id,
+        nivelFormativo: formandoRow.nivelFormativo,
+      },
+    },
+  });
+  const relatorioFinalizado =
+    relatorioRow?.status === "finalizado" ? toRelatorio(relatorioRow) : null;
+
   return (
     <FormandoDetailClient
       id={id}
@@ -108,6 +120,7 @@ export default async function FormandoDetailPage({
       userMoradaId={user.moradaId ?? null}
       termoFormando={org?.termoFormando?.trim() || "Formando"}
       termoFormador={org?.termoFormador?.trim() || "Formador Comunitário"}
+      relatorioFinalizado={relatorioFinalizado}
     />
   );
 }
