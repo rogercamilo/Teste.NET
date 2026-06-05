@@ -123,26 +123,42 @@ describe("getClientIp", () => {
   const makeRequest = (headers: Record<string, string>) =>
     new Request("https://example.com", { headers });
 
-  it("returns x-forwarded-for when present", () => {
-    const req = makeRequest({ "x-forwarded-for": "1.2.3.4" });
-    expect(getClientIp(req)).toBe("1.2.3.4");
-  });
+  describe("without TRUST_PROXY", () => {
+    beforeEach(() => { delete process.env.TRUST_PROXY; });
 
-  it("returns x-real-ip when x-forwarded-for is absent", () => {
-    const req = makeRequest({ "x-real-ip": "5.6.7.8" });
-    expect(getClientIp(req)).toBe("5.6.7.8");
-  });
-
-  it("prefers x-forwarded-for over x-real-ip", () => {
-    const req = makeRequest({
-      "x-forwarded-for": "1.2.3.4",
-      "x-real-ip": "5.6.7.8",
+    it("ignores x-forwarded-for and falls back to x-real-ip", () => {
+      const req = makeRequest({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "5.6.7.8" });
+      expect(getClientIp(req)).toBe("5.6.7.8");
     });
-    expect(getClientIp(req)).toBe("1.2.3.4");
+
+    it("returns x-real-ip when only that header is present", () => {
+      const req = makeRequest({ "x-real-ip": "5.6.7.8" });
+      expect(getClientIp(req)).toBe("5.6.7.8");
+    });
+
+    it("returns 'unknown' when no IP headers", () => {
+      const req = makeRequest({});
+      expect(getClientIp(req)).toBe("unknown");
+    });
   });
 
-  it("returns 'unknown' when no IP headers", () => {
-    const req = makeRequest({});
-    expect(getClientIp(req)).toBe("unknown");
+  describe("with TRUST_PROXY=true", () => {
+    beforeEach(() => { process.env.TRUST_PROXY = "true"; });
+    afterEach(() => { delete process.env.TRUST_PROXY; });
+
+    it("prefers x-forwarded-for over x-real-ip", () => {
+      const req = makeRequest({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "5.6.7.8" });
+      expect(getClientIp(req)).toBe("1.2.3.4");
+    });
+
+    it("uses first IP from x-forwarded-for chain", () => {
+      const req = makeRequest({ "x-forwarded-for": "1.2.3.4, 10.0.0.1" });
+      expect(getClientIp(req)).toBe("1.2.3.4");
+    });
+
+    it("falls back to x-real-ip when x-forwarded-for is absent", () => {
+      const req = makeRequest({ "x-real-ip": "5.6.7.8" });
+      expect(getClientIp(req)).toBe("5.6.7.8");
+    });
   });
 });
