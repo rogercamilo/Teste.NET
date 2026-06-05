@@ -3,7 +3,7 @@
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     organizacao: { findUnique: vi.fn() },
-    morada: { count: vi.fn() },
+    grupoFormacao: { count: vi.fn() },
     formando: { count: vi.fn() },
     arquivo: { aggregate: vi.fn() },
   },

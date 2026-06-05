@@ -62,10 +62,9 @@ describe("getOrganizacaoId", () => {
     expect(id).toBe("org_123");
   });
 
-  it("falls back to DEFAULT_ORG_ID when session has no organizacaoId", async () => {
+  it("throws when session has no organizacaoId", async () => {
     mockAuth.mockResolvedValue({ user: {} } as never);
-    const id = await getOrganizacaoId();
-    expect(id).toBe(DEFAULT_ORG_ID);
+    await expect(getOrganizacaoId()).rejects.toThrow("Sessão sem organização");
   });
 
   it("throws when session is null", async () => {
