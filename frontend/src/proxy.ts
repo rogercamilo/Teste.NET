@@ -48,6 +48,7 @@ export default auth(function proxy(req) {
     "/convite",
     "/privacidade",
     "/termos",
+    "/kit-redes-sociais",
     "/api/health",
     "/api/public/",
     "/api/registro",
