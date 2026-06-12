@@ -91,7 +91,7 @@ export async function PUT(request: Request) {
       },
       select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
-    revalidateTag(ORG_BRANDING_TAG);
+    revalidateTag(ORG_BRANDING_TAG, { expire: 0 });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
     const config: ComunidadeConfig = {
       tipoOrganizacao: updated.tipoOrganizacao as ComunidadeConfig["tipoOrganizacao"],
