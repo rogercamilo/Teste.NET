@@ -652,10 +652,10 @@ export default function PoliticaPrivacidadePage() {
                       Formulário online
                     </Link>
                     <a
-                      href="mailto:privacidade@Formattio.app"
+                      href="mailto:privacidade@formattio.com.br"
                       className="flex items-center gap-2 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
-                      privacidade@Formattio.app
+                      privacidade@formattio.com.br
                     </a>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -680,7 +680,7 @@ export default function PoliticaPrivacidadePage() {
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <a
-                    href="mailto:privacidade@Formattio.app"
+                    href="mailto:privacidade@formattio.com.br"
                     className="flex items-center gap-3 rounded-lg border border-border/60 bg-card/40 p-4 hover:bg-accent transition-colors group"
                   >
                     <div className="flex-none w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
@@ -691,7 +691,7 @@ export default function PoliticaPrivacidadePage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-foreground">E-mail</p>
-                      <p className="text-xs text-muted-foreground">privacidade@Formattio.app</p>
+                      <p className="text-xs text-muted-foreground">privacidade@formattio.com.br</p>
                     </div>
                   </a>
                   <Link

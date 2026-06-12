@@ -1,6 +1,7 @@
 ﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getOrgBranding } from "@/lib/org-cache";
 import { toFormando, toComentario, toEvento, toPresenca, toAgendamento, toGrupoFormacao } from "@/lib/converters";
 import type { SessionUser } from "@/lib/auth-helpers";
 import type { DocumentoAnexo } from "@/types";

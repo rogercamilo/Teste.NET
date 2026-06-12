@@ -600,7 +600,7 @@ export default function TermosDeUsoPage() {
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Dúvidas sobre estes Termos podem ser enviadas para{" "}
-                  <strong>contato@Formattio.app</strong> ou pelo canal de suporte disponível na plataforma.
+                  <strong>contato@formattio.com.br</strong> ou pelo canal de suporte disponível na plataforma.
                 </p>
               </div>
             </section>

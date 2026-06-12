@@ -1,6 +1,6 @@
 ﻿import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { getOrgBranding } from "@/lib/org-cache";
 import { isAdmin } from "@/types";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
@@ -30,18 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let comunidadeInitial: import("@/types").ComunidadeConfig | undefined;
 
   if (sessionUser.organizacaoId && sessionUser.role !== "super_admin") {
-    const org = await prisma.organizacao.findUnique({
-      where: { id: sessionUser.organizacaoId },
-      select: {
-        onboardingConcluido: true, temaCor: true, nomePlataforma: true, nome: true,
-        tipoOrganizacao: true,
-        descricao: true, endereco: true, missao: true, anoFundacao: true,
-        termoGrupoFormacao: true, termoFormando: true, termoFormador: true,
-        termoPreDiscipulado: true, termoDiscipulado: true,
-        termoPrimeirasPromessas: true, termoFormacaoPermanente: true,
-        // logoUrl excluído intencionalmente: campo TEXT grande (base64), não usado no layout
-      },
-    });
+    const org = await getOrgBranding(sessionUser.organizacaoId);
     if (org) {
       orgBranding = { ...orgBranding, ...org };
       if (!org.onboardingConcluido && isAdmin(sessionUser.role)) redirect("/onboarding");
