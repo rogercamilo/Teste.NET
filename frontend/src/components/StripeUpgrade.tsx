@@ -5,16 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertCircle,
+  CalendarDays,
   CheckCircle2,
   CreditCard,
   ExternalLink,
   Loader2,
+  Receipt,
   Sparkles,
   Star,
-  Zap,
-  Receipt,
-  CalendarDays,
   XCircle,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BillingInfo } from "@/lib/billing-data";
@@ -76,29 +76,39 @@ const PLANO_CARDS = [
   },
 ] as const;
 
-const ACENTO_STYLES = {
+const ACENTO: Record<"sky" | "violet" | "amber", {
+  icon: string;
+  check: string;
+  ring: string;
+  activeBg: string;
+  activeRing: string;
+  popularBadge: string;
+}> = {
   sky: {
     icon: "text-sky-500",
-    ring: "ring-sky-200 dark:ring-sky-800",
-    badge: "bg-sky-50 text-sky-700 border-sky-200",
     check: "text-sky-500",
-    btn: "border-sky-200 hover:border-sky-300 hover:bg-sky-50",
+    ring: "ring-sky-200",
+    activeBg: "bg-sky-50/60",
+    activeRing: "ring-sky-400",
+    popularBadge: "",
   },
   violet: {
     icon: "text-violet-500",
-    ring: "ring-violet-300 dark:ring-violet-700",
-    badge: "bg-violet-50 text-violet-700 border-violet-200",
     check: "text-violet-500",
-    btn: "",
+    ring: "ring-violet-200",
+    activeBg: "bg-violet-50/60",
+    activeRing: "ring-violet-500",
+    popularBadge: "bg-violet-600 text-white",
   },
   amber: {
     icon: "text-amber-500",
-    ring: "ring-amber-200 dark:ring-amber-800",
-    badge: "bg-amber-50 text-amber-700 border-amber-200",
     check: "text-amber-500",
-    btn: "border-amber-200 hover:border-amber-300 hover:bg-amber-50",
+    ring: "ring-amber-200",
+    activeBg: "bg-amber-50/50",
+    activeRing: "ring-amber-400",
+    popularBadge: "",
   },
-} as const;
+};
 
 function formatCurrency(cents: number, currency: string) {
   return new Intl.NumberFormat("pt-BR", {
@@ -127,7 +137,7 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
   const [openingPortal, setOpeningPortal] = useState(false);
   const [periodicidade, setPeriodicidade] = useState<"mensal" | "anual">("mensal");
 
-  async function handleUpgrade(plano: "BASICO" | "INTERMEDIARIO" | "AVANCADO") {
+  async function handleCheckout(plano: "BASICO" | "INTERMEDIARIO" | "AVANCADO") {
     setUpgrading(plano);
     try {
       const res = await fetch("/api/stripe/checkout", {
@@ -178,6 +188,16 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
   const planoAtual = billing.plano;
   const isPersonalizado = planoAtual === "PERSONALIZADO";
 
+  if (isPersonalizado) {
+    return (
+      <div className="rounded-xl border border-border bg-muted/30 p-4">
+        <p className="text-sm text-muted-foreground">
+          Plano personalizado configurado pelo suporte. Entre em contato para alterações.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Trial banner */}
@@ -194,272 +214,246 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
         </div>
       )}
 
-      {/* Assinante ativo */}
-      {billing.hasSubscription ? (
-        <div className="space-y-4">
-          {/* Status da assinatura */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                  Plano atual
-                </p>
-                <p className="text-lg font-semibold text-foreground">
-                  {PLANO_ASSINATURA_LABELS[planoAtual]}
-                </p>
-                {billing.renewsAt && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    {billing.cancelAtPeriodEnd ? (
-                      <>
-                        <XCircle className="h-3.5 w-3.5 text-destructive" />
-                        <span>Cancela em {formatDate(billing.renewsAt)}</span>
-                      </>
-                    ) : (
-                      <>
-                        <CalendarDays className="h-3.5 w-3.5" />
-                        <span>Renova em {formatDate(billing.renewsAt)}</span>
-                        {billing.amountCents && billing.currency && (
-                          <span className="text-foreground/60">
-                            · {formatCurrency(billing.amountCents, billing.currency)}/mês
-                          </span>
-                        )}
-                      </>
+      {/* Toggle mensal/anual */}
+      <div className="flex justify-center">
+        <div className="inline-flex items-center gap-1 rounded-full bg-muted p-1">
+          <button
+            onClick={() => setPeriodicidade("mensal")}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+              periodicidade === "mensal"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Mensal
+          </button>
+          <button
+            onClick={() => setPeriodicidade("anual")}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+              periodicidade === "anual"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Anual
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+              -17%
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {periodicidade === "anual" && (
+        <p className="text-center text-xs text-emerald-600 font-medium -mt-3">
+          Equivale a 2 meses grátis por ano
+        </p>
+      )}
+
+      {/* Cards grid — sempre visível */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {PLANO_CARDS.map((p) => {
+          const Icon = p.icon;
+          const est = ACENTO[p.acento];
+          const isCurrentPlan = planoAtual === p.key;
+          const isActive = billing.hasSubscription && isCurrentPlan;
+          const preco = periodicidade === "anual" ? p.precoAnual : p.precoMensal;
+          const isLoading = upgrading === p.key;
+
+          return (
+            <div
+              key={p.key}
+              className={`relative flex flex-col rounded-2xl border transition-all duration-200 ${
+                isActive
+                  ? `ring-2 ${est.activeRing} border-transparent shadow-md ${est.activeBg}`
+                  : p.popular && !billing.hasSubscription
+                  ? `ring-2 ${est.ring} border-transparent shadow-lg shadow-violet-100/50 bg-background`
+                  : "border-border bg-background hover:border-muted-foreground/30 hover:shadow-sm"
+              } p-5`}
+            >
+              {/* Badge flutuante */}
+              {isActive && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1 text-[11px] font-semibold text-background shadow-sm">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Plano atual
+                  </span>
+                </div>
+              )}
+              {!isActive && p.popular && !billing.hasSubscription && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-violet-600 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
+                    <Sparkles className="h-3 w-3" />
+                    Mais popular
+                  </span>
+                </div>
+              )}
+
+              <div className="flex-1 space-y-4">
+                {/* Header */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className={`rounded-lg p-1.5 ${isActive ? "bg-white/70" : "bg-muted"}`}>
+                      <Icon className={`h-4 w-4 ${est.icon}`} />
+                    </div>
+                    <span className="font-semibold text-foreground">
+                      {PLANO_ASSINATURA_LABELS[p.key]}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{p.descricao}</p>
+                </div>
+
+                {/* Preço */}
+                <div className="space-y-0.5">
+                  <div className="flex items-end gap-1">
+                    <span className="text-3xl font-bold text-foreground tracking-tight">
+                      R$ {preco}
+                    </span>
+                    <span className="text-sm text-muted-foreground mb-1">/mês</span>
+                  </div>
+                  {periodicidade === "anual" && (
+                    <p className="text-xs text-muted-foreground">
+                      R$ {p.totalAnual} cobrado anualmente
+                    </p>
+                  )}
+                </div>
+
+                {/* Features */}
+                <ul className="space-y-2">
+                  {p.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-xs text-muted-foreground">
+                      <CheckCircle2 className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${est.check}`} />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Info de renovação (só no card ativo) */}
+                {isActive && billing.renewsAt && (
+                  <div className="rounded-lg bg-white/60 border border-white/80 px-3 py-2.5 space-y-1.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-foreground/70">
+                      {billing.cancelAtPeriodEnd ? (
+                        <>
+                          <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                          <span>Cancela em <strong className="text-foreground">{formatDate(billing.renewsAt)}</strong></span>
+                        </>
+                      ) : (
+                        <>
+                          <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                          <span>Renova em <strong className="text-foreground">{formatDate(billing.renewsAt)}</strong></span>
+                        </>
+                      )}
+                    </div>
+                    {billing.amountCents && billing.currency && (
+                      <p className="text-foreground/60">
+                        {formatCurrency(billing.amountCents, billing.currency)}/mês
+                      </p>
                     )}
                   </div>
                 )}
               </div>
-              <Badge variant="outline" className="shrink-0 text-xs font-medium">
-                {billing.cancelAtPeriodEnd ? "Cancelando" : "Ativo"}
-              </Badge>
-            </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2 h-9"
-              onClick={handlePortal}
-              disabled={openingPortal}
-            >
-              {openingPortal ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ExternalLink className="h-4 w-4" />
-              )}
-              Gerenciar assinatura
-            </Button>
-          </div>
-
-          {/* Faturas */}
-          {billing.invoices.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Últimas faturas
-                </p>
-              </div>
-              <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
-                {billing.invoices.map((inv) => (
-                  <div
-                    key={inv.id}
-                    className="flex items-center justify-between px-4 py-2.5 text-sm bg-background hover:bg-muted/30 transition-colors"
+              {/* CTA */}
+              <div className="mt-5 pt-4 border-t border-border/40">
+                {isActive ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-9 gap-2 bg-white/60 hover:bg-white text-sm font-medium border-white/80"
+                    onClick={handlePortal}
+                    disabled={openingPortal}
                   >
-                    <span className="text-muted-foreground text-xs">
-                      {formatDate(inv.date)}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium text-xs">
-                        {formatCurrency(inv.amountCents, inv.currency)}
-                      </span>
-                      {inv.status === "paid" && (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] h-4 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200"
-                        >
-                          Pago
-                        </Badge>
-                      )}
-                      {inv.url && (
-                        <a
-                          href={inv.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline font-medium"
-                        >
-                          PDF
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                    {openingPortal ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Gerenciar assinatura
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant={p.popular && !billing.hasSubscription ? "default" : "outline"}
+                    className="w-full h-9 text-sm font-medium"
+                    onClick={() => handleCheckout(p.key)}
+                    disabled={upgrading !== null}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : billing.hasSubscription ? (
+                      `Mudar para ${PLANO_ASSINATURA_LABELS[p.key]}`
+                    ) : (
+                      `Assinar ${PLANO_ASSINATURA_LABELS[p.key]}`
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
-          )}
-        </div>
-      ) : isPersonalizado ? (
-        <div className="rounded-xl border border-border bg-muted/30 p-4">
-          <p className="text-sm text-muted-foreground">
-            Plano personalizado configurado pelo suporte. Entre em contato para alterações.
-          </p>
-        </div>
-      ) : (
-        /* Pricing grid */
-        <div className="space-y-5">
-          {/* Toggle mensal/anual */}
-          <div className="flex justify-center">
-            <div className="inline-flex items-center gap-1 rounded-full bg-muted p-1">
-              <button
-                onClick={() => setPeriodicidade("mensal")}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                  periodicidade === "mensal"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Mensal
-              </button>
-              <button
-                onClick={() => setPeriodicidade("anual")}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                  periodicidade === "anual"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Anual
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                  -17%
-                </span>
-              </button>
-            </div>
-          </div>
+          );
+        })}
+      </div>
 
-          {periodicidade === "anual" && (
-            <p className="text-center text-xs text-emerald-600 font-medium">
-              Equivale a 2 meses grátis por ano
+      {/* Faturas (abaixo do grid quando assinante) */}
+      {billing.hasSubscription && billing.invoices.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Últimas faturas
             </p>
-          )}
-
-          {/* Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {PLANO_CARDS.map((p) => {
-              const Icon = p.icon;
-              const isCurrentPlan = planoAtual === p.key;
-              const preco = periodicidade === "anual" ? p.precoAnual : p.precoMensal;
-              const estilos = ACENTO_STYLES[p.acento];
-              const isLoading = upgrading === p.key;
-
-              return (
-                <div
-                  key={p.key}
-                  className={`relative flex flex-col rounded-2xl border bg-background p-5 transition-all duration-200 ${
-                    p.popular
-                      ? `ring-2 ${estilos.ring} border-transparent shadow-lg shadow-violet-100/50`
-                      : "border-border hover:border-muted-foreground/30 hover:shadow-sm"
-                  }`}
-                >
-                  {p.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-violet-600 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
-                        <Sparkles className="h-3 w-3" />
-                        Mais popular
-                      </span>
-                    </div>
+          </div>
+          <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
+            {billing.invoices.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex items-center justify-between px-4 py-2.5 bg-background hover:bg-muted/30 transition-colors"
+              >
+                <span className="text-xs text-muted-foreground">{formatDate(inv.date)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium">
+                    {formatCurrency(inv.amountCents, inv.currency)}
+                  </span>
+                  {inv.status === "paid" && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] h-4 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200"
+                    >
+                      Pago
+                    </Badge>
                   )}
-
-                  <div className="flex-1 space-y-4">
-                    {/* Header */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`rounded-lg p-1.5 ${p.popular ? "bg-violet-100" : "bg-muted"}`}>
-                          <Icon className={`h-4 w-4 ${estilos.icon}`} />
-                        </div>
-                        <span className="font-semibold text-foreground">
-                          {PLANO_ASSINATURA_LABELS[p.key]}
-                        </span>
-                        {isCurrentPlan && (
-                          <Badge variant="outline" className={`text-[10px] px-1.5 h-4 ml-auto ${estilos.badge}`}>
-                            Atual
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {p.descricao}
-                      </p>
-                    </div>
-
-                    {/* Preço */}
-                    <div className="space-y-0.5">
-                      <div className="flex items-end gap-1">
-                        <span className="text-3xl font-bold text-foreground tracking-tight">
-                          R$ {preco}
-                        </span>
-                        <span className="text-sm text-muted-foreground mb-1">/mês</span>
-                      </div>
-                      {periodicidade === "anual" && (
-                        <p className="text-xs text-muted-foreground">
-                          R$ {p.totalAnual} cobrado anualmente
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Features */}
-                    <ul className="space-y-2">
-                      {p.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-xs text-muted-foreground">
-                          <CheckCircle2 className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${estilos.check}`} />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* CTA */}
-                  <div className="mt-5 pt-4 border-t border-border/60">
-                    {isCurrentPlan ? (
-                      <div className="flex items-center justify-center gap-1.5 py-2 text-xs text-muted-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        Plano atual
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant={p.popular ? "default" : "outline"}
-                        className="w-full h-9 gap-2 text-sm font-medium"
-                        onClick={() => handleUpgrade(p.key)}
-                        disabled={upgrading !== null}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            Assinar {PLANO_ASSINATURA_LABELS[p.key]}
-                            {!isLoading && <span className="opacity-60 text-xs ml-auto">→</span>}
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </div>
+                  {inv.url && (
+                    <a
+                      href={inv.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline font-medium"
+                    >
+                      PDF
+                    </a>
+                  )}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
+        </div>
+      )}
 
-          {/* Manage billing link */}
-          <div className="flex justify-center pt-1">
-            <button
-              onClick={handlePortal}
-              disabled={openingPortal}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {openingPortal ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <CreditCard className="h-3.5 w-3.5" />
-              )}
-              Gerenciar faturamento
-            </button>
-          </div>
+      {/* Link de faturamento para não-assinantes */}
+      {!billing.hasSubscription && (
+        <div className="flex justify-center pt-1">
+          <button
+            onClick={handlePortal}
+            disabled={openingPortal}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {openingPortal ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CreditCard className="h-3.5 w-3.5" />
+            )}
+            Gerenciar faturamento
+          </button>
         </div>
       )}
     </div>

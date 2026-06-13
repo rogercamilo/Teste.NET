@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   const portalSession = await stripe!.billingPortal.sessions.create({
     customer: org.stripeCustomerId,
-    return_url: `${appUrl}/configuracoes`,
+    return_url: `${appUrl}/configuracoes?tab=plano`,
   });
 
   logAction("stripe_portal_acessado", user.id, getClientIp(req), {}, user.organizacaoId);
