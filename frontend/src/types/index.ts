@@ -21,7 +21,7 @@ export type StatusFormacao =
   | "reagendada";
 export type Modalidade = "presencial" | "online" | "hibrida";
 export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comunitario" | "super_admin";
-export type PlanoAssinatura = "GRATUITO" | "ESSENCIAL" | "PROFISSIONAL";
+export type PlanoAssinatura = "GRATUITO" | "BASICO" | "INTERMEDIARIO" | "AVANCADO" | "PERSONALIZADO";
 export type StatusOrganizacao = "TRIAL" | "ATIVO" | "SUSPENSO" | "CANCELADO";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
 export type PerspectivFormativa = "humana" | "espiritual" | "comunitaria";
@@ -426,10 +426,17 @@ export const PERFIL_USUARIO_LABELS: Record<PerfilUsuario, string> = {
 };
 
 export const PLANO_ASSINATURA_LABELS: Record<PlanoAssinatura, string> = {
-  GRATUITO: "Gratuito",
-  ESSENCIAL: "Essencial",
-  PROFISSIONAL: "Profissional",
+  GRATUITO: "Sem assinatura",
+  BASICO: "Básico",
+  INTERMEDIARIO: "Intermediário",
+  AVANCADO: "Avançado",
+  PERSONALIZADO: "Personalizado",
 };
+
+/** Retorna true para tipos de org que têm acesso às features canônicas (Jornada Vocacional, documentos). */
+export function hasCanonicalAccess(tipoOrganizacao: TipoOrganizacao | null | undefined): boolean {
+  return tipoOrganizacao === "nova_comunidade" || tipoOrganizacao === "instituto_religioso";
+}
 
 export const STATUS_ORGANIZACAO_LABELS: Record<StatusOrganizacao, string> = {
   TRIAL: "Trial",

@@ -44,29 +44,29 @@ const STEPS = [
 
 const PLANOS = [
   {
-    key: "GRATUITO",
-    nome: "Gratuito",
-    preco: "R$ 0",
+    key: "BASICO",
+    nome: "Básico",
+    preco: "R$ 97",
     periodo: "/mês",
-    desc: "Para começar sem compromisso.",
-    recursos: ["1 Grupo de formação", "Até 30 formandos", "500 MB de armazenamento"],
+    desc: "Para comunidades que estão começando.",
+    recursos: ["Até 60 usuários ativos", "2 GB de armazenamento", "Grupos ilimitados"],
   },
   {
-    key: "ESSENCIAL",
-    nome: "Essencial",
-    preco: "R$ 49",
+    key: "INTERMEDIARIO",
+    nome: "Intermediário",
+    preco: "R$ 197",
     periodo: "/mês",
     desc: "Para comunidades em crescimento.",
-    recursos: ["3 Grupos de formação", "Até 150 formandos", "2 GB de armazenamento", "E-mail personalizado"],
+    recursos: ["Até 140 usuários ativos", "10 GB de armazenamento", "Grupos ilimitados"],
     destaque: true,
   },
   {
-    key: "PROFISSIONAL",
-    nome: "Profissional",
-    preco: "R$ 149",
+    key: "AVANCADO",
+    nome: "Avançado",
+    preco: "R$ 397",
     periodo: "/mês",
     desc: "Para organizações de grande porte.",
-    recursos: ["Grupos ilimitados", "Formandos ilimitados", "Armazenamento ilimitado", "Suporte dedicado"],
+    recursos: ["Até 350 usuários ativos", "30 GB de armazenamento", "Grupos ilimitados"],
   },
 ];
 
@@ -103,7 +103,7 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
   const [themeKey, setThemeKey] = useState(org.temaCor ?? "Formattio");
 
   // Step 3 — plan
-  const [plano, setPlano] = useState(org.planoAssinatura ?? "GRATUITO");
+  const [plano, setPlano] = useState(org.planoAssinatura ?? "INTERMEDIARIO");
 
   // Step 4 — terminology
   const [termoGrupoFormacao, setTermoGrupoFormacao] = useState(org.termoGrupoFormacao);

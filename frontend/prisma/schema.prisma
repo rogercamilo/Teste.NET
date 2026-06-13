@@ -18,10 +18,14 @@ enum PerfilUsuario {
   super_admin
 }
 
+// GRATUITO = sem assinatura ativa (estado interno, não comercializado)
+// BASICO="Básico" R$97 | INTERMEDIARIO="Intermediário" R$197 | AVANCADO="Avançado" R$397 | PERSONALIZADO="Personalizado" R$890+
 enum PlanoAssinatura {
   GRATUITO
-  ESSENCIAL
-  PROFISSIONAL
+  BASICO
+  INTERMEDIARIO
+  AVANCADO
+  PERSONALIZADO
 }
 
 enum StatusOrganizacao {

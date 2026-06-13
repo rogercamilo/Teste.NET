@@ -1,23 +1,25 @@
-﻿import { vi, describe, it, expect, beforeEach } from "vitest";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     organizacao: { findUnique: vi.fn() },
-    grupoFormacao: { count: vi.fn() },
     formando: { count: vi.fn() },
+    usuario: { count: vi.fn() },
     arquivo: { aggregate: vi.fn() },
   },
 }));
 
-import { getLimits, canAddGrupoFormacao, canAddFormando, canUpload, getUsage } from "@/lib/plan-limits";
+import { getLimits, canAddUser, canAddGrupoFormacao, canAddFormando, canUpload, getUsage } from "@/lib/plan-limits";
 import { prisma } from "@/lib/prisma";
 
 const orgFindUnique = vi.mocked(prisma.organizacao.findUnique);
-const grupoFormacaoCount = vi.mocked(prisma.grupoFormacao.count);
 const formandoCount = vi.mocked(prisma.formando.count);
+const usuarioCount = vi.mocked(prisma.usuario.count);
 const arquivoAggregate = vi.mocked(prisma.arquivo.aggregate);
 
-const activeOrg = (plano: "GRATUITO" | "ESSENCIAL" | "PROFISSIONAL") => ({
+type Plano = "GRATUITO" | "BASICO" | "INTERMEDIARIO" | "AVANCADO" | "PERSONALIZADO";
+
+const activeOrg = (plano: Plano) => ({
   planoAssinatura: plano,
   status: "ATIVO",
   trialExpiresAt: null,
@@ -30,197 +32,198 @@ beforeEach(() => {
 // ── getLimits ────────────────────────────────────────────────────────────────
 
 describe("getLimits", () => {
-  it("returns GRATUITO limits", () => {
+  it("GRATUITO blocks all users", () => {
     const l = getLimits("GRATUITO");
-    expect(l.gruposFormacao).toBe(1);
-    expect(l.formandos).toBe(30);
-    expect(l.storageBytes).toBe(500 * 1024 * 1024);
+    expect(l.usuarios).toBe(0);
+    expect(l.storageBytes).toBe(0);
   });
 
-  it("returns ESSENCIAL limits", () => {
-    const l = getLimits("ESSENCIAL");
-    expect(l.gruposFormacao).toBe(3);
-    expect(l.formandos).toBe(150);
+  it("BASICO has 60 users and 2 GB", () => {
+    const l = getLimits("BASICO");
+    expect(l.usuarios).toBe(60);
     expect(l.storageBytes).toBe(2 * 1024 * 1024 * 1024);
   });
 
-  it("returns Infinity limits for PROFISSIONAL", () => {
-    const l = getLimits("PROFISSIONAL");
-    expect(l.gruposFormacao).toBe(Infinity);
-    expect(l.formandos).toBe(Infinity);
+  it("INTERMEDIARIO has 140 users and 10 GB", () => {
+    const l = getLimits("INTERMEDIARIO");
+    expect(l.usuarios).toBe(140);
+    expect(l.storageBytes).toBe(10 * 1024 * 1024 * 1024);
+  });
+
+  it("AVANCADO has 350 users and 30 GB", () => {
+    const l = getLimits("AVANCADO");
+    expect(l.usuarios).toBe(350);
+    expect(l.storageBytes).toBe(30 * 1024 * 1024 * 1024);
+  });
+
+  it("PERSONALIZADO is unlimited", () => {
+    const l = getLimits("PERSONALIZADO");
+    expect(l.usuarios).toBe(Infinity);
     expect(l.storageBytes).toBe(Infinity);
   });
 });
 
-// ── canAddGrupoFormacao ─────────────────────────────────────────────────────────────
+// ── canAddGrupoFormacao ──────────────────────────────────────────────────────
 
 describe("canAddGrupoFormacao", () => {
+  it("always returns allowed (grupos are unlimited in all plans)", async () => {
+    const result = await canAddGrupoFormacao();
+    expect(result.allowed).toBe(true);
+    expect(orgFindUnique).not.toHaveBeenCalled();
+  });
+});
+
+// ── canAddUser ───────────────────────────────────────────────────────────────
+
+describe("canAddUser", () => {
   it("denies when org not found", async () => {
     orgFindUnique.mockResolvedValue(null as never);
-    const result = await canAddGrupoFormacao("org1");
+    const result = await canAddUser("org1");
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain("não encontrada");
   });
 
   it("denies when org is suspended", async () => {
-    orgFindUnique.mockResolvedValue({ ...activeOrg("GRATUITO"), status: "SUSPENSO" } as never);
-    const result = await canAddGrupoFormacao("org1");
+    orgFindUnique.mockResolvedValue({ ...activeOrg("BASICO"), status: "SUSPENSO" } as never);
+    const result = await canAddUser("org1");
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain("suspensa");
   });
 
   it("denies when org is cancelled", async () => {
-    orgFindUnique.mockResolvedValue({ ...activeOrg("GRATUITO"), status: "CANCELADO" } as never);
-    const result = await canAddGrupoFormacao("org1");
+    orgFindUnique.mockResolvedValue({ ...activeOrg("INTERMEDIARIO"), status: "CANCELADO" } as never);
+    const result = await canAddUser("org1");
     expect(result.allowed).toBe(false);
   });
 
   it("denies when trial is expired", async () => {
     const expired = new Date(Date.now() - 1000);
     orgFindUnique.mockResolvedValue({
-      ...activeOrg("GRATUITO"),
+      ...activeOrg("BASICO"),
       status: "TRIAL",
       trialExpiresAt: expired,
     } as never);
-    const result = await canAddGrupoFormacao("org1");
+    const result = await canAddUser("org1");
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain("expirado");
   });
 
-  it("allows when trial has not expired", async () => {
+  it("allows when trial has not expired (counts against limit)", async () => {
     const future = new Date(Date.now() + 86_400_000);
     orgFindUnique.mockResolvedValue({
-      ...activeOrg("GRATUITO"),
+      ...activeOrg("BASICO"),
       status: "TRIAL",
       trialExpiresAt: future,
     } as never);
-    grupoFormacaoCount.mockResolvedValue(0 as never);
-    const result = await canAddGrupoFormacao("org1");
+    formandoCount.mockResolvedValue(10 as never);
+    usuarioCount.mockResolvedValue(2 as never);
+    const result = await canAddUser("org1");
     expect(result.allowed).toBe(true);
+    expect(result.current).toBe(12);
+    expect(result.limit).toBe(60);
   });
 
-  it("allows when under morada limit", async () => {
+  it("denies GRATUITO (no subscription) regardless of count", async () => {
     orgFindUnique.mockResolvedValue(activeOrg("GRATUITO") as never);
-    grupoFormacaoCount.mockResolvedValue(0 as never);
-    const result = await canAddGrupoFormacao("org1");
-    expect(result.allowed).toBe(true);
-    expect(result.current).toBe(0);
-    expect(result.limit).toBe(1);
-  });
-
-  it("denies when at morada limit", async () => {
-    orgFindUnique.mockResolvedValue(activeOrg("GRATUITO") as never);
-    grupoFormacaoCount.mockResolvedValue(1 as never);
-    const result = await canAddGrupoFormacao("org1");
+    const result = await canAddUser("org1");
     expect(result.allowed).toBe(false);
-    expect(result.reason).toContain("Limite");
+    expect(result.reason).toContain("Sem assinatura");
+    expect(formandoCount).not.toHaveBeenCalled();
   });
 
-  it("always allows for PROFISSIONAL (infinite)", async () => {
-    orgFindUnique.mockResolvedValue(activeOrg("PROFISSIONAL") as never);
-    const result = await canAddGrupoFormacao("org1");
+  it("allows when under BASICO user limit (formandos + usuarios combined)", async () => {
+    orgFindUnique.mockResolvedValue(activeOrg("BASICO") as never);
+    formandoCount.mockResolvedValue(30 as never);
+    usuarioCount.mockResolvedValue(5 as never);
+    const result = await canAddUser("org1");
     expect(result.allowed).toBe(true);
-    expect(grupoFormacaoCount).not.toHaveBeenCalled();
+    expect(result.current).toBe(35);
+    expect(result.limit).toBe(60);
   });
 
-  it("reports percentUsed", async () => {
-    orgFindUnique.mockResolvedValue(activeOrg("ESSENCIAL") as never);
-    grupoFormacaoCount.mockResolvedValue(1 as never);
-    const result = await canAddGrupoFormacao("org1");
-    expect(result.percentUsed).toBe(33); // round(1/3 * 100)
+  it("denies when at BASICO user limit", async () => {
+    orgFindUnique.mockResolvedValue(activeOrg("BASICO") as never);
+    formandoCount.mockResolvedValue(55 as never);
+    usuarioCount.mockResolvedValue(5 as never);
+    const result = await canAddUser("org1");
+    expect(result.allowed).toBe(false);
+    expect(result.current).toBe(60);
+    expect(result.limit).toBe(60);
+  });
+
+  it("always allows for PERSONALIZADO (infinite)", async () => {
+    orgFindUnique.mockResolvedValue(activeOrg("PERSONALIZADO") as never);
+    const result = await canAddUser("org1");
+    expect(result.allowed).toBe(true);
+    expect(formandoCount).not.toHaveBeenCalled();
+    expect(usuarioCount).not.toHaveBeenCalled();
+  });
+
+  it("reports percentUsed correctly", async () => {
+    orgFindUnique.mockResolvedValue(activeOrg("INTERMEDIARIO") as never);
+    formandoCount.mockResolvedValue(70 as never);
+    usuarioCount.mockResolvedValue(0 as never);
+    const result = await canAddUser("org1");
+    expect(result.percentUsed).toBe(50); // 70/140 * 100
   });
 });
 
-// ── canAddFormando ───────────────────────────────────────────────────────────
+// ── canAddFormando (delegates to canAddUser) ─────────────────────────────────
 
 describe("canAddFormando", () => {
-  it("allows when under formando limit", async () => {
-    orgFindUnique.mockResolvedValue(activeOrg("GRATUITO") as never);
+  it("delegates to canAddUser", async () => {
+    orgFindUnique.mockResolvedValue(activeOrg("BASICO") as never);
     formandoCount.mockResolvedValue(10 as never);
+    usuarioCount.mockResolvedValue(2 as never);
     const result = await canAddFormando("org1");
     expect(result.allowed).toBe(true);
-    expect(result.limit).toBe(30);
-  });
-
-  it("denies when at formando limit", async () => {
-    orgFindUnique.mockResolvedValue(activeOrg("GRATUITO") as never);
-    formandoCount.mockResolvedValue(30 as never);
-    const result = await canAddFormando("org1");
-    expect(result.allowed).toBe(false);
-    expect(result.current).toBe(30);
-  });
-
-  it("always allows for PROFISSIONAL", async () => {
-    orgFindUnique.mockResolvedValue(activeOrg("PROFISSIONAL") as never);
-    const result = await canAddFormando("org1");
-    expect(result.allowed).toBe(true);
-    expect(formandoCount).not.toHaveBeenCalled();
+    expect(result.limit).toBe(60);
   });
 
   it("denies when org not found", async () => {
     orgFindUnique.mockResolvedValue(null as never);
     const result = await canAddFormando("org1");
     expect(result.allowed).toBe(false);
-  });
-});
-
-// ── canAddFormando (status checks) ──────────────────────────────────────────
-
-describe("canAddFormando (status checks)", () => {
-  it("denies when org is suspended", async () => {
-    orgFindUnique.mockResolvedValue({ ...activeOrg("ESSENCIAL"), status: "SUSPENSO" } as never);
-    const result = await canAddFormando("org1");
-    expect(result.allowed).toBe(false);
-  });
-
-  it("denies when org is cancelled", async () => {
-    orgFindUnique.mockResolvedValue({ ...activeOrg("ESSENCIAL"), status: "CANCELADO" } as never);
-    const result = await canAddFormando("org1");
-    expect(result.allowed).toBe(false);
-  });
-
-  it("denies when trial is expired", async () => {
-    const expired = new Date(Date.now() - 1000);
-    orgFindUnique.mockResolvedValue({
-      ...activeOrg("GRATUITO"),
-      status: "TRIAL",
-      trialExpiresAt: expired,
-    } as never);
-    const result = await canAddFormando("org1");
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toContain("expirado");
   });
 });
 
 // ── canUpload ────────────────────────────────────────────────────────────────
 
 describe("canUpload", () => {
-  it("allows upload within storage limit", async () => {
+  it("denies GRATUITO (no subscription) regardless of size", async () => {
     orgFindUnique.mockResolvedValue(activeOrg("GRATUITO") as never);
+    const result = await canUpload("org1", 1024);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain("Sem assinatura");
+    expect(arquivoAggregate).not.toHaveBeenCalled();
+  });
+
+  it("allows upload within BASICO storage limit (2 GB)", async () => {
+    orgFindUnique.mockResolvedValue(activeOrg("BASICO") as never);
     arquivoAggregate.mockResolvedValue({ _sum: { tamanho: 100 * 1024 * 1024 } } as never);
-    const result = await canUpload("org1", 1024 * 1024); // 1 MB upload
+    const result = await canUpload("org1", 1024 * 1024);
     expect(result.allowed).toBe(true);
   });
 
-  it("denies upload that would exceed storage limit", async () => {
-    orgFindUnique.mockResolvedValue(activeOrg("GRATUITO") as never);
-    const limitBytes = 500 * 1024 * 1024;
+  it("denies upload that would exceed BASICO storage limit", async () => {
+    orgFindUnique.mockResolvedValue(activeOrg("BASICO") as never);
+    const limitBytes = 2 * 1024 * 1024 * 1024;
     arquivoAggregate.mockResolvedValue({ _sum: { tamanho: limitBytes - 100 } } as never);
-    const result = await canUpload("org1", 1024 * 1024); // 1 MB pushes over
+    const result = await canUpload("org1", 1024 * 1024);
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain("armazenamento");
   });
 
   it("handles null sum (no files yet)", async () => {
-    orgFindUnique.mockResolvedValue(activeOrg("ESSENCIAL") as never);
+    orgFindUnique.mockResolvedValue(activeOrg("INTERMEDIARIO") as never);
     arquivoAggregate.mockResolvedValue({ _sum: { tamanho: null } } as never);
     const result = await canUpload("org1", 1024);
     expect(result.allowed).toBe(true);
     expect(result.current).toBe(0);
   });
 
-  it("always allows for PROFISSIONAL", async () => {
-    orgFindUnique.mockResolvedValue(activeOrg("PROFISSIONAL") as never);
+  it("always allows for PERSONALIZADO", async () => {
+    orgFindUnique.mockResolvedValue(activeOrg("PERSONALIZADO") as never);
     const result = await canUpload("org1", 999_999_999);
     expect(result.allowed).toBe(true);
     expect(arquivoAggregate).not.toHaveBeenCalled();
@@ -233,7 +236,7 @@ describe("canUpload", () => {
   });
 
   it("denies when org is suspended", async () => {
-    orgFindUnique.mockResolvedValue({ ...activeOrg("ESSENCIAL"), status: "SUSPENSO" } as never);
+    orgFindUnique.mockResolvedValue({ ...activeOrg("INTERMEDIARIO"), status: "SUSPENSO" } as never);
     const result = await canUpload("org1", 1024);
     expect(result.allowed).toBe(false);
   });
@@ -241,7 +244,7 @@ describe("canUpload", () => {
   it("denies when trial is expired", async () => {
     const expired = new Date(Date.now() - 1000);
     orgFindUnique.mockResolvedValue({
-      ...activeOrg("GRATUITO"),
+      ...activeOrg("BASICO"),
       status: "TRIAL",
       trialExpiresAt: expired,
     } as never);
@@ -253,32 +256,42 @@ describe("canUpload", () => {
 // ── getUsage ─────────────────────────────────────────────────────────────────
 
 describe("getUsage", () => {
-  it("returns correct usage for GRATUITO plan", async () => {
+  it("returns null limits for GRATUITO (0 limit = no subscription)", async () => {
     orgFindUnique.mockResolvedValue({ planoAssinatura: "GRATUITO" } as never);
-    grupoFormacaoCount.mockResolvedValue(1 as never);
-    formandoCount.mockResolvedValue(10 as never);
-    arquivoAggregate.mockResolvedValue({ _sum: { tamanho: 50 * 1024 * 1024 } } as never);
-
-    const usage = await getUsage("org1");
-    expect(usage.plano).toBe("GRATUITO");
-    expect(usage.gruposFormacao.current).toBe(1);
-    expect(usage.gruposFormacao.limit).toBe(1);
-    expect(usage.formandos.current).toBe(10);
-    expect(usage.formandos.limit).toBe(30);
-    expect(usage.storage.current).toBe(50 * 1024 * 1024);
-  });
-
-  it("returns null limits for PROFISSIONAL plan", async () => {
-    orgFindUnique.mockResolvedValue({ planoAssinatura: "PROFISSIONAL" } as never);
-    grupoFormacaoCount.mockResolvedValue(0 as never);
     formandoCount.mockResolvedValue(0 as never);
+    usuarioCount.mockResolvedValue(0 as never);
     arquivoAggregate.mockResolvedValue({ _sum: { tamanho: null } } as never);
 
     const usage = await getUsage("org1");
-    expect(usage.gruposFormacao.limit).toBeNull();
-    expect(usage.formandos.limit).toBeNull();
+    expect(usage.plano).toBe("GRATUITO");
+    expect(usage.usuarios.limit).toBeNull();
     expect(usage.storage.limit).toBeNull();
-    expect(usage.gruposFormacao.percentUsed).toBe(0);
+  });
+
+  it("returns correct usage for BASICO plan", async () => {
+    orgFindUnique.mockResolvedValue({ planoAssinatura: "BASICO" } as never);
+    formandoCount.mockResolvedValue(20 as never);
+    usuarioCount.mockResolvedValue(5 as never);
+    arquivoAggregate.mockResolvedValue({ _sum: { tamanho: 500 * 1024 * 1024 } } as never);
+
+    const usage = await getUsage("org1");
+    expect(usage.plano).toBe("BASICO");
+    expect(usage.usuarios.current).toBe(25);
+    expect(usage.usuarios.limit).toBe(60);
+    expect(usage.usuarios.percentUsed).toBe(42); // round(25/60*100)
+    expect(usage.storage.limit).toBe(2 * 1024 * 1024 * 1024);
+  });
+
+  it("returns null limits for PERSONALIZADO plan", async () => {
+    orgFindUnique.mockResolvedValue({ planoAssinatura: "PERSONALIZADO" } as never);
+    formandoCount.mockResolvedValue(0 as never);
+    usuarioCount.mockResolvedValue(0 as never);
+    arquivoAggregate.mockResolvedValue({ _sum: { tamanho: null } } as never);
+
+    const usage = await getUsage("org1");
+    expect(usage.usuarios.limit).toBeNull();
+    expect(usage.storage.limit).toBeNull();
+    expect(usage.usuarios.percentUsed).toBe(0);
   });
 
   it("throws when org not found", async () => {
@@ -286,15 +299,14 @@ describe("getUsage", () => {
     await expect(getUsage("org1")).rejects.toThrow("não encontrada");
   });
 
-  it("computes percentUsed for ESSENCIAL plan", async () => {
-    orgFindUnique.mockResolvedValue({ planoAssinatura: "ESSENCIAL" } as never);
-    grupoFormacaoCount.mockResolvedValue(3 as never);
-    formandoCount.mockResolvedValue(75 as never);
-    arquivoAggregate.mockResolvedValue({ _sum: { tamanho: 1024 * 1024 * 1024 } } as never);
+  it("computes percentUsed correctly for INTERMEDIARIO plan", async () => {
+    orgFindUnique.mockResolvedValue({ planoAssinatura: "INTERMEDIARIO" } as never);
+    formandoCount.mockResolvedValue(70 as never);
+    usuarioCount.mockResolvedValue(0 as never);
+    arquivoAggregate.mockResolvedValue({ _sum: { tamanho: 5 * 1024 * 1024 * 1024 } } as never);
 
     const usage = await getUsage("org1");
-    expect(usage.gruposFormacao.percentUsed).toBe(100); // 3/3 * 100
-    expect(usage.formandos.percentUsed).toBe(50); // 75/150 * 100
-    expect(usage.storage.percentUsed).toBe(50);   // 1GB / 2GB * 100
+    expect(usage.usuarios.percentUsed).toBe(50); // 70/140 * 100
+    expect(usage.storage.percentUsed).toBe(50);  // 5GB / 10GB * 100
   });
 });

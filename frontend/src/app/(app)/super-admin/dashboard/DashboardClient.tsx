@@ -247,7 +247,7 @@ function TabVisaoGeral({ metricas, mrrFmt }: { metricas: Metricas; mrrFmt: strin
           <CardContent className="px-4 pb-4">
             <div className="text-2xl font-bold">{mrrFmt}</div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              {metricas.planoBreakdown["ESSENCIAL"] ?? 0} essencial · {metricas.planoBreakdown["PROFISSIONAL"] ?? 0} profissional
+              {metricas.planoBreakdown["BASICO"] ?? 0} básico · {metricas.planoBreakdown["INTERMEDIARIO"] ?? 0} intermediário · {metricas.planoBreakdown["AVANCADO"] ?? 0} avançado
             </div>
           </CardContent>
         </Card>
@@ -334,8 +334,10 @@ function TabVisaoGeral({ metricas, mrrFmt }: { metricas: Metricas; mrrFmt: strin
           <CardContent className="px-4 pb-4 space-y-2">
             {[
               { label: "Gratuito", key: "GRATUITO", color: "bg-slate-400" },
-              { label: "Essencial", key: "ESSENCIAL", color: "bg-violet-500" },
-              { label: "Profissional", key: "PROFISSIONAL", color: "bg-amber-500" },
+              { label: "Básico", key: "BASICO", color: "bg-sky-500" },
+              { label: "Intermediário", key: "INTERMEDIARIO", color: "bg-violet-500" },
+              { label: "Avançado", key: "AVANCADO", color: "bg-amber-500" },
+              { label: "Personalizado", key: "PERSONALIZADO", color: "bg-emerald-500" },
             ].map(({ label, key, color }) => {
               const count = metricas.planoBreakdown[key] ?? 0;
               return (

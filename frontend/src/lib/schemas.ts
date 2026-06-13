@@ -143,7 +143,7 @@ export const UpdateGrupoFormacaoSchema = CreateGrupoFormacaoSchema.partial();
 
 // ── Organização ───────────────────────────────────────────────────────────────
 
-export const PlanoAssinaturaEnum = z.enum(["GRATUITO", "ESSENCIAL", "PROFISSIONAL"]);
+export const PlanoAssinaturaEnum = z.enum(["GRATUITO", "BASICO", "INTERMEDIARIO", "AVANCADO", "PERSONALIZADO"]);
 
 export const UpdateOrganizacaoSchema = z.object({
   nome: nonEmptyString(255).optional(),

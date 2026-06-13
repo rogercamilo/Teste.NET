@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { stripe, STRIPE_PRICES, isStripeEnabled } from "@/lib/stripe";
+import { stripe, STRIPE_PRICES, isStripeEnabled, type StripePaidPlan } from "@/lib/stripe";
 import { logAction, getClientIp } from "@/lib/audit-log";
-
 import { SessionUser as SU } from "@/lib/auth-helpers";
+
+const VALID_PLANS: StripePaidPlan[] = ["BASICO", "INTERMEDIARIO", "AVANCADO"];
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -18,18 +19,18 @@ export async function POST(req: NextRequest) {
   }
 
   const { plano } = await req.json();
-  if (!plano || !["ESSENCIAL", "PROFISSIONAL"].includes(plano)) {
+  if (!plano || !VALID_PLANS.includes(plano)) {
     return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
   }
 
-  const priceId = STRIPE_PRICES[plano as keyof typeof STRIPE_PRICES];
+  const priceId = STRIPE_PRICES[plano as StripePaidPlan];
   if (!priceId) {
     return NextResponse.json({ error: `STRIPE_PRICE_${plano} não configurado` }, { status: 503 });
   }
 
   const org = await prisma.organizacao.findUnique({
     where: { id: user.organizacaoId },
-    select: { id: true, nome: true, stripeCustomerId: true },
+    select: { id: true, nome: true, stripeCustomerId: true, status: true, trialExpiresAt: true },
   });
   if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
   if (!customerId) {
     const customer = await stripe!.customers.create({
       name: org.nome,
+      email: user.email,
       metadata: { organizacaoId: org.id },
     });
     customerId = customer.id;
@@ -48,18 +50,29 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Honra o trial restante: se org ainda está em trial, preserva os dias que faltam
+  const trialEnd =
+    org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt > new Date()
+      ? Math.floor(org.trialExpiresAt.getTime() / 1000)
+      : undefined;
+
   const checkoutSession = await stripe!.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
+    allow_promotion_codes: true,
     metadata: { organizacaoId: org.id, plano },
+    subscription_data: {
+      metadata: { organizacaoId: org.id },
+      ...(trialEnd ? { trial_end: trialEnd } : {}),
+    },
     success_url: `${appUrl}/configuracoes?checkout=success`,
     cancel_url: `${appUrl}/configuracoes?checkout=cancelled`,
   });
 
   logAction(
     "stripe_checkout_iniciado",
-    user.id,
+    user.id ?? "unknown",
     getClientIp(req),
     { plano, checkoutSessionId: checkoutSession.id },
     user.organizacaoId

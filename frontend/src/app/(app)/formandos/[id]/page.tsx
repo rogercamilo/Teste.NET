@@ -5,6 +5,7 @@ import { getOrgBranding } from "@/lib/org-cache";
 import { toFormando, toComentario, toEvento, toPresenca, toAgendamento, toGrupoFormacao } from "@/lib/converters";
 import type { SessionUser } from "@/lib/auth-helpers";
 import type { DocumentoAnexo } from "@/types";
+import { hasCanonicalAccess } from "@/types";
 import FormandoDetailClient from "./FormandoDetailClient";
 
 export default async function FormandoDetailPage({
@@ -35,7 +36,7 @@ export default async function FormandoDetailPage({
   if (!formandoRow) redirect("/formandos");
 
   const processosEclesiasticosRows =
-    org?.tipoOrganizacao === "nova_comunidade"
+    hasCanonicalAccess(org?.tipoOrganizacao)
       ? await prisma.processoEclesiastico.findMany({
           where: { formandoId: id, organizacaoId: user.organizacaoId },
           include: { documentos: { select: { id: true, tipo: true, status: true, versao: true } } },

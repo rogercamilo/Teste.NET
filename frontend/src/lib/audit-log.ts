@@ -75,6 +75,7 @@ export type AuditAction =
   | "stripe_checkout_concluido"
   | "stripe_portal_acessado"
   | "stripe_assinatura_cancelada"
+  | "stripe_pagamento_recebido"
   | "stripe_pagamento_falhou"
   | "account_deleted"
   | "organizacao_deleted"

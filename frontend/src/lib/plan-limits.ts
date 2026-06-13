@@ -1,16 +1,19 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import type { PlanoAssinatura } from "@prisma/client";
 
 export interface PlanLimits {
-  gruposFormacao: number;
-  formandos: number;
+  /** Total de usuários ativos (formandos + usuários da plataforma). 0 = sem assinatura ativa. */
+  usuarios: number;
   storageBytes: number;
 }
 
+// GRATUITO = 0 → bloqueia adição de qualquer usuário (estado sem assinatura)
 const LIMITS: Record<PlanoAssinatura, PlanLimits> = {
-  GRATUITO: { gruposFormacao: 1, formandos: 30, storageBytes: 500 * 1024 * 1024 },
-  ESSENCIAL: { gruposFormacao: 3, formandos: 150, storageBytes: 2 * 1024 * 1024 * 1024 },
-  PROFISSIONAL: { gruposFormacao: Infinity, formandos: Infinity, storageBytes: Infinity },
+  GRATUITO:     { usuarios: 0,        storageBytes: 0 },
+  BASICO:       { usuarios: 60,       storageBytes: 2  * 1024 * 1024 * 1024 },
+  INTERMEDIARIO:{ usuarios: 140,      storageBytes: 10 * 1024 * 1024 * 1024 },
+  AVANCADO:     { usuarios: 350,      storageBytes: 30 * 1024 * 1024 * 1024 },
+  PERSONALIZADO:{ usuarios: Infinity, storageBytes: Infinity },
 };
 
 export function getLimits(plano: PlanoAssinatura): PlanLimits {
@@ -46,51 +49,55 @@ async function fetchOrgForLimits(orgId: string): Promise<OrgAccess> {
   return { ok: true, planoAssinatura: org.planoAssinatura };
 }
 
-// ── Verificações de limite ────────────────────────────────────────────────────
+// ── Verificação de limite de usuários ────────────────────────────────────────
 
-export async function canAddGrupoFormacao(orgId: string): Promise<LimitCheckResult> {
+/** Verifica se a org pode adicionar um novo usuário (formando ou usuário da plataforma). */
+export async function canAddUser(orgId: string): Promise<LimitCheckResult> {
   const org = await fetchOrgForLimits(orgId);
   if (!org.ok) return { allowed: false, reason: org.reason };
 
   const limits = getLimits(org.planoAssinatura);
-  if (limits.gruposFormacao === Infinity) return { allowed: true };
 
-  const current = await prisma.grupoFormacao.count({ where: { organizacaoId: orgId } });
-  const percentUsed = Math.round((current / limits.gruposFormacao) * 100);
-
-  if (current >= limits.gruposFormacao) {
+  if (limits.usuarios === 0) {
     return {
       allowed: false,
-      reason: `Limite de ${limits.gruposFormacao} morada(s) atingido no plano ${org.planoAssinatura}`,
+      reason: "Sem assinatura ativa. Assine um plano para continuar.",
+    };
+  }
+
+  if (limits.usuarios === Infinity) return { allowed: true };
+
+  const [formandosCount, usuariosCount] = await Promise.all([
+    prisma.formando.count({ where: { organizacaoId: orgId, deletedAt: null } }),
+    prisma.usuario.count({ where: { organizacaoId: orgId, deletedAt: null } }),
+  ]);
+
+  const current = formandosCount + usuariosCount;
+  const percentUsed = Math.round((current / limits.usuarios) * 100);
+
+  if (current >= limits.usuarios) {
+    return {
+      allowed: false,
+      reason: `Limite de ${limits.usuarios} usuários ativos atingido no plano atual`,
       current,
-      limit: limits.gruposFormacao,
+      limit: limits.usuarios,
       percentUsed,
     };
   }
-  return { allowed: true, current, limit: limits.gruposFormacao, percentUsed };
+  return { allowed: true, current, limit: limits.usuarios, percentUsed };
 }
 
+/** @deprecated Use canAddUser. Grupos de formação são ilimitados em todos os planos. */
+export async function canAddGrupoFormacao(): Promise<LimitCheckResult> {
+  return { allowed: true };
+}
+
+/** @deprecated Use canAddUser. */
 export async function canAddFormando(orgId: string): Promise<LimitCheckResult> {
-  const org = await fetchOrgForLimits(orgId);
-  if (!org.ok) return { allowed: false, reason: org.reason };
-
-  const limits = getLimits(org.planoAssinatura);
-  if (limits.formandos === Infinity) return { allowed: true };
-
-  const current = await prisma.formando.count({ where: { organizacaoId: orgId, deletedAt: null } });
-  const percentUsed = Math.round((current / limits.formandos) * 100);
-
-  if (current >= limits.formandos) {
-    return {
-      allowed: false,
-      reason: `Limite de ${limits.formandos} formando(s) atingido no plano ${org.planoAssinatura}`,
-      current,
-      limit: limits.formandos,
-      percentUsed,
-    };
-  }
-  return { allowed: true, current, limit: limits.formandos, percentUsed };
+  return canAddUser(orgId);
 }
+
+// ── Verificação de armazenamento ──────────────────────────────────────────────
 
 export async function canUpload(orgId: string, sizeBytes: number): Promise<LimitCheckResult> {
   const org = await fetchOrgForLimits(orgId);
@@ -98,6 +105,10 @@ export async function canUpload(orgId: string, sizeBytes: number): Promise<Limit
 
   const limits = getLimits(org.planoAssinatura);
   if (limits.storageBytes === Infinity) return { allowed: true };
+
+  if (limits.storageBytes === 0) {
+    return { allowed: false, reason: "Sem assinatura ativa. Assine um plano para fazer uploads." };
+  }
 
   const result = await prisma.arquivo.aggregate({
     where: { organizacaoId: orgId },
@@ -108,10 +119,10 @@ export async function canUpload(orgId: string, sizeBytes: number): Promise<Limit
   const percentUsed = Math.round((afterBytes / limits.storageBytes) * 100);
 
   if (afterBytes > limits.storageBytes) {
-    const limitMb = Math.round(limits.storageBytes / (1024 * 1024));
+    const limitGb = (limits.storageBytes / (1024 * 1024 * 1024)).toFixed(0);
     return {
       allowed: false,
-      reason: `Limite de armazenamento de ${limitMb} MB atingido`,
+      reason: `Limite de armazenamento de ${limitGb} GB atingido`,
       current: usedBytes,
       limit: limits.storageBytes,
       percentUsed,
@@ -119,6 +130,8 @@ export async function canUpload(orgId: string, sizeBytes: number): Promise<Limit
   }
   return { allowed: true, current: usedBytes, limit: limits.storageBytes, percentUsed };
 }
+
+// ── Uso atual ─────────────────────────────────────────────────────────────────
 
 export async function getUsage(orgId: string) {
   const org = await prisma.organizacao.findUnique({
@@ -129,30 +142,30 @@ export async function getUsage(orgId: string) {
 
   const limits = getLimits(org.planoAssinatura);
 
-  const [gruposFormacaoCount, formandosCount, storageResult] = await Promise.all([
-    prisma.grupoFormacao.count({ where: { organizacaoId: orgId } }),
+  const [formandosCount, usuariosCount, storageResult] = await Promise.all([
     prisma.formando.count({ where: { organizacaoId: orgId, deletedAt: null } }),
+    prisma.usuario.count({ where: { organizacaoId: orgId, deletedAt: null } }),
     prisma.arquivo.aggregate({ where: { organizacaoId: orgId }, _sum: { tamanho: true } }),
   ]);
 
+  const totalUsuarios = formandosCount + usuariosCount;
   const storageBytes = storageResult._sum.tamanho ?? 0;
+  const usuariosLimit = limits.usuarios === Infinity || limits.usuarios === 0 ? null : limits.usuarios;
+  const storageLimit = limits.storageBytes === Infinity || limits.storageBytes === 0 ? null : limits.storageBytes;
 
   return {
     plano: org.planoAssinatura,
-    gruposFormacao: {
-      current: gruposFormacaoCount,
-      limit: limits.gruposFormacao === Infinity ? null : limits.gruposFormacao,
-      percentUsed: limits.gruposFormacao === Infinity ? 0 : Math.round((gruposFormacaoCount / limits.gruposFormacao) * 100),
-    },
-    formandos: {
-      current: formandosCount,
-      limit: limits.formandos === Infinity ? null : limits.formandos,
-      percentUsed: limits.formandos === Infinity ? 0 : Math.round((formandosCount / limits.formandos) * 100),
+    usuarios: {
+      current: totalUsuarios,
+      limit: usuariosLimit,
+      percentUsed: usuariosLimit ? Math.round((totalUsuarios / usuariosLimit) * 100) : 0,
     },
     storage: {
       current: storageBytes,
-      limit: limits.storageBytes === Infinity ? null : limits.storageBytes,
-      percentUsed: limits.storageBytes === Infinity ? 0 : Math.round((storageBytes / limits.storageBytes) * 100),
+      limit: storageLimit,
+      percentUsed: storageLimit ? Math.round((storageBytes / storageLimit) * 100) : 0,
     },
   };
 }
+
+export type UsageInfo = Awaited<ReturnType<typeof getUsage>>;

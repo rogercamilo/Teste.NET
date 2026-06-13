@@ -72,8 +72,9 @@ const schema = z
     // Stripe — optional
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
-    STRIPE_PRICE_ESSENCIAL: z.string().optional(),
-    STRIPE_PRICE_PROFISSIONAL: z.string().optional(),
+    STRIPE_PRICE_BASICO: z.string().optional(),
+    STRIPE_PRICE_INTERMEDIARIO: z.string().optional(),
+    STRIPE_PRICE_AVANCADO: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     // Google OAuth: partial config is a misconfiguration

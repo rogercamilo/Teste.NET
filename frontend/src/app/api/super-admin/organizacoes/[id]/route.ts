@@ -34,7 +34,7 @@ export async function PATCH(request: Request, { params }: Params) {
     const { acao, plano } = body;
 
     const validAcoes = ["suspender", "reativar", "cancelar", "cortesia", "revogar-cortesia", "reset-credenciais"] as const;
-    const validPlanos: PlanoAssinatura[] = ["GRATUITO", "ESSENCIAL", "PROFISSIONAL"];
+    const validPlanos: PlanoAssinatura[] = ["GRATUITO", "BASICO", "INTERMEDIARIO", "AVANCADO", "PERSONALIZADO"];
 
     if (acao && !(validAcoes as readonly string[]).includes(acao)) {
       return NextResponse.json({ error: "Ação inválida" }, { status: 400 });

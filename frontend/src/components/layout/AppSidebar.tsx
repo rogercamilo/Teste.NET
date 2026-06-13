@@ -77,7 +77,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
     ...g,
     label: g.label === "Minha Morada" ? `Minha ${grupoFormacao}` : g.label,
     items: g.items
-      .filter((item) => !item.requiredTipoOrg || item.requiredTipoOrg === tipoOrg)
+      .filter((item) => !item.requiredTipoOrg || item.requiredTipoOrg.includes(tipoOrg ?? ""))
       .map((item) => ({
         ...item,
         title:

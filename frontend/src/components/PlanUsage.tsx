@@ -1,23 +1,14 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from "react";
-import { TrendingUp, AlertTriangle } from "lucide-react";
-import { useTermos } from "@/lib/data-store";
+import { AlertTriangle, TrendingUp } from "lucide-react";
+import type { UsageInfo } from "@/lib/plan-limits";
+import { PLANO_ASSINATURA_LABELS } from "@/types";
 
 interface UsageMetric {
   current: number;
   limit: number | null;
   percentUsed: number;
 }
-
-interface Usage {
-  plano: "GRATUITO" | "ESSENCIAL" | "PROFISSIONAL";
-  gruposFormacao: UsageMetric;
-  formandos: UsageMetric;
-  storage: UsageMetric;
-}
-
-const PLANO_LABELS = { GRATUITO: "Gratuito", ESSENCIAL: "Essencial", PROFISSIONAL: "Profissional" };
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -63,35 +54,18 @@ function UsageBar({ label, metric, formatValue }: {
   );
 }
 
-export default function PlanUsage() {
-  const { grupoFormacao: termoGrupoFormacao } = useTermos();
-  const [usage, setUsage] = useState<Usage | null>(null);
-  const [loading, setLoading] = useState(true);
+interface PlanUsageProps {
+  initialUsage: UsageInfo | null;
+}
 
-  useEffect(() => {
-    fetch("/api/organizacao/uso")
-      .then((r) => r.json() as Promise<Usage>)
-      .then(setUsage)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+export default function PlanUsage({ initialUsage }: PlanUsageProps) {
+  if (!initialUsage) return null;
 
-  if (loading) {
-    return (
-      <div className="space-y-3 animate-pulse">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-10 bg-muted rounded" />
-        ))}
-      </div>
-    );
-  }
-
-  if (!usage) return null;
+  const planoLabel = PLANO_ASSINATURA_LABELS[initialUsage.plano] ?? initialUsage.plano;
 
   const hasWarning =
-    (usage.gruposFormacao.percentUsed >= 80 && usage.gruposFormacao.limit !== null) ||
-    (usage.formandos.percentUsed >= 80 && usage.formandos.limit !== null) ||
-    (usage.storage.percentUsed >= 80 && usage.storage.limit !== null);
+    (initialUsage.usuarios.percentUsed >= 80 && initialUsage.usuarios.limit !== null) ||
+    (initialUsage.storage.percentUsed >= 80 && initialUsage.storage.limit !== null);
 
   return (
     <div className="space-y-4">
@@ -101,22 +75,18 @@ export default function PlanUsage() {
           <span className="text-sm font-medium text-foreground">Uso do plano</span>
         </div>
         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-          {PLANO_LABELS[usage.plano]}
+          {planoLabel}
         </span>
       </div>
 
       <div className="space-y-4">
-        <UsageBar label={`${termoGrupoFormacao}s`} metric={usage.gruposFormacao} />
-        <UsageBar label="Formandos" metric={usage.formandos} />
-        <UsageBar label="Armazenamento" metric={usage.storage} formatValue={formatBytes} />
+        <UsageBar label="Usuários ativos" metric={initialUsage.usuarios} />
+        <UsageBar label="Armazenamento" metric={initialUsage.storage} formatValue={formatBytes} />
       </div>
 
       {hasWarning && (
         <div className="pt-2 border-t border-border">
-          <a
-            href="/configuracoes"
-            className="text-xs text-primary hover:underline font-medium"
-          >
+          <a href="/configuracoes" className="text-xs text-primary hover:underline font-medium">
             Gerenciar plano →
           </a>
         </div>

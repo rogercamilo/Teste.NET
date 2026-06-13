@@ -74,7 +74,13 @@ type Tab = "organizacoes" | "financeiro" | "cortesias" | "lgpd";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const MRR_PRICE: Record<string, number> = { GRATUITO: 0, ESSENCIAL: 149, PROFISSIONAL: 349 };
+const MRR_PRICE: Record<string, number> = {
+  GRATUITO: 0,
+  BASICO: 97,
+  INTERMEDIARIO: 197,
+  AVANCADO: 397,
+  PERSONALIZADO: 890,
+};
 
 const STATUS_COLORS: Record<string, string> = {
   ATIVO: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -85,8 +91,10 @@ const STATUS_COLORS: Record<string, string> = {
 
 const PLANO_COLORS: Record<string, string> = {
   GRATUITO: "bg-slate-100 text-slate-600",
-  ESSENCIAL: "bg-violet-100 text-violet-700",
-  PROFISSIONAL: "bg-amber-100 text-amber-700",
+  BASICO: "bg-sky-100 text-sky-700",
+  INTERMEDIARIO: "bg-violet-100 text-violet-700",
+  AVANCADO: "bg-amber-100 text-amber-700",
+  PERSONALIZADO: "bg-emerald-100 text-emerald-700",
 };
 
 const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
@@ -494,7 +502,7 @@ export default function SuperAdminClient() {
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <div className="text-3xl font-bold">
-                  {(metricas.planoBreakdown["ESSENCIAL"] ?? 0) + (metricas.planoBreakdown["PROFISSIONAL"] ?? 0)}
+                  {(metricas.planoBreakdown["BASICO"] ?? 0) + (metricas.planoBreakdown["INTERMEDIARIO"] ?? 0) + (metricas.planoBreakdown["AVANCADO"] ?? 0) + (metricas.planoBreakdown["PERSONALIZADO"] ?? 0)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   de {metricas.totalOrgs} organizações totais
@@ -520,8 +528,10 @@ export default function SuperAdminClient() {
                 <TableBody>
                   {[
                     { label: "Gratuito", key: "GRATUITO", color: "bg-slate-100 text-slate-600" },
-                    { label: "Essencial", key: "ESSENCIAL", color: "bg-violet-100 text-violet-700" },
-                    { label: "Profissional", key: "PROFISSIONAL", color: "bg-amber-100 text-amber-700" },
+                    { label: "Básico", key: "BASICO", color: "bg-sky-100 text-sky-700" },
+                    { label: "Intermediário", key: "INTERMEDIARIO", color: "bg-violet-100 text-violet-700" },
+                    { label: "Avançado", key: "AVANCADO", color: "bg-amber-100 text-amber-700" },
+                    { label: "Personalizado", key: "PERSONALIZADO", color: "bg-emerald-100 text-emerald-700" },
                   ].map(({ label, key, color }) => {
                     const count = metricas.planoBreakdown[key] ?? 0;
                     const price = MRR_PRICE[key] ?? 0;
@@ -1016,9 +1026,11 @@ export default function SuperAdminClient() {
           <Select value={novoPlano} onValueChange={(v) => v && setNovoPlano(v)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="GRATUITO">Gratuito — 1 morada, 30 formandos</SelectItem>
-              <SelectItem value="ESSENCIAL">Essencial — 3 moradas, 150 formandos (R$ 149/mês)</SelectItem>
-              <SelectItem value="PROFISSIONAL">Profissional — ilimitado (R$ 349/mês)</SelectItem>
+              <SelectItem value="GRATUITO">Gratuito — sem assinatura ativa</SelectItem>
+              <SelectItem value="BASICO">Básico — até 60 usuários (R$ 97/mês)</SelectItem>
+              <SelectItem value="INTERMEDIARIO">Intermediário — até 140 usuários (R$ 197/mês)</SelectItem>
+              <SelectItem value="AVANCADO">Avançado — até 350 usuários (R$ 397/mês)</SelectItem>
+              <SelectItem value="PERSONALIZADO">Personalizado — ilimitado (negociado)</SelectItem>
             </SelectContent>
           </Select>
           <DialogFooter>

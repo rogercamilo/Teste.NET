@@ -57,19 +57,30 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
+type PaidPlan = "BASICO" | "INTERMEDIARIO" | "AVANCADO" | "PERSONALIZADO";
+
+function resolvePlan(priceId: string): PaidPlan | null {
+  const map: Record<string, PaidPlan> = {
+    [process.env.STRIPE_PRICE_BASICO ?? ""]:        "BASICO",
+    [process.env.STRIPE_PRICE_INTERMEDIARIO ?? ""]: "INTERMEDIARIO",
+    [process.env.STRIPE_PRICE_AVANCADO ?? ""]:      "AVANCADO",
+  };
+  return map[priceId] ?? null;
+}
+
 async function handleEvent(event: Stripe.Event) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const organizacaoId = session.metadata?.organizacaoId;
-      const plano = session.metadata?.plano;
+      const plano = session.metadata?.plano as PaidPlan | undefined;
 
       if (!organizacaoId || !plano) break;
 
       await prisma.organizacao.update({
         where: { id: organizacaoId },
         data: {
-          planoAssinatura: plano as "ESSENCIAL" | "PROFISSIONAL",
+          planoAssinatura: plano,
           status: "ATIVO",
           stripeSubscriptionId: session.subscription as string,
         },
@@ -87,18 +98,13 @@ async function handleEvent(event: Stripe.Event) {
       if (!org) break;
 
       const priceId = sub.items.data[0]?.price.id;
-      const ESSENCIAL = process.env.STRIPE_PRICE_ESSENCIAL;
-      const PROFISSIONAL = process.env.STRIPE_PRICE_PROFISSIONAL;
-
-      let plano: string | null = null;
-      if (priceId === ESSENCIAL) plano = "ESSENCIAL";
-      else if (priceId === PROFISSIONAL) plano = "PROFISSIONAL";
+      const plano = priceId ? resolvePlan(priceId) : null;
 
       await prisma.organizacao.update({
         where: { id: org.id },
         data: {
           status: sub.status === "active" ? "ATIVO" : "SUSPENSO",
-          ...(plano ? { planoAssinatura: plano as "ESSENCIAL" | "PROFISSIONAL" } : {}),
+          ...(plano ? { planoAssinatura: plano } : {}),
         },
       });
       break;
@@ -132,6 +138,22 @@ async function handleEvent(event: Stripe.Event) {
       });
       if (!org) break;
       logAction("stripe_pagamento_falhou", "system", undefined, { invoiceId: invoice.id }, org.id);
+      break;
+    }
+
+    case "invoice.payment_succeeded": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const org = await prisma.organizacao.findFirst({
+        where: { stripeCustomerId: invoice.customer as string },
+        select: { id: true },
+      });
+      if (!org) break;
+      // Reativa conta suspensa por inadimplência ao receber pagamento bem-sucedido
+      await prisma.organizacao.update({
+        where: { id: org.id },
+        data: { status: "ATIVO" },
+      });
+      logAction("stripe_pagamento_recebido", "system", undefined, { invoiceId: invoice.id, amountPaid: invoice.amount_paid }, org.id);
       break;
     }
   }

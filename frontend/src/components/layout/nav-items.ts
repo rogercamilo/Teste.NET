@@ -19,8 +19,8 @@ export interface NavItem {
   icon: LucideIcon;
   badge?: number;
   exact?: boolean;
-  /** Restringe o item a um tipo específico de organização. Omitir = visível para todos. */
-  requiredTipoOrg?: string;
+  /** Restringe o item a um ou mais tipos de organização. Omitir = visível para todos. */
+  requiredTipoOrg?: string[];
 }
 
 export interface NavGroup {
@@ -55,7 +55,7 @@ export const navGroupsGestao: NavGroup[] = [
         title: "Jornada Vocacional",
         href: "/jornada-vocacional",
         icon: ScrollText,
-        requiredTipoOrg: "nova_comunidade",
+        requiredTipoOrg: ["nova_comunidade", "instituto_religioso"],
       },
     ],
   },

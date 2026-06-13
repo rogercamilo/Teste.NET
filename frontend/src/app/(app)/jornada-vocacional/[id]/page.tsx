@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth-helpers";
+import { hasCanonicalAccess } from "@/types";
 import ProcessoDetalheClient from "./ProcessoDetalheClient";
 
 export default async function ProcessoDetalhePage({
@@ -54,7 +55,7 @@ export default async function ProcessoDetalhePage({
   ]);
 
   if (!processo) redirect("/jornada-vocacional");
-  if (org?.tipoOrganizacao !== "nova_comunidade") redirect("/dashboard");
+  if (!hasCanonicalAccess(org?.tipoOrganizacao)) redirect("/dashboard");
 
   return (
     <ProcessoDetalheClient

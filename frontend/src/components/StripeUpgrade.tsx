@@ -1,36 +1,84 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, ExternalLink, Loader2, Sparkles, Zap } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  CreditCard,
+  ExternalLink,
+  Loader2,
+  Sparkles,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
+import type { BillingInfo } from "@/lib/billing-data";
+import { PLANO_ASSINATURA_LABELS } from "@/types";
 
-interface OrgBilling {
-  plano: "GRATUITO" | "ESSENCIAL" | "PROFISSIONAL";
-  status: string;
-  stripeEnabled: boolean;
-  hasSubscription: boolean;
+interface StripeUpgradeProps {
+  initialBilling: BillingInfo | null;
 }
 
-const PLANO_LABELS = { GRATUITO: "Gratuito", ESSENCIAL: "Essencial", PROFISSIONAL: "Profissional" };
+const PLANO_CARDS = [
+  {
+    key: "BASICO" as const,
+    preco: "R$ 97",
+    usuarios: "60",
+    storage: "2 GB",
+    features: ["Até 60 usuários ativos", "2 GB de armazenamento"],
+    icon: Zap,
+    color: "text-sky-600",
+  },
+  {
+    key: "INTERMEDIARIO" as const,
+    preco: "R$ 197",
+    usuarios: "140",
+    storage: "10 GB",
+    features: ["Até 140 usuários ativos", "10 GB de armazenamento"],
+    icon: Sparkles,
+    color: "text-violet-600",
+    destaque: true,
+  },
+  {
+    key: "AVANCADO" as const,
+    preco: "R$ 397",
+    usuarios: "350",
+    storage: "30 GB",
+    features: ["Até 350 usuários ativos", "30 GB de armazenamento"],
+    icon: Sparkles,
+    color: "text-amber-600",
+  },
+];
 
-export default function StripeUpgrade() {
-  const [billing, setBilling] = useState<OrgBilling | null>(null);
-  const [loading, setLoading] = useState(true);
+function formatCurrency(cents: number, currency: string) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function trialDaysLeft(expiresAt: string): number {
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
+  const [billing] = useState<BillingInfo | null>(initialBilling);
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/stripe/billing-info")
-      .then((r) => r.json() as Promise<OrgBilling>)
-      .then(setBilling)
-      .catch(() => setBilling(null))
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function handleUpgrade(plano: "ESSENCIAL" | "PROFISSIONAL") {
+  async function handleUpgrade(plano: "BASICO" | "INTERMEDIARIO" | "AVANCADO") {
     setUpgrading(plano);
     try {
       const res = await fetch("/api/stripe/checkout", {
@@ -54,9 +102,7 @@ export default function StripeUpgrade() {
   async function handlePortal() {
     setOpeningPortal(true);
     try {
-      const res = await fetch("/api/stripe/portal", {
-        method: "POST",
-      });
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Erro ao abrir portal");
@@ -70,10 +116,6 @@ export default function StripeUpgrade() {
     }
   }
 
-  if (loading) {
-    return <div className="h-24 bg-muted rounded animate-pulse" />;
-  }
-
   if (!billing?.stripeEnabled) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -84,96 +126,159 @@ export default function StripeUpgrade() {
     );
   }
 
+  const planoAtual = billing.plano;
+  const planoLabel = PLANO_ASSINATURA_LABELS[planoAtual] ?? planoAtual;
+  const isPersonalizado = planoAtual === "PERSONALIZADO";
+
   return (
     <div className="space-y-4">
       <Separator />
 
+      {/* Trial banner */}
+      {billing.status === "TRIAL" && billing.trialExpiresAt && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm">
+          <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+          <span className="text-amber-800">
+            <strong>Período trial</strong> — {trialDaysLeft(billing.trialExpiresAt)} dia(s)
+            restante(s). Assine um plano para continuar após o término.
+          </span>
+        </div>
+      )}
+
+      {/* Plano atual */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">Plano atual</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {billing.status === "TRIAL" ? "Período de avaliação" : "Assinatura ativa"}
-          </p>
+          {billing.hasSubscription && billing.renewsAt && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {billing.cancelAtPeriodEnd
+                ? `Cancela em ${formatDate(billing.renewsAt)}`
+                : `Renova em ${formatDate(billing.renewsAt)}`}
+              {billing.amountCents && billing.currency && (
+                <> · {formatCurrency(billing.amountCents, billing.currency)}/mês</>
+              )}
+            </p>
+          )}
         </div>
         <Badge variant="secondary" className="font-medium">
-          {PLANO_LABELS[billing.plano]}
+          {planoLabel}
         </Badge>
       </div>
 
+      {/* Assinante ativo: botão de portal + faturas */}
       {billing.hasSubscription ? (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full gap-2"
-          onClick={handlePortal}
-          disabled={openingPortal}
-        >
-          {openingPortal ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <ExternalLink className="h-4 w-4" />
-          )}
-          Gerenciar assinatura
-        </Button>
-      ) : (
-        <div className="space-y-2">
-          {billing.plano === "GRATUITO" && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full gap-2"
-                onClick={() => handleUpgrade("ESSENCIAL")}
-                disabled={upgrading !== null}
-              >
-                {upgrading === "ESSENCIAL" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Zap className="h-4 w-4 text-amber-500" />
-                )}
-                Assinar Essencial
-              </Button>
-              <Button
-                size="sm"
-                className="w-full gap-2"
-                onClick={() => handleUpgrade("PROFISSIONAL")}
-                disabled={upgrading !== null}
-              >
-                {upgrading === "PROFISSIONAL" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4" />
-                )}
-                Assinar Profissional
-              </Button>
-            </>
-          )}
-          {billing.plano === "ESSENCIAL" && (
-            <Button
-              size="sm"
-              className="w-full gap-2"
-              onClick={() => handleUpgrade("PROFISSIONAL")}
-              disabled={upgrading !== null}
-            >
-              {upgrading === "PROFISSIONAL" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              Upgrade para Profissional
-            </Button>
-          )}
+        <div className="space-y-3">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="w-full gap-2 text-muted-foreground"
+            className="w-full gap-2"
             onClick={handlePortal}
             disabled={openingPortal}
           >
             {openingPortal ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <CreditCard className="h-4 w-4" />
+              <ExternalLink className="h-4 w-4" />
+            )}
+            Gerenciar assinatura
+          </Button>
+
+          {billing.invoices.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Últimas faturas</p>
+              {billing.invoices.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">{formatDate(inv.date)}</span>
+                  <div className="flex items-center gap-2">
+                    <span>{formatCurrency(inv.amountCents, inv.currency)}</span>
+                    {inv.url && (
+                      <a
+                        href={inv.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        PDF
+                      </a>
+                    )}
+                    {inv.status === "paid" && (
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : isPersonalizado ? (
+        <p className="text-xs text-muted-foreground">
+          Plano personalizado configurado pelo suporte. Entre em contato para alterações.
+        </p>
+      ) : (
+        /* Não assinante: cards de pricing */
+        <div className="space-y-2">
+          {PLANO_CARDS.map((p) => {
+            const Icon = p.icon;
+            const isCurrentPlan = planoAtual === p.key;
+            return (
+              <div
+                key={p.key}
+                className={`rounded-lg border p-3 space-y-2 ${
+                  p.destaque ? "border-violet-300 bg-violet-50/60" : "border-border"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Icon className={`h-3.5 w-3.5 ${p.color}`} />
+                    <span className="text-sm font-medium">
+                      {PLANO_ASSINATURA_LABELS[p.key]}
+                    </span>
+                    {p.destaque && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                        Popular
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="text-sm font-semibold">{p.preco}<span className="text-xs font-normal text-muted-foreground">/mês</span></span>
+                </div>
+                <ul className="space-y-0.5">
+                  {p.features.map((f) => (
+                    <li key={f} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                {!isCurrentPlan && (
+                  <Button
+                    size="sm"
+                    variant={p.destaque ? "default" : "outline"}
+                    className="w-full h-7 text-xs"
+                    onClick={() => handleUpgrade(p.key)}
+                    disabled={upgrading !== null}
+                  >
+                    {upgrading === p.key ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      `Assinar ${PLANO_ASSINATURA_LABELS[p.key]}`
+                    )}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full gap-2 text-muted-foreground text-xs"
+            onClick={handlePortal}
+            disabled={openingPortal}
+          >
+            {openingPortal ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CreditCard className="h-3.5 w-3.5" />
             )}
             Gerenciar faturamento
           </Button>

@@ -5,9 +5,11 @@ import { logError } from "@/lib/audit-log";
 
 // Preços de referência para MRR estimado (R$/mês por organização)
 const MRR_PRICE: Record<string, number> = {
-  GRATUITO: 0,
-  ESSENCIAL: 149,
-  PROFISSIONAL: 349,
+  GRATUITO:     0,
+  BASICO:       97,
+  INTERMEDIARIO:197,
+  AVANCADO:     397,
+  PERSONALIZADO:890,
 };
 
 export async function GET() {

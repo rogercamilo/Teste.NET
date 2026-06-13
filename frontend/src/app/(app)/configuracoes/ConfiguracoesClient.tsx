@@ -92,6 +92,8 @@ import {
 } from "lucide-react";
 import PlanUsage from "@/components/PlanUsage";
 import StripeUpgrade from "@/components/StripeUpgrade";
+import type { BillingInfo } from "@/lib/billing-data";
+import type { UsageInfo } from "@/lib/plan-limits";
 import PrivacidadeTab from "@/components/PrivacidadeTab";
 import NotificacoesTab from "@/components/NotificacoesTab";
 import { toast } from "sonner";
@@ -105,6 +107,8 @@ interface ConfiguracoesClientProps {
   userEmail: string;
   userRole: string;
   initialGruposFormacao: GrupoFormacao[];
+  initialBilling: BillingInfo | null;
+  initialUsage: UsageInfo | null;
 }
 
 function getInitials(name: string) {
@@ -122,6 +126,8 @@ export default function ConfiguracoesClient({
   userEmail,
   userRole,
   initialGruposFormacao,
+  initialBilling,
+  initialUsage,
 }: ConfiguracoesClientProps) {
   const isGestao = userRole === "administrador" || userRole === "formador_geral";
 
@@ -212,8 +218,8 @@ export default function ConfiguracoesClient({
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                <PlanUsage />
-                {userRole === "administrador" && <StripeUpgrade />}
+                <PlanUsage initialUsage={initialUsage} />
+                {userRole === "administrador" && <StripeUpgrade initialBilling={initialBilling} />}
               </CardContent>
             </Card>
           </TabsContent>

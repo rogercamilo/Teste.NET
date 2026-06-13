@@ -34,6 +34,8 @@ import {
   type PerspectivFormativa,
   type ProcessoEclesiastico,
   type TipoProcessoEclesiastico,
+  type TipoOrganizacao,
+  hasCanonicalAccess,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -911,7 +913,7 @@ export default function FormandoDetailClient({
           <TabsTrigger value="jornada" className="text-xs h-7">
             Jornada Formativa
           </TabsTrigger>
-          {tipoOrganizacao === "nova_comunidade" && (
+          {hasCanonicalAccess(tipoOrganizacao as TipoOrganizacao | null) && (
             <TabsTrigger value="documentos" className="text-xs h-7">
               Documentos
             </TabsTrigger>
@@ -1132,8 +1134,8 @@ export default function FormandoDetailClient({
           </Card>
         </TabsContent>
 
-        {/* Processos Eclesiásticos — visível apenas para Nova Comunidade */}
-        {tipoOrganizacao === "nova_comunidade" && (
+        {/* Processos Eclesiásticos — visível apenas para orgs com acesso canônico */}
+        {hasCanonicalAccess(tipoOrganizacao as TipoOrganizacao | null) && (
           <TabsContent value="documentos" className="mt-4">
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-3 flex flex-row items-start justify-between">
@@ -3018,7 +3020,7 @@ export default function FormandoDetailClient({
       )}
 
       {/* Dialog: Novo Processo Eclesiástico */}
-      {tipoOrganizacao === "nova_comunidade" && (
+      {hasCanonicalAccess(tipoOrganizacao as TipoOrganizacao | null) && (
         <Dialog open={novoProcessoOpen} onOpenChange={setNovoProcessoOpen}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>

@@ -2,7 +2,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
-import { canAddGrupoFormacao } from "@/lib/plan-limits";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateGrupoFormacaoSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
@@ -57,10 +56,7 @@ export async function POST(request: Request) {
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 
-    const limitCheck = await canAddGrupoFormacao(user.organizacaoId!);
-    if (!limitCheck.allowed) {
-      return NextResponse.json({ error: limitCheck.reason }, { status: 403 });
-    }
+
 
     if (body.formadorId) {
       const formador = await prisma.usuario.findFirst({
