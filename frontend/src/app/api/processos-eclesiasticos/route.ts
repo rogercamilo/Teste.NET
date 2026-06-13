@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth();
   const user = session?.user as SessionUser | undefined;
-  if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!user?.organizacaoId || !user.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   if (user.role === "formador_comunitario") {
     return NextResponse.json({ error: "Sem permissão para criar processos eclesiásticos" }, { status: 403 });
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       tipo: body.tipo,
       nivelFormativo: body.nivelFormativo,
       status: "rascunho",
-      dadosFormulario: body.dadosFormulario ?? {},
+      dadosFormulario: (body.dadosFormulario ?? {}) as import("@prisma/client").Prisma.InputJsonValue,
       criadoPorId: user.id,
     },
   });
