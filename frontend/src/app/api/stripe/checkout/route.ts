@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
       metadata: { organizacaoId: org.id },
       ...(trialEnd ? { trial_end: trialEnd } : {}),
     },
-    success_url: `${appUrl}/configuracoes?checkout=success`,
-    cancel_url: `${appUrl}/configuracoes?checkout=cancelled`,
+    success_url: `${appUrl}/configuracoes?tab=plano&checkout=success`,
+    cancel_url: `${appUrl}/configuracoes?tab=plano&checkout=cancelled`,
   });
 
   logAction(

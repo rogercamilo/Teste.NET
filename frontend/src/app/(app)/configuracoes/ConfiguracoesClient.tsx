@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useComunidade, useTermos, useEtapaLabels, db } from "@/lib/data-store";
 import type { GrupoFormacao } from "@/types";
 import { passwordErrorMessage } from "@/lib/password-validation";
@@ -130,6 +130,25 @@ export default function ConfiguracoesClient({
   initialUsage,
 }: ConfiguracoesClientProps) {
   const isGestao = userRole === "administrador" || userRole === "formador_geral";
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const tabParam = searchParams.get("tab");
+  const checkoutParam = searchParams.get("checkout");
+  const validTabs = ["perfil", "usuarios", "comunidade", "email", "plano", "sistema", "notificacoes", "privacidade"];
+  const [activeTab, setActiveTab] = useState(
+    tabParam && validTabs.includes(tabParam) ? tabParam : "perfil"
+  );
+
+  useEffect(() => {
+    if (checkoutParam === "success") {
+      toast.success("Assinatura ativada com sucesso! Bem-vindo ao seu novo plano.");
+      router.replace("/configuracoes?tab=plano");
+    } else if (checkoutParam === "cancelled") {
+      toast.info("Checkout cancelado. Seu plano não foi alterado.");
+      router.replace("/configuracoes?tab=plano");
+    }
+  }, [checkoutParam, router]);
 
   return (
     <div className="space-y-5 animate-in-fast">
@@ -142,7 +161,7 @@ export default function ConfiguracoesClient({
         </p>
       </div>
 
-      <Tabs defaultValue="perfil">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-muted/50 h-9">
           <TabsTrigger value="perfil" className="text-xs h-7 gap-1.5">
             <User className="h-3.5 w-3.5" />
