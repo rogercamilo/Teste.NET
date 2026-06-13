@@ -94,7 +94,11 @@ export type AuditAction =
   | "push_notification_sent"
   | "relatorio_created"
   | "relatorio_updated"
-  | "relatorio_finalizado";
+  | "relatorio_finalizado"
+  | "processo_eclesiastico_criado"
+  | "processo_eclesiastico_atualizado"
+  | "documento_eclesiastico_gerado"
+  | "processo_eclesiastico_concluido";
 
 export interface AuditEntry {
   timestamp: string;

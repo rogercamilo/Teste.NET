@@ -121,7 +121,7 @@ export default auth(function proxy(req) {
   const superAdminBlocked = [
     "/dashboard", "/formandos", "/grupos-formacao", "/formacoes",
     "/planos", "/grades", "/presenca", "/agenda",
-    "/documentos", "/comentarios", "/viewer",
+    "/documentos", "/comentarios", "/viewer", "/jornada-vocacional",
   ];
   if (role === "super_admin" && superAdminBlocked.some((p) => pathname.startsWith(p))) {
     return NextResponse.redirect(new URL("/super-admin/dashboard", req.url));

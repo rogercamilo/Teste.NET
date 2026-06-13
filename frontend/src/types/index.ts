@@ -631,6 +631,122 @@ export const TIPO_GRUPO_FORMACAO_LABELS: Record<TipoGrupoFormacao, string> = {
   livre: "Livre",
 };
 
+// ==========================================================
+// JORNADA VOCACIONAL
+// ==========================================================
+
+export type TipoProcessoEclesiastico =
+  | "admissao_etapa1"
+  | "admissao_etapa2"
+  | "promessas_iniciais"
+  | "renovacao_promessas"
+  | "promessas_definitivas"
+  | "ministerio"
+  | "missao"
+  | "licenca"
+  | "transferencia"
+  | "desligamento"
+  | "falecimento";
+
+export type StatusProcessoEclesiastico =
+  | "rascunho"
+  | "em_andamento"
+  | "em_revisao"
+  | "aprovado"
+  | "rejeitado"
+  | "concluido"
+  | "arquivado"
+  | "cancelado";
+
+export type TipoDocumentoEclesiastico =
+  | "ato_admissao"
+  | "informacoes_pastorais"
+  | "declaracao_responsavel"
+  | "ciencia_politicas_internas"
+  | "termo_cerimonial"
+  | "termo_consagracao"
+  | "requerimento_renovacao"
+  | "parecer_formativo"
+  | "ato_admissao_renovacao"
+  | "termo_renovacao"
+  | "carta_missao"
+  | "carta_transferencia"
+  | "carta_licenca"
+  | "termo_desligamento"
+  | "dispensa_promessas";
+
+export type StatusDocumentoEclesiastico = "pendente" | "gerado" | "assinado" | "arquivado" | "substituido";
+
+export type TipoRegistroPromessa = "iniciais_temporarias" | "renovacao" | "definitivas" | "dispensa";
+
+export const TIPO_PROCESSO_LABELS: Record<TipoProcessoEclesiastico, string> = {
+  admissao_etapa1:       "Admissão — Etapa 1",
+  admissao_etapa2:       "Admissão — Etapa 2",
+  promessas_iniciais:    "Promessas Iniciais",
+  renovacao_promessas:   "Renovação de Promessas",
+  promessas_definitivas: "Promessas Definitivas",
+  ministerio:            "Ministério",
+  missao:                "Missão",
+  licenca:               "Licença",
+  transferencia:         "Transferência",
+  desligamento:          "Desligamento",
+  falecimento:           "Falecimento",
+};
+
+export const STATUS_PROCESSO_LABELS: Record<StatusProcessoEclesiastico, string> = {
+  rascunho:    "Rascunho",
+  em_andamento: "Em andamento",
+  em_revisao:  "Em revisão",
+  aprovado:    "Aprovado",
+  rejeitado:   "Rejeitado",
+  concluido:   "Concluído",
+  arquivado:   "Arquivado",
+  cancelado:   "Cancelado",
+};
+
+export const STATUS_PROCESSO_COLORS: Record<StatusProcessoEclesiastico, string> = {
+  rascunho:    "bg-muted text-muted-foreground",
+  em_andamento: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  em_revisao:  "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+  aprovado:    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  rejeitado:   "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  concluido:   "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  arquivado:   "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400",
+  cancelado:   "bg-gray-100 text-gray-500 dark:bg-gray-900/30 dark:text-gray-500",
+};
+
+export interface ProcessoEclesiastico {
+  id: string;
+  organizacaoId: string;
+  formandoId: string;
+  formandoNome?: string;
+  tipo: TipoProcessoEclesiastico;
+  nivelFormativo: string;
+  status: StatusProcessoEclesiastico;
+  dadosFormulario: Record<string, unknown>;
+  favoravelRenovacao?: boolean | null;
+  numeroRenovacao?: number | null;
+  criadoPorId: string;
+  criadoPorNome?: string;
+  criadoEm: string;
+  atualizadoEm: string;
+  documentos?: DocumentoEclesiastico[];
+}
+
+export interface DocumentoEclesiastico {
+  id: string;
+  processoId: string;
+  tipo: TipoDocumentoEclesiastico;
+  status: StatusDocumentoEclesiastico;
+  versao: number;
+  arquivoId?: string | null;
+  substituiDocumentoId?: string | null;
+  geradoEm?: string | null;
+  geradoPorId?: string | null;
+  observacoes?: string | null;
+  criadoEm: string;
+}
+
 export interface ComunidadeConfig {
   nome: string;
   tipoOrganizacao?: TipoOrganizacao;

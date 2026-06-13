@@ -70,17 +70,21 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
         return g;
       });
 
-  // Apply custom terminology
+  const tipoOrg = comunidade.tipoOrganizacao;
+
+  // Apply custom terminology and org-type guard
   const navGroups: NavGroup[] = baseGroups.map((g) => ({
     ...g,
     label: g.label === "Minha Morada" ? `Minha ${grupoFormacao}` : g.label,
-    items: g.items.map((item) => ({
-      ...item,
-      title:
-        item.title === "Moradas" ? `${grupoFormacao}s` :
-        item.title === "Formandos" ? `${formando}s` :
-        item.title,
-    })),
+    items: g.items
+      .filter((item) => !item.requiredTipoOrg || item.requiredTipoOrg === tipoOrg)
+      .map((item) => ({
+        ...item,
+        title:
+          item.title === "Moradas" ? `${grupoFormacao}s` :
+          item.title === "Formandos" ? `${formando}s` :
+          item.title,
+      })),
   }));
 
   const initials = user.name

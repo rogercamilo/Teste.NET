@@ -6,6 +6,7 @@
   Home,
   LayoutDashboard,
   Library,
+  ScrollText,
   Settings,
   ShieldAlert,
   type LucideIcon,
@@ -18,6 +19,8 @@ export interface NavItem {
   icon: LucideIcon;
   badge?: number;
   exact?: boolean;
+  /** Restringe o item a um tipo específico de organização. Omitir = visível para todos. */
+  requiredTipoOrg?: string;
 }
 
 export interface NavGroup {
@@ -48,6 +51,12 @@ export const navGroupsGestao: NavGroup[] = [
       { title: "Moradas", href: "/grupos-formacao", icon: Home },
       { title: "Formandos", href: "/formandos", icon: Users },
       { title: "Documentos", href: "/documentos", icon: FolderOpen },
+      {
+        title: "Jornada Vocacional",
+        href: "/jornada-vocacional",
+        icon: ScrollText,
+        requiredTipoOrg: "nova_comunidade",
+      },
     ],
   },
   {

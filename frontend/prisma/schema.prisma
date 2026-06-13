@@ -43,6 +43,64 @@ enum TipoGrupoFormacao {
   livre
 }
 
+enum TipoProcessoEclesiastico {
+  admissao_etapa1
+  admissao_etapa2
+  promessas_iniciais
+  renovacao_promessas
+  promessas_definitivas
+  ministerio
+  missao
+  licenca
+  transferencia
+  desligamento
+  falecimento
+}
+
+enum StatusProcessoEclesiastico {
+  rascunho
+  em_andamento
+  em_revisao
+  aprovado
+  rejeitado
+  concluido
+  arquivado
+  cancelado
+}
+
+enum TipoDocumentoEclesiastico {
+  ato_admissao
+  informacoes_pastorais
+  declaracao_responsavel
+  ciencia_politicas_internas
+  termo_cerimonial
+  termo_consagracao
+  requerimento_renovacao
+  parecer_formativo
+  ato_admissao_renovacao
+  termo_renovacao
+  carta_missao
+  carta_transferencia
+  carta_licenca
+  termo_desligamento
+  dispensa_promessas
+}
+
+enum StatusDocumentoEclesiastico {
+  pendente
+  gerado
+  assinado
+  arquivado
+  substituido
+}
+
+enum TipoRegistroPromessa {
+  iniciais_temporarias
+  renovacao
+  definitivas
+  dispensa
+}
+
 // ==========================================================
 // ORGANIZACAO — raiz do tenant
 // ==========================================================
@@ -62,6 +120,7 @@ model Organizacao {
   termoDiscipulado          String            @default("Discipulado")
   termoPrimeirasPromessas   String            @default("Primeiras Promessas")
   termoFormacaoPermanente   String            @default("Formação Permanente")
+  termoPromessa             String            @default("Promessa")
   planoAssinatura      PlanoAssinatura   @default(GRATUITO)
   status               StatusOrganizacao @default(TRIAL)
   stripeCustomerId     String?
@@ -93,8 +152,10 @@ model Organizacao {
   arquivos             Arquivo[]
   convites             ConviteUsuario[]
   configuracao         ConfiguracaoOrg?
-  pushSubscriptions    PushSubscription[]
-  relatorios           RelatorioEtapa[]
+  pushSubscriptions        PushSubscription[]
+  relatorios               RelatorioEtapa[]
+  processosEclesiasticos   ProcessoEclesiastico[]
+  registrosPromessa        RegistroPromessa[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -145,11 +206,13 @@ model Usuario {
   comentarios    ComentarioFormando[]
   eventos        EventoFormando[]
   compromissos   Compromisso[]
-  formacoesCriadas   Formacao[]
-  agendamentos       Agendamento[]
-  privacyAcceptances PrivacyAcceptance[]
-  convitesEnviados   ConviteUsuario[]
-  relatoriosRedigidos RelatorioEtapa[]
+  formacoesCriadas               Formacao[]
+  agendamentos                   Agendamento[]
+  privacyAcceptances             PrivacyAcceptance[]
+  convitesEnviados               ConviteUsuario[]
+  relatoriosRedigidos            RelatorioEtapa[]
+  processosEclesiasticosCriados  ProcessoEclesiastico[]  @relation("ProcessoCriador")
+  documentosEclesiasticosGerados DocumentoEclesiastico[] @relation("DocumentoGerador")
 
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
@@ -210,6 +273,13 @@ model Formando {
   ativo               Boolean   @default(true)
   motivoInatividade   String?
   foto                String?
+  nomeSocial            String?
+  nacionalidade         String?
+  rg                    String?
+  orgaoEmissor          String?
+  cep                   String?
+  paroquiaReferencia    String?
+  numFilhos             Int?
   turmaId               String?
   grupoFormacaoId       String?   @map("morada_id")
   totalFormacoes        Int       @default(0)
@@ -220,12 +290,14 @@ model Formando {
 
   organizacao         Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   grupoFormacao       GrupoFormacao?  @relation(fields: [grupoFormacaoId], references: [id])
-  progressoEtapas     ProgressoEtapa[]
-  presencas           PresencaFormacao[]
-  comentarios         ComentarioFormando[]
-  eventos             EventoFormando[]
-  compromissos        Compromisso[]
-  relatorios          RelatorioEtapa[]
+  progressoEtapas        ProgressoEtapa[]
+  presencas              PresencaFormacao[]
+  comentarios            ComentarioFormando[]
+  eventos                EventoFormando[]
+  compromissos           Compromisso[]
+  relatorios             RelatorioEtapa[]
+  processosEclesiasticos ProcessoEclesiastico[]
+  registrosPromessa      RegistroPromessa[]
 
   @@index([organizacaoId])
   @@index([grupoFormacaoId])
@@ -619,8 +691,10 @@ model Arquivo {
   grupoFormacaoId   String?   @map("morada_id")
   criadoEm         DateTime  @default(now())
 
-  organizacao     Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  evento          EventoFormando? @relation(fields: [eventoId], references: [id], onDelete: SetNull)
+  organizacao             Organizacao            @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  evento                  EventoFormando?        @relation(fields: [eventoId], references: [id], onDelete: SetNull)
+  documentosEclesiasticos DocumentoEclesiastico[]
+  registrosPromessa       RegistroPromessa[]
 
   @@index([organizacaoId])
   @@index([eventoId])
@@ -778,4 +852,90 @@ model AuditLog {
   @@index([usuarioId])
   @@index([criadoEm])
   @@index([usuarioId, criadoEm])
+}
+
+// ==========================================================
+// JORNADA VOCACIONAL — processos eclesiásticos canônicos
+// Guard: org.tipoOrganizacao === nova_comunidade
+// ==========================================================
+
+model ProcessoEclesiastico {
+  id                 String                     @id @default(cuid())
+  organizacaoId      String
+  formandoId         String
+  tipo               TipoProcessoEclesiastico
+  nivelFormativo     String
+  status             StatusProcessoEclesiastico @default(rascunho)
+  dadosFormulario    Json                       @default("{}")
+  favoravelRenovacao Boolean?
+  numeroRenovacao    Int?
+  criadoPorId        String
+  criadoEm           DateTime                   @default(now())
+  atualizadoEm       DateTime                   @updatedAt
+
+  organizacao        Organizacao              @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando           Formando                 @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  criadoPor          Usuario                  @relation("ProcessoCriador", fields: [criadoPorId], references: [id])
+  documentos         DocumentoEclesiastico[]
+  promessa           RegistroPromessa?
+
+  @@index([organizacaoId])
+  @@index([formandoId])
+  @@index([status])
+  @@index([organizacaoId, status])
+  @@index([organizacaoId, tipo])
+}
+
+model DocumentoEclesiastico {
+  id                   String                      @id @default(cuid())
+  processoId           String
+  tipo                 TipoDocumentoEclesiastico
+  status               StatusDocumentoEclesiastico @default(pendente)
+  versao               Int                         @default(1)
+  arquivoId            String?
+  substituiDocumentoId String?
+  geradoEm             DateTime?
+  geradoPorId          String?
+  observacoes          String?
+  criadoEm             DateTime                    @default(now())
+
+  processo             ProcessoEclesiastico @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  arquivo              Arquivo?             @relation(fields: [arquivoId], references: [id])
+  geradoPor            Usuario?             @relation("DocumentoGerador", fields: [geradoPorId], references: [id])
+
+  @@index([processoId])
+  @@index([arquivoId])
+}
+
+model RegistroPromessa {
+  id                     String               @id @default(cuid())
+  organizacaoId          String
+  formandoId             String
+  processoId             String               @unique
+  tipo                   TipoRegistroPromessa
+  numeroRegistro         String
+  tomo                   String
+  folha                  Int
+  numero                 Int
+  dataVigenciaInicio     DateTime
+  dataVigenciaFim        DateTime?
+  formulaTexto           String               @db.Text
+  celebrante             String
+  localCelebracao        String
+  moderadorGeral         String
+  formadorGeralLocal     String?
+  assistenteEclesiastico String?
+  secretario             String
+  dataDispensa           DateTime?
+  autoridadeDispensa     String?
+  arquivoTermoId         String?
+  criadoEm              DateTime             @default(now())
+
+  organizacao            Organizacao          @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando               Formando             @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  processo               ProcessoEclesiastico @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  arquivoTermo           Arquivo?             @relation(fields: [arquivoTermoId], references: [id])
+
+  @@index([organizacaoId])
+  @@index([formandoId])
 }
