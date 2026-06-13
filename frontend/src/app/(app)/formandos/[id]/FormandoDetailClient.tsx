@@ -181,6 +181,13 @@ export default function FormandoDetailClient({
     telefone: "",
     email: "",
     grupoFormacaoId: "",
+    nomeSocial: "",
+    nacionalidade: "",
+    rg: "",
+    orgaoEmissor: "",
+    cep: "",
+    paroquiaReferencia: "",
+    numFilhos: "",
   });
 
 
@@ -640,6 +647,13 @@ export default function FormandoDetailClient({
           nivelFormativo, dataIngresso: editForm.dataIngresso,
           telefone: stripPhone(editForm.telefone), email: editForm.email.trim(),
           grupoFormacaoId: editForm.grupoFormacaoId || null,
+          nomeSocial: editForm.nomeSocial.trim() || null,
+          nacionalidade: editForm.nacionalidade.trim() || null,
+          rg: editForm.rg.trim() || null,
+          orgaoEmissor: editForm.orgaoEmissor.trim() || null,
+          cep: editForm.cep.trim() || null,
+          paroquiaReferencia: editForm.paroquiaReferencia.trim() || null,
+          numFilhos: editForm.numFilhos ? parseInt(editForm.numFilhos, 10) : null,
         }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Erro");
@@ -733,6 +747,13 @@ export default function FormandoDetailClient({
                   telefone: applyPhoneMask(formando.telefone),
                   email: formando.email,
                   grupoFormacaoId: formando.grupoFormacaoId ?? "",
+                  nomeSocial: formando.nomeSocial ?? "",
+                  nacionalidade: formando.nacionalidade ?? "",
+                  rg: formando.rg ?? "",
+                  orgaoEmissor: formando.orgaoEmissor ?? "",
+                  cep: formando.cep ?? "",
+                  paroquiaReferencia: formando.paroquiaReferencia ?? "",
+                  numFilhos: formando.numFilhos?.toString() ?? "",
                 });
                 setEditOpen(true);
               }}
@@ -1997,6 +2018,12 @@ export default function FormandoDetailClient({
                   <p className="text-xs text-muted-foreground">Nome completo</p>
                   <p className="text-sm font-medium text-foreground mt-0.5">{formando.nome}</p>
                 </div>
+                {formando.nomeSocial && (
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">Nome social</p>
+                    <p className="text-sm font-medium text-foreground mt-0.5">{formando.nomeSocial}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-muted-foreground">Data de nascimento</p>
                   <p className="text-sm font-medium text-foreground mt-0.5">
@@ -2006,8 +2033,32 @@ export default function FormandoDetailClient({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Estado civil</p>
-                  <p className="text-sm font-medium text-foreground mt-0.5">{ESTADO_CIVIL_LABELS[formando.estadoCivil]}</p>
+                  <p className="text-sm font-medium text-foreground mt-0.5">
+                    {ESTADO_CIVIL_LABELS[formando.estadoCivil]}
+                    {formando.estadoCivil === "casado" && formando.numFilhos != null && (
+                      <span className="text-muted-foreground font-normal ml-1.5">
+                        · {formando.numFilhos} filho{formando.numFilhos !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </p>
                 </div>
+                {formando.nacionalidade && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Nacionalidade</p>
+                    <p className="text-sm font-medium text-foreground mt-0.5">{formando.nacionalidade}</p>
+                  </div>
+                )}
+                {(formando.rg || formando.orgaoEmissor) && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">RG</p>
+                    <p className="text-sm font-medium text-foreground mt-0.5">
+                      {formando.rg || "—"}
+                      {formando.orgaoEmissor && (
+                        <span className="text-muted-foreground font-normal ml-1.5">/ {formando.orgaoEmissor}</span>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -2058,6 +2109,18 @@ export default function FormandoDetailClient({
                     {formando.email}
                   </a>
                 </div>
+                {formando.cep && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">CEP</p>
+                    <p className="text-sm font-medium text-foreground mt-0.5">{formando.cep}</p>
+                  </div>
+                )}
+                {formando.paroquiaReferencia && (
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">Paróquia de referência</p>
+                    <p className="text-sm font-medium text-foreground mt-0.5">{formando.paroquiaReferencia}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -3062,6 +3125,84 @@ export default function FormandoDetailClient({
                 />
               </div>
             </div>
+            <div className="pt-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                Dados canônicos
+              </p>
+              <div className="grid gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5 col-span-2">
+                    <Label>Nome social</Label>
+                    <Input
+                      value={editForm.nomeSocial}
+                      onChange={(e) => setEditForm((p) => ({ ...p, nomeSocial: e.target.value }))}
+                      placeholder="Opcional"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Nacionalidade</Label>
+                    <Input
+                      value={editForm.nacionalidade}
+                      onChange={(e) => setEditForm((p) => ({ ...p, nacionalidade: e.target.value }))}
+                      placeholder="brasileiro(a)"
+                    />
+                  </div>
+                  {editForm.estadoCivil === "casado" && (
+                    <div className="grid gap-1.5">
+                      <Label>Nº de filhos</Label>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        value={editForm.numFilhos}
+                        onChange={(e) => setEditForm((p) => ({ ...p, numFilhos: e.target.value }))}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>RG</Label>
+                    <Input
+                      value={editForm.rg}
+                      onChange={(e) => setEditForm((p) => ({ ...p, rg: e.target.value }))}
+                      placeholder="000.000.000-0"
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Órgão emissor</Label>
+                    <Input
+                      value={editForm.orgaoEmissor}
+                      onChange={(e) => setEditForm((p) => ({ ...p, orgaoEmissor: e.target.value }))}
+                      placeholder="SSP/CE"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>CEP</Label>
+                    <Input
+                      value={editForm.cep}
+                      onChange={(e) => setEditForm((p) => ({ ...p, cep: e.target.value }))}
+                      placeholder="00000-000"
+                      maxLength={9}
+                    />
+                  </div>
+                  <div className="grid gap-1.5 col-span-1">
+                    <Label>Paróquia de referência</Label>
+                    <Input
+                      value={editForm.paroquiaReferencia}
+                      onChange={(e) => setEditForm((p) => ({ ...p, paroquiaReferencia: e.target.value }))}
+                      placeholder="Nome da paróquia"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label>Modalidade</Label>

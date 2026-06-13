@@ -99,6 +99,13 @@ export async function PUT(request: Request, { params }: Params) {
           grupoFormacaoId: body.grupoFormacaoId || null,
           totalFormacoes: body.totalFormacoes,
           formacoesRealizadas: body.formacoesRealizadas,
+          ...(body.nomeSocial !== undefined ? { nomeSocial: body.nomeSocial || null } : {}),
+          ...(body.nacionalidade !== undefined ? { nacionalidade: body.nacionalidade || null } : {}),
+          ...(body.rg !== undefined ? { rg: body.rg || null } : {}),
+          ...(body.orgaoEmissor !== undefined ? { orgaoEmissor: body.orgaoEmissor || null } : {}),
+          ...(body.cep !== undefined ? { cep: body.cep || null } : {}),
+          ...(body.paroquiaReferencia !== undefined ? { paroquiaReferencia: body.paroquiaReferencia || null } : {}),
+          ...(body.numFilhos !== undefined ? { numFilhos: body.numFilhos } : {}),
         },
       });
 

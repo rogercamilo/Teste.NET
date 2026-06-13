@@ -91,6 +91,14 @@ export interface Formando {
   totalFormacoes: number;
   formacoesRealizadas: number;
   progressoEtapas: ProgressoEtapa[];
+  // Campos canônicos (jornada vocacional)
+  nomeSocial?: string;
+  nacionalidade?: string;
+  rg?: string;
+  orgaoEmissor?: string;
+  cep?: string;
+  paroquiaReferencia?: string;
+  numFilhos?: number;
 }
 
 export interface PlanoFormativo {

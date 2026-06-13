@@ -100,6 +100,13 @@ export const CreateFormandoSchema = z.object({
   grupoFormacaoId: z.string().optional().nullable(),
   totalFormacoes: z.number().int().min(0).optional(),
   formacoesRealizadas: z.number().int().min(0).optional(),
+  nomeSocial: optionalString(255).nullable(),
+  nacionalidade: optionalString(100).nullable(),
+  rg: optionalString(30).nullable(),
+  orgaoEmissor: optionalString(50).nullable(),
+  cep: optionalString(10).nullable(),
+  paroquiaReferencia: optionalString(255).nullable(),
+  numFilhos: z.number().int().min(0).nullable().optional(),
   progressoEtapas: z
     .array(
       z.object({
