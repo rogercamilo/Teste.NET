@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,7 +10,11 @@ import {
   ExternalLink,
   Loader2,
   Sparkles,
+  Star,
   Zap,
+  Receipt,
+  CalendarDays,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BillingInfo } from "@/lib/billing-data";
@@ -24,39 +27,78 @@ interface StripeUpgradeProps {
 const PLANO_CARDS = [
   {
     key: "BASICO" as const,
-    precoMensal: "R$ 97",
-    precoAnual: "R$ 81",
-    totalAnual: "R$ 970",
-    usuarios: "60",
-    storage: "2 GB",
-    features: ["Até 60 usuários ativos", "2 GB de armazenamento"],
+    descricao: "Para comunidades em início de jornada",
+    precoMensal: 97,
+    precoAnual: 81,
+    totalAnual: 970,
     icon: Zap,
-    color: "text-sky-600",
+    acento: "sky" as const,
+    features: [
+      "Até 60 usuários ativos",
+      "2 GB de armazenamento",
+      "Todos os módulos incluídos",
+      "Suporte por e-mail",
+    ],
   },
   {
     key: "INTERMEDIARIO" as const,
-    precoMensal: "R$ 197",
-    precoAnual: "R$ 164",
-    totalAnual: "R$ 1.970",
-    usuarios: "140",
-    storage: "10 GB",
-    features: ["Até 140 usuários ativos", "10 GB de armazenamento"],
+    descricao: "Para comunidades em crescimento",
+    precoMensal: 197,
+    precoAnual: 164,
+    totalAnual: 1970,
     icon: Sparkles,
-    color: "text-violet-600",
-    destaque: true,
+    acento: "violet" as const,
+    popular: true,
+    features: [
+      "Até 140 usuários ativos",
+      "10 GB de armazenamento",
+      "Todos os módulos incluídos",
+      "Jornada Vocacional completa",
+      "Suporte prioritário",
+    ],
   },
   {
     key: "AVANCADO" as const,
-    precoMensal: "R$ 397",
-    precoAnual: "R$ 331",
-    totalAnual: "R$ 3.970",
-    usuarios: "350",
-    storage: "30 GB",
-    features: ["Até 350 usuários ativos", "30 GB de armazenamento"],
-    icon: Sparkles,
-    color: "text-amber-600",
+    descricao: "Para grandes organizações formativas",
+    precoMensal: 397,
+    precoAnual: 331,
+    totalAnual: 3970,
+    icon: Star,
+    acento: "amber" as const,
+    features: [
+      "Até 350 usuários ativos",
+      "30 GB de armazenamento",
+      "Todos os módulos incluídos",
+      "Jornada Vocacional completa",
+      "Exportação de dados",
+      "Suporte dedicado",
+    ],
   },
-];
+] as const;
+
+const ACENTO_STYLES = {
+  sky: {
+    icon: "text-sky-500",
+    ring: "ring-sky-200 dark:ring-sky-800",
+    badge: "bg-sky-50 text-sky-700 border-sky-200",
+    check: "text-sky-500",
+    btn: "border-sky-200 hover:border-sky-300 hover:bg-sky-50",
+  },
+  violet: {
+    icon: "text-violet-500",
+    ring: "ring-violet-300 dark:ring-violet-700",
+    badge: "bg-violet-50 text-violet-700 border-violet-200",
+    check: "text-violet-500",
+    btn: "",
+  },
+  amber: {
+    icon: "text-amber-500",
+    ring: "ring-amber-200 dark:ring-amber-800",
+    badge: "bg-amber-50 text-amber-700 border-amber-200",
+    check: "text-amber-500",
+    btn: "border-amber-200 hover:border-amber-300 hover:bg-amber-50",
+  },
+} as const;
 
 function formatCurrency(cents: number, currency: string) {
   return new Intl.NumberFormat("pt-BR", {
@@ -69,7 +111,7 @@ function formatCurrency(cents: number, currency: string) {
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", {
     day: "2-digit",
-    month: "short",
+    month: "long",
     year: "numeric",
   });
 }
@@ -98,7 +140,7 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
         toast.error(data.error ?? "Erro ao iniciar checkout");
         return;
       }
-      window.location.href = data.url;
+      window.location.assign(data.url);
     } catch {
       toast.error("Erro ao iniciar checkout. Tente novamente.");
     } finally {
@@ -134,204 +176,290 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
   }
 
   const planoAtual = billing.plano;
-  const planoLabel = PLANO_ASSINATURA_LABELS[planoAtual] ?? planoAtual;
   const isPersonalizado = planoAtual === "PERSONALIZADO";
 
   return (
-    <div className="space-y-4">
-      <Separator />
-
+    <div className="space-y-6">
       {/* Trial banner */}
       {billing.status === "TRIAL" && billing.trialExpiresAt && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm">
-          <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-          <span className="text-amber-800">
-            <strong>Período trial</strong> — {trialDaysLeft(billing.trialExpiresAt)} dia(s)
-            restante(s). Assine um plano para continuar após o término.
-          </span>
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-amber-900">Período de avaliação</p>
+            <p className="text-xs text-amber-700">
+              {trialDaysLeft(billing.trialExpiresAt)} dia(s) restante(s). Assine um plano para
+              continuar usando após o término.
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Plano atual */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium">Plano atual</p>
-          {billing.hasSubscription && billing.renewsAt && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {billing.cancelAtPeriodEnd
-                ? `Cancela em ${formatDate(billing.renewsAt)}`
-                : `Renova em ${formatDate(billing.renewsAt)}`}
-              {billing.amountCents && billing.currency && (
-                <> · {formatCurrency(billing.amountCents, billing.currency)}/mês</>
-              )}
-            </p>
-          )}
-        </div>
-        <Badge variant="secondary" className="font-medium">
-          {planoLabel}
-        </Badge>
-      </div>
-
-      {/* Assinante ativo: botão de portal + faturas */}
+      {/* Assinante ativo */}
       {billing.hasSubscription ? (
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full gap-2"
-            onClick={handlePortal}
-            disabled={openingPortal}
-          >
-            {openingPortal ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ExternalLink className="h-4 w-4" />
-            )}
-            Gerenciar assinatura
-          </Button>
-
-          {billing.invoices.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Últimas faturas</p>
-              {billing.invoices.map((inv) => (
-                <div key={inv.id} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{formatDate(inv.date)}</span>
-                  <div className="flex items-center gap-2">
-                    <span>{formatCurrency(inv.amountCents, inv.currency)}</span>
-                    {inv.url && (
-                      <a
-                        href={inv.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        PDF
-                      </a>
-                    )}
-                    {inv.status === "paid" && (
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+        <div className="space-y-4">
+          {/* Status da assinatura */}
+          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                  Plano atual
+                </p>
+                <p className="text-lg font-semibold text-foreground">
+                  {PLANO_ASSINATURA_LABELS[planoAtual]}
+                </p>
+                {billing.renewsAt && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {billing.cancelAtPeriodEnd ? (
+                      <>
+                        <XCircle className="h-3.5 w-3.5 text-destructive" />
+                        <span>Cancela em {formatDate(billing.renewsAt)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        <span>Renova em {formatDate(billing.renewsAt)}</span>
+                        {billing.amountCents && billing.currency && (
+                          <span className="text-foreground/60">
+                            · {formatCurrency(billing.amountCents, billing.currency)}/mês
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
-                </div>
-              ))}
+                )}
+              </div>
+              <Badge variant="outline" className="shrink-0 text-xs font-medium">
+                {billing.cancelAtPeriodEnd ? "Cancelando" : "Ativo"}
+              </Badge>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 h-9"
+              onClick={handlePortal}
+              disabled={openingPortal}
+            >
+              {openingPortal ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ExternalLink className="h-4 w-4" />
+              )}
+              Gerenciar assinatura
+            </Button>
+          </div>
+
+          {/* Faturas */}
+          {billing.invoices.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Últimas faturas
+                </p>
+              </div>
+              <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
+                {billing.invoices.map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="flex items-center justify-between px-4 py-2.5 text-sm bg-background hover:bg-muted/30 transition-colors"
+                  >
+                    <span className="text-muted-foreground text-xs">
+                      {formatDate(inv.date)}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-xs">
+                        {formatCurrency(inv.amountCents, inv.currency)}
+                      </span>
+                      {inv.status === "paid" && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] h-4 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200"
+                        >
+                          Pago
+                        </Badge>
+                      )}
+                      {inv.url && (
+                        <a
+                          href={inv.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline font-medium"
+                        >
+                          PDF
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
       ) : isPersonalizado ? (
-        <p className="text-xs text-muted-foreground">
-          Plano personalizado configurado pelo suporte. Entre em contato para alterações.
-        </p>
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <p className="text-sm text-muted-foreground">
+            Plano personalizado configurado pelo suporte. Entre em contato para alterações.
+          </p>
+        </div>
       ) : (
-        /* Não assinante: toggle + cards de pricing */
-        <div className="space-y-3">
+        /* Pricing grid */
+        <div className="space-y-5">
           {/* Toggle mensal/anual */}
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={() => setPeriodicidade("mensal")}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                periodicidade === "mensal"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Mensal
-            </button>
-            <button
-              onClick={() => setPeriodicidade("anual")}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                periodicidade === "anual"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Anual
-              <span
-                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                  periodicidade === "anual"
-                    ? "bg-emerald-500 text-white"
-                    : "bg-emerald-100 text-emerald-700"
+          <div className="flex justify-center">
+            <div className="inline-flex items-center gap-1 rounded-full bg-muted p-1">
+              <button
+                onClick={() => setPeriodicidade("mensal")}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                  periodicidade === "mensal"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                2 meses grátis
-              </span>
-            </button>
+                Mensal
+              </button>
+              <button
+                onClick={() => setPeriodicidade("anual")}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                  periodicidade === "anual"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Anual
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                  -17%
+                </span>
+              </button>
+            </div>
           </div>
 
+          {periodicidade === "anual" && (
+            <p className="text-center text-xs text-emerald-600 font-medium">
+              Equivale a 2 meses grátis por ano
+            </p>
+          )}
+
           {/* Cards */}
-          {PLANO_CARDS.map((p) => {
-            const Icon = p.icon;
-            const isCurrentPlan = planoAtual === p.key;
-            const preco = periodicidade === "anual" ? p.precoAnual : p.precoMensal;
-            return (
-              <div
-                key={p.key}
-                className={`rounded-lg border p-3 space-y-2 ${
-                  p.destaque ? "border-violet-300 bg-violet-50/60" : "border-border"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Icon className={`h-3.5 w-3.5 ${p.color}`} />
-                    <span className="text-sm font-medium">
-                      {PLANO_ASSINATURA_LABELS[p.key]}
-                    </span>
-                    {p.destaque && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                        Popular
-                      </Badge>
-                    )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {PLANO_CARDS.map((p) => {
+              const Icon = p.icon;
+              const isCurrentPlan = planoAtual === p.key;
+              const preco = periodicidade === "anual" ? p.precoAnual : p.precoMensal;
+              const estilos = ACENTO_STYLES[p.acento];
+              const isLoading = upgrading === p.key;
+
+              return (
+                <div
+                  key={p.key}
+                  className={`relative flex flex-col rounded-2xl border bg-background p-5 transition-all duration-200 ${
+                    p.popular
+                      ? `ring-2 ${estilos.ring} border-transparent shadow-lg shadow-violet-100/50`
+                      : "border-border hover:border-muted-foreground/30 hover:shadow-sm"
+                  }`}
+                >
+                  {p.popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-violet-600 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
+                        <Sparkles className="h-3 w-3" />
+                        Mais popular
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex-1 space-y-4">
+                    {/* Header */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`rounded-lg p-1.5 ${p.popular ? "bg-violet-100" : "bg-muted"}`}>
+                          <Icon className={`h-4 w-4 ${estilos.icon}`} />
+                        </div>
+                        <span className="font-semibold text-foreground">
+                          {PLANO_ASSINATURA_LABELS[p.key]}
+                        </span>
+                        {isCurrentPlan && (
+                          <Badge variant="outline" className={`text-[10px] px-1.5 h-4 ml-auto ${estilos.badge}`}>
+                            Atual
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {p.descricao}
+                      </p>
+                    </div>
+
+                    {/* Preço */}
+                    <div className="space-y-0.5">
+                      <div className="flex items-end gap-1">
+                        <span className="text-3xl font-bold text-foreground tracking-tight">
+                          R$ {preco}
+                        </span>
+                        <span className="text-sm text-muted-foreground mb-1">/mês</span>
+                      </div>
+                      {periodicidade === "anual" && (
+                        <p className="text-xs text-muted-foreground">
+                          R$ {p.totalAnual} cobrado anualmente
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Features */}
+                    <ul className="space-y-2">
+                      {p.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <CheckCircle2 className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${estilos.check}`} />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className="text-right">
-                    <span className="text-sm font-semibold">
-                      {preco}
-                      <span className="text-xs font-normal text-muted-foreground">/mês</span>
-                    </span>
-                    {periodicidade === "anual" && (
-                      <p className="text-[10px] text-muted-foreground">{p.totalAnual}/ano</p>
+
+                  {/* CTA */}
+                  <div className="mt-5 pt-4 border-t border-border/60">
+                    {isCurrentPlan ? (
+                      <div className="flex items-center justify-center gap-1.5 py-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        Plano atual
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant={p.popular ? "default" : "outline"}
+                        className="w-full h-9 gap-2 text-sm font-medium"
+                        onClick={() => handleUpgrade(p.key)}
+                        disabled={upgrading !== null}
+                      >
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            Assinar {PLANO_ASSINATURA_LABELS[p.key]}
+                            {!isLoading && <span className="opacity-60 text-xs ml-auto">→</span>}
+                          </>
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>
-                <ul className="space-y-0.5">
-                  {p.features.map((f) => (
-                    <li key={f} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                {!isCurrentPlan && (
-                  <Button
-                    size="sm"
-                    variant={p.destaque ? "default" : "outline"}
-                    className="w-full h-7 text-xs"
-                    onClick={() => handleUpgrade(p.key)}
-                    disabled={upgrading !== null}
-                  >
-                    {upgrading === p.key ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      `Assinar ${PLANO_ASSINATURA_LABELS[p.key]}`
-                    )}
-                  </Button>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full gap-2 text-muted-foreground text-xs"
-            onClick={handlePortal}
-            disabled={openingPortal}
-          >
-            {openingPortal ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <CreditCard className="h-3.5 w-3.5" />
-            )}
-            Gerenciar faturamento
-          </Button>
+          {/* Manage billing link */}
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={handlePortal}
+              disabled={openingPortal}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {openingPortal ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CreditCard className="h-3.5 w-3.5" />
+              )}
+              Gerenciar faturamento
+            </button>
+          </div>
         </div>
       )}
     </div>

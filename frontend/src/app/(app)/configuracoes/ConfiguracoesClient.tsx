@@ -229,18 +229,35 @@ export default function ConfiguracoesClient({
 
         {isGestao && (
           <TabsContent value="plano" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Uso do plano</CardTitle>
-                <CardDescription className="text-xs">
-                  Recursos utilizados na sua organização
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <PlanUsage initialUsage={initialUsage} />
-                {userRole === "administrador" && <StripeUpgrade initialBilling={initialBilling} />}
-              </CardContent>
-            </Card>
+            <div className="max-w-3xl space-y-6">
+              {/* Uso atual */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold">Uso atual</CardTitle>
+                  <CardDescription className="text-xs">
+                    Recursos utilizados na sua organização
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pb-5">
+                  <PlanUsage initialUsage={initialUsage} />
+                </CardContent>
+              </Card>
+
+              {/* Planos e upgrade */}
+              {userRole === "administrador" && (
+                <Card className="border-0 shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold">Planos disponíveis</CardTitle>
+                    <CardDescription className="text-xs">
+                      Escolha o plano ideal para o tamanho da sua comunidade
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pb-6">
+                    <StripeUpgrade initialBilling={initialBilling} />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
         )}
 
