@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { stripe, STRIPE_PRICES, isStripeEnabled, type StripePaidPlan } from "@/lib/stripe";
+import { stripe, STRIPE_PRICES, isStripeEnabled, type StripePaidPlan, type StripePeriodicidade } from "@/lib/stripe";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 const VALID_PLANS: StripePaidPlan[] = ["BASICO", "INTERMEDIARIO", "AVANCADO"];
+const VALID_PERIODICIDADES: StripePeriodicidade[] = ["mensal", "anual"];
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -18,14 +19,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Stripe não configurado" }, { status: 503 });
   }
 
-  const { plano } = await req.json();
+  const { plano, periodicidade = "mensal" } = await req.json();
   if (!plano || !VALID_PLANS.includes(plano)) {
     return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
   }
+  if (!VALID_PERIODICIDADES.includes(periodicidade)) {
+    return NextResponse.json({ error: "Periodicidade inválida" }, { status: 400 });
+  }
 
-  const priceId = STRIPE_PRICES[plano as StripePaidPlan];
+  const priceKey = periodicidade === "anual" ? (`${plano}_ANUAL` as keyof typeof STRIPE_PRICES) : (plano as StripePaidPlan);
+  const priceId = STRIPE_PRICES[priceKey];
   if (!priceId) {
-    return NextResponse.json({ error: `STRIPE_PRICE_${plano} não configurado` }, { status: 503 });
+    return NextResponse.json({ error: `Preço para ${plano} (${periodicidade}) não configurado` }, { status: 503 });
   }
 
   const org = await prisma.organizacao.findUnique({
@@ -74,7 +79,7 @@ export async function POST(req: NextRequest) {
     "stripe_checkout_iniciado",
     user.id ?? "unknown",
     getClientIp(req),
-    { plano, checkoutSessionId: checkoutSession.id },
+    { plano, periodicidade, checkoutSessionId: checkoutSession.id },
     user.organizacaoId
   );
 

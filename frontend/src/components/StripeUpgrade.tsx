@@ -24,7 +24,9 @@ interface StripeUpgradeProps {
 const PLANO_CARDS = [
   {
     key: "BASICO" as const,
-    preco: "R$ 97",
+    precoMensal: "R$ 97",
+    precoAnual: "R$ 81",
+    totalAnual: "R$ 970",
     usuarios: "60",
     storage: "2 GB",
     features: ["Até 60 usuários ativos", "2 GB de armazenamento"],
@@ -33,7 +35,9 @@ const PLANO_CARDS = [
   },
   {
     key: "INTERMEDIARIO" as const,
-    preco: "R$ 197",
+    precoMensal: "R$ 197",
+    precoAnual: "R$ 164",
+    totalAnual: "R$ 1.970",
     usuarios: "140",
     storage: "10 GB",
     features: ["Até 140 usuários ativos", "10 GB de armazenamento"],
@@ -43,7 +47,9 @@ const PLANO_CARDS = [
   },
   {
     key: "AVANCADO" as const,
-    preco: "R$ 397",
+    precoMensal: "R$ 397",
+    precoAnual: "R$ 331",
+    totalAnual: "R$ 3.970",
     usuarios: "350",
     storage: "30 GB",
     features: ["Até 350 usuários ativos", "30 GB de armazenamento"],
@@ -77,6 +83,7 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
   const [billing] = useState<BillingInfo | null>(initialBilling);
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [periodicidade, setPeriodicidade] = useState<"mensal" | "anual">("mensal");
 
   async function handleUpgrade(plano: "BASICO" | "INTERMEDIARIO" | "AVANCADO") {
     setUpgrading(plano);
@@ -84,7 +91,7 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plano }),
+        body: JSON.stringify({ plano, periodicidade }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -215,11 +222,46 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
           Plano personalizado configurado pelo suporte. Entre em contato para alterações.
         </p>
       ) : (
-        /* Não assinante: cards de pricing */
-        <div className="space-y-2">
+        /* Não assinante: toggle + cards de pricing */
+        <div className="space-y-3">
+          {/* Toggle mensal/anual */}
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={() => setPeriodicidade("mensal")}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                periodicidade === "mensal"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Mensal
+            </button>
+            <button
+              onClick={() => setPeriodicidade("anual")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                periodicidade === "anual"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Anual
+              <span
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                  periodicidade === "anual"
+                    ? "bg-emerald-500 text-white"
+                    : "bg-emerald-100 text-emerald-700"
+                }`}
+              >
+                2 meses grátis
+              </span>
+            </button>
+          </div>
+
+          {/* Cards */}
           {PLANO_CARDS.map((p) => {
             const Icon = p.icon;
             const isCurrentPlan = planoAtual === p.key;
+            const preco = periodicidade === "anual" ? p.precoAnual : p.precoMensal;
             return (
               <div
                 key={p.key}
@@ -239,7 +281,15 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
                       </Badge>
                     )}
                   </div>
-                  <span className="text-sm font-semibold">{p.preco}<span className="text-xs font-normal text-muted-foreground">/mês</span></span>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold">
+                      {preco}
+                      <span className="text-xs font-normal text-muted-foreground">/mês</span>
+                    </span>
+                    {periodicidade === "anual" && (
+                      <p className="text-[10px] text-muted-foreground">{p.totalAnual}/ano</p>
+                    )}
+                  </div>
                 </div>
                 <ul className="space-y-0.5">
                   {p.features.map((f) => (

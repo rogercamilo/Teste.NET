@@ -13,9 +13,13 @@ export const STRIPE_PRICES = {
   BASICO: process.env.STRIPE_PRICE_BASICO ?? "",
   INTERMEDIARIO: process.env.STRIPE_PRICE_INTERMEDIARIO ?? "",
   AVANCADO: process.env.STRIPE_PRICE_AVANCADO ?? "",
+  BASICO_ANUAL: process.env.STRIPE_PRICE_BASICO_ANUAL ?? "",
+  INTERMEDIARIO_ANUAL: process.env.STRIPE_PRICE_INTERMEDIARIO_ANUAL ?? "",
+  AVANCADO_ANUAL: process.env.STRIPE_PRICE_AVANCADO_ANUAL ?? "",
 } as const;
 
-export type StripePaidPlan = keyof typeof STRIPE_PRICES;
+export type StripePaidPlan = "BASICO" | "INTERMEDIARIO" | "AVANCADO";
+export type StripePeriodicidade = "mensal" | "anual";
 
 export function isStripeEnabled(): boolean {
   return stripe !== null;
