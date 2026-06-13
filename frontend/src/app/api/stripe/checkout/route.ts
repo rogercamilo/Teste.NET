@@ -55,9 +55,10 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Honra o trial restante: se org ainda está em trial, preserva os dias que faltam
+  // Honra o trial restante: Stripe exige trial_end >= 2 dias no futuro
+  const twoDaysFromNow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
   const trialEnd =
-    org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt > new Date()
+    org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt > twoDaysFromNow
       ? Math.floor(org.trialExpiresAt.getTime() / 1000)
       : undefined;
 
