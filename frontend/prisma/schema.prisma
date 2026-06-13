@@ -213,10 +213,28 @@ model Usuario {
   relatoriosRedigidos            RelatorioEtapa[]
   processosEclesiasticosCriados  ProcessoEclesiastico[]  @relation("ProcessoCriador")
   documentosEclesiasticosGerados DocumentoEclesiastico[] @relation("DocumentoGerador")
+  passwordResetTokens            PasswordResetToken[]
 
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
   @@index([email])
+}
+
+// ==========================================================
+// PASSWORD RESET TOKEN
+// ==========================================================
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  criadoEm  DateTime  @default(now())
+
+  usuario   Usuario   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ==========================================================

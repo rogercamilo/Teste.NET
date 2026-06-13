@@ -98,7 +98,10 @@ export type AuditAction =
   | "processo_eclesiastico_criado"
   | "processo_eclesiastico_atualizado"
   | "documento_eclesiastico_gerado"
-  | "processo_eclesiastico_concluido";
+  | "processo_eclesiastico_concluido"
+  | "password_reset_requested"
+  | "password_reset_confirmed"
+  | "lgpd_incident_notification_sent";
 
 export interface AuditEntry {
   timestamp: string;

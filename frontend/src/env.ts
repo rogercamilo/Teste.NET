@@ -43,7 +43,7 @@ const schema = z
 
     // Resend (alternative transactional email)
     RESEND_API_KEY: z.string().optional(),
-    RESEND_FROM: z.string().default("noreply@Formattio.app"),
+    RESEND_FROM: z.string().default("contato@formattio.com.br"),
 
     // Cloudflare R2 — optional; all four required if any is set
     R2_ACCOUNT_ID: z.string().optional(),

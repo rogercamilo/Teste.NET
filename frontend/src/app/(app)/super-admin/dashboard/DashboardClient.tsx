@@ -10,8 +10,11 @@ import {
   LayoutDashboard, Server, Lock, ClipboardList, RefreshCw,
   DollarSign, Building2, Activity, Gift, TrendingUp, TrendingDown, Minus,
   Home, Users, UserSquare, HardDrive, Database, Cloud, CloudOff,
-  AlertTriangle, Trash2, type LucideIcon,
+  AlertTriangle, Trash2, ShieldAlert, Send, CheckCircle2, Loader2, type LucideIcon,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -63,7 +66,21 @@ interface SegurancaData {
   logsCount24h: number;
 }
 
-type Tab = "visao-geral" | "servicos" | "seguranca" | "logs";
+interface LgpdData {
+  deletionRequests: {
+    id: string; tipo: string; status: string;
+    organizacaoId: string | null; usuarioId: string | null;
+    solicitadoEm: string; processadoEm: string | null;
+  }[];
+  deletionStats: { pendentes: number; processando: number; concluidos: number };
+  privacyByTipo: { tipo: string; versao: string; _count: { id: number } }[];
+  cookieTotal: number;
+  cookieAnaliticos: number;
+}
+
+interface OrgBasic { id: string; nome: string }
+
+type Tab = "visao-geral" | "servicos" | "seguranca" | "logs" | "lgpd";
 
 interface TabDef { id: Tab; label: string; Icon: LucideIcon }
 
@@ -101,6 +118,7 @@ const TABS: TabDef[] = [
   { id: "servicos", label: "Serviços", Icon: Server },
   { id: "seguranca", label: "Segurança", Icon: Lock },
   { id: "logs", label: "Logs", Icon: ClipboardList },
+  { id: "lgpd", label: "LGPD", Icon: ShieldAlert },
 ];
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -110,6 +128,8 @@ export default function DashboardClient() {
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [servicos, setServicos] = useState<ServicosData | null>(null);
   const [seguranca, setSeguranca] = useState<SegurancaData | null>(null);
+  const [lgpd, setLgpd] = useState<LgpdData | null>(null);
+  const [orgs, setOrgs] = useState<OrgBasic[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -125,7 +145,20 @@ export default function DashboardClient() {
     setLoading(false);
   }, []);
 
+  const loadLgpd = useCallback(async () => {
+    const [lgpdRes, orgsRes] = await Promise.all([
+      fetch("/api/super-admin/lgpd").then((r) => r.json()),
+      fetch("/api/super-admin/organizacoes?pageSize=200").then((r) => r.json()),
+    ]);
+    setLgpd(lgpdRes);
+    setOrgs(Array.isArray(orgsRes.data) ? orgsRes.data : []);
+  }, []);
+
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (tab === "lgpd" && !lgpd) loadLgpd();
+  }, [tab, lgpd, loadLgpd]);
 
   if (loading) {
     return (
@@ -187,6 +220,13 @@ export default function DashboardClient() {
       )}
       {tab === "logs" && seguranca && (
         <TabLogs logs={seguranca.recentLogs} />
+      )}
+      {tab === "lgpd" && (
+        lgpd ? <TabLgpd data={lgpd} orgs={orgs} onRefresh={loadLgpd} /> : (
+          <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />Carregando dados LGPD...
+          </div>
+        )
       )}
     </div>
   );
@@ -559,6 +599,237 @@ function TabSeguranca({ data }: { data: SegurancaData }) {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+// ── Tab: LGPD ─────────────────────────────────────────────────────────────────
+
+function TabLgpd({ data, orgs, onRefresh }: { data: LgpdData; orgs: OrgBasic[]; onRefresh: () => void }) {
+  const [orgId, setOrgId] = useState<string>("");
+  const [descricao, setDescricao] = useState("");
+  const [dataIncidente, setDataIncidente] = useState("");
+  const [medidas, setMedidas] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [formError, setFormError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError("");
+    setResult(null);
+    if (!descricao.trim() || !dataIncidente || !medidas.trim()) {
+      setFormError("Preencha todos os campos obrigatórios.");
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch("/api/super-admin/lgpd/incidente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizacaoId: orgId || null, descricao, dataIncidente, medidas }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFormError(json.error ?? "Erro ao enviar notificações.");
+        return;
+      }
+      setResult(json);
+      setDescricao("");
+      setDataIncidente("");
+      setMedidas("");
+      setOrgId("");
+    } catch {
+      setFormError("Erro de conexão. Tente novamente.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-red-500" />
+            Notificação de Incidente de Segurança — LGPD Art. 48
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Notifica titulares de dados pessoais sobre incidentes de segurança que possam acarretar risco ou dano relevante.
+          </p>
+        </CardHeader>
+        <CardContent className="px-4 pb-5">
+          {result ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 space-y-2">
+              <div className="flex items-center gap-2 text-emerald-700 font-medium">
+                <CheckCircle2 className="h-5 w-5" />
+                Notificações enviadas
+              </div>
+              <p className="text-sm text-emerald-800">
+                {result.sent} de {result.total} e-mails enviados com sucesso.
+                {result.failed > 0 && ` ${result.failed} falhou(aram).`}
+              </p>
+              <button
+                className="text-xs text-emerald-700 underline mt-1"
+                onClick={() => { setResult(null); onRefresh(); }}
+              >
+                Enviar outra notificação
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
+              <div className="space-y-1.5">
+                <Label htmlFor="orgId">Organização afetada</Label>
+                <select
+                  id="orgId"
+                  value={orgId}
+                  onChange={(e) => setOrgId(e.target.value)}
+                  className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Todas as organizações</option>
+                  {orgs.map((o) => (
+                    <option key={o.id} value={o.id}>{o.nome}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">Deixe em branco para notificar todos os usuários da plataforma.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="dataIncidente">Data do incidente <span className="text-destructive">*</span></Label>
+                <Input
+                  id="dataIncidente"
+                  type="date"
+                  value={dataIncidente}
+                  onChange={(e) => setDataIncidente(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="descricao">Descrição do incidente <span className="text-destructive">*</span></Label>
+                <Textarea
+                  id="descricao"
+                  rows={4}
+                  placeholder="Descreva o que ocorreu, quais dados podem ter sido afetados e o possível impacto aos titulares."
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="medidas">Medidas adotadas <span className="text-destructive">*</span></Label>
+                <Textarea
+                  id="medidas"
+                  rows={3}
+                  placeholder="Descreva as ações tomadas para conter o incidente e proteger os titulares."
+                  value={medidas}
+                  onChange={(e) => setMedidas(e.target.value)}
+                  required
+                />
+              </div>
+
+              {formError && <p className="text-sm text-destructive">{formError}</p>}
+
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-60 transition-colors"
+                >
+                  {sending ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" />Enviando...</>
+                  ) : (
+                    <><Send className="h-4 w-4" />Enviar notificação</>
+                  )}
+                </button>
+                <p className="text-xs text-muted-foreground">Esta ação envia e-mails imediatamente aos titulares.</p>
+              </div>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-1 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Exclusões Pendentes</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className={`text-2xl font-bold ${data.deletionStats.pendentes > 0 ? "text-amber-600" : "text-foreground"}`}>
+              {data.deletionStats.pendentes}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">aguardando processamento</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-1 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Aceites de Privacidade</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="text-2xl font-bold">
+              {data.privacyByTipo.reduce((acc, p) => acc + p._count.id, 0)}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">total registrado</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-1 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Cookies Analíticos</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="text-2xl font-bold">{data.cookieAnaliticos}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              de {data.cookieTotal} consentimentos totais
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {data.deletionRequests.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Trash2 className="h-4 w-4 text-muted-foreground" />
+              Solicitações de Exclusão — LGPD Art. 18
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Organização</TableHead>
+                  <TableHead>Solicitado em</TableHead>
+                  <TableHead>Processado em</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.deletionRequests.map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="text-sm capitalize">{d.tipo}</TableCell>
+                    <TableCell>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full border font-medium ${
+                        d.status === "pendente"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : d.status === "processando"
+                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      }`}>{d.status}</span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">{d.organizacaoId ?? "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{fmtDate(d.solicitadoEm)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{d.processadoEm ? fmtDate(d.processadoEm) : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

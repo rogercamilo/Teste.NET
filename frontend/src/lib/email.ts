@@ -19,7 +19,7 @@ function safeUrl(url: string): string {
 
 // Resend takes priority over SMTP when RESEND_API_KEY is set
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const RESEND_FROM = process.env.RESEND_FROM ?? "noreply@Formattio.app";
+const RESEND_FROM = process.env.RESEND_FROM ?? "contato@formattio.com.br";
 
 async function sendViaResend(
   to: string,
@@ -194,6 +194,99 @@ export async function sendCredentialResetEmail({
     </div>
   `;
   return send(organizacaoId, email, `Redefinição de acesso — ${orgNome.replace(/[\r\n]/g, "")}`, html);
+}
+
+export async function sendPasswordResetEmail({
+  organizacaoId,
+  nome,
+  email,
+  resetUrl,
+}: {
+  organizacaoId: string;
+  nome: string;
+  email: string;
+  resetUrl: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const safeName = esc(nome);
+  const safeUrl = resetUrl.startsWith("http://") || resetUrl.startsWith("https://") ? esc(resetUrl) : "#";
+  const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #1a1a1a;">Recuperação de senha</h2>
+      <p>Olá, <strong>${safeName}</strong>.</p>
+      <p>Recebemos uma solicitação para redefinir a senha da sua conta na plataforma <strong>Formattio</strong>.</p>
+      <p>Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>2 horas</strong>.</p>
+      <p style="text-align: center; margin: 32px 0;">
+        <a href="${safeUrl}"
+           style="background: #6d28d9; color: white; text-decoration: none;
+                  padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 15px;">
+          Redefinir senha
+        </a>
+      </p>
+      <p style="color: #666; font-size: 13px;">
+        Se não conseguir clicar no botão, copie e cole este link no seu navegador:<br/>
+        <a href="${safeUrl}">${safeUrl}</a>
+      </p>
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px 16px; margin: 16px 0;">
+        <p style="margin: 0; font-size: 13px; color: #991b1b;">
+          Se você não solicitou a recuperação de senha, ignore este e-mail. Sua senha permanece inalterada.
+        </p>
+      </div>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+      <p style="color: #999; font-size: 12px;">Formattio — plataforma de gestão formativa</p>
+    </div>
+  `;
+  return send(organizacaoId, email, "Recuperação de senha — Formattio", html);
+}
+
+export async function sendIncidentNotificationEmail({
+  organizacaoId,
+  email,
+  nome,
+  orgNome,
+  descricao,
+  dataIncidente,
+  medidas,
+}: {
+  organizacaoId: string;
+  email: string;
+  nome: string;
+  orgNome: string;
+  descricao: string;
+  dataIncidente: string;
+  medidas: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const safeName = esc(nome);
+  const safeOrg = esc(orgNome);
+  const safeDesc = esc(descricao);
+  const safeMedidas = esc(medidas);
+  const safeData = esc(dataIncidente);
+  const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; margin-bottom: 24px;">
+        <p style="margin: 0; font-size: 13px; font-weight: bold; color: #dc2626;">
+          NOTIFICAÇÃO DE INCIDENTE DE SEGURANÇA — LGPD Art. 48
+        </p>
+      </div>
+      <p>Olá, <strong>${safeName}</strong>.</p>
+      <p>A organização <strong>${safeOrg}</strong>, em cumprimento ao Art. 48 da Lei Geral de Proteção de Dados (LGPD), notifica a ocorrência de um incidente de segurança que pode envolver seus dados pessoais.</p>
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 24px 0;">
+        <p style="margin: 0 0 8px; font-size: 13px; font-weight: bold; color: #374151;">Data do incidente</p>
+        <p style="margin: 0 0 16px; font-size: 14px;">${safeData}</p>
+        <p style="margin: 0 0 8px; font-size: 13px; font-weight: bold; color: #374151;">Descrição</p>
+        <p style="margin: 0 0 16px; font-size: 14px;">${safeDesc}</p>
+        <p style="margin: 0 0 8px; font-size: 13px; font-weight: bold; color: #374151;">Medidas adotadas</p>
+        <p style="margin: 0; font-size: 14px;">${safeMedidas}</p>
+      </div>
+      <p style="font-size: 13px; color: #374151;">
+        Em caso de dúvidas, entre em contato com o responsável pela proteção de dados da sua organização
+        ou com a equipe Formattio pelo e-mail
+        <a href="mailto:privacidade@formattio.com.br">privacidade@formattio.com.br</a>.
+      </p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+      <p style="color: #999; font-size: 12px;">Formattio — plataforma de gestão formativa</p>
+    </div>
+  `;
+  return send(organizacaoId, email, `Notificação de incidente de segurança — ${orgNome.replace(/[\r\n]/g, "")}`, html);
 }
 
 export async function sendLimitAlertEmail({

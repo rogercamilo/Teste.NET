@@ -43,6 +43,7 @@ export default auth(function proxy(req) {
   // Prefix matches
   const publicPrefixes = [
     "/login",
+    "/recuperar-senha",
     "/acesso-plataforma",
     "/registro",
     "/convite",
@@ -61,6 +62,7 @@ export default auth(function proxy(req) {
     "/api/auth/csrf",
     "/api/auth/providers",
     "/api/auth/error",
+    "/api/auth/recuperar-senha",
   ];
   // Only /api/convites/<token> (exactly one non-empty segment) is public.
   // /api/convites and /api/convites/ (admin list/create/delete) remain auth-protected.
