@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2, Download } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -109,6 +109,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
     initial.dadosFormulario ?? {}
   );
   const [formDirty, setFormDirty] = useState(false);
+  const [gerandoId, setGerandoId] = useState<string | null>(null);
 
   const canEdit = podeEditarFormulario(processo.status, userRole);
   const transicoes = getTransicoesDisponiveis(processo.status, userRole);
@@ -131,6 +132,35 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
     }
     setFormDirty(false);
     toast.success("Formulário salvo.");
+  }
+
+  async function handleGerarPDF(docId: string) {
+    setGerandoId(docId);
+    try {
+      const res = await fetch(
+        `/api/processos-eclesiasticos/${processo.id}/documentos/${docId}/gerar`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Erro ao gerar PDF.");
+        return;
+      }
+      const { arquivoId, geradoEm, versao } = await res.json();
+      setProcesso((prev) => ({
+        ...prev,
+        documentos: prev.documentos.map((d) =>
+          d.id === docId
+            ? { ...d, arquivoId, geradoEm, versao, status: "gerado" as const }
+            : d
+        ),
+      }));
+      toast.success("PDF gerado com sucesso.");
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setGerandoId(null);
+    }
   }
 
   async function handleTransicao(novoStatus: StatusProcessoEclesiastico) {
@@ -282,9 +312,28 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
                       >
                         {STATUS_DOC_LABELS[doc.status]}
                       </span>
-                      {/* Geração de PDF — Bloco 3 */}
-                      <Button variant="outline" size="sm" disabled className="text-xs">
-                        Gerar PDF
+                      {doc.arquivoId && (
+                        <a
+                          href={`/api/arquivos/${doc.arquivoId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                        >
+                          <Download className="h-3 w-3" />
+                          Baixar
+                        </a>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        disabled={gerandoId === doc.id || (userRole !== "administrador" && userRole !== "formador_geral")}
+                        onClick={() => handleGerarPDF(doc.id)}
+                      >
+                        {gerandoId === doc.id
+                          ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Gerando…</>
+                          : doc.arquivoId ? "Regenerar" : "Gerar PDF"
+                        }
                       </Button>
                     </div>
                   </CardContent>

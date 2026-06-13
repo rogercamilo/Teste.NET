@@ -3,7 +3,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   // argon2 uses native addons — must not be bundled by webpack
-  serverExternalPackages: ["argon2"],
+  serverExternalPackages: ["argon2", "@react-pdf/renderer"],
 };
 
 // Only wrap with Sentry when org+project are configured (skips in CI without Sentry vars)
