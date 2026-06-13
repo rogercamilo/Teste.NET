@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, X } from "lucide-react";
-import { useTermos } from "@/lib/data-store";
 
 interface UsageMetric {
   current: number;
@@ -13,8 +12,7 @@ interface UsageMetric {
 
 interface Usage {
   plano: string;
-  gruposFormacao: UsageMetric;
-  formandos: UsageMetric;
+  usuarios: UsageMetric;
   storage: UsageMetric;
 }
 
@@ -28,7 +26,6 @@ function formatBytes(bytes: number): string {
 }
 
 export default function QuotaWarningBanner({ role }: { role?: string }) {
-  const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [usage, setUsage] = useState<Usage | null>(null);
   const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
 
@@ -55,8 +52,7 @@ export default function QuotaWarningBanner({ role }: { role?: string }) {
   if (!canSee || dismissed || !usage) return null;
 
   const metrics = [
-    { label: `${termoGrupoFormacao}s`, metric: usage.gruposFormacao, format: (v: number) => String(v) },
-    { label: "Formandos", metric: usage.formandos, format: (v: number) => String(v) },
+    { label: "Usuários", metric: usage.usuarios, format: (v: number) => String(v) },
     { label: "Armazenamento", metric: usage.storage, format: formatBytes },
   ];
 
