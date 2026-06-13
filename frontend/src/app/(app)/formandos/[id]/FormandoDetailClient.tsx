@@ -17,6 +17,9 @@ import {
   NOTA_ADESAO_CORES,
   NOTA_ADESAO_DOT,
   PERSPECTIV_LABELS,
+  TIPO_PROCESSO_LABELS,
+  STATUS_PROCESSO_LABELS,
+  STATUS_PROCESSO_COLORS,
   getProximaEtapa,
   podeAvancarEtapa,
   totalRequerido,
@@ -29,6 +32,8 @@ import {
   type NotaAdesao,
   type TipoDesligamento,
   type PerspectivFormativa,
+  type ProcessoEclesiastico,
+  type TipoProcessoEclesiastico,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +83,7 @@ import {
   Paperclip,
   Phone,
   Plus,
+  ScrollText,
   TrendingUp,
   Upload,
   User,
@@ -121,6 +127,8 @@ interface Props {
   userGrupoFormacaoId: string | null;
   termoFormando: string;
   termoFormador: string;
+  tipoOrganizacao: string | null;
+  processosEclesiasticos: ProcessoEclesiastico[];
 }
 
 export default function FormandoDetailClient({
@@ -138,6 +146,8 @@ export default function FormandoDetailClient({
   userGrupoFormacaoId,
   termoFormando,
   termoFormador,
+  tipoOrganizacao,
+  processosEclesiasticos: initialProcessosEclesiasticos,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -223,6 +233,10 @@ export default function FormandoDetailClient({
   const [solicitacaoFiles, setSolicitacaoFiles] = useState<File[]>([]);
   const [desligamentoFiles, setDesligamentoFiles] = useState<File[]>([]);
   const [licencaFiles, setLicencaFiles] = useState<File[]>([]);
+
+  const processosEclesiasticos = initialProcessosEclesiasticos;
+  const [novoProcessoOpen, setNovoProcessoOpen] = useState(false);
+  const [novoProcessoTipo, setNovoProcessoTipo] = useState<TipoProcessoEclesiastico>("admissao_etapa1");
 
   const ACCEPTED_TYPES = [
     "application/pdf",
@@ -567,6 +581,27 @@ export default function FormandoDetailClient({
     }
   }
 
+  async function handleCriarProcesso() {
+    try {
+      const res = await fetch("/api/processos-eclesiasticos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formandoId: id,
+          tipo: novoProcessoTipo,
+          nivelFormativo: formando.nivelFormativo,
+          dadosFormulario: {},
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Erro");
+      const novo = await res.json();
+      setNovoProcessoOpen(false);
+      router.push(`/jornada-vocacional/${novo.id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao criar processo.");
+    }
+  }
+
   async function handleAvancarEtapa() {
     if (!proximaEtapa) return;
     const agora = new Date().toISOString();
@@ -855,6 +890,11 @@ export default function FormandoDetailClient({
           <TabsTrigger value="jornada" className="text-xs h-7">
             Jornada Formativa
           </TabsTrigger>
+          {tipoOrganizacao === "nova_comunidade" && (
+            <TabsTrigger value="documentos" className="text-xs h-7">
+              Documentos
+            </TabsTrigger>
+          )}
           <TabsTrigger value="perspectivas" className="text-xs h-7">
             Perspectivas
           </TabsTrigger>
@@ -1070,6 +1110,80 @@ export default function FormandoDetailClient({
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Processos Eclesiásticos — visível apenas para Nova Comunidade */}
+        {tipoOrganizacao === "nova_comunidade" && (
+          <TabsContent value="documentos" className="mt-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3 flex flex-row items-start justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold">Processos Eclesiásticos</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Documentos canônicos da jornada vocacional
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => setNovoProcessoOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Novo processo
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {processosEclesiasticos.length === 0 ? (
+                  <div className="flex flex-col items-center py-10 text-center">
+                    <ScrollText className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                    <p className="font-medium text-foreground text-sm">
+                      Nenhum processo eclesiástico
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Inicie um novo processo para gerar documentos canônicos.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {processosEclesiasticos.map((proc) => (
+                      <Link
+                        key={proc.id}
+                        href={`/jornada-vocacional/${proc.id}`}
+                        className="flex items-center justify-between rounded-lg border border-border/50 bg-card p-3 hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <ScrollText className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {TIPO_PROCESSO_LABELS[proc.tipo]}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(parseISO(proc.criadoEm), "d 'de' MMM 'de' yyyy", {
+                                locale: ptBR,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${STATUS_PROCESSO_COLORS[proc.status]}`}
+                          >
+                            {STATUS_PROCESSO_LABELS[proc.status]}
+                          </Badge>
+                          {proc.documentos && proc.documentos.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              {proc.documentos.length} doc
+                              {proc.documentos.length !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* Perspectivas Formativas */}
         <TabsContent value="perspectivas" className="mt-4 space-y-4">
@@ -2834,6 +2948,48 @@ export default function FormandoDetailClient({
               <Button onClick={handleAvancarEtapa}>
                 <ArrowRight className="h-4 w-4 mr-1.5" />
                 Confirmar avanço
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Dialog: Novo Processo Eclesiástico */}
+      {tipoOrganizacao === "nova_comunidade" && (
+        <Dialog open={novoProcessoOpen} onOpenChange={setNovoProcessoOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Novo Processo Eclesiástico</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="grid gap-1.5">
+                <Label>Tipo de processo</Label>
+                <Select
+                  value={novoProcessoTipo}
+                  onValueChange={(v) => v && setNovoProcessoTipo(v as TipoProcessoEclesiastico)}
+                >
+                  <SelectTrigger>
+                    <SelectValue>{TIPO_PROCESSO_LABELS[novoProcessoTipo]}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.entries(TIPO_PROCESSO_LABELS) as [TipoProcessoEclesiastico, string][]).map(
+                      ([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setNovoProcessoOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleCriarProcesso}>
+                <ScrollText className="h-3.5 w-3.5 mr-1.5" />
+                Criar processo
               </Button>
             </DialogFooter>
           </DialogContent>

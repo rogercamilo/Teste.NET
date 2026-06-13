@@ -28,11 +28,20 @@ export default async function FormandoDetailPage({
     }),
     prisma.organizacao.findUnique({
       where: { id: user.organizacaoId },
-      select: { termoFormando: true, termoFormador: true },
+      select: { termoFormando: true, termoFormador: true, tipoOrganizacao: true },
     }),
   ]);
 
   if (!formandoRow) redirect("/formandos");
+
+  const processosEclesiasticosRows =
+    org?.tipoOrganizacao === "nova_comunidade"
+      ? await prisma.processoEclesiastico.findMany({
+          where: { formandoId: id, organizacaoId: user.organizacaoId },
+          include: { documentos: { select: { id: true, tipo: true, status: true, versao: true } } },
+          orderBy: { criadoEm: "desc" },
+        })
+      : [];
 
   const [comentariosRows, eventosRows, presencasRows, grupoFormacaoRow, todosGruposFormacaoRows] =
     await Promise.all([
@@ -109,6 +118,31 @@ export default async function FormandoDetailPage({
       userGrupoFormacaoId={user.grupoFormacaoId ?? null}
       termoFormando={org?.termoFormando?.trim() || "Formando"}
       termoFormador={org?.termoFormador?.trim() || "Formador Comunitário"}
+      tipoOrganizacao={org?.tipoOrganizacao ?? null}
+      processosEclesiasticos={processosEclesiasticosRows.map((p) => ({
+        id: p.id,
+        organizacaoId: p.organizacaoId,
+        formandoId: p.formandoId,
+        tipo: p.tipo,
+        nivelFormativo: p.nivelFormativo,
+        status: p.status,
+        dadosFormulario: p.dadosFormulario as Record<string, unknown>,
+        favoravelRenovacao: p.favoravelRenovacao,
+        numeroRenovacao: p.numeroRenovacao,
+        criadoPorId: p.criadoPorId,
+        criadoEm: p.criadoEm.toISOString(),
+        atualizadoEm: p.atualizadoEm.toISOString(),
+        documentos: p.documentos.map((d) => ({
+          id: d.id,
+          processoId: p.id,
+          tipo: d.tipo,
+          status: d.status,
+          versao: d.versao,
+          arquivoId: null,
+          geradoEm: null,
+          criadoEm: p.criadoEm.toISOString(),
+        })),
+      }))}
     />
   );
 }
