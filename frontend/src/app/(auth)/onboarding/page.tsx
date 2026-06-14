@@ -5,11 +5,11 @@ import { prisma } from "@/lib/prisma";
 
 export default async function OnboardingPage() {
   const session = await auth();
-  const user = session?.user as { organizacaoId?: string } | undefined;
-  if (!user?.organizacaoId) redirect("/login");
+  if (!session?.user?.organizacaoId) redirect("/login");
+  const { organizacaoId } = session.user;
 
   const org = await prisma.organizacao.findUnique({
-    where: { id: user.organizacaoId },
+    where: { id: organizacaoId },
     select: {
       id: true, nome: true, tipoOrganizacao: true, descricao: true, endereco: true, missao: true,
       anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true,

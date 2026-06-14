@@ -61,8 +61,9 @@ export default function ConviteForm({ token }: { token: string }) {
       });
       const data = await res.json() as { error?: string; email?: string };
       if (!res.ok) { setFormError(data.error ?? "Erro ao ativar conta"); setLoading(false); return; }
+      if (!data.email) { setFormError("Erro ao ativar conta"); setLoading(false); return; }
 
-      const result = await signIn("credentials", { email: data.email!, password: senha, redirect: false });
+      const result = await signIn("credentials", { email: data.email, password: senha, redirect: false });
       if (result?.error) { router.push("/login"); }
       else { router.push("/dashboard"); router.refresh(); }
     } catch {

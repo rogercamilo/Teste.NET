@@ -7,6 +7,7 @@ import { ArrowLeft, Lock, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-reac
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { validatePassword } from "@/lib/password-validation";
 
 export default function ConfirmarResetPage() {
   const { token } = useParams<{ token: string }>();
@@ -20,12 +21,18 @@ export default function ConfirmarResetPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
 
+  const pwErrors = validatePassword(novaSenha).errors;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
     if (novaSenha !== confirmarSenha) {
       setError("As senhas não coincidem.");
+      return;
+    }
+    if (pwErrors.length > 0) {
+      setError(pwErrors.join("; "));
       return;
     }
 
@@ -83,7 +90,6 @@ export default function ConfirmarResetPage() {
                   value={novaSenha}
                   onChange={(e) => setNovaSenha(e.target.value)}
                   required
-                  minLength={8}
                 />
                 <button
                   type="button"
@@ -94,6 +100,11 @@ export default function ConfirmarResetPage() {
                   {showNova ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {novaSenha && pwErrors.length > 0 && (
+                <ul className="text-xs text-destructive space-y-0.5 mt-1">
+                  {pwErrors.map((e) => <li key={e}>• {e}</li>)}
+                </ul>
+              )}
             </div>
 
             <div className="space-y-1.5">
