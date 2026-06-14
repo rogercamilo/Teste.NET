@@ -1,7 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getOrgBranding } from "@/lib/org-cache";
-import { isAdmin } from "@/types";
+import { isAdmin, type ComunidadeConfig, type TipoOrganizacao } from "@/types";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
 import { ComunidadeProvider } from "@/components/layout/ComunidadeProvider";
@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   };
 
   let orgBranding = { onboardingConcluido: true, temaCor: null as string | null, nomePlataforma: null as string | null, nome: "" };
-  let comunidadeInitial: import("@/types").ComunidadeConfig | undefined;
+  let comunidadeInitial: ComunidadeConfig | undefined;
 
   if (sessionUser.organizacaoId && sessionUser.role !== "super_admin") {
     const org = await getOrgBranding(sessionUser.organizacaoId);
@@ -35,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       orgBranding = { ...orgBranding, ...org };
       if (!org.onboardingConcluido && isAdmin(sessionUser.role)) redirect("/onboarding");
       comunidadeInitial = {
-        tipoOrganizacao: org.tipoOrganizacao as import("@/types").TipoOrganizacao,
+        tipoOrganizacao: org.tipoOrganizacao as TipoOrganizacao,
         nome: org.nome,
         descricao: org.descricao ?? "",
         endereco: org.endereco ?? "",

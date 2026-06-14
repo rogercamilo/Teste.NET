@@ -12,6 +12,7 @@
   type LucideIcon,
   Users,
 } from "lucide-react";
+import type { TipoOrganizacao } from "@/types";
 
 export interface NavItem {
   title: string;
@@ -20,7 +21,7 @@ export interface NavItem {
   badge?: number;
   exact?: boolean;
   /** Restringe o item a um ou mais tipos de organização. Omitir = visível para todos. */
-  requiredTipoOrg?: string[];
+  requiredTipoOrg?: TipoOrganizacao[];
 }
 
 export interface NavGroup {
@@ -121,5 +122,3 @@ export const navGroupsFormador: NavGroup[] = [
   },
 ];
 
-/** @deprecated Use navGroupsGestao */
-export const navGroupsAdmin = navGroupsGestao;

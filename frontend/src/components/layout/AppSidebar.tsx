@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { navGroupsGestao, navGroupsFormador, navGroupsSuperAdmin, type NavGroup } from "./nav-items";
-import { useComunidade } from "@/lib/data-store";
+import { useComunidade, useTermos } from "@/lib/data-store";
 
 export interface AppSidebarUser {
   name: string;
@@ -40,9 +40,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   // Logo carregada client-side via useComunidade para evitar transferir base64 no SSR
   const logo = comunidade.logoUrl ?? null;
 
-  const grupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Morada";
-  const formando = comunidade.termoFormando?.trim() || "Formando";
-  const formador = comunidade.termoFormador?.trim() || "Formador Comunitário";
+  const { grupoFormacao, formando, formador } = useTermos();
 
   const isFormadorGeral = user.role === "formador_geral";
   const isAdmin = user.role === "administrador";
@@ -58,7 +56,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
     : isGestao
     ? navGroupsGestao
     : navGroupsFormador.map((g) => {
-        if (g.label === "Minha Morada" && user.grupoFormacaoId && !isGestao) {
+        if (g.label === "Minha Morada" && user.grupoFormacaoId) {
           return {
             ...g,
             items: [
@@ -77,7 +75,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
     ...g,
     label: g.label === "Minha Morada" ? `Minha ${grupoFormacao}` : g.label,
     items: g.items
-      .filter((item) => !item.requiredTipoOrg || item.requiredTipoOrg.includes(tipoOrg ?? ""))
+      .filter((item) => !item.requiredTipoOrg || (tipoOrg != null && item.requiredTipoOrg.includes(tipoOrg)))
       .map((item) => ({
         ...item,
         title:

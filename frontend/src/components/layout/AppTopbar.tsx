@@ -55,11 +55,12 @@ function buildBreadcrumbs(pathname: string, grupoFormacao: string, formando: str
 
   const sectionMap: Record<string, { parent: string; parentHref: string; label: string }> = {
     planos:     { parent: "Pedagógico",        parentHref: "/planos",    label: "Planos Formativos"   },
-    grades:     { parent: "Pedagógico",        parentHref: "/planos",    label: "Grades Formativas"   },
+    grades:     { parent: "Pedagógico",        parentHref: "/grades",    label: "Grades Formativas"   },
     formacoes:  { parent: "Pedagógico",        parentHref: "/formacoes", label: "Formações"           },
     formandos:  { parent: "Gestão",            parentHref: "/formandos", label: `${formando}s`        },
     "grupos-formacao": { parent: "Gestão",     parentHref: "/grupos-formacao",   label: `${grupoFormacao}s`          },
-    documentos: { parent: "Gestão",            parentHref: "/grupos-formacao",   label: "Documentos"          },
+    documentos:          { parent: "Gestão",     parentHref: "/grupos-formacao",   label: "Documentos"          },
+    "jornada-vocacional": { parent: "Gestão",   parentHref: "/jornada-vocacional", label: "Jornada Vocacional"  },
     presenca:   { parent: `Minha ${grupoFormacao}`,   parentHref: "/presenca",  label: "Gestão de Presença"  },
     comentarios:{ parent: `Minha ${grupoFormacao}`,   parentHref: "/presenca",  label: "Comentários"         },
   };
