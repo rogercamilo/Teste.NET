@@ -38,7 +38,7 @@ export async function GET(_req: Request, { params }: Params) {
       if (grade && grade.totalFormacoes > 0) totalFormacoes = grade.totalFormacoes;
     } else {
       const count = await prisma.formacao.count({
-        where: { nivelFormativo: rest.nivelFormativo, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+        where: { nivelFormativo: rest.nivelFormativo, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }], deletedAt: null },
       });
       if (count > 0) totalFormacoes = count;
     }
@@ -57,7 +57,7 @@ export async function PUT(request: Request, { params }: Params) {
   const { id } = await params;
   if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
-  const rl = await limiters.mutation(user.id!);
+  const rl = await limiters.mutation(user.id ?? getClientIp(request));
   if (!rl.allowed) {
     return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
   }
@@ -76,7 +76,7 @@ export async function PUT(request: Request, { params }: Params) {
     const body = parsed.data;
 
     if (body.grupoFormacaoId) {
-      const grupoFormacao = await prisma.grupoFormacao.findFirst({ where: { id: body.grupoFormacaoId, organizacaoId: user.organizacaoId } });
+      const grupoFormacao = await prisma.grupoFormacao.findFirst({ where: { id: body.grupoFormacaoId, organizacaoId: user.organizacaoId, ativo: true } });
       if (!grupoFormacao) return NextResponse.json({ error: "Grupo de formação não encontrado" }, { status: 400 });
     }
 
@@ -151,7 +151,7 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const existing = await prisma.formando.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    await prisma.formando.update({ where: { id }, data: { deletedAt: new Date(), ativo: false } });
+    await prisma.formando.update({ where: { id, organizacaoId: user.organizacaoId }, data: { deletedAt: new Date(), ativo: false } });
     logAction("formando_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
   } catch (err) { logError("formandos/:id DELETE", err); return NextResponse.json({ error: "Falha ao excluir formando" }, { status: 500 }); }

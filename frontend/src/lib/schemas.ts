@@ -431,6 +431,15 @@ export const CreateGradeSchema = z.object({
 
 export const UpdateGradeSchema = CreateGradeSchema.partial();
 
+// ── Progresso de Etapa ───────────────────────────────────────────────────────
+
+export const UpdateProgressoEtapaSchema = z.object({
+  nivelFormativo: NivelFormativoEnum,
+  dataMissaCompromisso: isoDate.nullable().optional(),
+  iniciouEm: isoDate.nullable().optional(),
+  concluiuEm: isoDate.nullable().optional(),
+});
+
 // ── Web Push ──────────────────────────────────────────────────────────────────
 
 export const PushSubscribeSchema = z.object({

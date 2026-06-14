@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
-import { isValidId } from "@/lib/schemas";
-import type { NivelFormativo } from "@/types";
+import { isValidId, UpdateProgressoEtapaSchema, parseBody } from "@/lib/schemas";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -24,33 +23,23 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!isValidId(id)) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
   try {
-    const body = await request.json() as {
-      nivelFormativo: string;
-      dataMissaCompromisso?: string | null;
-      iniciouEm?: string | null;
-      concluiuEm?: string | null;
-    };
-
-    if (!body.nivelFormativo) {
-      return NextResponse.json({ error: "nivelFormativo é obrigatório" }, { status: 400 });
-    }
+    const parsed = parseBody(UpdateProgressoEtapaSchema, await request.json());
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = parsed.data;
 
     // Valida que o formando pertence à organização (e à morada do FC, se aplicável)
     const formando = await prisma.formando.findFirst({
-      where: { id, organizacaoId: user.organizacaoId },
+      where: { id, organizacaoId: user.organizacaoId, deletedAt: null },
       select: { id: true, grupoFormacaoId: true },
     });
     if (!formando) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
-    if (isFC) {
-      const userWithMorada = user as SU & { grupoFormacaoId?: string | null };
-      if (userWithMorada.grupoFormacaoId && formando.grupoFormacaoId !== userWithMorada.grupoFormacaoId) {
-        return NextResponse.json({ error: "Sem permissão para editar este formando" }, { status: 403 });
-      }
+    if (isFC && formando.grupoFormacaoId !== (user.grupoFormacaoId ?? null)) {
+      return NextResponse.json({ error: "Sem permissão para editar este formando" }, { status: 403 });
     }
 
     const updated = await prisma.progressoEtapa.update({
-      where: { formandoId_nivelFormativo: { formandoId: id, nivelFormativo: body.nivelFormativo as NivelFormativo } },
+      where: { formandoId_nivelFormativo: { formandoId: id, nivelFormativo: body.nivelFormativo } },
       data: {
         ...(body.dataMissaCompromisso !== undefined && {
           dataMissaCompromisso: body.dataMissaCompromisso ? new Date(body.dataMissaCompromisso) : null,
