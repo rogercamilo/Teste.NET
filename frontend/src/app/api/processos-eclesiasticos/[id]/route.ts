@@ -103,6 +103,8 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
   const user = session?.user as SessionUser | undefined;
   if (!user?.organizacaoId || !user.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
+  const { organizacaoId } = user;
+
   try {
     const { id } = await params;
     const processo = await prisma.processoEclesiastico.findFirst({
@@ -151,7 +153,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       }
 
       // Ao iniciar processo (rascunho → em_andamento): inicializa DocumentoEclesiastico se ainda não existem
-      if (transicaoValida.para === "em_andamento" && processo.documentos.length === 0) {
+      if (transicaoValida.para === "em_andamento") {
         const menorDeIdade = eraMenorDeIdade(
           processo.formando.dataNascimento,
           processo.criadoEm
@@ -160,17 +162,34 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
           menorDeIdade,
           favoravelRenovacao: processo.favoravelRenovacao ?? false,
         });
-
-        await prisma.$transaction([
-          prisma.processoEclesiastico.update({ where: { id }, data: { status: body.status } }),
-          ...tiposDoc.map((tipo) =>
-            prisma.documentoEclesiastico.create({
-              data: { processoId: id, tipo, status: "pendente" },
-            })
-          ),
-        ]);
+        await prisma.$transaction(async (tx) => {
+          const current = await tx.processoEclesiastico.findFirst({
+            where: { id, organizacaoId },
+            select: { status: true, documentos: { select: { id: true } } },
+          });
+          if (!current || current.status !== processo.status) {
+            throw new Error("CONCURRENT_MODIFICATION");
+          }
+          await tx.processoEclesiastico.update({ where: { id }, data: { status: body.status } });
+          if (current.documentos.length === 0) {
+            for (const tipo of tiposDoc) {
+              await tx.documentoEclesiastico.create({
+                data: { processoId: id, tipo, status: "pendente" },
+              });
+            }
+          }
+        });
       } else {
-        await prisma.processoEclesiastico.update({ where: { id }, data: { status: body.status } });
+        const result = await prisma.processoEclesiastico.updateMany({
+          where: { id, status: processo.status, organizacaoId },
+          data: { status: body.status },
+        });
+        if (result.count === 0) {
+          return NextResponse.json(
+            { error: "Status alterado por outra operação. Recarregue e tente novamente." },
+            { status: 409 }
+          );
+        }
       }
 
       logAction("processo_eclesiastico_atualizado", user.id, getClientIp(req), { id, status: body.status }, user.organizacaoId);
@@ -180,7 +199,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
         formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
           if (!fcId) return;
           criarNotificacao({
-            organizacaoId: user.organizacaoId!,
+            organizacaoId,
             destinatarioId: fcId,
             tipo: "processo_aprovado",
             titulo: `Processo de ${processo.formando.nome} aprovado`,
@@ -195,6 +214,12 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
 
     return NextResponse.json({ error: "Nada para atualizar" }, { status: 400 });
   } catch (err) {
+    if (err instanceof Error && err.message === "CONCURRENT_MODIFICATION") {
+      return NextResponse.json(
+        { error: "Status alterado por outra operação. Recarregue e tente novamente." },
+        { status: 409 }
+      );
+    }
     logError("processos-eclesiasticos", err);
     return NextResponse.json({ error: "Falha ao atualizar processo" }, { status: 500 });
   }

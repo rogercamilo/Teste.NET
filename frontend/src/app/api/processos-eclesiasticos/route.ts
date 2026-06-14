@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import type { SessionUser } from "@/lib/auth-helpers";
 import type { TipoProcessoEclesiastico } from "@/types";
 import { criarNotificacao, formadorDoGrupo, camposCanonicosFaltando } from "@/lib/notificacoes";
@@ -70,61 +70,68 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Sem permissão para criar processos eclesiásticos" }, { status: 403 });
   }
 
-  const body = await req.json() as {
-    formandoId: string;
-    tipo: TipoProcessoEclesiastico;
-    nivelFormativo: string;
-    dadosFormulario?: Record<string, unknown>;
-  };
+  const { id: userId, organizacaoId } = user;
 
-  if (!body.formandoId || !body.tipo || !body.nivelFormativo) {
-    return NextResponse.json({ error: "formandoId, tipo e nivelFormativo são obrigatórios" }, { status: 400 });
+  try {
+    const body = await req.json() as {
+      formandoId: string;
+      tipo: TipoProcessoEclesiastico;
+      nivelFormativo: string;
+      dadosFormulario?: Record<string, unknown>;
+    };
+
+    if (!body.formandoId || !body.tipo || !body.nivelFormativo) {
+      return NextResponse.json({ error: "formandoId, tipo e nivelFormativo são obrigatórios" }, { status: 400 });
+    }
+
+    const formando = await prisma.formando.findFirst({
+      where: { id: body.formandoId, organizacaoId, deletedAt: null },
+      select: {
+        id: true, nome: true, grupoFormacaoId: true,
+        rg: true, orgaoEmissor: true, nacionalidade: true, cep: true, paroquiaReferencia: true,
+      },
+    });
+    if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
+
+    const processo = await prisma.processoEclesiastico.create({
+      data: {
+        organizacaoId,
+        formandoId: body.formandoId,
+        tipo: body.tipo,
+        nivelFormativo: body.nivelFormativo,
+        status: "rascunho",
+        dadosFormulario: (body.dadosFormulario ?? {}) as import("@prisma/client").Prisma.InputJsonValue,
+        criadoPorId: userId,
+      },
+    });
+
+    logAction(
+      "processo_eclesiastico_criado",
+      userId,
+      getClientIp(req),
+      { processoId: processo.id, tipo: processo.tipo, formandoId: processo.formandoId },
+      organizacaoId,
+    );
+
+    // Notifica FC se formando tem campos canônicos faltando
+    const faltando = camposCanonicosFaltando(formando);
+    if (faltando.length > 0 && formando.grupoFormacaoId) {
+      formadorDoGrupo(formando.grupoFormacaoId).then((fcId) => {
+        if (!fcId) return;
+        criarNotificacao({
+          organizacaoId,
+          destinatarioId: fcId,
+          tipo: "dados_formando_pendentes",
+          titulo: `Dados incompletos de ${formando.nome}`,
+          corpo: `Para gerar os documentos do processo, complete: ${faltando.join(", ")}.`,
+          linkAcao: `/formandos/${formando.id}`,
+        });
+      }).catch(() => {});
+    }
+
+    return NextResponse.json(processo, { status: 201 });
+  } catch (err) {
+    logError("processos-eclesiasticos", err);
+    return NextResponse.json({ error: "Falha ao criar processo" }, { status: 500 });
   }
-
-  const formando = await prisma.formando.findFirst({
-    where: { id: body.formandoId, organizacaoId: user.organizacaoId, deletedAt: null },
-    select: {
-      id: true, nome: true, grupoFormacaoId: true,
-      rg: true, orgaoEmissor: true, nacionalidade: true, cep: true, paroquiaReferencia: true,
-    },
-  });
-  if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
-
-  const processo = await prisma.processoEclesiastico.create({
-    data: {
-      organizacaoId: user.organizacaoId,
-      formandoId: body.formandoId,
-      tipo: body.tipo,
-      nivelFormativo: body.nivelFormativo,
-      status: "rascunho",
-      dadosFormulario: (body.dadosFormulario ?? {}) as import("@prisma/client").Prisma.InputJsonValue,
-      criadoPorId: user.id,
-    },
-  });
-
-  logAction(
-    "processo_eclesiastico_criado",
-    user.id,
-    getClientIp(req),
-    { processoId: processo.id, tipo: processo.tipo, formandoId: processo.formandoId },
-    user.organizacaoId,
-  );
-
-  // Opção B: notifica FC se formando tem campos canônicos faltando
-  const faltando = camposCanonicosFaltando(formando);
-  if (faltando.length > 0 && formando.grupoFormacaoId) {
-    formadorDoGrupo(formando.grupoFormacaoId).then((fcId) => {
-      if (!fcId) return;
-      criarNotificacao({
-        organizacaoId: user.organizacaoId!,
-        destinatarioId: fcId,
-        tipo: "dados_formando_pendentes",
-        titulo: `Dados incompletos de ${formando.nome}`,
-        corpo: `Para gerar os documentos do processo, complete: ${faltando.join(", ")}.`,
-        linkAcao: `/formandos/${formando.id}`,
-      });
-    }).catch(() => {});
-  }
-
-  return NextResponse.json(processo, { status: 201 });
 }

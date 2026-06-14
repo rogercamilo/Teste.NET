@@ -1,5 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
@@ -44,9 +45,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
-  if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!user?.organizacaoId || !user.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const rl = await limiters.mutation(user.id!);
+  const rl = await limiters.mutation(user.id);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
   }
@@ -59,18 +60,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "formandoId e nivelFormativo são obrigatórios" }, { status: 400 });
     }
 
-    // Verifica acesso ao formando
-    const grupoFormacaoFilter = user.role === "formador_comunitario" ? { grupoFormacaoId: user.grupoFormacaoId ?? null } : {};
+    // FC sem grupo não tem acesso a nenhum formando
+    if (user.role === "formador_comunitario" && !user.grupoFormacaoId) {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    }
+    const grupoFormacaoFilter = user.role === "formador_comunitario"
+      ? { grupoFormacaoId: user.grupoFormacaoId }
+      : {};
     const formando = await prisma.formando.findFirst({
-      where: { id: formandoId, organizacaoId: user.organizacaoId, ...grupoFormacaoFilter },
+      where: { id: formandoId, organizacaoId: user.organizacaoId, deletedAt: null, ...grupoFormacaoFilter },
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
-
-    // Verifica se já existe
-    const existente = await prisma.relatorioEtapa.findUnique({
-      where: { formandoId_nivelFormativo: { formandoId, nivelFormativo } },
-    });
-    if (existente) return NextResponse.json({ error: "Relatório já existe para esta etapa" }, { status: 409 });
 
     // Pré-popula notas das 3 perspectivas a partir da última avaliação de cada perspectiva
     const perspectivas = ["humana", "espiritual", "comunitaria"] as const;
@@ -89,26 +89,32 @@ export async function POST(request: Request) {
       notasSugeridas[perspectiva] = evento?.notaAdesao ?? null;
     }
 
-    const row = await prisma.relatorioEtapa.create({
-      data: {
-        organizacaoId: user.organizacaoId,
-        formandoId,
-        formadorId: user.id!,
-        nivelFormativo,
-        // Body values take precedence over pre-populated suggestions
-        avaliacaoHumana: body.avaliacaoHumana !== undefined ? (body.avaliacaoHumana || null) : notasSugeridas.humana,
-        avaliacaoEspiritual: body.avaliacaoEspiritual !== undefined ? (body.avaliacaoEspiritual || null) : notasSugeridas.espiritual,
-        avaliacaoComunitaria: body.avaliacaoComunitaria !== undefined ? (body.avaliacaoComunitaria || null) : notasSugeridas.comunitaria,
-        ...body.textoNarrativo !== undefined && { textoNarrativo: body.textoNarrativo || null },
-        ...body.pontosForteza !== undefined && { pontosForteza: body.pontosForteza || null },
-        ...body.desafios !== undefined && { desafios: body.desafios || null },
-        ...body.recomendacao !== undefined && { recomendacao: body.recomendacao || null },
-        ...body.textoRecomendacao !== undefined && { textoRecomendacao: body.textoRecomendacao || null },
-      },
-    });
-
-    logAction("relatorio_created", user.id, getClientIp(request), { formandoId, nivelFormativo }, user.organizacaoId);
-    return NextResponse.json(toRelatorio(row), { status: 201 });
+    try {
+      const row = await prisma.relatorioEtapa.create({
+        data: {
+          organizacaoId: user.organizacaoId,
+          formandoId,
+          formadorId: user.id,
+          nivelFormativo,
+          // Body values take precedence over pre-populated suggestions
+          avaliacaoHumana: body.avaliacaoHumana !== undefined ? (body.avaliacaoHumana || null) : notasSugeridas.humana,
+          avaliacaoEspiritual: body.avaliacaoEspiritual !== undefined ? (body.avaliacaoEspiritual || null) : notasSugeridas.espiritual,
+          avaliacaoComunitaria: body.avaliacaoComunitaria !== undefined ? (body.avaliacaoComunitaria || null) : notasSugeridas.comunitaria,
+          ...body.textoNarrativo !== undefined && { textoNarrativo: body.textoNarrativo || null },
+          ...body.pontosForteza !== undefined && { pontosForteza: body.pontosForteza || null },
+          ...body.desafios !== undefined && { desafios: body.desafios || null },
+          ...body.recomendacao !== undefined && { recomendacao: body.recomendacao || null },
+          ...body.textoRecomendacao !== undefined && { textoRecomendacao: body.textoRecomendacao || null },
+        },
+      });
+      logAction("relatorio_created", user.id, getClientIp(request), { formandoId, nivelFormativo }, user.organizacaoId);
+      return NextResponse.json(toRelatorio(row), { status: 201 });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        return NextResponse.json({ error: "Relatório já existe para esta etapa" }, { status: 409 });
+      }
+      throw err;
+    }
   } catch (err) {
     logError("relatorios", err);
     return NextResponse.json({ error: "Falha ao criar relatório" }, { status: 500 });
