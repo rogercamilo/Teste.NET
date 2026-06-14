@@ -7,7 +7,8 @@ import nodemailer from "nodemailer";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-import { isAdmin, SessionUser } from "@/lib/auth-helpers";
+import { SessionUser } from "@/lib/auth-helpers";
+import { temPermissao } from "@/types";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
-  if (!isAdmin(user.role)) {
+  if (!temPermissao(user.role, "administrador")) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
       `,
     });
 
-    logAction("email_test_sent", user.id, getClientIp(request), { to });
+    logAction("email_test_sent", user.id, getClientIp(request), { to }, user.organizacaoId ?? undefined);
     return NextResponse.json({ ok: true });
   } catch (err) {
     logError("smtp/test", err);

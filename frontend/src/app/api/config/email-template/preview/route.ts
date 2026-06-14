@@ -4,7 +4,8 @@ import { buildEmailHtml, loadEmailTemplate } from "@/lib/email-template";
 import { logError } from "@/lib/audit-log";
 import type { EmailTemplate, TemplateVars } from "@/lib/email-template";
 
-import { isAdmin, SessionUser } from "@/lib/auth-helpers";
+import { SessionUser } from "@/lib/auth-helpers";
+import { temPermissao } from "@/types";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
-  if (!isAdmin(user.role)) {
+  if (!temPermissao(user.role, "administrador")) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

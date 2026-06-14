@@ -26,10 +26,7 @@ interface ImportPayload {
   gruposFormacao?: unknown[];
   moradas?: unknown[]; // compat legado
   formandos?: unknown[];
-  agendamentos?: unknown[];
   comentarios?: unknown[];
-  presencas?: unknown[];
-  eventos?: unknown[];
 }
 
 // Importação restrita a administrador — formador_geral não tem acesso a esta operação destrutiva

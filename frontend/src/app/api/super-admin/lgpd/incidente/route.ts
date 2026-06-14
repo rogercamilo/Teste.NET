@@ -8,7 +8,8 @@ import { limiters } from "@/lib/rate-limit";
 export async function POST(request: Request) {
   const session = await auth();
   const user = session?.user;
-  if (user?.role !== "super_admin") {
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (user.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
   const rl = await limiters.mutation(user.id ?? "unknown");
@@ -56,18 +57,26 @@ export async function POST(request: Request) {
     let sent = 0;
     let failed = 0;
 
-    for (const u of usuarios) {
-      const result = await sendIncidentNotificationEmail({
-        organizacaoId: u.organizacaoId,
-        email: u.email,
-        nome: u.nome,
-        orgNome: u.organizacao.nome,
-        descricao,
-        dataIncidente,
-        medidas,
-      });
-      if (result.sent) sent++;
-      else failed++;
+    const BATCH_SIZE = 20;
+    for (let i = 0; i < usuarios.length; i += BATCH_SIZE) {
+      const batch = usuarios.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.allSettled(
+        batch.map((u) =>
+          sendIncidentNotificationEmail({
+            organizacaoId: u.organizacaoId,
+            email: u.email,
+            nome: u.nome,
+            orgNome: u.organizacao.nome,
+            descricao,
+            dataIncidente,
+            medidas,
+          })
+        )
+      );
+      for (const r of batchResults) {
+        if (r.status === "fulfilled" && r.value.sent) sent++;
+        else failed++;
+      }
     }
 
     logAction(

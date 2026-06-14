@@ -5,21 +5,24 @@ import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { EmailTemplateSchema, parseBody } from "@/lib/schemas";
 
-import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
+import { SessionUser as SU } from "@/lib/auth-helpers";
+import { temPermissao } from "@/types";
 
 export async function GET(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
-  if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!user.organizacaoId) return NextResponse.json({ error: "Configuração disponível apenas para organizações" }, { status: 403 });
+  if (!temPermissao(user.role, "administrador")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   return NextResponse.json(await loadEmailTemplate(user.organizacaoId));
 }
 
 export async function PUT(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
-  if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!user.organizacaoId) return NextResponse.json({ error: "Configuração disponível apenas para organizações" }, { status: 403 });
+  if (!temPermissao(user.role, "administrador")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rlPut = await limiters.mutation(user.id ?? "unknown");
   if (!rlPut.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
@@ -50,15 +53,21 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
-  if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!user.organizacaoId) return NextResponse.json({ error: "Configuração disponível apenas para organizações" }, { status: 403 });
+  if (!temPermissao(user.role, "administrador")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rlDel = await limiters.mutation(user.id ?? "unknown");
   if (!rlDel.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
-  await saveEmailTemplate(user.organizacaoId, {
-    ...DEFAULT_EMAIL_TEMPLATE,
-    passos: [...DEFAULT_EMAIL_TEMPLATE.passos],
-  });
-  logAction("email_template_changed", user.id, getClientIp(request), { action: "reset" }, user.organizacaoId);
-  return NextResponse.json({ ok: true });
+  try {
+    await saveEmailTemplate(user.organizacaoId, {
+      ...DEFAULT_EMAIL_TEMPLATE,
+      passos: [...DEFAULT_EMAIL_TEMPLATE.passos],
+    });
+    logAction("email_template_changed", user.id, getClientIp(request), { action: "reset" }, user.organizacaoId);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    logError("email-template DELETE", err);
+    return NextResponse.json({ error: "Erro ao restaurar template. Tente novamente." }, { status: 500 });
+  }
 }

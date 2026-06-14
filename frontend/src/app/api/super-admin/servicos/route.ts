@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   const session = await auth();
   const user = session?.user;
-  if (user?.role !== "super_admin") {
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (user.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 

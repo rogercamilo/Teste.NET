@@ -13,7 +13,8 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user;
-  if (user?.role !== "super_admin") {
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (user.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
   const rl = await limiters.mutation(user.id ?? "unknown");
@@ -152,7 +153,8 @@ export async function PATCH(request: Request, { params }: Params) {
 export async function DELETE(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user;
-  if (user?.role !== "super_admin") {
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (user.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
   const rlDel = await limiters.mutation(user.id ?? "unknown");
@@ -182,32 +184,38 @@ export async function DELETE(request: Request, { params }: Params) {
 export async function GET(_request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user;
-  if (user?.role !== "super_admin") {
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (user.role !== "super_admin") {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
   const { id } = await params;
   if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
-  const [org, logs, admins] = await Promise.all([
-    prisma.organizacao.findUnique({ where: { id } }),
-    prisma.auditLog.findMany({
-      where: { organizacaoId: id },
-      orderBy: { criadoEm: "desc" },
-      take: 50,
-      select: {
-        acao: true, ip: true, criadoEm: true, detalhes: true,
-        usuario: { select: { nome: true, email: true } },
-      },
-    }),
-    prisma.usuario.findMany({
-      where: { organizacaoId: id, perfil: "administrador", ativo: true },
-      select: { id: true, nome: true, email: true },
-      orderBy: { nome: "asc" },
-    }),
-  ]);
+  try {
+    const [org, logs, admins] = await Promise.all([
+      prisma.organizacao.findUnique({ where: { id } }),
+      prisma.auditLog.findMany({
+        where: { organizacaoId: id },
+        orderBy: { criadoEm: "desc" },
+        take: 50,
+        select: {
+          acao: true, ip: true, criadoEm: true, detalhes: true,
+          usuario: { select: { nome: true, email: true } },
+        },
+      }),
+      prisma.usuario.findMany({
+        where: { organizacaoId: id, perfil: "administrador", ativo: true },
+        select: { id: true, nome: true, email: true },
+        orderBy: { nome: "asc" },
+      }),
+    ]);
 
-  if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
+    if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
-  return NextResponse.json({ org, logs, admins });
+    return NextResponse.json({ org, logs, admins });
+  } catch (err) {
+    logError("super-admin/organizacoes/[id] GET", err);
+    return NextResponse.json({ error: "Falha ao carregar organização" }, { status: 500 });
+  }
 }

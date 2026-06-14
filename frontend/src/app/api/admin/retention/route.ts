@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { logAction } from "@/lib/audit-log";
+import { logAction, logError } from "@/lib/audit-log";
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -35,46 +35,51 @@ export async function GET(req: NextRequest) {
   const auditCutoff = new Date(now);
   auditCutoff.setMonth(auditCutoff.getMonth() - 12);
 
-  const { count: auditDeleted } = await prisma.auditLog.deleteMany({
-    where: { criadoEm: { lt: auditCutoff } },
-  });
-
   // 2. Marca DeletionRequests "pendente" com mais de 30 dias como "concluido"
   //    (os dados já foram anonimizados imediatamente na solicitação — /api/conta/excluir)
   const deletionCutoff = new Date(now);
   deletionCutoff.setDate(deletionCutoff.getDate() - 30);
 
-  const { count: deletionProcessed } = await prisma.deletionRequest.updateMany({
-    where: {
-      status: "pendente",
-      solicitadoEm: { lt: deletionCutoff },
-    },
-    data: {
-      status: "concluido",
-      processadoEm: now,
-    },
-  });
+  try {
+    const { count: auditDeleted } = await prisma.auditLog.deleteMany({
+      where: { criadoEm: { lt: auditCutoff } },
+    });
 
-  logAction(
-    "audit_log_purged",
-    undefined,
-    undefined,
-    { auditDeleted, cutoff: auditCutoff.toISOString() },
-  );
+    const { count: deletionProcessed } = await prisma.deletionRequest.updateMany({
+      where: {
+        status: "pendente",
+        solicitadoEm: { lt: deletionCutoff },
+      },
+      data: {
+        status: "concluido",
+        processadoEm: now,
+      },
+    });
 
-  if (deletionProcessed > 0) {
     logAction(
-      "deletion_request_processed",
+      "audit_log_purged",
       undefined,
       undefined,
-      { count: deletionProcessed, cutoff: deletionCutoff.toISOString() },
+      { auditDeleted, cutoff: auditCutoff.toISOString() },
     );
-  }
 
-  return NextResponse.json({
-    ok: true,
-    auditLogDeleted: auditDeleted,
-    deletionRequestsProcessed: deletionProcessed,
-    ranAt: now.toISOString(),
-  });
+    if (deletionProcessed > 0) {
+      logAction(
+        "deletion_request_processed",
+        undefined,
+        undefined,
+        { count: deletionProcessed, cutoff: deletionCutoff.toISOString() },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      auditLogDeleted: auditDeleted,
+      deletionRequestsProcessed: deletionProcessed,
+      ranAt: now.toISOString(),
+    });
+  } catch (err) {
+    logError("admin/retention", err);
+    return NextResponse.json({ error: "Falha no job de retenção" }, { status: 500 });
+  }
 }
