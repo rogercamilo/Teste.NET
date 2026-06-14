@@ -9,6 +9,7 @@ import { limiters } from "@/lib/rate-limit";
 import type { Formando, ProgressoEtapa } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
+import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
 
 import { toFormando } from "@/lib/converters";
 
@@ -153,6 +154,22 @@ export async function POST(request: Request) {
       include: { progressoEtapas: true },
     });
     logAction("formando_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
+
+    // Notifica FC do grupo (apenas se não foi o próprio FC que adicionou)
+    if (row.grupoFormacaoId && user.role !== "formador_comunitario") {
+      formadorDoGrupo(row.grupoFormacaoId).then((fcId) => {
+        if (!fcId) return;
+        criarNotificacao({
+          organizacaoId: user.organizacaoId!,
+          destinatarioId: fcId,
+          tipo: "novo_formando",
+          titulo: "Novo formando adicionado ao seu grupo",
+          corpo: `${row.nome} foi adicionado(a) ao seu grupo de formação.`,
+          linkAcao: `/formandos/${row.id}`,
+        });
+      }).catch(() => {});
+    }
+
     return NextResponse.json(toFormando(row), { status: 201 });
   } catch (err) {
     logError("formandos POST", err);

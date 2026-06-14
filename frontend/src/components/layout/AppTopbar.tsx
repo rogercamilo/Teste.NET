@@ -3,9 +3,10 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NotificacoesBell } from "@/components/NotificacoesBell";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -149,10 +150,7 @@ export function AppTopbar() {
             className="h-8 w-48 pl-8 text-sm bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/40"
           />
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
-        </Button>
+        <NotificacoesBell />
       </div>
     </header>
   );

@@ -105,6 +105,18 @@ enum TipoRegistroPromessa {
   dispensa
 }
 
+enum TipoNotificacao {
+  nova_formacao
+  novo_formando
+  novo_agendamento
+  processo_aprovado
+  plano_atribuido
+  plano_atualizado
+  grade_atribuida
+  grade_atualizada
+  dados_formando_pendentes
+}
+
 // ==========================================================
 // ORGANIZACAO — raiz do tenant
 // ==========================================================
@@ -160,6 +172,7 @@ model Organizacao {
   relatorios               RelatorioEtapa[]
   processosEclesiasticos   ProcessoEclesiastico[]
   registrosPromessa        RegistroPromessa[]
+  notificacoes             Notificacao[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -218,6 +231,7 @@ model Usuario {
   processosEclesiasticosCriados  ProcessoEclesiastico[]  @relation("ProcessoCriador")
   documentosEclesiasticosGerados DocumentoEclesiastico[] @relation("DocumentoGerador")
   passwordResetTokens            PasswordResetToken[]
+  notificacoes                   Notificacao[]
 
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
@@ -856,6 +870,30 @@ model PushSubscription {
 
   @@unique([organizacaoId, endpoint])
   @@index([organizacaoId])
+}
+
+// ==========================================================
+// NOTIFICACAO — alertas internos para Formadores Comunitários
+// ==========================================================
+
+model Notificacao {
+  id             String          @id @default(cuid())
+  organizacaoId  String
+  destinatarioId String
+  tipo           TipoNotificacao
+  titulo         String
+  corpo          String?
+  linkAcao       String?
+  lida           Boolean         @default(false)
+  lidaEm         DateTime?
+  criadaEm       DateTime        @default(now())
+
+  organizacao  Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  destinatario Usuario     @relation(fields: [destinatarioId], references: [id], onDelete: Cascade)
+
+  @@index([destinatarioId, lida])
+  @@index([organizacaoId])
+  @@index([criadaEm])
 }
 
 model AuditLog {

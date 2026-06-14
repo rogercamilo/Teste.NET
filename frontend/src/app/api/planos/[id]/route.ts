@@ -7,6 +7,7 @@ import { UpdatePlanoSchema, parseBody, isValidId } from "@/lib/schemas";
 import type { PlanoFormativo, EixoPlano } from "@/types";
 
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
+import { criarNotificacoes, formadoresDoPlano } from "@/lib/notificacoes";
 type Params = { params: Promise<{ id: string }> };
 
 import { toPlano } from "@/lib/converters";
@@ -73,6 +74,20 @@ export async function PUT(request: Request, { params }: Params) {
       });
     });
     logAction("plano_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
+
+    // Notifica todos os FCs cujos grupos usam este plano
+    formadoresDoPlano(id).then((fcs) => {
+      if (fcs.length === 0) return;
+      criarNotificacoes(fcs.map(({ formadorId, organizacaoId }) => ({
+        organizacaoId,
+        destinatarioId: formadorId,
+        tipo: "plano_atualizado" as const,
+        titulo: "Plano formativo do seu grupo foi atualizado",
+        corpo: `O plano "${updated.nome}" foi atualizado. Confira as alterações.`,
+        linkAcao: `/planos/${id}`,
+      })));
+    }).catch(() => {});
+
     return NextResponse.json(toPlano(updated));
   } catch (err) { logError("planos/[id]", err); return NextResponse.json({ error: "Falha ao atualizar plano" }, { status: 500 }); }
 }

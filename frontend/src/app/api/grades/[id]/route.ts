@@ -10,6 +10,7 @@ const MAX_EIXOS = 50;
 const MAX_ETAPAS = 200;
 
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
+import { criarNotificacoes, formadoresDaGrade } from "@/lib/notificacoes";
 type Params = { params: Promise<{ id: string }> };
 
 import { toGrade } from "@/lib/converters";
@@ -83,6 +84,20 @@ export async function PUT(request: Request, { params }: Params) {
     });
 
     logAction("grade_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
+
+    // Notifica todos os FCs cujos grupos usam esta grade
+    formadoresDaGrade(id).then((fcs) => {
+      if (fcs.length === 0) return;
+      criarNotificacoes(fcs.map(({ formadorId, organizacaoId }) => ({
+        organizacaoId,
+        destinatarioId: formadorId,
+        tipo: "grade_atualizada" as const,
+        titulo: "Grade formativa do seu grupo foi atualizada",
+        corpo: `A grade "${updated.nome}" foi atualizada. Confira as alterações.`,
+        linkAcao: `/grades/${id}`,
+      })));
+    }).catch(() => {});
+
     return NextResponse.json(toGrade(updated));
   } catch (err) { logError("grades/[id]", err); return NextResponse.json({ error: "Falha ao atualizar grade" }, { status: 500 }); }
 }

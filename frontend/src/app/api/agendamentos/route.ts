@@ -7,6 +7,7 @@ import { CreateAgendamentoSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
 import { sendPushToOrg, formatDataBr } from "@/lib/push";
+import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -89,6 +90,21 @@ export async function POST(request: Request) {
       },
     });
     logAction("agendamento_created", user.id, getClientIp(request), { formacaoId: body.formacaoId }, user.organizacaoId);
+
+    // Bell: notifica FC do grupo (apenas se foi Admin/FG que agendou, não o próprio FC)
+    if (row.grupoFormacaoId && user.role !== "formador_comunitario") {
+      formadorDoGrupo(row.grupoFormacaoId).then((fcId) => {
+        if (!fcId) return;
+        criarNotificacao({
+          organizacaoId: user.organizacaoId!,
+          destinatarioId: fcId,
+          tipo: "novo_agendamento",
+          titulo: "Nova formação agendada para seu grupo",
+          corpo: `${row.formacaoTema} — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
+          linkAcao: "/agenda",
+        });
+      }).catch(() => {});
+    }
 
     // Notificação push — fire-and-forget
     sendPushToOrg(user.organizacaoId, {

@@ -7,6 +7,7 @@ import type { GrupoFormacao } from "@/types";
 import { UpdateGrupoFormacaoSchema, parseBody, isValidId } from "@/lib/schemas";
 
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
+import { criarNotificacao } from "@/lib/notificacoes";
 type Params = { params: Promise<{ id: string }> };
 import { toGrupoFormacao } from "@/lib/converters";
 
@@ -96,6 +97,32 @@ export async function PUT(request: Request, { params }: Params) {
       return result;
     });
     logAction("grupo_formacao_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
+
+    // Notifica FC se planoId ou gradeId foram atribuídos/trocados
+    const fcId = updated.formadorId;
+    if (fcId) {
+      if ("planoId" in body && body.planoId && body.planoId !== existing.planoId) {
+        criarNotificacao({
+          organizacaoId: user.organizacaoId!,
+          destinatarioId: fcId,
+          tipo: "plano_atribuido",
+          titulo: "Plano formativo atribuído ao seu grupo",
+          corpo: "Um novo plano formativo foi associado ao seu grupo de formação.",
+          linkAcao: `/grupos-formacao/${id}`,
+        }).catch(() => {});
+      }
+      if ("gradeId" in body && body.gradeId && body.gradeId !== existing.gradeId) {
+        criarNotificacao({
+          organizacaoId: user.organizacaoId!,
+          destinatarioId: fcId,
+          tipo: "grade_atribuida",
+          titulo: "Grade formativa atribuída ao seu grupo",
+          corpo: "Uma nova grade formativa foi associada ao seu grupo de formação.",
+          linkAcao: `/grupos-formacao/${id}`,
+        }).catch(() => {});
+      }
+    }
+
     return NextResponse.json(toGrupoFormacao(updated));
   } catch (err) {
     logError("moradas/[id] PUT", err);

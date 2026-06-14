@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp } from "@/lib/audit-log";
 import type { SessionUser } from "@/lib/auth-helpers";
 import type { TipoProcessoEclesiastico } from "@/types";
+import { criarNotificacao, formadorDoGrupo, camposCanonicosFaltando } from "@/lib/notificacoes";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -82,6 +83,10 @@ export async function POST(req: NextRequest) {
 
   const formando = await prisma.formando.findFirst({
     where: { id: body.formandoId, organizacaoId: user.organizacaoId, deletedAt: null },
+    select: {
+      id: true, nome: true, grupoFormacaoId: true,
+      rg: true, orgaoEmissor: true, nacionalidade: true, cep: true, paroquiaReferencia: true,
+    },
   });
   if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 
@@ -104,6 +109,22 @@ export async function POST(req: NextRequest) {
     { processoId: processo.id, tipo: processo.tipo, formandoId: processo.formandoId },
     user.organizacaoId,
   );
+
+  // Opção B: notifica FC se formando tem campos canônicos faltando
+  const faltando = camposCanonicosFaltando(formando);
+  if (faltando.length > 0 && formando.grupoFormacaoId) {
+    formadorDoGrupo(formando.grupoFormacaoId).then((fcId) => {
+      if (!fcId) return;
+      criarNotificacao({
+        organizacaoId: user.organizacaoId!,
+        destinatarioId: fcId,
+        tipo: "dados_formando_pendentes",
+        titulo: `Dados incompletos de ${formando.nome}`,
+        corpo: `Para gerar os documentos do processo, complete: ${faltando.join(", ")}.`,
+        linkAcao: `/formandos/${formando.id}`,
+      });
+    }).catch(() => {});
+  }
 
   return NextResponse.json(processo, { status: 201 });
 }

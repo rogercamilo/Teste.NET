@@ -10,6 +10,7 @@ import {
   getDocumentosTipos,
   eraMenorDeIdade,
 } from "@/lib/jornada-vocacional";
+import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -107,7 +108,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
     const processo = await prisma.processoEclesiastico.findFirst({
       where: { id, organizacaoId: user.organizacaoId },
       include: {
-        formando: { select: { dataNascimento: true } },
+        formando: { select: { nome: true, dataNascimento: true, grupoFormacaoId: true } },
         documentos: { select: { id: true } },
       },
     });
@@ -173,6 +174,22 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       }
 
       logAction("processo_eclesiastico_atualizado", user.id, getClientIp(req), { id, status: body.status }, user.organizacaoId);
+
+      // Notifica FC quando processo é aprovado
+      if (body.status === "aprovado" && processo.formando.grupoFormacaoId) {
+        formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
+          if (!fcId) return;
+          criarNotificacao({
+            organizacaoId: user.organizacaoId!,
+            destinatarioId: fcId,
+            tipo: "processo_aprovado",
+            titulo: `Processo de ${processo.formando.nome} aprovado`,
+            corpo: "O processo eclesiástico foi aprovado e os documentos estão disponíveis para geração.",
+            linkAcao: `/jornada-vocacional/${id}`,
+          });
+        }).catch(() => {});
+      }
+
       return NextResponse.json({ id, status: body.status });
     }
 
