@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const rl = await limiters.mutation(user.id!);
+  const rl = await limiters.mutation(user.id ?? getClientIp(request));
   if (!rl.allowed) {
     return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
   }
@@ -58,13 +58,13 @@ export async function POST(request: Request) {
     const body = parsedBody.data;
 
     const agendamento = await prisma.agendamento.findFirst({
-      where: { id: body.agendamentoId, organizacaoId: user.organizacaoId },
+      where: { id: body.agendamentoId, organizacaoId: user.organizacaoId, deletedAt: null },
     });
     if (!agendamento) return NextResponse.json({ error: "Agendamento não encontrado" }, { status: 404 });
 
     const grupoFormacaoFilter = user.role === "formador_comunitario" ? { grupoFormacaoId: user.grupoFormacaoId ?? null } : {};
     const formando = await prisma.formando.findFirst({
-      where: { id: body.formandoId, organizacaoId: user.organizacaoId, ...grupoFormacaoFilter },
+      where: { id: body.formandoId, organizacaoId: user.organizacaoId, deletedAt: null, ...grupoFormacaoFilter },
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 

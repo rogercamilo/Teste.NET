@@ -62,7 +62,8 @@ export async function POST(request: Request) {
     if (!formacao) return NextResponse.json({ error: "Formação não encontrada" }, { status: 404 });
 
     // formadorId is always the authenticated user; formadorNome resolved server-side.
-    const formadorId = user.id!;
+    if (!user.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    const formadorId = user.id;
     const formadorUser = await prisma.usuario.findUnique({
       where: { id: formadorId },
       select: { nome: true },

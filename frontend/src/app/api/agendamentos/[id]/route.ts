@@ -43,7 +43,7 @@ export async function PUT(request: Request, { params }: Params) {
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
     const updated = await prisma.agendamento.update({
-      where: { id },
+      where: { id, organizacaoId: user.organizacaoId },
       data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, grupoFormacaoId: body.grupoFormacaoId !== undefined ? (body.grupoFormacaoId ?? null) : undefined, dataInicio: body.dataInicio ? new Date(body.dataInicio) : undefined, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null },
     });
     logAction("agendamento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
@@ -81,7 +81,7 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    await prisma.agendamento.update({ where: { id }, data: { deletedAt: new Date() } });
+    await prisma.agendamento.update({ where: { id, organizacaoId: user.organizacaoId }, data: { deletedAt: new Date() } });
     logAction("agendamento_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
   } catch (err) { logError("agendamentos/:id DELETE", err); return NextResponse.json({ error: "Falha ao excluir agendamento" }, { status: 500 }); }

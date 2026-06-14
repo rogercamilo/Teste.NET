@@ -47,7 +47,7 @@ export async function PUT(request: Request, { params }: Params) {
     const parsedBody = parseBody(UpdatePresencaSchema, await request.json());
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const updated = await prisma.presencaFormacao.update({
-      where: { id },
+      where: { id, organizacaoId: user.organizacaoId },
       data: {
         presente: parsedBody.data.presente ?? existing.presente,
         justificativa: parsedBody.data.justificativa ?? null,
@@ -78,7 +78,7 @@ export async function DELETE(request: Request, { params }: Params) {
         return NextResponse.json({ error: "Sem permissão para excluir esta presença" }, { status: 403 });
       }
     }
-    await prisma.presencaFormacao.delete({ where: { id } });
+    await prisma.presencaFormacao.deleteMany({ where: { id, organizacaoId: user.organizacaoId } });
     logAction("presenca_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
   } catch (err) { logError("presencas/[id] DELETE", err); return NextResponse.json({ error: "Falha ao excluir presença" }, { status: 500 }); }
