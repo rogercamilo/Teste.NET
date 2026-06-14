@@ -32,32 +32,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "E-mail de confirmação não confere" }, { status: 400 });
   }
 
-  // Registra solicitação de exclusão antes de anonimizar
-  await prisma.deletionRequest.create({
-    data: {
-      usuarioId: actor.id,
-      organizacaoId: actor.organizacaoId ?? null,
-      tipo: "usuario",
-      status: "concluido",
-      processadoEm: new Date(),
-    },
-  });
-
-  // Soft delete: anonimiza PII e desativa conta
+  // Registra solicitação + anonimiza PII em transação atômica para garantir conformidade LGPD
   const emailHash = randomBytes(8).toString("hex");
-  await prisma.usuario.update({
-    where: { id: actor.id },
-    data: {
-      nome: "Usuário Removido",
-      email: `removido_${emailHash}@excluido.local`,
-      passwordHash: null,
-      ativo: false,
-      deletedAt: new Date(),
-    },
-  });
+  await prisma.$transaction([
+    prisma.deletionRequest.create({
+      data: {
+        usuarioId: actor.id,
+        organizacaoId: actor.organizacaoId ?? null,
+        tipo: "usuario",
+        status: "concluido",
+        processadoEm: new Date(),
+      },
+    }),
+    prisma.usuario.update({
+      where: { id: actor.id },
+      data: {
+        nome: "Usuário Removido",
+        email: `removido_${emailHash}@excluido.local`,
+        passwordHash: null,
+        ativo: false,
+        deletedAt: new Date(),
+      },
+    }),
+  ]);
 
   // Audit log mantido mesmo após exclusão
-  await logAction("account_deleted", actor.id, getClientIp(req), { motivo: "solicitacao_usuario" }, actor.organizacaoId);
+  logAction("account_deleted", actor.id, getClientIp(req), { motivo: "solicitacao_usuario" }, actor.organizacaoId);
 
   // E-mail de confirmação (best-effort — não bloqueia resposta)
   sendAccountDeletionEmail({

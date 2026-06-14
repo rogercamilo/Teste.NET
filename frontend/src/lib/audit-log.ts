@@ -161,7 +161,8 @@ export function logError(
 
 function sanitizeLogValue(val: unknown): unknown {
   if (typeof val === "string") return val.replace(/[\r\n\t]/g, " ").slice(0, 500);
-  if (val && typeof val === "object" && !Array.isArray(val)) {
+  if (Array.isArray(val)) return val.map(sanitizeLogValue);
+  if (val && typeof val === "object") {
     return Object.fromEntries(
       Object.entries(val as Record<string, unknown>).map(([k, v]) => [k, sanitizeLogValue(v)])
     );

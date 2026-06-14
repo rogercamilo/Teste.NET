@@ -23,11 +23,18 @@ export async function POST(request: Request) {
     medidas?: string;
   };
 
-  if (!body.descricao?.trim() || !body.dataIncidente?.trim() || !body.medidas?.trim()) {
+  const descricao = body.descricao?.trim() ?? "";
+  const dataIncidente = body.dataIncidente?.trim() ?? "";
+  const medidas = body.medidas?.trim() ?? "";
+
+  if (!descricao || !dataIncidente || !medidas) {
     return NextResponse.json({ error: "Descrição, data e medidas são obrigatórios." }, { status: 400 });
   }
+  if (descricao.length > 2000 || medidas.length > 2000) {
+    return NextResponse.json({ error: "Descrição e medidas não podem exceder 2000 caracteres." }, { status: 400 });
+  }
 
-  const { descricao, dataIncidente, medidas, organizacaoId } = body;
+  const { organizacaoId } = body;
 
   try {
     const where = organizacaoId
@@ -43,6 +50,7 @@ export async function POST(request: Request) {
         organizacaoId: true,
         organizacao: { select: { nome: true } },
       },
+      take: 10000,
     });
 
     let sent = 0;
