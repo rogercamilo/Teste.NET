@@ -101,6 +101,11 @@ export async function verifyPassword(password: string, stored: string): Promise<
 // Conversão Prisma → UserAuth
 // ----------------------------------------------------------------
 
+function tryDecryptMfaSecret(encrypted: string | null): string | undefined {
+  if (!encrypted) return undefined;
+  try { return decryptField(encrypted); } catch { return undefined; }
+}
+
 function toUserAuth(u: {
   id: string;
   organizacaoId: string;
@@ -122,15 +127,13 @@ function toUserAuth(u: {
     nome: u.nome,
     email: u.email,
     passwordHash: u.passwordHash ?? undefined,
-    perfil: u.perfil as UserAuth["perfil"],
+    perfil: u.perfil,
     grupoFormacaoId: u.grupoFormacaoId ?? undefined,
     ativo: u.ativo,
     criadoEm: u.criadoEm.toISOString().split("T")[0],
     primeiroAcesso: u.primeiroAcesso,
     mfaEnabled: u.mfaEnabled,
-    mfaSecret: u.mfaSecret
-      ? (() => { try { return decryptField(u.mfaSecret!); } catch { return undefined; } })()
-      : undefined,
+    mfaSecret: tryDecryptMfaSecret(u.mfaSecret),
     passwordChangedAt: u.passwordChangedAt ?? undefined,
   };
 }

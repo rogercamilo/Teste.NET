@@ -44,27 +44,3 @@ export function useEtapaLabels(): Record<NivelFormativo, string> {
   };
 }
 
-// ---------------------------------------------------------------------------
-// db — mantido para retrocompatibilidade com código legado que ainda usa
-// db.xxx.save(). Será removido após confirmar zero referencias.
-// ---------------------------------------------------------------------------
-const mem: Record<string, unknown[]> = {};
-function makeDbEntity<T>(entity: string) {
-  return {
-    load: (): T[] => (mem[entity] as T[] | undefined) ?? [],
-    save: (d: T[]): void => { mem[entity] = d; },
-  };
-}
-export const db = {
-  agendamentos: makeDbEntity("agendamentos"),
-  formacoes: makeDbEntity("formacoes"),
-  planos: makeDbEntity("planos"),
-  grades: makeDbEntity("grades"),
-  gruposFormacao: makeDbEntity("gruposFormacao"),
-  formandos: makeDbEntity("formandos"),
-  historico: makeDbEntity("historico"),
-  comentarios: makeDbEntity("comentarios"),
-  presencas: makeDbEntity("presencas"),
-  usuarios: makeDbEntity("usuarios"),
-  eventosFormando: makeDbEntity("eventosFormando"),
-};

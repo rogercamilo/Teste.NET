@@ -7,11 +7,6 @@ import { isValidId } from "@/lib/schemas";
 import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
 
-// Leitura: isolamento de tenant é garantido pelo WHERE clause — qualquer membro da org pode ler
-function canRead(): boolean {
-  return true;
-}
-
 function canDelete(arquivo: { uploadedById: string | null }, user: SessionUser): boolean {
   if (user.role === "administrador" || user.role === "formador_geral") return true;
   return arquivo.uploadedById === user.id;
@@ -32,7 +27,6 @@ export async function GET(
   });
 
   if (!arquivo) return new Response("Arquivo não encontrado", { status: 404 });
-  if (!canRead()) return new Response("Sem permissão", { status: 403 });
 
   // R2: redireciona para pre-signed URL gerada em tempo real
   if (

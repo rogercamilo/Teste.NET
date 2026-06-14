@@ -34,7 +34,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import type { DocumentoMeta } from "@/lib/documentos-store";
+import type { SessionUser } from "@/lib/auth-helpers";
+
+type DocumentoMeta = {
+  id: string;
+  nome: string;
+  tamanho: number;
+  tipo: string;
+  extensao: string;
+  eventoId: string | null;
+  formandoId: string | null;
+  formandoNome: string | null;
+  tipoEvento: string | null;
+  uploadadoPor: string | null;
+  uploadadoPorNome: string | null;
+  grupoFormacaoId: string | null;
+  criadoEm: string;
+};
 import { Pagination } from "@/components/ui/pagination";
 import { DocumentoViewer } from "@/components/documentos/DocumentoViewer";
 
@@ -44,10 +60,6 @@ const TIPO_EVENTO_LABELS: Record<string, string> = {
   licenca: "Registro de Licença",
 };
 
-type SessionUser = {
-  role?: string;
-  grupoFormacaoId?: string | null;
-};
 
 const PAGE_SIZE = 10;
 

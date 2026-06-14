@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useComunidade, useTermos, useEtapaLabels, db } from "@/lib/data-store";
+import { useComunidade, useTermos, useEtapaLabels } from "@/lib/data-store";
 import type { GrupoFormacao } from "@/types";
 import { passwordErrorMessage } from "@/lib/password-validation";
 import type { UserPublic } from "@/lib/users-store";
@@ -60,7 +60,6 @@ import {
   Calendar,
   CheckCircle2,
   Clipboard,
-  Database,
   Download,
   Eye,
   EyeOff,
@@ -2818,18 +2817,6 @@ function EmailTab() {
 /* ─── TAB: SISTEMA ──────────────────────────────────────────────── */
 
 function SistemaTab() {
-  const { grupoFormacao: termoGrupoFormacao } = useTermos();
-  const [resetOpen, setResetOpen] = useState(false);
-  const [counts] = useState(() => ({
-    formandos: db.formandos.load().length,
-    gruposFormacao: db.gruposFormacao.load().length,
-    planos: db.planos.load().length,
-    grades: db.grades.load().length,
-    usuarios: db.usuarios.load().length,
-    comentarios: db.comentarios.load().length,
-    presencas: db.presencas.load().length,
-  }));
-
   async function handleExport() {
     try {
       const res = await fetch("/api/export/organizacao");
@@ -2846,15 +2833,6 @@ function SistemaTab() {
     } catch {
       toast.error("Falha ao exportar dados.");
     }
-  }
-
-  function handleReset() {
-    const prefix = "appForm:";
-    Object.keys(localStorage)
-      .filter((k) => k.startsWith(prefix))
-      .forEach((k) => localStorage.removeItem(k));
-    toast.success("Dados reiniciados. Recarregando...");
-    setTimeout(() => window.location.reload(), 800);
   }
 
   return (
@@ -2886,36 +2864,6 @@ function SistemaTab() {
         </CardContent>
       </Card>
 
-      {/* Data counts */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Database className="h-4 w-4 text-muted-foreground" />
-            Dados Armazenados
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[
-              { label: "Formandos", count: counts.formandos },
-              { label: `${termoGrupoFormacao}s`, count: counts.gruposFormacao },
-              { label: "Usuários", count: counts.usuarios },
-              { label: "Planos", count: counts.planos },
-              { label: "Grades", count: counts.grades },
-              { label: "Comentários", count: counts.comentarios },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2"
-              >
-                <span className="text-xs text-muted-foreground">{item.label}</span>
-                <span className="text-sm font-bold text-foreground">{item.count}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Export */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
@@ -2935,69 +2883,6 @@ function SistemaTab() {
         </CardContent>
       </Card>
 
-      {/* Danger zone */}
-      <Card className="border-0 shadow-sm border border-destructive/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-destructive flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Zona de Perigo
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Ações irreversíveis que afetam todos os dados do sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pb-4">
-          <div className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">Reiniciar todos os dados</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Remove todos os dados salvos e restaura os dados de exemplo
-              </p>
-            </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setResetOpen(true)}
-              className="gap-1.5 shrink-0 ml-4"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reiniciar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Reset confirmation dialog */}
-      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Reiniciar todos os dados
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Esta ação irá remover permanentemente todos os dados salvos localmente e
-              restaurar os dados de exemplo originais.
-            </p>
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5">
-              <p className="text-xs font-medium text-destructive">
-                Todos os formandos, moradas, planos, comentários e configurações criados
-                serão perdidos.
-              </p>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setResetOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleReset}>
-              Sim, reiniciar tudo
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

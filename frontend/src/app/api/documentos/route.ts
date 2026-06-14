@@ -151,12 +151,12 @@ export async function GET(request: NextRequest) {
     const orderBy = { criadoEm: "desc" as const };
 
     const toDoc = (d: {
-      id: string; nome: string; tamanho: number; tipo: string;
+      id: string; nome: string; tamanho: number; tipo: string; extensao: string;
       eventoId: string | null; formandoId: string | null; formandoNome: string | null;
       tipoEvento: string | null; uploadedById: string | null; uploadedByNome: string | null;
       grupoFormacaoId: string | null; criadoEm: Date;
     }) => ({
-      id: d.id, nome: d.nome, tamanho: d.tamanho, tipo: d.tipo,
+      id: d.id, nome: d.nome, tamanho: d.tamanho, tipo: d.tipo, extensao: d.extensao,
       eventoId: d.eventoId, formandoId: d.formandoId, formandoNome: d.formandoNome,
       tipoEvento: d.tipoEvento, uploadadoPor: d.uploadedById,
       uploadadoPorNome: d.uploadedByNome, grupoFormacaoId: d.grupoFormacaoId,
