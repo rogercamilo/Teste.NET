@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { subMonths, startOfMonth, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DashboardClient } from "./DashboardClient";
-import type { DashboardStats, NivelFormativo, NotaAdesao, TipoFormacao, StatusFormacao, PerfilUsuario } from "@/types";
+import { toAgendamento } from "@/lib/converters";
+import { SessionUser } from "@/lib/auth-helpers";
+import type { DashboardStats, NivelFormativo, NotaAdesao, PerfilUsuario } from "@/types";
 
-// PerfilUsuario enum values from Prisma
 const PERFIL_FC = "formador_comunitario" as const;
 
 async function getDashboardData(
@@ -21,7 +22,9 @@ async function getDashboardData(
   const sixMonthsAgo = startOfMonth(subMonths(now, 5));
 
   // formador_comunitario: escopo reduzido à morada e às sessões que conduz
-  const formandoBase = grupoFormacaoId ? { organizacaoId, grupoFormacaoId } : { organizacaoId };
+  const formandoBase = grupoFormacaoId
+    ? { organizacaoId, grupoFormacaoId, deletedAt: null }
+    : { organizacaoId, deletedAt: null };
   const agendamentoBase = (userId && grupoFormacaoId) ? { organizacaoId, formadorId: userId } : { organizacaoId };
 
   const [
@@ -104,24 +107,7 @@ async function getDashboardData(
     formandosAtivos,
     evolucaoMensal,
     porNivel,
-    proximasFormacoes: proximasRaw.map((a) => ({
-      id: a.id,
-      formacaoId: a.formacaoId,
-      formacaoTema: a.formacaoTema,
-      nivelFormativo: a.nivelFormativo as NivelFormativo,
-      tipoFormacao: a.tipoFormacao as TipoFormacao,
-      formadorId: a.formadorId,
-      formadorNome: a.formadorNome,
-      dataInicio: a.dataInicio.toISOString(),
-      dataFim: a.dataFim.toISOString(),
-      local: a.local ?? undefined,
-      linkOnline: a.linkOnline ?? undefined,
-      status: a.status as StatusFormacao,
-      participantes: a.participantes,
-      observacoes: a.observacoes ?? undefined,
-      googleCalendarEventId: a.googleCalendarEventId ?? undefined,
-      criadoEm: a.criadoEm.toISOString(),
-    })),
+    proximasFormacoes: proximasRaw.map(toAgendamento),
   };
 
   // ── FC: presença e acompanhamento ─────────────────────────────────────────
@@ -275,11 +261,9 @@ async function getDashboardData(
   return baseStats;
 }
 
-type SU = { organizacaoId?: string; role?: string; id?: string; grupoFormacaoId?: string | null };
-
 export default async function DashboardPage() {
   const session = await auth();
-  const user = session?.user as SU | undefined;
+  const user = session?.user as SessionUser | undefined;
   if (!user?.organizacaoId) redirect("/login");
 
   const perfil = (user.role ?? "formador_comunitario") as PerfilUsuario;

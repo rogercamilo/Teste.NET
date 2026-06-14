@@ -95,6 +95,56 @@ const PERFIL_SUBTITULO: Record<PerfilUsuario, string> = {
   super_admin: "Plataforma",
 };
 
+// ── Funil Formativo card (shared between FC and FG/Admin views) ─────────────
+
+function FunilFormativoCard({ stats, termos }: { stats: DashboardStats; termos: ReturnType<typeof useTermos> }) {
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold text-foreground">Funil Formativo</CardTitle>
+          <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+            <Users className="h-3.5 w-3.5 mr-1" />
+            {stats.totalFormandos} {termos.formando.toLowerCase()}s
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {stats.porNivel.length === 0 ? (
+          <div className="flex flex-col items-center py-6 text-center">
+            <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Nenhum {termos.formando.toLowerCase()} cadastrado</p>
+          </div>
+        ) : (
+          stats.porNivel.map((item) => (
+            <div key={item.nivel} className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-foreground">{NIVEL_FORMATIVO_LABELS[item.nivel]}</span>
+                <span className="text-muted-foreground">{item.quantidade} · {item.percentual}%</span>
+              </div>
+              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${NIVEL_PROGRESS_COLORS[item.nivel]}`}
+                  style={{ width: `${item.percentual}%` }}
+                />
+              </div>
+            </div>
+          ))
+        )}
+        {stats.porNivel.length > 0 && (
+          <div className="pt-2 border-t border-border/60">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Taxa de realização geral</span>
+              <span className="font-semibold text-emerald-600">{stats.taxaRealizacao}%</span>
+            </div>
+            <Progress value={stats.taxaRealizacao} className="h-1.5 mt-1.5" />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Props ──────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -427,99 +477,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
           </CardContent>
         </Card>
 
-        {/* FC: funil formativo */}
-        {!isAdmin && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-foreground">Funil Formativo</CardTitle>
-                <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
-                  <Users className="h-3.5 w-3.5 mr-1" />
-                  {stats.totalFormandos} {termos.formando.toLowerCase()}s
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {stats.porNivel.length === 0 ? (
-                <div className="flex flex-col items-center py-6 text-center">
-                  <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhum {termos.formando.toLowerCase()} cadastrado</p>
-                </div>
-              ) : (
-                stats.porNivel.map((item) => (
-                  <div key={item.nivel} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-foreground">{NIVEL_FORMATIVO_LABELS[item.nivel]}</span>
-                      <span className="text-muted-foreground">{item.quantidade} · {item.percentual}%</span>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${NIVEL_PROGRESS_COLORS[item.nivel]}`}
-                        style={{ width: `${item.percentual}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-              {stats.porNivel.length > 0 && (
-                <div className="pt-2 border-t border-border/60">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Taxa de realização geral</span>
-                    <span className="font-semibold text-emerald-600">{stats.taxaRealizacao}%</span>
-                  </div>
-                  <Progress value={stats.taxaRealizacao} className="h-1.5 mt-1.5" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* FG/Admin: painel de formandos por nível + taxa de realização */}
-        {isAdmin && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-foreground">Funil Formativo</CardTitle>
-                <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
-                  <Users className="h-3.5 w-3.5 mr-1" />
-                  {stats.totalFormandos} {termos.formando.toLowerCase()}s
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {stats.porNivel.length === 0 ? (
-                <div className="flex flex-col items-center py-6 text-center">
-                  <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhum {termos.formando.toLowerCase()} cadastrado</p>
-                </div>
-              ) : (
-                stats.porNivel.map((item) => (
-                  <div key={item.nivel} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-foreground">{NIVEL_FORMATIVO_LABELS[item.nivel]}</span>
-                      <span className="text-muted-foreground">{item.quantidade} · {item.percentual}%</span>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${NIVEL_PROGRESS_COLORS[item.nivel]}`}
-                        style={{ width: `${item.percentual}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-              {stats.porNivel.length > 0 && (
-                <div className="pt-2 border-t border-border/60">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Taxa de realização geral</span>
-                    <span className="font-semibold text-emerald-600">{stats.taxaRealizacao}%</span>
-                  </div>
-                  <Progress value={stats.taxaRealizacao} className="h-1.5 mt-1.5" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        <FunilFormativoCard stats={stats} termos={termos} />
       </div>
 
       {/* ── FC: Perspectivas Formativas ── */}
