@@ -13,20 +13,31 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 const ALGO = "aes-256-gcm";
 const PREFIX = "enc:v1:";
 
+let _cachedKey: Buffer | null | undefined = undefined;
+let _warnedMissingKey = false;
+
 function getKey(): Buffer | null {
+  if (_cachedKey !== undefined) return _cachedKey;
   const raw = process.env.APP_ENCRYPTION_KEY;
-  if (!raw) return null;
+  if (!raw) {
+    _cachedKey = null;
+    return null;
+  }
   const buf = Buffer.from(raw, "hex");
   if (buf.length !== 32) {
     throw new Error("APP_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)");
   }
-  return buf;
+  _cachedKey = buf;
+  return _cachedKey;
 }
 
 export function encryptField(plaintext: string): string {
   const key = getKey();
   if (!key) {
-    console.warn("[crypto] APP_ENCRYPTION_KEY not set — storing sensitive field as plaintext");
+    if (!_warnedMissingKey) {
+      console.warn("[crypto] APP_ENCRYPTION_KEY not set — storing sensitive field as plaintext");
+      _warnedMissingKey = true;
+    }
     return plaintext;
   }
 
@@ -43,8 +54,9 @@ export function decryptField(stored: string): string {
 
   const key = getKey();
   if (!key) {
-    console.error("[crypto] Cannot decrypt field: APP_ENCRYPTION_KEY is not set");
-    return stored;
+    throw new Error(
+      "[crypto] Cannot decrypt field: APP_ENCRYPTION_KEY is not set but an encrypted value was found in the database"
+    );
   }
 
   const payload = stored.slice(PREFIX.length);

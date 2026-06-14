@@ -29,15 +29,23 @@ function fromEnv(): SmtpConfig {
 }
 
 function parseSmtpJson(raw: unknown): SmtpConfig {
-  const r = raw as Partial<SmtpConfig>;
+  const r = raw as Record<string, unknown>;
   const env = fromEnv();
+  let pass = env.pass;
+  if (r.pass && typeof r.pass === "string") {
+    try {
+      pass = decryptField(r.pass);
+    } catch {
+      pass = env.pass;
+    }
+  }
   return {
-    host: r.host ?? env.host,
-    port: r.port ?? env.port,
-    secure: r.secure ?? env.secure,
-    user: r.user ?? env.user,
-    pass: r.pass ? decryptField(r.pass) : env.pass,
-    from: r.from ?? env.from,
+    host: (typeof r.host === "string" ? r.host.trim() : null) ?? env.host,
+    port: r.port != null ? Number(r.port) || env.port : env.port,
+    secure: r.secure != null ? r.secure === true || r.secure === "true" : env.secure,
+    user: (typeof r.user === "string" ? r.user.trim() : null) ?? env.user,
+    pass,
+    from: (typeof r.from === "string" ? r.from.trim() : null) ?? env.from,
   };
 }
 

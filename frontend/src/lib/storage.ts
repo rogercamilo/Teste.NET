@@ -14,14 +14,12 @@ import type { S3Client } from "@aws-sdk/client-s3";
 
 const LOCAL_ROOT = join(process.cwd(), "data", "uploads");
 
-function isR2Enabled(): boolean {
-  return !!(
-    process.env.R2_ACCOUNT_ID &&
-    process.env.R2_ACCESS_KEY_ID &&
-    process.env.R2_SECRET_ACCESS_KEY &&
-    process.env.R2_BUCKET_NAME
-  );
-}
+const R2_ENABLED = !!(
+  process.env.R2_ACCOUNT_ID &&
+  process.env.R2_ACCESS_KEY_ID &&
+  process.env.R2_SECRET_ACCESS_KEY &&
+  process.env.R2_BUCKET_NAME
+);
 
 function generateKey(orgId: string, subpath: string, ext: string): string {
   const uuid = randomBytes(16).toString("hex");
@@ -50,7 +48,7 @@ async function uploadLocal(
 }
 
 async function deleteLocal(storageKey: string): Promise<void> {
-  const fullPath = join(LOCAL_ROOT, storageKey);
+  const fullPath = safeLocalPath(storageKey);
   try {
     await unlink(fullPath);
   } catch {
@@ -159,7 +157,7 @@ export async function uploadFile(
   ext: string,
   mimeType: string
 ): Promise<string> {
-  if (isR2Enabled()) return uploadR2(orgId, subpath, buffer, ext, mimeType);
+  if (R2_ENABLED) return uploadR2(orgId, subpath, buffer, ext, mimeType);
   return uploadLocal(orgId, subpath, buffer, ext);
 }
 
@@ -167,7 +165,7 @@ export async function uploadFile(
  * Exclui um arquivo do storage.
  */
 export async function deleteFile(storageKey: string): Promise<void> {
-  if (isR2Enabled()) return deleteR2(storageKey);
+  if (R2_ENABLED) return deleteR2(storageKey);
   return deleteLocal(storageKey);
 }
 
@@ -181,6 +179,6 @@ export async function getFileUrl(
   arquivoId: string,
   ttl = 900
 ): Promise<string> {
-  if (isR2Enabled()) return getPresignedUrlR2(storageKey, ttl);
+  if (R2_ENABLED) return getPresignedUrlR2(storageKey, ttl);
   return `/api/arquivos/${arquivoId}`;
 }
