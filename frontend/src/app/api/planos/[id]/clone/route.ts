@@ -22,7 +22,7 @@ export async function POST(request: Request, { params }: Params) {
 
   const original = await prisma.planoFormativo.findFirst({
     where: { id, OR: [{ isGlobal: true }, { organizacaoId: user.organizacaoId }] },
-    include: { eixos: true },
+    include: { eixos: true, retiros: true },
   });
 
   if (!original) return NextResponse.json({ error: "Plano não encontrado" }, { status: 404 });
@@ -42,14 +42,27 @@ export async function POST(request: Request, { params }: Params) {
         eixos: {
           create: original.eixos.map((e) => ({
             nome: e.nome,
+            nomeEtapa: e.nomeEtapa || null,
             objetivo: e.objetivo,
             intervaloEncontros: e.intervaloEncontros,
             cargaHoraria: e.cargaHoraria,
             areaFormacao: e.areaFormacao,
+            ordem: e.ordem,
+          })),
+        },
+        retiros: {
+          create: original.retiros.map((r) => ({
+            tipo: r.tipo,
+            numero: r.numero,
+            tema: r.tema,
+            trechoBiblico: r.trechoBiblico || null,
+            objetivo: r.objetivo,
+            quandoRealizar: r.quandoRealizar,
+            cargaHoraria: r.cargaHoraria,
           })),
         },
       },
-      include: { eixos: true },
+      include: { eixos: true, retiros: true },
     });
   });
 

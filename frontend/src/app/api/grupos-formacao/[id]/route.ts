@@ -37,12 +37,14 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.grupoFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    // FC só pode editar a seu próprio grupo de formação e apenas nome/localReuniao
+    // FC só pode editar a seu próprio grupo de formação e apenas nome/localReuniao/imagemUrl
     if (isFC) {
       if ((user as { grupoFormacaoId?: string | null }).grupoFormacaoId !== id) {
         return NextResponse.json({ error: "Sem permissão para editar este grupo de formação" }, { status: 403 });
       }
-      const body = await request.json() as { nome?: string; localReuniao?: string | null; imagemUrl?: string | null };
+      const parsed = parseBody(UpdateGrupoFormacaoSchema, await request.json());
+      if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+      const body = parsed.data;
       const updated = await prisma.grupoFormacao.update({
         where: { id },
         data: {
@@ -61,7 +63,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     if (body.formadorId) {
       const formador = await prisma.usuario.findFirst({
-        where: { id: body.formadorId, organizacaoId: user.organizacaoId },
+        where: { id: body.formadorId, organizacaoId: user.organizacaoId, deletedAt: null },
       });
       if (!formador) return NextResponse.json({ error: "Formador não encontrado" }, { status: 400 });
     }
@@ -143,7 +145,7 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const existing = await prisma.grupoFormacao.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    await prisma.grupoFormacao.delete({ where: { id } });
+    await prisma.grupoFormacao.deleteMany({ where: { id, organizacaoId: user.organizacaoId } });
     logAction("grupo_formacao_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
   } catch (err) { logError("moradas/[id] DELETE", err); return NextResponse.json({ error: "Falha ao excluir morada" }, { status: 500 }); }

@@ -46,23 +46,21 @@ export async function POST(request: Request, { params }: Params) {
         data: { vigenciaFim: encerradoEm },
       });
 
-      // Registrar concluiuEm em cada formando da morada para o nivel atual
+      // Registrar concluiuEm nos formandos ativos da morada para o nivel atual
       const formandos = await tx.formando.findMany({
-        where: { grupoFormacaoId: id, organizacaoId: user.organizacaoId! },
+        where: { grupoFormacaoId: id, organizacaoId: user.organizacaoId!, deletedAt: null },
         select: { id: true },
       });
 
-      for (const formando of formandos) {
-        await tx.progressoEtapa.upsert({
-          where: { formandoId_nivelFormativo: { formandoId: formando.id, nivelFormativo: nivelFormativoStr } },
-          update: { concluiuEm: encerradoEm },
-          create: {
-            formandoId: formando.id,
-            nivelFormativo: nivelFormativoStr,
-            concluiuEm: encerradoEm,
-          },
-        });
-      }
+      await Promise.all(
+        formandos.map((formando) =>
+          tx.progressoEtapa.upsert({
+            where: { formandoId_nivelFormativo: { formandoId: formando.id, nivelFormativo: nivelFormativoStr } },
+            update: { concluiuEm: encerradoEm },
+            create: { formandoId: formando.id, nivelFormativo: nivelFormativoStr, concluiuEm: encerradoEm },
+          })
+        )
+      );
 
       return moradaAtualizada;
     });

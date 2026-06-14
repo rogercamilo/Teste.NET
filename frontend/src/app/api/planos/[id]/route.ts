@@ -45,8 +45,8 @@ export async function PUT(request: Request, { params }: Params) {
     const body = parsed.data;
 
     const updated = await prisma.$transaction(async (tx) => {
-      await tx.eixoPlano.deleteMany({ where: { planoId: id } });
-      await tx.retiroPlano.deleteMany({ where: { planoId: id } });
+      if (body.eixos !== undefined) await tx.eixoPlano.deleteMany({ where: { planoId: id } });
+      if (body.retiros !== undefined) await tx.retiroPlano.deleteMany({ where: { planoId: id } });
       return tx.planoFormativo.update({
         where: { id },
         data: {
@@ -55,20 +55,24 @@ export async function PUT(request: Request, { params }: Params) {
           vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : undefined,
           vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : undefined,
           status: body.status, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null,
-          eixos: {
-            create: (body.eixos ?? []).map((e) => ({
-              nome: e.nome, nomeEtapa: e.nomeEtapa || null, objetivo: e.objetivo,
-              intervaloEncontros: e.intervaloEncontros, cargaHoraria: e.cargaHoraria,
-              areaFormacao: e.areaFormacao, ordem: e.ordem,
-            })),
-          },
-          retiros: {
-            create: (body.retiros ?? []).map((r) => ({
-              tipo: r.tipo, numero: r.numero, tema: r.tema,
-              trechoBiblico: r.trechoBiblico || null, objetivo: r.objetivo,
-              quandoRealizar: r.quandoRealizar, cargaHoraria: r.cargaHoraria,
-            })),
-          },
+          ...(body.eixos !== undefined && {
+            eixos: {
+              create: body.eixos.map((e) => ({
+                nome: e.nome, nomeEtapa: e.nomeEtapa || null, objetivo: e.objetivo,
+                intervaloEncontros: e.intervaloEncontros, cargaHoraria: e.cargaHoraria,
+                areaFormacao: e.areaFormacao, ordem: e.ordem,
+              })),
+            },
+          }),
+          ...(body.retiros !== undefined && {
+            retiros: {
+              create: body.retiros.map((r) => ({
+                tipo: r.tipo, numero: r.numero, tema: r.tema,
+                trechoBiblico: r.trechoBiblico || null, objetivo: r.objetivo,
+                quandoRealizar: r.quandoRealizar, cargaHoraria: r.cargaHoraria,
+              })),
+            },
+          }),
         },
         include: { eixos: true, retiros: true },
       });

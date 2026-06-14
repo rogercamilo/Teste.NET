@@ -63,28 +63,25 @@ export async function POST(request: Request, { params }: Params) {
         data: { nivelFormativo: nextNivel, vigenciaInicio, vigenciaFim: null },
       });
 
-      // Avançar formandos para a nova etapa
+      // Avançar formandos ativos para a nova etapa
       const formandos = await tx.formando.findMany({
-        where: { grupoFormacaoId: id, organizacaoId: user.organizacaoId! },
+        where: { grupoFormacaoId: id, organizacaoId: user.organizacaoId!, deletedAt: null },
         select: { id: true },
       });
 
-      for (const formando of formandos) {
-        await tx.formando.update({
-          where: { id: formando.id },
-          data: { nivelFormativo: nextNivel },
-        });
-        await tx.progressoEtapa.upsert({
-          where: { formandoId_nivelFormativo: { formandoId: formando.id, nivelFormativo: nextNivel } },
-          update: { iniciouEm: vigenciaInicio, dataMissaCompromisso },
-          create: {
-            formandoId: formando.id,
-            nivelFormativo: nextNivel,
-            iniciouEm: vigenciaInicio,
-            dataMissaCompromisso,
-          },
-        });
-      }
+      await tx.formando.updateMany({
+        where: { grupoFormacaoId: id, organizacaoId: user.organizacaoId!, deletedAt: null },
+        data: { nivelFormativo: nextNivel },
+      });
+      await Promise.all(
+        formandos.map((formando) =>
+          tx.progressoEtapa.upsert({
+            where: { formandoId_nivelFormativo: { formandoId: formando.id, nivelFormativo: nextNivel } },
+            update: { iniciouEm: vigenciaInicio, dataMissaCompromisso },
+            create: { formandoId: formando.id, nivelFormativo: nextNivel, iniciouEm: vigenciaInicio, dataMissaCompromisso },
+          })
+        )
+      );
 
       return moradaAtualizada;
     });

@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: Params) {
   if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
   const original = await prisma.formacao.findFirst({
-    where: { id, OR: [{ isGlobal: true }, { organizacaoId: user.organizacaoId }] },
+    where: { id, deletedAt: null, OR: [{ isGlobal: true }, { organizacaoId: user.organizacaoId }] },
   });
 
   if (!original) return NextResponse.json({ error: "Formação não encontrada" }, { status: 404 });

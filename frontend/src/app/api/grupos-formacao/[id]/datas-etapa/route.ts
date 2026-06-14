@@ -50,7 +50,7 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Nenhum campo para atualizar" }, { status: 400 });
 
     const formandos = await prisma.formando.findMany({
-      where: { grupoFormacaoId: id, organizacaoId: user.organizacaoId },
+      where: { grupoFormacaoId: id, organizacaoId: user.organizacaoId, deletedAt: null },
       select: { id: true },
     });
 
