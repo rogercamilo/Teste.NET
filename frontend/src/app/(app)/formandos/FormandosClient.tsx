@@ -326,11 +326,11 @@ export default function FormandosClient({
           <Input
             placeholder="Buscar por nome ou e-mail..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-8 h-9 text-sm"
           />
         </div>
-        <Select value={nivelFilter} onValueChange={(v) => setNivelFilter(v ?? "todos")}>
+        <Select value={nivelFilter} onValueChange={(v) => { setNivelFilter(v ?? "todos"); setPage(1); }}>
           <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
             <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue placeholder="Etapa formativa" />
@@ -416,6 +416,10 @@ export default function FormandosClient({
                 const progresso = Math.round(
                   (formando.formacoesRealizadas / formando.totalFormacoes) * 100
                 );
+                const listGrupo = formando.grupoFormacaoId
+                  ? initialGruposFormacao.find((m) => m.id === formando.grupoFormacaoId)
+                  : null;
+                const listSemGrade = !!formando.grupoFormacaoId && !listGrupo?.gradeId;
                 return (
                   <TableRow key={formando.id} className="hover:bg-muted/20 transition-colors">
                     <TableCell>
@@ -442,23 +446,17 @@ export default function FormandosClient({
                       {format(parseISO(formando.dataIngresso), "MMM yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {(() => {
-                        const grupoFormacao = formando.grupoFormacaoId ? initialGruposFormacao.find((m) => m.id === formando.grupoFormacaoId) : null;
-                        const semGrade = !!formando.grupoFormacaoId && !grupoFormacao?.gradeId;
-                        return (
-                          <div className="flex items-center gap-2">
-                            <Progress value={progresso} className="h-1.5 w-20" />
-                            <span className="text-xs text-muted-foreground">
-                              {formando.formacoesRealizadas}/{formando.totalFormacoes}
-                            </span>
-                            {semGrade && (
-                              <span title={`${termoGrupoFormacao} sem grade vinculada`}>
-                                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
+                      <div className="flex items-center gap-2">
+                        <Progress value={progresso} className="h-1.5 w-20" />
+                        <span className="text-xs text-muted-foreground">
+                          {formando.formacoesRealizadas}/{formando.totalFormacoes}
+                        </span>
+                        {listSemGrade && (
+                          <span title={`${termoGrupoFormacao} sem grade vinculada`}>
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -651,7 +649,7 @@ export default function FormandosClient({
       <Dialog open={!!linkGradeState} onOpenChange={(open) => { if (!open) { setLinkGradeState(null); setSelectedGradeId(""); } }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Vincular grade à morada</DialogTitle>
+            <DialogTitle>Vincular grade ao {termoGrupoFormacao.toLowerCase()}</DialogTitle>
           </DialogHeader>
           {linkGradeState && (() => {
             const gradesFiltradas = initialGrades.filter(

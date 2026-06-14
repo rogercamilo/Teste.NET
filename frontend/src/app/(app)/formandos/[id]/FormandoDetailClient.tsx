@@ -25,15 +25,19 @@ import {
   totalRequerido,
   type StatusFormacao,
   type TipoComentario,
+  type Formando,
   type ComentarioFormando,
   type Agendamento,
   type EventoFormando,
+  type PresencaFormacao,
   type DocumentoAnexo,
   type NotaAdesao,
   type TipoDesligamento,
   type PerspectivFormativa,
+  type GrupoFormacao,
   type ProcessoEclesiastico,
   type TipoProcessoEclesiastico,
+  type NivelFormativo,
   type TipoOrganizacao,
   hasCanonicalAccess,
 } from "@/types";
@@ -99,6 +103,26 @@ import { format, parseISO, differenceInYears, differenceInDays } from "date-fns"
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
+const PERSPECTIVAS_INFO: Record<PerspectivFormativa, { desc: string; cor: string; bg: string }> = {
+  humana: {
+    desc: "Autoconhecimento, maturidade afetiva, vida equilibrada e crescimento integral.",
+    cor: "text-violet-700",
+    bg: "bg-violet-50 border-violet-200",
+  },
+  espiritual: {
+    desc: "Intimidade com Deus, vida de oração, vida sacramental e devoção.",
+    cor: "text-blue-700",
+    bg: "bg-blue-50 border-blue-200",
+  },
+  comunitaria: {
+    desc: "Vivência fraterna, comunhão de bens, partilha e vivência apostólica.",
+    cor: "text-emerald-700",
+    bg: "bg-emerald-50 border-emerald-200",
+  },
+};
+
+const PERSPECTIVAS: PerspectivFormativa[] = ["humana", "espiritual", "comunitaria"];
+
 const STATUS_COLORS: Record<StatusFormacao, string> = {
   agendada: "bg-blue-100 text-blue-700 border-blue-200",
   confirmada: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -116,12 +140,12 @@ const ESTADO_CIVIL_LABELS = {
 
 interface Props {
   id: string;
-  formando: import("@/types").Formando;
-  comentarios: import("@/types").ComentarioFormando[];
-  eventos: import("@/types").EventoFormando[];
-  presencas: import("@/types").PresencaFormacao[];
-  agendamentos: import("@/types").Agendamento[];
-  morada: import("@/types").GrupoFormacao | null;
+  formando: Formando;
+  comentarios: ComentarioFormando[];
+  eventos: EventoFormando[];
+  presencas: PresencaFormacao[];
+  agendamentos: Agendamento[];
+  morada: GrupoFormacao | null;
   todasMoradas: { id: string; nome: string; nivelFormativo: string | null }[];
   userId: string;
   userName: string;
@@ -135,30 +159,23 @@ interface Props {
 
 export default function FormandoDetailClient({
   id,
-  formando: initialFormando,
-  comentarios: initialComentarios,
-  eventos: initialEventos,
-  presencas: initialPresencas,
-  agendamentos: initialAgendamentos,
+  formando,
+  comentarios,
+  eventos,
+  presencas,
+  agendamentos,
   morada,
   todasMoradas,
   userId,
   userName,
-  userRole: _userRole,
   userGrupoFormacaoId,
   termoFormando,
   termoFormador,
   tipoOrganizacao,
-  processosEclesiasticos: initialProcessosEclesiasticos,
+  processosEclesiasticos,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-
-  const formando = initialFormando;
-  const agendamentos = initialAgendamentos;
-  const comentarios = initialComentarios;
-  const eventos = initialEventos;
-  const presencas = initialPresencas;
 
   const [registroOpen, setRegistroOpen] = useState(false);
   const [selectedAg, setSelectedAg] = useState<Agendamento | null>(null);
@@ -243,7 +260,6 @@ export default function FormandoDetailClient({
   const [desligamentoFiles, setDesligamentoFiles] = useState<File[]>([]);
   const [licencaFiles, setLicencaFiles] = useState<File[]>([]);
 
-  const processosEclesiasticos = initialProcessosEclesiasticos;
   const [novoProcessoOpen, setNovoProcessoOpen] = useState(false);
   const [novoProcessoTipo, setNovoProcessoTipo] = useState<TipoProcessoEclesiastico>("admissao_etapa1");
 
@@ -620,15 +636,16 @@ export default function FormandoDetailClient({
     etapas.push({ nivel: proximaEtapa, formacoesComunitariasRealizadas: 0, retirosComunitariosRealizados: 0, retirosPessoaisRealizados: 0, iniciouEm: agora });
     const req = REQUISITOS_ETAPAS[proximaEtapa];
     try {
-      await fetch(`/api/formandos/${id}`, {
+      const res = await fetch(`/api/formandos/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nivelFormativo: proximaEtapa, totalFormacoes: req.formacoesComunitarias + req.retirosComunitarios + req.retirosPessoais, formacoesRealizadas: 0, progressoEtapas: etapas }),
       });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Erro");
       setAvancarOpen(false);
       toast.success(`${formando.nome} avançou para ${NIVEL_FORMATIVO_LABELS[proximaEtapa]}.`);
       startTransition(() => router.refresh());
-    } catch { toast.error("Erro ao avançar etapa."); }
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Erro ao avançar etapa."); }
   }
 
   async function handleEditSave() {
@@ -1210,36 +1227,13 @@ export default function FormandoDetailClient({
 
         {/* Perspectivas Formativas */}
         <TabsContent value="perspectivas" className="mt-4 space-y-4">
-          {(() => {
-            const PERSPECTIVAS_INFO: Record<PerspectivFormativa, { desc: string; cor: string; bg: string }> = {
-              humana: {
-                desc: "Autoconhecimento, maturidade afetiva, vida equilibrada e crescimento integral.",
-                cor: "text-violet-700",
-                bg: "bg-violet-50 border-violet-200",
-              },
-              espiritual: {
-                desc: "Intimidade com Deus, vida de oração, vida sacramental e devoção.",
-                cor: "text-blue-700",
-                bg: "bg-blue-50 border-blue-200",
-              },
-              comunitaria: {
-                desc: "Vivência fraterna, comunhão de bens, partilha e vivência apostólica.",
-                cor: "text-emerald-700",
-                bg: "bg-emerald-50 border-emerald-200",
-              },
-            };
-
-            const perspectivas: PerspectivFormativa[] = ["humana", "espiritual", "comunitaria"];
-
-            return (
-              <>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    Avalie a adesão de {formando.nome} em cada perspectiva formativa.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  {perspectivas.map((persp) => {
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Avalie a adesão de {formando.nome} em cada perspectiva formativa.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            {PERSPECTIVAS.map((persp) => {
                     const avaliacoesPersp = formandoEventos
                       .filter((e) => e.tipo === "avaliacao-adesao" && e.perspectiva === persp)
                       .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
@@ -1324,10 +1318,7 @@ export default function FormandoDetailClient({
                       </Card>
                     );
                   })}
-                </div>
-              </>
-            );
-          })()}
+          </div>
         </TabsContent>
 
         {/* Visão geral da jornada formativa */}
@@ -1986,11 +1977,7 @@ export default function FormandoDetailClient({
                         </Badge>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {format(
-                            new Date(comentario.criadoEm),
-                            "d 'de' MMM 'de' yyyy",
-                            { locale: ptBR }
-                          )}
+                          {format(parseISO(comentario.criadoEm), "d 'de' MMM 'de' yyyy", { locale: ptBR })}
                         </p>
                       </div>
                       <p className="text-sm text-foreground leading-relaxed">{comentario.texto}</p>
@@ -2181,7 +2168,7 @@ export default function FormandoDetailClient({
                         </Badge>
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {format(new Date(ev.criadoEm), "d 'de' MMM 'de' yyyy", { locale: ptBR })}
+                          {format(parseISO(ev.criadoEm), "d 'de' MMM 'de' yyyy", { locale: ptBR })}
                         </span>
                       </div>
 
@@ -2535,12 +2522,14 @@ export default function FormandoDetailClient({
         title={`Foto de ${formando.nome}`}
         hasImage={!!formando.foto}
         onSave={async (base64) => {
-          await fetch(`/api/formandos/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foto: base64 }) });
+          const res = await fetch(`/api/formandos/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foto: base64 }) });
+          if (!res.ok) { toast.error("Erro ao salvar foto."); return; }
           toast.success("Foto atualizada.");
           startTransition(() => router.refresh());
         }}
         onRemove={async () => {
-          await fetch(`/api/formandos/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foto: null }) });
+          const res = await fetch(`/api/formandos/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foto: null }) });
+          if (!res.ok) { toast.error("Erro ao remover foto."); return; }
           toast.success("Foto removida.");
           startTransition(() => router.refresh());
         }}
@@ -3240,7 +3229,7 @@ export default function FormandoDetailClient({
                   setEditForm((p) => ({
                     ...p,
                     grupoFormacaoId: v ?? "",
-                    ...(m ? { nivelFormativo: m.nivelFormativo as import("@/types").NivelFormativo } : {}),
+                    ...(m ? { nivelFormativo: m.nivelFormativo as NivelFormativo } : {}),
                   }));
                 }}
               >
@@ -3249,7 +3238,7 @@ export default function FormandoDetailClient({
                     {editForm.grupoFormacaoId
                       ? (() => {
                           const m = todasMoradas.find((x) => x.id === editForm.grupoFormacaoId);
-                          return m ? `${m.nome} — ${NIVEL_FORMATIVO_LABELS[m.nivelFormativo as import("@/types").NivelFormativo]}` : "Selecione a morada...";
+                          return m ? `${m.nome} — ${NIVEL_FORMATIVO_LABELS[m.nivelFormativo as NivelFormativo]}` : "Selecione a morada...";
                         })()
                       : "Nenhuma"}
                   </SelectValue>
@@ -3258,7 +3247,7 @@ export default function FormandoDetailClient({
                   <SelectItem value="">Nenhuma</SelectItem>
                   {todasMoradas.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
-                      {m.nome} — {NIVEL_FORMATIVO_LABELS[m.nivelFormativo as import("@/types").NivelFormativo]}
+                      {m.nome} — {NIVEL_FORMATIVO_LABELS[m.nivelFormativo as NivelFormativo]}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -60,7 +60,7 @@ export default async function FormandoDetailPage({
         orderBy: { data: "desc" },
       }),
       formandoRow.grupoFormacaoId
-        ? prisma.grupoFormacao.findFirst({ where: { id: formandoRow.grupoFormacaoId } })
+        ? prisma.grupoFormacao.findFirst({ where: { id: formandoRow.grupoFormacaoId, organizacaoId: user.organizacaoId } })
         : Promise.resolve(null),
       prisma.grupoFormacao.findMany({
         where: { organizacaoId: user.organizacaoId, ativo: true },
@@ -113,7 +113,7 @@ export default async function FormandoDetailPage({
       agendamentos={agendamentosRows.map(toAgendamento)}
       morada={grupoFormacaoRow ? toGrupoFormacao(grupoFormacaoRow) : null}
       todasMoradas={todosGruposFormacaoRows}
-      userId={user.id!}
+      userId={user.id ?? ""}
       userName={session?.user?.name ?? "Formador"}
       userRole={user.role ?? "formador_comunitario"}
       userGrupoFormacaoId={user.grupoFormacaoId ?? null}
