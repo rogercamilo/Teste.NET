@@ -254,9 +254,10 @@ export async function createUser(
 
 export async function updateUser(
   id: string,
-  data: Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">> & {
+  data: Omit<Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">>, "grupoFormacaoId"> & {
     password?: string;
     organizacaoId: string;
+    grupoFormacaoId?: string | null;
   }
 ): Promise<UserAuth | null> {
   const orgId = data.organizacaoId;

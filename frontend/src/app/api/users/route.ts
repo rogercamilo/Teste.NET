@@ -71,9 +71,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });
     }
 
-    // Impede criação de formador_geral via API — apenas super admin pode elevar a este nível
-    const perfilSanitizado =
-      perfil === "formador_geral" ? "administrador" : (perfil ?? "formador_comunitario");
+    if (perfil === "formador_geral") {
+      return NextResponse.json({ error: "Perfil formador_geral não pode ser atribuído diretamente. Use a interface de super-admin." }, { status: 400 });
+    }
+    const perfilSanitizado = perfil ?? "formador_comunitario";
 
     const { user, tempPassword } = await createUser({
       nome,
