@@ -18,7 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Building2, Users, ShieldAlert, RefreshCw, MoreHorizontal,
+  Building2, Users, RefreshCw, MoreHorizontal,
   TrendingUp, TrendingDown, AlertTriangle, Gift, Ban, BadgeCheck,
   DollarSign, Activity, Minus, Scale, FileText, CheckCircle2, Clock,
   Shield, KeyRound, type LucideIcon,
@@ -104,10 +104,11 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
   { id: "lgpd", label: "LGPD", Icon: Shield },
 ];
 
+const PAGE_SIZE = 10;
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function SuperAdminClient() {
-  const PAGE_SIZE = 10;
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("organizacoes");
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
@@ -136,19 +137,37 @@ export default function SuperAdminClient() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [orgsRes, metRes] = await Promise.all([
-      fetch("/api/super-admin/organizacoes").then((r) => r.json() as Promise<OrgRow[]>),
-      fetch("/api/super-admin/metricas").then((r) => r.json() as Promise<Metricas>),
-    ]);
-    setOrgs(orgsRes);
-    setMetricas(metRes);
-    setLoading(false);
+    try {
+      const [orgsRes, metRes] = await Promise.all([
+        fetch("/api/super-admin/organizacoes"),
+        fetch("/api/super-admin/metricas"),
+      ]);
+      if (!orgsRes.ok || !metRes.ok) {
+        toast.error("Falha ao carregar dados.");
+        return;
+      }
+      const [orgs, metricas] = await Promise.all([
+        orgsRes.json() as Promise<OrgRow[]>,
+        metRes.json() as Promise<Metricas>,
+      ]);
+      setOrgs(orgs);
+      setMetricas(metricas);
+    } catch {
+      toast.error("Erro de rede. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const loadLgpd = useCallback(async () => {
-    const res = await fetch("/api/super-admin/lgpd").then((r) => r.json() as Promise<LgpdData>);
-    setLgpd(res);
-    setLgpdLoaded(true);
+    try {
+      const res = await fetch("/api/super-admin/lgpd");
+      if (!res.ok) { toast.error("Falha ao carregar dados LGPD."); return; }
+      setLgpd(await res.json() as LgpdData);
+      setLgpdLoaded(true);
+    } catch {
+      toast.error("Erro de rede.");
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -672,7 +691,7 @@ export default function SuperAdminClient() {
                           <TableCell>
                             {org.cortesiaExpiresAt ? (
                               <span className={`text-xs font-medium ${expired ? "text-red-600" : "text-emerald-600"}`}>
-                                {expired ? "Expirada" : ""}
+                                {expired ? "Expirada — " : ""}
                                 {new Date(org.cortesiaExpiresAt).toLocaleDateString("pt-BR")}
                               </span>
                             ) : (

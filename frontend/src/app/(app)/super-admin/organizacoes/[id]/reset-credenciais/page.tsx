@@ -20,7 +20,7 @@ export default async function ResetCredenciaisPage({ params }: Params) {
       select: { id: true, nome: true, status: true },
     }),
     prisma.usuario.findMany({
-      where: { organizacaoId: id, perfil: "administrador", ativo: true },
+      where: { organizacaoId: id, perfil: "administrador", ativo: true, deletedAt: null },
       select: { id: true, nome: true, email: true },
       orderBy: { nome: "asc" },
     }),

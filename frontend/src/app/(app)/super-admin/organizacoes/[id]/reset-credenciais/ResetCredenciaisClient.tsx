@@ -50,7 +50,9 @@ export default function ResetCredenciaisClient({ org, admins }: { org: Org; admi
         return;
       }
       const data = await res.json() as { usuarios: { nome: string; email: string }[] };
-      setResult({ usuario: data.usuarios[0] });
+      const usuario = data.usuarios?.[0];
+      if (!usuario) { toast.error("Reset efetuado, mas nenhum usuário retornado."); return; }
+      setResult({ usuario });
     } catch {
       toast.error("Erro de rede. Tente novamente.");
     } finally {

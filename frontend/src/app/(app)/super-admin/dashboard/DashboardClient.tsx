@@ -1,11 +1,15 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   LayoutDashboard, Server, Lock, ClipboardList, RefreshCw,
   DollarSign, Building2, Activity, Gift, TrendingUp, TrendingDown, Minus,
@@ -134,24 +138,50 @@ export default function DashboardClient() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [metRes, srvRes, segRes] = await Promise.all([
-      fetch("/api/super-admin/metricas").then((r) => r.json()),
-      fetch("/api/super-admin/servicos").then((r) => r.json()),
-      fetch("/api/super-admin/seguranca").then((r) => r.json()),
-    ]);
-    setMetricas(metRes);
-    setServicos(srvRes);
-    setSeguranca(segRes);
-    setLoading(false);
+    try {
+      const [metRes, srvRes, segRes] = await Promise.all([
+        fetch("/api/super-admin/metricas"),
+        fetch("/api/super-admin/servicos"),
+        fetch("/api/super-admin/seguranca"),
+      ]);
+      if (!metRes.ok || !srvRes.ok || !segRes.ok) {
+        toast.error("Falha ao carregar dados.");
+        return;
+      }
+      const [metricas, servicos, seguranca] = await Promise.all([
+        metRes.json() as Promise<Metricas>,
+        srvRes.json() as Promise<ServicosData>,
+        segRes.json() as Promise<SegurancaData>,
+      ]);
+      setMetricas(metricas);
+      setServicos(servicos);
+      setSeguranca(seguranca);
+    } catch {
+      toast.error("Erro de rede. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const loadLgpd = useCallback(async () => {
-    const [lgpdRes, orgsRes] = await Promise.all([
-      fetch("/api/super-admin/lgpd").then((r) => r.json()),
-      fetch("/api/super-admin/organizacoes?pageSize=200").then((r) => r.json()),
-    ]);
-    setLgpd(lgpdRes);
-    setOrgs(Array.isArray(orgsRes.data) ? orgsRes.data : []);
+    try {
+      const [lgpdRes, orgsRes] = await Promise.all([
+        fetch("/api/super-admin/lgpd"),
+        fetch("/api/super-admin/organizacoes?pageSize=200"),
+      ]);
+      if (!lgpdRes.ok || !orgsRes.ok) {
+        toast.error("Falha ao carregar dados LGPD.");
+        return;
+      }
+      const [lgpd, orgsData] = await Promise.all([
+        lgpdRes.json() as Promise<LgpdData>,
+        orgsRes.json(),
+      ]);
+      setLgpd(lgpd);
+      setOrgs(Array.isArray(orgsData) ? orgsData : []);
+    } catch {
+      toast.error("Erro de rede.");
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -681,18 +711,16 @@ function TabLgpd({ data, orgs, onRefresh }: { data: LgpdData; orgs: OrgBasic[]; 
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
               <div className="space-y-1.5">
-                <Label htmlFor="orgId">Organização afetada</Label>
-                <select
-                  id="orgId"
-                  value={orgId}
-                  onChange={(e) => setOrgId(e.target.value)}
-                  className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Todas as organizações</option>
-                  {orgs.map((o) => (
-                    <option key={o.id} value={o.id}>{o.nome}</option>
-                  ))}
-                </select>
+                <Label>Organização afetada</Label>
+                <Select value={orgId || "__all__"} onValueChange={(v) => setOrgId(!v || v === "__all__" ? "" : v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todas as organizações</SelectItem>
+                    {orgs.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">Deixe em branco para notificar todos os usuários da plataforma.</p>
               </div>
 
