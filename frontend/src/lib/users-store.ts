@@ -164,10 +164,12 @@ export async function findByEmail(
   return user ? toUserAuth(user) : undefined;
 }
 
-// Searches across all orgs — used for multi-tenant login and Google OAuth
+// Searches across all orgs — used for multi-tenant login and Google OAuth.
+// orderBy criadoEm makes the result deterministic when the same e-mail exists in multiple orgs.
 export async function findByEmailGlobal(email: string): Promise<UserAuth | undefined> {
   const user = await prisma.usuario.findFirst({
     where: { email: { equals: email, mode: "insensitive" }, deletedAt: null },
+    orderBy: { criadoEm: "asc" },
   });
   return user ? toUserAuth(user) : undefined;
 }
@@ -258,14 +260,14 @@ export async function updateUser(
   }
 ): Promise<UserAuth | null> {
   const orgId = data.organizacaoId;
-  const exists = await prisma.usuario.findFirst({ where: { id, organizacaoId: orgId } });
+  const exists = await prisma.usuario.findFirst({ where: { id, organizacaoId: orgId, deletedAt: null } });
   if (!exists) return null;
 
   const { password, organizacaoId: _organizacaoId, ...rest } = data;
   const newPasswordHash = password ? await hashPassword(password) : undefined;
 
   const updated = await prisma.usuario.update({
-    where: { id },
+    where: { id, organizacaoId: orgId },
     data: {
       ...(rest.nome !== undefined && { nome: rest.nome }),
       ...(rest.email !== undefined && { email: rest.email }),

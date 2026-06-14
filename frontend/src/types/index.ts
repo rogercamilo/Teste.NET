@@ -452,8 +452,8 @@ export function temPermissao(
 ): boolean {
   const nivel: Record<PerfilUsuario, number> = {
     formador_comunitario: 1,
-    administrador: 2,
-    formador_geral: 3,
+    formador_geral: 2,
+    administrador: 3,
     super_admin: 99,
   };
   return (nivel[role as PerfilUsuario] ?? 0) >= nivel[required];

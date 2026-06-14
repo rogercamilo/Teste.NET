@@ -97,8 +97,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, account }) {
       if (user) {
         if (account?.provider === "google") {
-          const dbUser = await findByEmailGlobal(user.email!);
+          if (!user.email) {
+            throw new Error("Google OAuth não retornou e-mail.");
+          }
+          const dbUser = await findByEmailGlobal(user.email);
           if (dbUser) {
+            if (dbUser.perfil === "super_admin") {
+              throw new Error("Acesso não autorizado via OAuth.");
+            }
             token.id = dbUser.id;
             token.role = dbUser.perfil;
             token.grupoFormacaoId = dbUser.grupoFormacaoId ?? null;

@@ -66,8 +66,8 @@ export default auth(function proxy(req) {
   ];
   // Only /api/convites/<token> (exactly one non-empty segment) is public.
   // /api/convites and /api/convites/ (admin list/create/delete) remain auth-protected.
-  const isPublicConviteToken =
-    pathname.startsWith("/api/convites/") && pathname.length > "/api/convites/".length;
+  const afterConvitePrefix = pathname.slice("/api/convites/".length);
+  const isPublicConviteToken = afterConvitePrefix.length > 0 && !afterConvitePrefix.includes("/");
 
   const isPublic =
     publicExact.includes(pathname) ||
