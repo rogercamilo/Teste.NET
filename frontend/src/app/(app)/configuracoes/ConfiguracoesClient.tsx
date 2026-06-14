@@ -9,6 +9,7 @@ import type { UserPublic } from "@/lib/users-store";
 import {
   PERFIL_USUARIO_LABELS,
   TIPO_ORGANIZACAO_LABELS,
+  temPermissao,
   type PerfilUsuario,
   type NivelFormativo,
   type TipoOrganizacao,
@@ -101,6 +102,8 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { THEME_PALETTES, applyThemePalette } from "@/lib/themes";
 
+const VALID_TABS = ["perfil", "usuarios", "comunidade", "email", "plano", "sistema", "notificacoes", "privacidade"];
+
 interface ConfiguracoesClientProps {
   userId: string;
   userName: string;
@@ -129,15 +132,14 @@ export default function ConfiguracoesClient({
   initialBilling,
   initialUsage,
 }: ConfiguracoesClientProps) {
-  const isGestao = userRole === "administrador" || userRole === "formador_geral";
+  const isGestao = temPermissao(userRole as PerfilUsuario, "formador_geral");
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const tabParam = searchParams.get("tab");
   const checkoutParam = searchParams.get("checkout");
-  const validTabs = ["perfil", "usuarios", "comunidade", "email", "plano", "sistema", "notificacoes", "privacidade"];
   const [activeTab, setActiveTab] = useState(
-    tabParam && validTabs.includes(tabParam) ? tabParam : "perfil"
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : "perfil"
   );
 
   useEffect(() => {
@@ -410,8 +412,9 @@ function PerfilTab({
     finally { setMfaSaving(false); }
   }
 
-  const perfilLabel =
-    usuario?.perfil === "administrador" ? "Administrador" : formador;
+  const perfilLabel = usuario?.perfil
+    ? PERFIL_USUARIO_LABELS[usuario.perfil] ?? formador
+    : formador;
 
   return (
     <div className="max-w-lg space-y-4">
@@ -734,6 +737,7 @@ const EMPTY_USUARIO_FORM: UsuarioForm = {
 
 function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: string; initialGruposFormacao: GrupoFormacao[] }) {
   const etapaLabels = useEtapaLabels();
+  const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [usuarios, setUsuarios] = useState<UserPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const allMoradas = initialGruposFormacao;
@@ -912,24 +916,22 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
         }
         const created = await res.json() as UserPublic & { tempPassword?: string; emailSent?: boolean };
 
-        // Criar morada provisória e vincular ao formador
+        // Criar grupo provisório e vincular ao formador via API
         if (form.perfil === "formador_comunitario" && form.grupoFormacaoModo === "provisoria") {
-          const novoGrupoFormacao = {
-            id: `m${Date.now()}`,
-            nome: form.nomeProvisorio.trim(),
-            tipo: "estruturado" as const,
-            nivelFormativo: form.nivelFormativoProvisorio,
-            formadorId: created.id,
-            ativo: true,
-            criadoEm: new Date().toISOString().split("T")[0],
-          };
-          db.gruposFormacao.save([...db.gruposFormacao.load(), novoGrupoFormacao]);
-          await fetch(`/api/users/${created.id}`, {
-            method: "PUT",
+          const grupoRes = await fetch("/api/grupos-formacao", {
+            method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ grupoFormacaoId: novoGrupoFormacao.id }),
+            body: JSON.stringify({
+              nome: form.nomeProvisorio.trim(),
+              tipo: "estruturado",
+              nivelFormativo: form.nivelFormativoProvisorio,
+              formadorId: created.id,
+            }),
           });
-          created.grupoFormacaoId = novoGrupoFormacao.id;
+          if (grupoRes.ok) {
+            const grupo = await grupoRes.json() as { id: string };
+            created.grupoFormacaoId = grupo.id;
+          }
         }
 
         setUsuarios((prev) => [...prev, created]);
@@ -1011,7 +1013,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
             <TableRow className="bg-muted/30 hover:bg-muted/30">
               <TableHead className="text-xs font-semibold text-muted-foreground">Usuário</TableHead>
               <TableHead className="text-xs font-semibold text-muted-foreground hidden sm:table-cell">Perfil</TableHead>
-              <TableHead className="text-xs font-semibold text-muted-foreground hidden md:table-cell">Morada</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground hidden md:table-cell">{termoGrupoFormacao}</TableHead>
               <TableHead className="text-xs font-semibold text-muted-foreground hidden lg:table-cell">Desde</TableHead>
               <TableHead className="text-xs font-semibold text-muted-foreground">Status</TableHead>
               <TableHead className="w-10" />
@@ -1348,7 +1350,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
                 {form.grupoFormacaoModo === "existente" ? (
                   <div className="grid gap-1.5">
                     <Label>
-                      GrupoFormacao vinculada <span className="text-destructive">*</span>
+                      {termoGrupoFormacao} vinculado <span className="text-destructive">*</span>
                     </Label>
                     <Select
                       value={form.grupoFormacaoId}
@@ -1385,7 +1387,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
                       <Input
                         value={form.nomeProvisorio}
                         onChange={(e) => set("nomeProvisorio")(e.target.value)}
-                        placeholder="Ex: GrupoFormacao do João"
+                        placeholder={`Ex: ${termoGrupoFormacao} do João`}
                       />
                       <p className="text-xs text-muted-foreground">
                         Pode ser ajustado depois no CRUD de Moradas.
@@ -1599,7 +1601,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
             </div>
             {inviteForm.perfil === "formador_comunitario" && (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Morada (opcional)</label>
+                <label className="text-sm font-medium">{termoGrupoFormacao} (opcional)</label>
                 <Select
                   value={inviteForm.grupoFormacaoId || "none"}
                   onValueChange={(v) => v && setInviteForm((f) => ({ ...f, grupoFormacaoId: v === "none" ? "" : v }))}
@@ -2828,29 +2830,22 @@ function SistemaTab() {
     presencas: db.presencas.load().length,
   }));
 
-  function handleExport() {
-    const data = {
-      exportadoEm: new Date().toISOString(),
-      versao: "3",
-      formandos: db.formandos.load(),
-      moradas: db.gruposFormacao.load(),
-      planos: db.planos.load(),
-      grades: db.grades.load(),
-      usuarios: db.usuarios.load(),
-      comentarios: db.comentarios.load(),
-      presencas: db.presencas.load(),
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `app-formativo-backup-${new Date().toISOString().split("T")[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Dados exportados com sucesso!");
+  async function handleExport() {
+    try {
+      const res = await fetch("/api/export/organizacao");
+      if (!res.ok) { toast.error("Falha ao exportar dados."); return; }
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `formattio-backup-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Dados exportados com sucesso!");
+    } catch {
+      toast.error("Falha ao exportar dados.");
+    }
   }
 
   function handleReset() {
@@ -2876,8 +2871,8 @@ function SistemaTab() {
           {[
             { label: "Aplicativo", value: "Formattio" },
             { label: "Versão do schema", value: "3" },
-            { label: "Ambiente", value: "Desenvolvimento / Mock" },
-            { label: "Armazenamento", value: "localStorage (navegador)" },
+            { label: "Ambiente", value: "Produção" },
+            { label: "Armazenamento", value: "PostgreSQL (servidor)" },
             { label: "Autenticação", value: "NextAuth v5 — JWT (8h)" },
           ].map((item) => (
             <div

@@ -4,26 +4,21 @@ import { prisma } from "@/lib/prisma";
 import { toGrupoFormacao } from "@/lib/converters";
 import { getBillingInfo } from "@/lib/billing-data";
 import { getUsage } from "@/lib/plan-limits";
+import { SessionUser } from "@/lib/auth-helpers";
 import ConfiguracoesClient from "./ConfiguracoesClient";
 
 export default async function ConfiguracoesPage() {
   const session = await auth();
-  const sessionUser = session?.user as {
-    id?: string;
-    name?: string | null;
-    email?: string | null;
-    role?: string;
-    organizacaoId?: string;
-  };
+  const user = session?.user as SessionUser | undefined;
 
-  if (!sessionUser) redirect("/dashboard");
+  if (!user?.id) redirect("/dashboard");
 
-  const orgId = sessionUser.organizacaoId;
+  const orgId = user.organizacaoId;
 
   const [gruposFormacao, billingInfo, usageInfo] = await Promise.all([
     orgId
       ? prisma.grupoFormacao.findMany({
-          where: { organizacaoId: orgId },
+          where: { organizacaoId: orgId, ativo: true },
           orderBy: { nome: "asc" },
         })
       : Promise.resolve([]),
@@ -33,10 +28,10 @@ export default async function ConfiguracoesPage() {
 
   return (
     <ConfiguracoesClient
-      userId={sessionUser.id ?? ""}
-      userName={sessionUser.name ?? "Usuário"}
-      userEmail={sessionUser.email ?? ""}
-      userRole={sessionUser.role ?? "formador_comunitario"}
+      userId={user.id ?? ""}
+      userName={session?.user?.name ?? "Usuário"}
+      userEmail={session?.user?.email ?? ""}
+      userRole={user.role ?? "formador_comunitario"}
       initialGruposFormacao={gruposFormacao.map(toGrupoFormacao)}
       initialBilling={billingInfo}
       initialUsage={usageInfo}
