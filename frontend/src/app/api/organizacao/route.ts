@@ -6,7 +6,7 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { UpdateOrganizacaoSchema, parseBody } from "@/lib/schemas";
 import type { ComunidadeConfig } from "@/types";
-import { ORG_BRANDING_TAG } from "@/lib/org-cache";
+import { orgBrandingTag } from "@/lib/org-cache";
 
 import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -86,12 +86,11 @@ export async function PUT(request: Request) {
         nomePlataforma: body.nomePlataforma?.trim() || null,
         logoUrl: body.logoUrl !== undefined ? (body.logoUrl || null) : undefined,
         temaCor: body.temaCor || undefined,
-        ...(body.planoAssinatura ? { planoAssinatura: body.planoAssinatura } : {}),
         ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
       select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
-    revalidateTag(ORG_BRANDING_TAG, { expire: 0 });
+    revalidateTag(orgBrandingTag(user.organizacaoId), { expire: 0 });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
     const config: ComunidadeConfig = {
       tipoOrganizacao: updated.tipoOrganizacao as ComunidadeConfig["tipoOrganizacao"],

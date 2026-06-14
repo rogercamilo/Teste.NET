@@ -148,7 +148,8 @@ export const PlanoAssinaturaEnum = z.enum(["GRATUITO", "BASICO", "INTERMEDIARIO"
 export const UpdateOrganizacaoSchema = z.object({
   nome: nonEmptyString(255).optional(),
   tipoOrganizacao: TipoOrganizacaoEnum.optional(),
-  planoAssinatura: PlanoAssinaturaEnum.optional(),
+  // planoAssinatura é excluído intencionalmente: atualizações de plano
+  // só podem ocorrer via webhook Stripe ou pelo super-admin.
   descricao: optionalString(2000).nullable(),
   endereco: optionalString(500).nullable(),
   missao: optionalString(2000).nullable(),

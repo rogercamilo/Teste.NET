@@ -7,6 +7,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import type { SessionUser } from "@/lib/auth-helpers";
 
 /** ID fixo da organização padrão (single-tenant).
  *  Deve coincidir com o ID criado no seed. */
@@ -16,17 +17,22 @@ export const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID ?? "org_default";
 export async function getOrganizacaoId(): Promise<string> {
   const session = await auth();
   if (!session?.user) throw new Error("Não autenticado");
-  const orgId = (session.user as { organizacaoId?: string }).organizacaoId;
+  const orgId = (session.user as SessionUser).organizacaoId;
   if (!orgId) throw new Error("Sessão sem organização");
   return orgId;
 }
 
-/** Retorna o organizacaoId da sessão ou null se não autenticado. */
+/** Retorna o organizacaoId da sessão ou null se não autenticado / sem org.
+ *  Falhas de infraestrutura (DB offline, token corrompido) são re-lançadas. */
 export async function getOrganizacaoIdOptional(): Promise<string | null> {
   try {
     return await getOrganizacaoId();
-  } catch {
-    return null;
+  } catch (err) {
+    if (err instanceof Error &&
+        (err.message === "Não autenticado" || err.message === "Sessão sem organização")) {
+      return null;
+    }
+    throw err;
   }
 }
 
@@ -38,12 +44,13 @@ export async function getOrganizacao(organizacaoId: string) {
 }
 
 /** Garante que o organizacaoId do recurso bate com o do tenant atual.
+ *  Lança se o recurso não tiver org (null = dado corrompido) ou pertencer a outro tenant.
  *  Use para validar acesso antes de retornar ou modificar um recurso. */
 export function assertTenant(
   resourceOrgId: string | null,
   tenantOrgId: string
 ): void {
-  if (resourceOrgId !== null && resourceOrgId !== tenantOrgId) {
+  if (resourceOrgId === null || resourceOrgId !== tenantOrgId) {
     throw new Error("Acesso negado: recurso pertence a outro tenant.");
   }
 }
