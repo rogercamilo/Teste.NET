@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe, isStripeEnabled } from "@/lib/stripe";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -31,12 +31,19 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
-  const portalSession = await stripe!.billingPortal.sessions.create({
-    customer: org.stripeCustomerId,
-    return_url: `${appUrl}/configuracoes?tab=plano`,
-  });
+  let portalUrl: string;
+  try {
+    const portalSession = await stripe!.billingPortal.sessions.create({
+      customer: org.stripeCustomerId,
+      return_url: `${appUrl}/configuracoes?tab=plano`,
+    });
+    portalUrl = portalSession.url;
+  } catch (err) {
+    logError("stripe/portal", err);
+    return NextResponse.json({ error: "Erro ao abrir portal de cobrança" }, { status: 502 });
+  }
 
   logAction("stripe_portal_acessado", user.id, getClientIp(req), {}, user.organizacaoId);
 
-  return NextResponse.json({ url: portalSession.url });
+  return NextResponse.json({ url: portalUrl });
 }

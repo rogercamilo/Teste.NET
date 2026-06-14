@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe, STRIPE_PRICES, isStripeEnabled, type StripePaidPlan, type StripePeriodicidade } from "@/lib/stripe";
-import { logAction, getClientIp } from "@/lib/audit-log";
+import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 const VALID_PLANS: StripePaidPlan[] = ["BASICO", "INTERMEDIARIO", "AVANCADO"];
@@ -19,11 +19,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Stripe não configurado" }, { status: 503 });
   }
 
-  const { plano, periodicidade = "mensal" } = await req.json();
-  if (!plano || !VALID_PLANS.includes(plano)) {
+  let parsed: { plano?: string; periodicidade?: string };
+  try {
+    parsed = await req.json() as { plano?: string; periodicidade?: string };
+  } catch {
+    return NextResponse.json({ error: "Corpo da requisição inválido" }, { status: 400 });
+  }
+  const { plano, periodicidade = "mensal" } = parsed;
+  if (!plano || !VALID_PLANS.includes(plano as StripePaidPlan)) {
     return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
   }
-  if (!VALID_PERIODICIDADES.includes(periodicidade)) {
+  if (!VALID_PERIODICIDADES.includes(periodicidade as StripePeriodicidade)) {
     return NextResponse.json({ error: "Periodicidade inválida" }, { status: 400 });
   }
 
@@ -41,48 +47,53 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
-  let customerId = org.stripeCustomerId;
-  if (!customerId) {
-    const customer = await stripe!.customers.create({
-      name: org.nome,
-      email: user.email,
-      metadata: { organizacaoId: org.id },
+  try {
+    let customerId = org.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe!.customers.create({
+        name: org.nome,
+        email: user.email,
+        metadata: { organizacaoId: org.id },
+      });
+      customerId = customer.id;
+      await prisma.organizacao.update({
+        where: { id: org.id },
+        data: { stripeCustomerId: customerId },
+      });
+    }
+
+    // Honra o trial restante: Stripe exige trial_end >= 2 dias no futuro
+    const twoDaysFromNow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    const trialEnd =
+      org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt > twoDaysFromNow
+        ? Math.floor(org.trialExpiresAt.getTime() / 1000)
+        : undefined;
+
+    const checkoutSession = await stripe!.checkout.sessions.create({
+      customer: customerId,
+      mode: "subscription",
+      line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
+      metadata: { organizacaoId: org.id, plano },
+      subscription_data: {
+        metadata: { organizacaoId: org.id },
+        ...(trialEnd ? { trial_end: trialEnd } : {}),
+      },
+      success_url: `${appUrl}/configuracoes?tab=plano&checkout=success`,
+      cancel_url: `${appUrl}/configuracoes?tab=plano&checkout=cancelled`,
     });
-    customerId = customer.id;
-    await prisma.organizacao.update({
-      where: { id: org.id },
-      data: { stripeCustomerId: customerId },
-    });
+
+    logAction(
+      "stripe_checkout_iniciado",
+      user.id ?? "unknown",
+      getClientIp(req),
+      { plano, periodicidade, checkoutSessionId: checkoutSession.id },
+      user.organizacaoId
+    );
+
+    return NextResponse.json({ url: checkoutSession.url });
+  } catch (err) {
+    logError("stripe/checkout", err);
+    return NextResponse.json({ error: "Erro ao criar sessão de pagamento" }, { status: 502 });
   }
-
-  // Honra o trial restante: Stripe exige trial_end >= 2 dias no futuro
-  const twoDaysFromNow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-  const trialEnd =
-    org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt > twoDaysFromNow
-      ? Math.floor(org.trialExpiresAt.getTime() / 1000)
-      : undefined;
-
-  const checkoutSession = await stripe!.checkout.sessions.create({
-    customer: customerId,
-    mode: "subscription",
-    line_items: [{ price: priceId, quantity: 1 }],
-    allow_promotion_codes: true,
-    metadata: { organizacaoId: org.id, plano },
-    subscription_data: {
-      metadata: { organizacaoId: org.id },
-      ...(trialEnd ? { trial_end: trialEnd } : {}),
-    },
-    success_url: `${appUrl}/configuracoes?tab=plano&checkout=success`,
-    cancel_url: `${appUrl}/configuracoes?tab=plano&checkout=cancelled`,
-  });
-
-  logAction(
-    "stripe_checkout_iniciado",
-    user.id ?? "unknown",
-    getClientIp(req),
-    { plano, periodicidade, checkoutSessionId: checkoutSession.id },
-    user.organizacaoId
-  );
-
-  return NextResponse.json({ url: checkoutSession.url });
 }

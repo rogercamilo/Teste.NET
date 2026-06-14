@@ -51,6 +51,8 @@ export async function POST(req: NextRequest) {
     await handleEvent(event);
   } catch (err) {
     logError("stripe webhook handleEvent", err, { eventType: event.type });
+    // Remove idempotency record so Stripe can retry this event
+    await prisma.processedWebhookEvent.delete({ where: { id: event.id } }).catch(() => {});
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 
@@ -61,9 +63,12 @@ type PaidPlan = "BASICO" | "INTERMEDIARIO" | "AVANCADO" | "PERSONALIZADO";
 
 function resolvePlan(priceId: string): PaidPlan | null {
   const map: Record<string, PaidPlan> = {
-    [process.env.STRIPE_PRICE_BASICO ?? ""]:        "BASICO",
-    [process.env.STRIPE_PRICE_INTERMEDIARIO ?? ""]: "INTERMEDIARIO",
-    [process.env.STRIPE_PRICE_AVANCADO ?? ""]:      "AVANCADO",
+    [process.env.STRIPE_PRICE_BASICO ?? ""]:              "BASICO",
+    [process.env.STRIPE_PRICE_BASICO_ANUAL ?? ""]:        "BASICO",
+    [process.env.STRIPE_PRICE_INTERMEDIARIO ?? ""]:       "INTERMEDIARIO",
+    [process.env.STRIPE_PRICE_INTERMEDIARIO_ANUAL ?? ""]: "INTERMEDIARIO",
+    [process.env.STRIPE_PRICE_AVANCADO ?? ""]:            "AVANCADO",
+    [process.env.STRIPE_PRICE_AVANCADO_ANUAL ?? ""]:      "AVANCADO",
   };
   return map[priceId] ?? null;
 }
