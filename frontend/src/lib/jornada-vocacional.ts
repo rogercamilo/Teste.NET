@@ -148,3 +148,30 @@ export const TIPO_DOCUMENTO_LABELS: Record<TipoDocumentoEclesiastico, string> = 
   termo_desligamento:       "Termo de Desligamento",
   dispensa_promessas:       "Dispensa de Promessas",
 };
+
+// ── Campos canônicos obrigatórios para processos eclesiásticos ────────────────
+
+type CamposCanonicos = {
+  rg: string | null;
+  orgaoEmissor: string | null;
+  nacionalidade: string | null;
+  cep: string | null;
+  paroquiaReferencia: string | null;
+};
+
+export const CAMPOS_CANONICOS: Array<{
+  campo: keyof CamposCanonicos;
+  label: string;
+}> = [
+  { campo: "rg",               label: "RG"                       },
+  { campo: "orgaoEmissor",     label: "Órgão emissor do RG"      },
+  { campo: "nacionalidade",    label: "Nacionalidade"             },
+  { campo: "cep",              label: "CEP"                       },
+  { campo: "paroquiaReferencia", label: "Paróquia de referência" },
+];
+
+export function camposCanonicosFaltando(formando: CamposCanonicos): string[] {
+  return CAMPOS_CANONICOS
+    .filter(({ campo }) => !formando[campo])
+    .map(({ label }) => label);
+}

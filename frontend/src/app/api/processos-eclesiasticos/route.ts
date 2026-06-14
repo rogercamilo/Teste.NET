@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import type { SessionUser } from "@/lib/auth-helpers";
 import type { TipoProcessoEclesiastico } from "@/types";
-import { criarNotificacao, formadorDoGrupo, camposCanonicosFaltando } from "@/lib/notificacoes";
+import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
+import { camposCanonicosFaltando } from "@/lib/jornada-vocacional";
 
 export async function GET(req: NextRequest) {
   const session = await auth();

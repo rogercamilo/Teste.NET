@@ -5,7 +5,8 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
 import { UpdateAgendamentoSchema, parseBody, isValidId } from "@/lib/schemas";
-import { sendPushToOrg, formatDataBr } from "@/lib/push";
+import { sendPushToOrg } from "@/lib/push";
+import { formatDataBr } from "@/lib/utils";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };

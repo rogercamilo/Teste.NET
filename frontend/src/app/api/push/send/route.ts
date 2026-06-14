@@ -4,16 +4,20 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { PushSendSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import { sendPushToOrg } from "@/lib/push";
+import { isAdmin } from "@/lib/auth-helpers";
 import type { SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function POST(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
-  if (!user?.organizacaoId) {
+  if (!user?.id || !user?.organizacaoId) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
+  if (!isAdmin(user.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
 
-  const rl = await limiters.mutation(user.id!);
+  const rl = await limiters.mutation(user.id);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
   }

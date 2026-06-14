@@ -6,7 +6,8 @@ import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateAgendamentoSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
-import { sendPushToOrg, formatDataBr } from "@/lib/push";
+import { sendPushToOrg } from "@/lib/push";
+import { formatDataBr } from "@/lib/utils";
 import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
