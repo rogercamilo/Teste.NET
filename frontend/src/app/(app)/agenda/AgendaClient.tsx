@@ -80,6 +80,7 @@ const STATUS_DOT: Record<StatusFormacao, string> = {
 
 const PAGE_SIZE = 10;
 const JSON_HEADERS = { "Content-Type": "application/json" };
+const STATUS_LIST = ["todos", "agendada", "confirmada", "realizada", "cancelada"] as const;
 
 type FormState = {
   formacaoId: string;
@@ -174,8 +175,6 @@ export default function AgendaClient({
   const filteredSorted = [...filtered].sort(
     (a, b) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime()
   );
-
-  const STATUS_LIST = ["todos", "agendada", "confirmada", "realizada", "cancelada"] as const;
 
   return (
     <div className="space-y-5 animate-in-fast">

@@ -2,16 +2,20 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toAgendamento, toFormando, toPresenca } from "@/lib/converters";
+import { type SessionUser } from "@/lib/auth-helpers";
 import PresencaClient from "./PresencaClient";
 
 export default async function PresencaPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const user = session.user as { role?: string; organizacaoId?: string; grupoFormacaoId?: string | null };
+  const user = session.user as SessionUser;
   if (!user.organizacaoId) redirect("/login");
 
-  const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
+  const where: Record<string, unknown> = {
+    organizacaoId: user.organizacaoId,
+    deletedAt: null,
+  };
   if (user.role === "formador_comunitario") {
     where.grupoFormacaoId = user.grupoFormacaoId ?? null;
   }

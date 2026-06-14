@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTermos } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   NIVEL_FORMATIVO_LABELS,
@@ -46,7 +47,8 @@ export default function PresencaClient({
   grupoFormacaoId: userGrupoFormacaoId,
 }: PresencaClientProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
 
@@ -79,7 +81,6 @@ export default function PresencaClient({
   const formandosDaFormacao = useMemo(() => {
     if (!agendamento) return [];
     return initialFormandos.filter((f) => {
-      if (!f.ativo) return false;
       if (f.nivelFormativo !== agendamento.nivelFormativo) return false;
       if (role === "formador_comunitario" && userGrupoFormacaoId) {
         return f.grupoFormacaoId === userGrupoFormacaoId;
@@ -224,7 +225,7 @@ export default function PresencaClient({
                 <p className="text-sm">
                   Nenhum formando ativo encontrado para o nível{" "}
                   <span className="font-medium">{NIVEL_FORMATIVO_LABELS[agendamento.nivelFormativo]}</span>
-                  {role === "formador_comunitario" && " nesta morada"}.
+                  {role === "formador_comunitario" && ` neste ${termoGrupoFormacao.toLowerCase()}`}.
                 </p>
               </div>
             ) : (
