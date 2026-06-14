@@ -31,6 +31,7 @@ import {
   TIPO_PROCESSO_LABELS,
   STATUS_PROCESSO_LABELS,
   STATUS_PROCESSO_COLORS,
+  temPermissao,
 } from "@/types";
 
 const PAGE_SIZE = 15;
@@ -63,7 +64,7 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   const [page, setPage] = useState(1);
 
-  const isGestao = userRole === "administrador" || userRole === "formador_geral";
+  const isGestao = temPermissao(userRole, "formador_geral");
 
   const filtered = useMemo(() => {
     return processos.filter((p) => {

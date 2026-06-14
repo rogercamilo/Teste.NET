@@ -16,6 +16,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   type ProcessoEclesiastico,
   type DocumentoEclesiastico,
   type TipoProcessoEclesiastico,
@@ -24,6 +31,7 @@ import {
   TIPO_PROCESSO_LABELS,
   STATUS_PROCESSO_LABELS,
   STATUS_PROCESSO_COLORS,
+  temPermissao,
 } from "@/types";
 import {
   getTransicoesDisponiveis,
@@ -110,6 +118,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   );
   const [formDirty, setFormDirty] = useState(false);
   const [gerandoId, setGerandoId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const canEdit = podeEditarFormulario(processo.status, userRole);
   const transicoes = getTransicoesDisponiveis(processo.status, userRole);
@@ -121,17 +130,22 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   }
 
   async function handleSalvarFormulario() {
-    const res = await fetch(`/api/processos-eclesiasticos/${processo.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dadosFormulario: dadosForm }),
-    });
-    if (!res.ok) {
-      toast.error("Erro ao salvar formulário.");
-      return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/processos-eclesiasticos/${processo.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dadosFormulario: dadosForm }),
+      });
+      if (!res.ok) {
+        toast.error("Erro ao salvar formulário.");
+        return;
+      }
+      setFormDirty(false);
+      toast.success("Formulário salvo.");
+    } finally {
+      setIsSaving(false);
     }
-    setFormDirty(false);
-    toast.success("Formulário salvo.");
   }
 
   async function handleGerarPDF(docId: string) {
@@ -164,22 +178,26 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   }
 
   async function handleTransicao(novoStatus: StatusProcessoEclesiastico) {
-    const res = await fetch(`/api/processos-eclesiasticos/${processo.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: novoStatus }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      toast.error(data.error ?? "Erro ao atualizar status.");
-      return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/processos-eclesiasticos/${processo.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: novoStatus }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Erro ao atualizar status.");
+        return;
+      }
+      toast.success(`Status atualizado: ${STATUS_PROCESSO_LABELS[novoStatus]}`);
+      startTransition(() => router.refresh());
+      setProcesso((prev) => ({ ...prev, status: novoStatus }));
+    } finally {
+      setIsSaving(false);
     }
-    toast.success(`Status atualizado: ${STATUS_PROCESSO_LABELS[novoStatus]}`);
-    startTransition(() => router.refresh());
-    setProcesso((prev) => ({ ...prev, status: novoStatus }));
   }
 
-  // Campos canônicos do Ato de Admissão pré-populados do formando
   const f = processo.formando;
 
   return (
@@ -219,10 +237,10 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
                 key={t.para}
                 size="sm"
                 variant={t.para === "rejeitado" || t.para === "cancelado" ? "destructive" : "default"}
-                disabled={isPending}
+                disabled={isPending || isSaving}
                 onClick={() => handleTransicao(t.para)}
               >
-                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                {(isPending || isSaving) && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
                 {t.label}
               </Button>
             ))}
@@ -265,7 +283,8 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
 
           {canEdit && (
             <div className="flex justify-end">
-              <Button onClick={handleSalvarFormulario} disabled={!formDirty}>
+              <Button onClick={handleSalvarFormulario} disabled={!formDirty || isSaving}>
+                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Salvar formulário
               </Button>
             </div>
@@ -327,7 +346,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
                         variant="outline"
                         size="sm"
                         className="text-xs"
-                        disabled={gerandoId === doc.id || (userRole !== "administrador" && userRole !== "formador_geral")}
+                        disabled={gerandoId === doc.id || !temPermissao(userRole, "formador_geral")}
                         onClick={() => handleGerarPDF(doc.id)}
                       >
                         {gerandoId === doc.id
@@ -537,17 +556,20 @@ function DimensaoParecer({
         {campos.map((campo, i) => (
           <div key={campo}>
             <Label className="text-xs text-muted-foreground mb-1.5 block">{labels[i]}</Label>
-            <select
+            <Select
               disabled={disabled}
-              value={dados[campo] !== undefined ? String(dados[campo]) : ""}
-              onChange={(e) => onChange(campo, e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              value={(dados[campo] as string) || undefined}
+              onValueChange={(v) => onChange(campo, v)}
             >
-              <option value="">— Selecionar —</option>
-              {NOTA_OPTIONS.map((n) => (
-                <option key={n} value={n}>{n.charAt(0).toUpperCase() + n.slice(1)}</option>
-              ))}
-            </select>
+              <SelectTrigger className="text-sm">
+                <SelectValue placeholder="— Selecionar —" />
+              </SelectTrigger>
+              <SelectContent>
+                {NOTA_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={n}>{n.charAt(0).toUpperCase() + n.slice(1)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         ))}
       </div>

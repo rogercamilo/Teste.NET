@@ -125,7 +125,7 @@ export function podeEditarFormulario(
   status: StatusProcessoEclesiastico,
   papel: string
 ): boolean {
-  if (status === "concluido" || status === "arquivado") return false;
+  if (status === "concluido") return false;
   if (papel === "administrador") return true;
   if (papel === "formador_geral") return status !== "aprovado";
   return false;
