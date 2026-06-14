@@ -33,6 +33,7 @@ const PLANO_CARDS = [
     totalAnual: 970,
     icon: Zap,
     acento: "sky" as const,
+    popular: false,
     features: [
       "Até 60 usuários ativos",
       "2 GB de armazenamento",
@@ -65,6 +66,7 @@ const PLANO_CARDS = [
     totalAnual: 3970,
     icon: Star,
     acento: "amber" as const,
+    popular: false,
     features: [
       "Até 350 usuários ativos",
       "30 GB de armazenamento",
