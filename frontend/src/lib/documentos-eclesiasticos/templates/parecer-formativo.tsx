@@ -38,7 +38,7 @@ const DIMENSOES = [
 ];
 
 const NOTA_LABEL: Record<string, string> = {
-  otimo: "Ótimo",
+  ótimo: "Ótimo",
   bom: "Bom",
   regular: "Regular",
   fraco: "Fraco",
@@ -101,7 +101,7 @@ export default function ParecerFormativoPDF({ dados }: { dados: DadosTemplate })
           </>
         ) : null}
 
-        <DataLocal geradoEm={dados.geradoEm} />
+        <DataLocal />
         <Assinaturas items={["Formador Comunitário", "Formador Geral"]} />
         <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
       </Page>

@@ -187,7 +187,7 @@ export function Assinaturas({ items }: { items: string[] }) {
   );
 }
 
-export function DataLocal({ geradoEm }: { geradoEm: string }) {
+export function DataLocal() {
   return (
     <Text style={s.sigDate}>
       {"Local e data: _________________________________,  _____ / _____ / _______"}

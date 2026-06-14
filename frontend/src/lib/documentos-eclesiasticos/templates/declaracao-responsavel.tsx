@@ -41,7 +41,7 @@ export default function DeclaracaoResponsavelPDF({ dados }: { dados: DadosTempla
           {`Em caso de necessidade de atendimento médico de urgência, autorizo os responsáveis da organização a tomarem as providências necessárias para preservar a saúde e integridade do(a) menor.`}
         </Text>
 
-        <DataLocal geradoEm={dados.geradoEm} />
+        <DataLocal />
         <Assinaturas items={["Responsável legal", "Responsável canônico"]} />
         <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
       </Page>

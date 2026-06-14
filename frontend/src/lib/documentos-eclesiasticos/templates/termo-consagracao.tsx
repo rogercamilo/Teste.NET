@@ -51,7 +51,7 @@ export default function TermoConsagracaoPDF({ dados }: { dados: DadosTemplate })
           </>
         ) : null}
 
-        <DataLocal geradoEm={dados.geradoEm} />
+        <DataLocal />
         <Assinaturas
           items={[
             "Consagrado(a)",

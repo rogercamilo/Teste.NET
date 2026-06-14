@@ -28,32 +28,18 @@ import {
   type ProcessoEclesiastico,
   type TipoProcessoEclesiastico,
   type StatusProcessoEclesiastico,
-  TIPO_PROCESSO_LABELS,
   STATUS_PROCESSO_LABELS,
   STATUS_PROCESSO_COLORS,
   temPermissao,
 } from "@/types";
+import { getTipoLabel, type TermosProcesso } from "@/lib/jornada-vocacional";
 
 const PAGE_SIZE = 15;
-
-interface Termos {
-  etapa1: string;
-  etapa2: string;
-  etapa3: string;
-  etapa4: string;
-}
 
 interface Props {
   initialProcessos: ProcessoEclesiastico[];
   userRole: string;
-  termos: Termos;
-}
-
-function getTipoLabel(tipo: TipoProcessoEclesiastico, termos: Termos): string {
-  if (tipo === "admissao_etapa1") return `Admissão — ${termos.etapa1}`;
-  if (tipo === "admissao_etapa2") return `Admissão — ${termos.etapa2}`;
-  if (tipo === "promessas_iniciais") return termos.etapa3;
-  return TIPO_PROCESSO_LABELS[tipo];
+  termos: TermosProcesso;
 }
 
 export default function JornadaVocacionalClient({ initialProcessos, userRole, termos }: Props) {

@@ -40,7 +40,7 @@ export default function AtoAdmissaoPDF({ dados }: { dados: DadosTemplate }) {
           </View>
         ) : null}
 
-        <DataLocal geradoEm={dados.geradoEm} />
+        <DataLocal />
         <Assinaturas items={["Candidato(a)", "Responsável canônico"]} />
         <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
       </Page>

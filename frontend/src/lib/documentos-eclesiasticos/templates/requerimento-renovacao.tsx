@@ -47,7 +47,7 @@ export default function RequerimentoRenovacaoPDF({ dados }: { dados: DadosTempla
           </>
         ) : null}
 
-        <DataLocal geradoEm={dados.geradoEm} />
+        <DataLocal />
         <Assinaturas items={["Requerente", "Responsável canônico"]} />
         <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
       </Page>

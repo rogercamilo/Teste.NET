@@ -28,7 +28,6 @@ import {
   type TipoProcessoEclesiastico,
   type StatusProcessoEclesiastico,
   type StatusDocumentoEclesiastico,
-  TIPO_PROCESSO_LABELS,
   STATUS_PROCESSO_LABELS,
   STATUS_PROCESSO_COLORS,
   temPermissao,
@@ -37,6 +36,8 @@ import {
   getTransicoesDisponiveis,
   podeEditarFormulario,
   TIPO_DOCUMENTO_LABELS,
+  getTipoLabel,
+  type TermosProcesso,
 } from "@/lib/jornada-vocacional";
 
 // Formando extra fields not in base ProcessoEclesiastico type
@@ -61,26 +62,10 @@ interface ProcessoCompleto extends Omit<ProcessoEclesiastico, "documentos"> {
   documentos: (DocumentoEclesiastico & { observacoes?: string | null; geradoPorId?: string | null })[];
 }
 
-interface Termos {
-  etapa1: string;
-  etapa2: string;
-  etapa3: string;
-  etapa4: string;
-  promessa: string;
-}
-
 interface Props {
   processo: ProcessoCompleto;
   userRole: string;
-  termos: Termos;
-}
-
-function getTipoLabel(tipo: TipoProcessoEclesiastico, termos: Termos): string {
-  if (tipo === "admissao_etapa1") return `Admissão — ${termos.etapa1}`;
-  if (tipo === "admissao_etapa2") return `Admissão — ${termos.etapa2}`;
-  if (tipo === "promessas_iniciais") return termos.etapa3;
-  if (tipo === "promessas_definitivas") return `${termos.promessa}s Definitivas`;
-  return TIPO_PROCESSO_LABELS[tipo];
+  termos: TermosProcesso;
 }
 
 const STATUS_DOC_COLORS: Record<StatusDocumentoEclesiastico, string> = {

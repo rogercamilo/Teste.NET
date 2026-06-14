@@ -2,7 +2,9 @@ import type {
   TipoProcessoEclesiastico,
   TipoDocumentoEclesiastico,
   StatusProcessoEclesiastico,
+  PerfilUsuario,
 } from "@/types";
+import { TIPO_PROCESSO_LABELS } from "@/types";
 
 // Documentos gerados por tipo de processo.
 // Condicionais (declaracao_responsavel, ato_admissao_renovacao) são avaliadas em runtime.
@@ -63,7 +65,7 @@ export function eraMenorDeIdade(dataNascimento: Date, dataReferencia: Date): boo
 type TransicaoStatus = {
   de: StatusProcessoEclesiastico;
   para: StatusProcessoEclesiastico;
-  papeis: string[];
+  papeis: PerfilUsuario[];
   label: string;
 };
 
@@ -117,7 +119,7 @@ export function getTransicoesDisponiveis(
   papel: string
 ): TransicaoStatus[] {
   return TRANSICOES_STATUS.filter(
-    (t) => t.de === statusAtual && t.papeis.includes(papel)
+    (t) => t.de === statusAtual && t.papeis.includes(papel as PerfilUsuario)
   );
 }
 
@@ -174,4 +176,22 @@ export function camposCanonicosFaltando(formando: CamposCanonicos): string[] {
   return CAMPOS_CANONICOS
     .filter(({ campo }) => !formando[campo])
     .map(({ label }) => label);
+}
+
+// ── Rótulo localizado de tipo de processo ──────────────────────────────────────
+
+export interface TermosProcesso {
+  etapa1: string;
+  etapa2: string;
+  etapa3: string;
+  etapa4: string;
+  promessa: string;
+}
+
+export function getTipoLabel(tipo: TipoProcessoEclesiastico, termos: TermosProcesso): string {
+  if (tipo === "admissao_etapa1") return `Admissão — ${termos.etapa1}`;
+  if (tipo === "admissao_etapa2") return `Admissão — ${termos.etapa2}`;
+  if (tipo === "promessas_iniciais") return termos.etapa3;
+  if (tipo === "promessas_definitivas") return `${termos.promessa}s Definitivas`;
+  return TIPO_PROCESSO_LABELS[tipo];
 }

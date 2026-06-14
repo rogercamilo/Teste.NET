@@ -11,10 +11,11 @@ import TermoCerimonialPDF from "./termo-cerimonial";
 import TermoConsagracaoPDF from "./termo-consagracao";
 import RequerimentoRenovacaoPDF from "./requerimento-renovacao";
 import ParecerFormativoPDF from "./parecer-formativo";
+import PlaceholderPDF from "./placeholder";
 
 type TemplateComponent = React.ComponentType<{ dados: DadosTemplate }>;
 
-const TEMPLATES: Partial<Record<TipoDocumentoEclesiastico, TemplateComponent>> = {
+const TEMPLATES: Record<TipoDocumentoEclesiastico, TemplateComponent> = {
   ato_admissao:              AtoAdmissaoPDF,
   ato_admissao_renovacao:    AtoAdmissaoPDF,
   informacoes_pastorais:     InformacoesPastoraisPDF,
@@ -24,6 +25,12 @@ const TEMPLATES: Partial<Record<TipoDocumentoEclesiastico, TemplateComponent>> =
   termo_consagracao:         TermoConsagracaoPDF,
   requerimento_renovacao:    RequerimentoRenovacaoPDF,
   parecer_formativo:         ParecerFormativoPDF,
+  termo_renovacao:           PlaceholderPDF,
+  carta_missao:              PlaceholderPDF,
+  carta_transferencia:       PlaceholderPDF,
+  carta_licenca:             PlaceholderPDF,
+  termo_desligamento:        PlaceholderPDF,
+  dispensa_promessas:        PlaceholderPDF,
 };
 
 export async function renderTemplate(
@@ -31,7 +38,6 @@ export async function renderTemplate(
   dados: DadosTemplate
 ): Promise<Buffer> {
   const Template = TEMPLATES[tipo];
-  if (!Template) throw new Error(`Template não implementado para: ${tipo}`);
   const element = React.createElement(Template, { dados }) as React.ReactElement<DocumentProps>;
   const arrayBuffer = await renderToBuffer(element);
   return Buffer.from(arrayBuffer);

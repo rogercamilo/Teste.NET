@@ -43,10 +43,10 @@ export default function CienciaPoliticasInternasPDF({ dados }: { dados: DadosTem
         ))}
 
         <Text style={[s.paragraph, { marginTop: 12 }]}>
-          {`Declaro ainda que fui informado(a) sobre o caráter espiritual, comunitário e missionário da proposta formativa, e que aceito livremente suas exigências e compromisos.`}
+          {`Declaro ainda que fui informado(a) sobre o caráter espiritual, comunitário e missionário da proposta formativa, e que aceito livremente suas exigências e compromissos.`}
         </Text>
 
-        <DataLocal geradoEm={dados.geradoEm} />
+        <DataLocal />
         <Assinaturas items={["Candidato(a)", "Responsável canônico"]} />
         <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
       </Page>

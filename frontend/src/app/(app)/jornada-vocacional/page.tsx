@@ -14,7 +14,7 @@ export default async function JornadaVocacionalPage() {
   // Guard: exclusivo para Nova Comunidade
   const org = await prisma.organizacao.findUnique({
     where: { id: user.organizacaoId },
-    select: { tipoOrganizacao: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true },
+    select: { tipoOrganizacao: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, termoPromessa: true },
   });
 
   if (!hasCanonicalAccess(org?.tipoOrganizacao)) redirect("/dashboard");
@@ -65,6 +65,7 @@ export default async function JornadaVocacionalPage() {
         etapa2: org?.termoDiscipulado ?? "Discipulado",
         etapa3: org?.termoPrimeirasPromessas ?? "Primeiras Promessas",
         etapa4: org?.termoFormacaoPermanente ?? "Formação Permanente",
+        promessa: org?.termoPromessa ?? "Promessa",
       }}
     />
   );

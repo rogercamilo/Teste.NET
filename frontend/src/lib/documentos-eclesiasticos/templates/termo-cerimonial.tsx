@@ -43,7 +43,7 @@ export default function TermoCerimonialPDF({ dados }: { dados: DadosTemplate }) 
           {`Eu, ${nomeCompleto}, ao ingressar no ${dados.termoDiscipulado} de ${dados.orgNome}, renovo meu comprometimento com a vida comunitária e me disponho a percorrer esta etapa com fidelidade, escuta e generosidade.`}
         </Text>
 
-        <DataLocal geradoEm={dados.geradoEm} />
+        <DataLocal />
         <Assinaturas items={["Candidato(a)", "Responsável canônico", "Moderador(a) Geral"]} />
         <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
       </Page>
