@@ -16,7 +16,6 @@ import {
   type Modalidade,
 } from "@/types";
 
-type FormacaoType = Formacao;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,7 +118,7 @@ interface GradeFormPageProps {
   id?: string;
   role: string;
   initialGrade?: GradeFormativa;
-  initialFormacoes?: FormacaoType[];
+  initialFormacoes?: Formacao[];
   initialPlanos?: PlanoFormativo[];
   initialUsuarios?: Usuario[];
 }
@@ -135,9 +134,6 @@ export default function GradeFormPage({
   const router = useRouter();
   const canManageFormacoes = isAdmin(role);
 
-  const allFormacoes = initialFormacoes;
-  const allPlanos = initialPlanos;
-  const allUsuarios = initialUsuarios;
   const etapaLabels = useEtapaLabels();
   const isEditing = !!id;
 
@@ -194,7 +190,7 @@ export default function GradeFormPage({
 
   function handlePlanoChange(planoId: string | null) {
     if (!planoId) return;
-    const plano = allPlanos.find((p) => p.id === planoId);
+    const plano = initialPlanos.find((p) => p.id === planoId);
     setForm((prev) => ({
       ...prev,
       planoId,
@@ -278,7 +274,7 @@ export default function GradeFormPage({
     setSaving(true);
     const JSON_H = { "Content-Type": "application/json" };
     try {
-      const plano = allPlanos.find((p) => p.id === form.planoId);
+      const plano = initialPlanos.find((p) => p.id === form.planoId);
       const nivelFormativo = plano?.nivelFormativo ?? form.nivelFormativo;
 
       const eixosPayload = eixosComFormacoes.length > 0
@@ -332,7 +328,7 @@ export default function GradeFormPage({
                   eixoId: eixoMap.get(ec.eixoPlano.id) || undefined,
                   eixoNome: ec.eixoPlano.nome,
                   formadorId: f.formadorId || undefined,
-                  formadorNome: allUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
+                  formadorNome: initialUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
                   cargaHoraria: Number(f.cargaHoraria) || 2,
                   modalidade: f.modalidade,
                   tipoFormacao: "comunitaria",
@@ -391,7 +387,7 @@ export default function GradeFormPage({
 
         if (canManageFormacoes && eixosComFormacoes.length > 0) {
           // Remove formações antigas e recria com IDs reais
-          const existingForms = allFormacoes.filter((f) => f.gradeId === id);
+          const existingForms = initialFormacoes.filter((f) => f.gradeId === id);
           await Promise.all(
             existingForms.map((f) =>
               fetch(`/api/formacoes/${f.id}`, { method: "DELETE" }).catch(() => null)
@@ -490,12 +486,12 @@ export default function GradeFormPage({
 
           <div className="grid gap-1.5">
             <Label>Plano Formativo</Label>
-            <Select value={form.planoId} onValueChange={handlePlanoChange} items={Object.fromEntries(allPlanos.map((p) => [p.id, `${p.nome} (${etapaLabels[p.nivelFormativo]})`]))}>
+            <Select value={form.planoId} onValueChange={handlePlanoChange} items={Object.fromEntries(initialPlanos.map((p) => [p.id, `${p.nome} (${etapaLabels[p.nivelFormativo]})`]))}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o plano..." />
               </SelectTrigger>
               <SelectContent>
-                {allPlanos.map((p) => (
+                {initialPlanos.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     <span>{p.nome}</span>
                     <span className="ml-2 text-xs text-muted-foreground">
@@ -817,13 +813,13 @@ export default function GradeFormPage({
                               onValueChange={(v) =>
                                 v && updateFormacao(eixoIdx, formacao.tempId, "formadorId", v)
                               }
-                              items={Object.fromEntries(allUsuarios.filter((u) => u.ativo).map((u) => [u.id, u.nome]))}
+                              items={Object.fromEntries(initialUsuarios.filter((u) => u.ativo).map((u) => [u.id, u.nome]))}
                             >
                               <SelectTrigger className="h-9 text-sm">
                                 <SelectValue placeholder="Selecionar..." />
                               </SelectTrigger>
                               <SelectContent>
-                                {allUsuarios
+                                {initialUsuarios
                                   .filter((u) => u.ativo)
                                   .map((u) => (
                                     <SelectItem key={u.id} value={u.id}>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useComunidade, useEtapaLabels } from "@/lib/data-store";
 import {
   NIVEL_CORES,
+  NIVEL_FORMATIVO_ICONS,
   TIPO_GRUPO_FORMACAO_LABELS,
   type PlanoFormativo,
   type GradeFormativa,
@@ -37,13 +38,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-
-const NIVEL_ICONS: Record<NivelFormativo, string> = {
-  "pre-discipulado": "🌱",
-  discipulado: "📖",
-  "primeiras-promessas": "🌟",
-  "formacao-permanente": "🔥",
-};
 
 const NIVEIS: NivelFormativo[] = [
   "pre-discipulado",
@@ -79,8 +73,6 @@ export default function GrupoFormacaoFormPage({
   const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação";
   const tipoOrg = comunidade.tipoOrganizacao ?? "nova_comunidade";
   const etapaLabels = useEtapaLabels();
-  const allPlanos = initialPlanos;
-  const allGrades = initialGrades;
   const formadores = initialUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
   const [form, setForm] = useState<FormState>(() => ({
     nome: "",
@@ -97,30 +89,30 @@ export default function GrupoFormacaoFormPage({
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const availablePlanos = allPlanos.filter(
+  const availablePlanos = initialPlanos.filter(
     (p) =>
       p.status !== "arquivado" &&
       p.nivelFormativo === form.nivelFormativo
   );
 
-  const availableGrades = allGrades.filter(
+  const availableGrades = initialGrades.filter(
     (g) =>
       g.nivelFormativo === form.nivelFormativo &&
       (form.planoId === "" || g.planoId === form.planoId)
   );
 
   const selectedFormador = formadores.find((u) => u.id === form.formadorId);
-  const selectedPlano = allPlanos.find((p) => p.id === form.planoId);
-  const selectedGrade = allGrades.find((g) => g.id === form.gradeId);
+  const selectedPlano = initialPlanos.find((p) => p.id === form.planoId);
+  const selectedGrade = initialGrades.find((g) => g.id === form.gradeId);
   const hasFormador = !!form.formadorId;
 
   function handleNivelChange(nivel: NivelFormativo) {
     if (form.tipo !== "estruturado") return;
-    const matchingPlano = allPlanos.find(
+    const matchingPlano = initialPlanos.find(
       (p) => p.nivelFormativo === nivel && p.status !== "arquivado"
     );
     const matchingGrade = matchingPlano
-      ? allGrades.find((g) => g.planoId === matchingPlano.id && g.ativo)
+      ? initialGrades.find((g) => g.planoId === matchingPlano.id && g.ativo)
       : undefined;
     setForm((prev) => ({
       ...prev,
@@ -264,7 +256,7 @@ export default function GrupoFormacaoFormPage({
                             : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
                         }`}
                       >
-                        <span className="text-lg">{NIVEL_ICONS[nivel]}</span>
+                        <span className="text-lg">{NIVEL_FORMATIVO_ICONS[nivel]}</span>
                         <span
                           className={`text-xs font-medium leading-tight ${
                             form.nivelFormativo === nivel
@@ -452,7 +444,7 @@ export default function GrupoFormacaoFormPage({
               <CardContent className="p-5">
                 <div className="flex items-start gap-3">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-xl">
-                    {form.tipo === "estruturado" ? NIVEL_ICONS[form.nivelFormativo] : "🕊️"}
+                    {form.tipo === "estruturado" ? NIVEL_FORMATIVO_ICONS[form.nivelFormativo] : "🕊️"}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-foreground truncate">

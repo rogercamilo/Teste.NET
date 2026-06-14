@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GradeFormativa, Formacao, PlanoFormativo } from "@/types";
-import { NIVEL_FORMATIVO_LABELS, NIVEL_CORES } from "@/types";
+import { NIVEL_FORMATIVO_LABELS, NIVEL_CORES, EIXO_COLORS } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,13 +30,6 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
-const EIXO_COLORS = [
-  "bg-violet-100 text-violet-700",
-  "bg-blue-100 text-blue-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-];
 
 export default function GradeDetalheClient({
   grade,
@@ -63,7 +56,8 @@ export default function GradeDetalheClient({
     if (grade.documentoAnexoId) {
       fetch(`/api/arquivos/${grade.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
     }
-    await fetch(`/api/grades/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/grades/${id}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Erro ao excluir grade. Tente novamente."); return; }
     toast.success("Grade excluída.");
     router.replace("/grades");
     router.refresh();

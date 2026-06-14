@@ -6,6 +6,7 @@ import { useEtapaLabels } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   MODALIDADE_LABELS,
+  temPermissao,
   type Formacao,
   type GradeFormativa,
   type GrupoFormacao,
@@ -86,9 +87,9 @@ export default function FormacoesClient({
   grupoFormacaoId,
 }: FormacoesClientProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const etapaLabels = useEtapaLabels();
-  const canEdit = role === "formador_geral" || role === "administrador";
+  const canEdit = temPermissao(role, "formador_geral");
   const isFormadorComunitario = role === "formador_comunitario";
 
   const myMorada = isFormadorComunitario ? initialGruposFormacao.find((m) => m.id === grupoFormacaoId) : undefined;

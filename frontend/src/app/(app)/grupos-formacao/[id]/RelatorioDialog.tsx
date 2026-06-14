@@ -68,7 +68,6 @@ export function RelatorioDialog({
   const [finalizando, setFinalizando] = useState(false);
   const [confirmFinalizar, setConfirmFinalizar] = useState(false);
 
-  const isNew = !relatorio;
   const isFinalizado = relatorio?.status === "finalizado";
   const readonly = isFinalizado;
 
@@ -80,7 +79,7 @@ export function RelatorioDialog({
     setSaving(true);
     try {
       let res: Response;
-      if (isNew) {
+      if (!relatorio) {
         res = await fetch("/api/relatorios", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -91,7 +90,7 @@ export function RelatorioDialog({
           }),
         });
       } else {
-        res = await fetch(`/api/relatorios/${relatorio!.id}`, {
+        res = await fetch(`/api/relatorios/${relatorio.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(buildPayload(form)),

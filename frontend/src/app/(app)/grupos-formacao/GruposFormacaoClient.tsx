@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTermos } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
+  NIVEL_FORMATIVO_ICONS,
   NIVEL_CORES,
   type GrupoFormacao,
   type NivelFormativo,
@@ -55,13 +56,6 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
 
-const NIVEL_ICONS: Record<NivelFormativo, string> = {
-  "pre-discipulado": "🌱",
-  discipulado: "📖",
-  "primeiras-promessas": "🌟",
-  "formacao-permanente": "🔥",
-};
-
 type FormState = {
   nome: string;
   nivelFormativo: NivelFormativo;
@@ -101,7 +95,7 @@ export default function GruposFormacaoClient({
   formandoCounts,
 }: GruposFormacaoClientProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
   const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [search, setSearch] = useState("");
@@ -117,12 +111,6 @@ export default function GruposFormacaoClient({
   const filtered = initialGruposFormacao.filter((m) =>
     m.nome.toLowerCase().includes(search.toLowerCase())
   );
-
-  function openCreate() {
-    setEditing(null);
-    setForm(EMPTY_FORM);
-    setDialogOpen(true);
-  }
 
   function openEdit(m: GrupoFormacao, e: React.MouseEvent) {
     e.stopPropagation();
@@ -223,7 +211,7 @@ export default function GruposFormacaoClient({
           const count = initialGruposFormacao.filter((m) => m.nivelFormativo === nivel).length;
           return (
             <div key={nivel} className="p-3 rounded-xl border border-border/60 shadow-sm bg-card flex items-center gap-2.5">
-              <span className="text-xl">{NIVEL_ICONS[nivel]}</span>
+              <span className="text-xl">{NIVEL_FORMATIVO_ICONS[nivel]}</span>
               <div>
                 <p className="text-lg font-bold text-foreground leading-none">{count}</p>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
@@ -265,7 +253,7 @@ export default function GruposFormacaoClient({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-xl">
-                      {grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"}
+                      {grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

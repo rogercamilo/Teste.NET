@@ -4,8 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   STATUS_PLANO_LABELS,
+  STATUS_PLANO_STYLES,
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
+  temPermissao,
   type StatusPlano,
   type PlanoFormativo,
   type NivelFormativo,
@@ -46,13 +48,6 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
 
-const STATUS_STYLES: Record<StatusPlano, string> = {
-  rascunho: "bg-slate-100 text-slate-600 border-slate-200",
-  "em-revisao": "bg-amber-100 text-amber-700 border-amber-200",
-  ativo: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  arquivado: "bg-slate-100 text-slate-400 border-slate-200",
-};
-
 const STATUS_DOT: Record<StatusPlano, string> = {
   rascunho: "bg-slate-400",
   "em-revisao": "bg-amber-500",
@@ -71,13 +66,13 @@ const PAGE_SIZE = 10;
 
 export default function PlanosClient({ role, grupoFormacaoId, initialPlanos, initialGruposFormacao }: PlanosClientProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<PlanoFormativo | null>(null);
   const [page, setPage] = useState(1);
 
-  const isAdmin = role === "formador_geral" || role === "administrador";
+  const isAdmin = temPermissao(role, "formador_geral");
 
   const meuGrupoFormacao =
     role === "formador_comunitario" && grupoFormacaoId
@@ -192,7 +187,7 @@ export default function PlanosClient({ role, grupoFormacaoId, initialPlanos, ini
                           <Badge variant="outline" className={`text-xs ${NIVEL_CORES[plano.nivelFormativo]}`}>
                             {NIVEL_FORMATIVO_LABELS[plano.nivelFormativo]}
                           </Badge>
-                          <Badge variant="outline" className={`text-xs ${STATUS_STYLES[plano.status]}`}>
+                          <Badge variant="outline" className={`text-xs ${STATUS_PLANO_STYLES[plano.status]}`}>
                             {STATUS_PLANO_LABELS[plano.status]}
                           </Badge>
                         </div>

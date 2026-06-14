@@ -12,7 +12,7 @@ export default async function GradeDetalhePage({
   const [{ id }, session] = await Promise.all([params, auth()]);
   if (!session?.user) redirect("/login");
 
-  const user = session.user as { organizacaoId?: string; role?: string };
+  const user = session.user as { organizacaoId?: string; perfil?: string };
   if (!user.organizacaoId) redirect("/login");
   const orgId = user.organizacaoId;
 
@@ -41,13 +41,13 @@ export default async function GradeDetalhePage({
       : Promise.resolve(null),
   ]);
 
-  const canEdit = user.role !== "formador_comunitario";
+  const canEdit = user.perfil !== "formador_comunitario";
 
   return (
     <GradeDetalheClient
-      grade={toGrade({ ...grade, eixos: grade.eixos.map(e => ({ ...e, etapas: e.etapas })) })}
+      grade={toGrade(grade)}
       linkedFormacoes={linkedFormacoes.map(toFormacao)}
-      plano={plano ? toPlano({ ...plano, atualizadoEm: plano.atualizadoEm }) : null}
+      plano={plano ? toPlano(plano) : null}
       canEdit={canEdit}
     />
   );

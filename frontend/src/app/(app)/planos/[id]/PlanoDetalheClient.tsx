@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { PlanoFormativo } from "@/types";
 import {
   STATUS_PLANO_LABELS,
+  STATUS_PLANO_STYLES,
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   type StatusPlano,
@@ -33,12 +34,6 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
-const STATUS_STYLES: Record<StatusPlano, string> = {
-  rascunho: "bg-slate-100 text-slate-600 border-slate-200",
-  "em-revisao": "bg-amber-100 text-amber-700 border-amber-200",
-  ativo: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  arquivado: "bg-slate-100 text-slate-400 border-slate-200",
-};
 
 export default function PlanoDetalheClient({
   plano,
@@ -62,7 +57,8 @@ export default function PlanoDetalheClient({
     if (plano.documentoAnexoId) {
       fetch(`/api/arquivos/${plano.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
     }
-    await fetch(`/api/planos/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/planos/${id}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Erro ao excluir plano. Tente novamente."); return; }
     toast.success("Plano excluído.");
     router.replace("/planos");
     router.refresh();
@@ -93,7 +89,7 @@ export default function PlanoDetalheClient({
                 <Badge variant="outline" className={`text-xs ${NIVEL_CORES[plano.nivelFormativo]}`}>
                   {NIVEL_FORMATIVO_LABELS[plano.nivelFormativo]}
                 </Badge>
-                <Badge variant="outline" className={`text-xs ${STATUS_STYLES[plano.status]}`}>
+                <Badge variant="outline" className={`text-xs ${STATUS_PLANO_STYLES[plano.status]}`}>
                   {STATUS_PLANO_LABELS[plano.status]}
                 </Badge>
               </div>

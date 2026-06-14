@@ -66,7 +66,8 @@ export default function FormacaoDetalheClient({
     if (formacao.documentoAnexoId) {
       fetch(`/api/arquivos/${formacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
     }
-    await fetch(`/api/formacoes/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/formacoes/${id}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Erro ao excluir formação. Tente novamente."); return; }
     toast.success("Formação excluída.");
     router.replace("/formacoes");
     router.refresh();

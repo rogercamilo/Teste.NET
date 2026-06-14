@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEtapaLabels } from "@/lib/data-store";
-import type { PlanoFormativo, GradeFormativa, Usuario, Formacao as FormacaoType } from "@/types";
+import type { PlanoFormativo, GradeFormativa, Usuario } from "@/types";
 import {
   MODALIDADE_LABELS,
   TIPO_FORMACAO_LABELS,
@@ -66,7 +66,7 @@ const EMPTY_FORM: FormState = {
 
 interface FormacaoFormPageProps {
   id?: string;
-  initialFormacao?: FormacaoType;
+  initialFormacao?: Formacao;
   initialGrades?: GradeFormativa[];
   initialPlanos?: PlanoFormativo[];
   initialUsuarios?: Usuario[];
@@ -80,8 +80,6 @@ export default function FormacaoFormPage({
   initialUsuarios = [],
 }: FormacaoFormPageProps) {
   const router = useRouter();
-  const allGrades = initialGrades;
-  const allPlanos = initialPlanos;
   const formadores = initialUsuarios.filter((u) => u.ativo);
   const etapaLabels = useEtapaLabels();
   const isEditing = !!id;
@@ -113,8 +111,8 @@ export default function FormacaoFormPage({
   const [saving, setSaving] = useState(false);
 
   // Eixos da grade selecionada, com nomeEtapa resolvido
-  const gradeAtual = allGrades.find((g) => g.id === form.gradeId);
-  const planoAtual = allPlanos.find((p) => p.id === gradeAtual?.planoId);
+  const gradeAtual = initialGrades.find((g) => g.id === form.gradeId);
+  const planoAtual = initialPlanos.find((p) => p.id === gradeAtual?.planoId);
   const eixosDaGrade = gradeAtual?.eixos.map((e) => {
     const ep = planoAtual?.eixos.find((ep) => ep.id === e.eixoPlanoId);
     return { id: e.id, nome: e.nome, label: ep?.nomeEtapa ?? e.nome };
@@ -124,7 +122,7 @@ export default function FormacaoFormPage({
     setForm((prev) => ({ ...prev, [field]: value }));
 
   function handleGradeChange(gradeId: string) {
-    const grade = allGrades.find((g) => g.id === gradeId);
+    const grade = initialGrades.find((g) => g.id === gradeId);
     setForm((prev) => ({
       ...prev,
       gradeId,
@@ -162,32 +160,10 @@ export default function FormacaoFormPage({
     setSaving(true);
     try {
       const formador = formadores.find((u) => u.id === form.formadorId);
-      const entId = id ?? "new";
+      const gradeVinculada = initialGrades.find((g) => g.id === form.gradeId);
+      const JSON_H = { "Content-Type": "application/json" };
 
-      let documentoAnexo = form.documentoNome || undefined;
-      let documentoAnexoId = form.documentoId || undefined;
-
-      if (documentoFile) {
-        const fd = new FormData();
-        fd.append("file", documentoFile);
-        fd.append("entityType", "formacao");
-        fd.append("entityId", entId);
-        const res = await fetch("/api/arquivos", { method: "POST", body: fd });
-        if (!res.ok) { toast.error(`Erro ao enviar documento: ${await res.text()}`); return; }
-        const uploaded = await res.json() as { id: string; nome: string };
-        if (initialFormacao?.documentoAnexoId) {
-          fetch(`/api/arquivos/${initialFormacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-        }
-        documentoAnexo = uploaded.nome;
-        documentoAnexoId = uploaded.id;
-      } else if (!form.documentoNome && initialFormacao?.documentoAnexoId) {
-        fetch(`/api/arquivos/${initialFormacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-        documentoAnexo = undefined;
-        documentoAnexoId = undefined;
-      }
-
-      const gradeVinculada = allGrades.find((g) => g.id === form.gradeId);
-      const payload = {
+      const basePayload = {
         tema: form.tema.trim(),
         objetivo: form.objetivo.trim(),
         descricao: form.descricao.trim(),
@@ -204,26 +180,80 @@ export default function FormacaoFormPage({
         numero: form.numero ? Number(form.numero) : undefined,
         observacoesFormador: form.observacoesFormador.trim() || undefined,
         materialApoio: form.materialApoio.trim() || undefined,
-        documentoAnexo,
-        documentoAnexoId,
       };
 
-      const res = await fetch(
-        isEditing && id ? `/api/formacoes/${id}` : "/api/formacoes",
-        {
-          method: isEditing ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+      if (isEditing && id) {
+        // EDIT: entity already exists — upload document first, then PUT
+        let documentoAnexo = form.documentoNome || undefined;
+        let documentoAnexoId = form.documentoId || undefined;
+
+        if (documentoFile) {
+          const fd = new FormData();
+          fd.append("file", documentoFile);
+          fd.append("entityType", "formacao");
+          fd.append("entityId", id);
+          const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
+          if (!uploadRes.ok) { toast.error(`Erro ao enviar documento: ${await uploadRes.text()}`); return; }
+          const uploaded = await uploadRes.json() as { id: string; nome: string };
+          if (initialFormacao?.documentoAnexoId) {
+            fetch(`/api/arquivos/${initialFormacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+          }
+          documentoAnexo = uploaded.nome;
+          documentoAnexoId = uploaded.id;
+        } else if (!form.documentoNome && initialFormacao?.documentoAnexoId) {
+          fetch(`/api/arquivos/${initialFormacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
+          documentoAnexo = undefined;
+          documentoAnexoId = undefined;
         }
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(err.error ?? "Falha ao salvar formação");
+
+        const res = await fetch(`/api/formacoes/${id}`, {
+          method: "PUT",
+          headers: JSON_H,
+          body: JSON.stringify({ ...basePayload, documentoAnexo, documentoAnexoId }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(err.error ?? "Falha ao atualizar formação");
+        }
+        toast.success("Formação atualizada com sucesso!");
+        router.push(`/formacoes/${id}`);
+        router.refresh();
+      } else {
+        // CREATE: create first to get real ID, then upload document
+        const createRes = await fetch("/api/formacoes", {
+          method: "POST",
+          headers: JSON_H,
+          body: JSON.stringify(basePayload),
+        });
+        if (!createRes.ok) {
+          const err = await createRes.json().catch(() => ({})) as { error?: string };
+          throw new Error(err.error ?? "Falha ao criar formação");
+        }
+        let created = await createRes.json() as { id: string };
+
+        if (documentoFile) {
+          const fd = new FormData();
+          fd.append("file", documentoFile);
+          fd.append("entityType", "formacao");
+          fd.append("entityId", created.id);
+          const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
+          if (uploadRes.ok) {
+            const uploaded = await uploadRes.json() as { id: string; nome: string };
+            const updateRes = await fetch(`/api/formacoes/${created.id}`, {
+              method: "PUT",
+              headers: JSON_H,
+              body: JSON.stringify({ ...basePayload, documentoAnexo: uploaded.nome, documentoAnexoId: uploaded.id }),
+            });
+            if (updateRes.ok) created = await updateRes.json();
+          } else {
+            toast.warning("Formação criada, mas o documento não pôde ser anexado.");
+          }
+        }
+
+        toast.success("Formação criada com sucesso!");
+        router.push(`/formacoes/${created.id}`);
+        router.refresh();
       }
-      const saved = await res.json() as { id: string };
-      toast.success(isEditing ? "Formação atualizada com sucesso!" : "Formação criada com sucesso!");
-      router.push(isEditing ? `/formacoes/${id}` : `/formacoes/${saved.id}`);
-      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
@@ -328,13 +358,13 @@ export default function FormacaoFormPage({
               <Select
                 value={form.gradeId}
                 onValueChange={(v) => v && handleGradeChange(v)}
-                items={Object.fromEntries(allGrades.map((g) => [g.id, g.nome]))}
+                items={Object.fromEntries(initialGrades.map((g) => [g.id, g.nome]))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecionar grade (opcional)..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {allGrades.map((g) => (
+                  {initialGrades.map((g) => (
                     <SelectItem key={g.id} value={g.id}>
                       <span>{g.nome}</span>
                       <span className="ml-2 text-xs text-muted-foreground">({etapaLabels[g.nivelFormativo]})</span>

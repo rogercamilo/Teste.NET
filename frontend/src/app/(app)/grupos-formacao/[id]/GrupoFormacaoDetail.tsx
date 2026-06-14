@@ -25,6 +25,9 @@ import {
   type Usuario,
   type Agendamento,
   NIVEL_FORMATIVO_LABELS,
+  NIVEL_FORMATIVO_ICONS,
+  STATUS_FORMACAO_STYLES,
+  ESTADO_CIVIL_LABELS,
   STATUS_RELATORIO_CORES,
   NOTA_ADESAO_LABELS,
   NOTA_ADESAO_CORES,
@@ -81,7 +84,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Save,
   Search,
   Trash2,
   TrendingUp,
@@ -109,27 +111,6 @@ interface GrupoFormacaoDetailProps {
   initialRelatorios: RelatorioEtapa[];
 }
 
-const NIVEL_ICONS: Record<string, string> = {
-  "pre-discipulado": "🌱",
-  discipulado: "📖",
-  "primeiras-promessas": "🌟",
-  "formacao-permanente": "🔥",
-};
-
-const STATUS_FORMACAO_COLORS: Record<string, string> = {
-  agendada: "bg-blue-100 text-blue-700 border-blue-200",
-  confirmada: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  realizada: "bg-slate-100 text-slate-600 border-slate-200",
-  cancelada: "bg-red-100 text-red-600 border-red-200",
-  reagendada: "bg-amber-100 text-amber-700 border-amber-200",
-};
-
-const ESTADO_CIVIL_LABELS = {
-  solteiro: "Solteiro(a)",
-  casado: "Casado(a)",
-  divorciado: "Divorciado(a)",
-  viuvo: "Viúvo(a)",
-};
 
 const NIVEL_SEQUENCE: NivelFormativo[] = [
   "pre-discipulado",
@@ -176,11 +157,6 @@ export default function GrupoFormacaoDetail({
   const [isPending, startTransition] = useTransition();
   const isAdmin = userRole === "administrador";
   const isFC = userRole === "formador_comunitario";
-
-  const allPlanos = initialPlanos;
-  const allGrades = initialGrades;
-  const allUsuarios = initialUsuarios;
-  const allAgendamentos = initialAgendamentos;
 
   const [grupoFormacao, setGrupoFormacao] = useState<GrupoFormacao>(initialGrupoFormacao);
   const [allFormandos, setAllFormandos] = useState<Formando[]>(initialFormandos);
@@ -251,11 +227,11 @@ export default function GrupoFormacaoDetail({
   const [imagemDialogOpen, setImagemDialogOpen] = useState(false);
   const [imagemLoading, setImagemLoading] = useState(false);
 
-  const formador = allUsuarios.find((u) => u.id === grupoFormacao.formadorId);
-  const plano = allPlanos.find((p) => p.id === grupoFormacao.planoId);
-  const grade = allGrades.find((g) => g.id === grupoFormacao.gradeId);
+  const formador = initialUsuarios.find((u) => u.id === grupoFormacao.formadorId);
+  const plano = initialPlanos.find((p) => p.id === grupoFormacao.planoId);
+  const grade = initialGrades.find((g) => g.id === grupoFormacao.gradeId);
   const formandosDaMorada = allFormandos.filter((f) => f.grupoFormacaoId === grupoFormacao.id);
-  const agendamentosDaMorada = allAgendamentos.filter(
+  const agendamentosDaMorada = initialAgendamentos.filter(
     (a) => a.grupoFormacaoId === grupoFormacao.id
   );
   const realizadas = agendamentosDaMorada.filter(
@@ -294,6 +270,7 @@ export default function GrupoFormacaoDetail({
 
   function togglePresenca(formandoId: string, formandoNome: string) {
     const newPresente = !getPresenca(formandoId);
+    const snapshot = presencas;
     // Optimistic local update for instant feedback
     setPresencas((prev) => {
       const existente = prev.find(
@@ -321,7 +298,7 @@ export default function GrupoFormacaoDetail({
         },
       ];
     });
-    // Persist to server silently (upsert)
+    // Persist to server (upsert); rollback optimistic update on failure
     fetch("/api/presencas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -332,7 +309,10 @@ export default function GrupoFormacaoDetail({
         formacaoTema: agendamento?.formacaoTema ?? "",
         data: agendamento?.dataInicio.split("T")[0] ?? "",
       }),
-    }).catch(() => {});
+    }).catch(() => {
+      setPresencas(snapshot);
+      toast.error("Erro ao salvar presença. Tente novamente.");
+    });
   }
 
   function calcPresencaFormando(formandoId: string) {
@@ -362,10 +342,6 @@ export default function GrupoFormacaoDetail({
     setEditOpen(false);
     toast.success(`${termoGrupoFormacao} atualizado!`);
     startTransition(() => router.refresh());
-  }
-
-  function handleSalvarPresenca() {
-    toast.success("Lista de presença salva com sucesso!");
   }
 
   async function handleSalvarComentario() {
@@ -600,7 +576,7 @@ export default function GrupoFormacaoDetail({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={grupoFormacao.imagemUrl} alt={grupoFormacao.nome} className="h-full w-full object-cover" />
               ) : (
-                grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"
+                grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"
               )}
               {(isFC || isAdmin) && (
                 <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/imagem:opacity-100 transition-opacity flex items-center justify-center">
@@ -762,7 +738,7 @@ export default function GrupoFormacaoDetail({
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"}</span>
+                  <span className="text-lg">{grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"}</span>
                   <div>
                     <p className="text-xs font-medium text-foreground">
                       {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}
@@ -861,7 +837,7 @@ export default function GrupoFormacaoDetail({
                         {ag.local && ` · ${ag.local}`}
                       </p>
                     </div>
-                    <Badge variant="outline" className={`text-xs shrink-0 ${STATUS_FORMACAO_COLORS[ag.status]}`}>
+                    <Badge variant="outline" className={`text-xs shrink-0 ${STATUS_FORMACAO_STYLES[ag.status]}`}>
                       {STATUS_FORMACAO_LABELS[ag.status]}
                     </Badge>
                   </div>
@@ -924,7 +900,7 @@ export default function GrupoFormacaoDetail({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredFormandos.map((formando) => {
-                const progresso = Math.round((formando.formacoesRealizadas / formando.totalFormacoes) * 100);
+                const progresso = formando.totalFormacoes > 0 ? Math.round((formando.formacoesRealizadas / formando.totalFormacoes) * 100) : 0;
                 const { total, presentes: pres, pct } = calcPresencaFormando(formando.id);
                 const initials = formando.nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
                 const idade = differenceInYears(new Date(), parseISO(formando.dataNascimento));
@@ -1073,10 +1049,7 @@ export default function GrupoFormacaoDetail({
                       {agendamento.local && ` · ${agendamento.local}`}
                     </p>
                   </div>
-                  <Button size="sm" onClick={handleSalvarPresenca} className="shrink-0 gap-1.5">
-                    <Save className="h-4 w-4" />
-                    Salvar
-                  </Button>
+                  <span className="text-xs text-muted-foreground shrink-0">Salvo automaticamente</span>
                 </div>
               </CardHeader>
               <CardContent>
@@ -1368,7 +1341,7 @@ export default function GrupoFormacaoDetail({
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
               <p className="font-medium mb-1">Etapa a encerrar:</p>
-              <p>{grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"} {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}</p>
+              <p>{grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"} {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}</p>
             </div>
             <p className="text-sm text-muted-foreground">
               Esta ação registará a data de encerramento da etapa atual na {termoGrupoFormacao.toLowerCase()} e em todos os {termoFormando.toLowerCase()}s associados. Após o encerramento, o botão <span className="font-medium text-foreground">Nova Etapa</span> ficará disponível.
@@ -1405,8 +1378,8 @@ export default function GrupoFormacaoDetail({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{grupoFormacao.nivelFormativo ? NIVEL_ICONS[grupoFormacao.nivelFormativo] : "🕊️"} {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}</span></p>
-              <p className="mt-1">Próxima etapa: <span className="font-medium text-foreground">{NIVEL_ICONS[nextEtapaOptions[0]] ?? ""} {etapaLabels[nextEtapaOptions[0]]}</span></p>
+              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"} {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}</span></p>
+              <p className="mt-1">Próxima etapa: <span className="font-medium text-foreground">{NIVEL_FORMATIVO_ICONS[nextEtapaOptions[0]] ?? ""} {etapaLabels[nextEtapaOptions[0]]}</span></p>
             </div>
             <p className="text-sm text-muted-foreground">
               Ao confirmar, declaro que não há pendências administrativas, formativas ou documentais neste grupo formativo e que estamos prontos para avançar.

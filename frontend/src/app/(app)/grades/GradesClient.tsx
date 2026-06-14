@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
+  EIXO_COLORS,
+  temPermissao,
   type NivelFormativo,
   type GradeFormativa,
   type GrupoFormacao,
@@ -45,13 +47,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
 
-const EIXO_COLORS = [
-  "bg-violet-100 text-violet-700",
-  "bg-blue-100 text-blue-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-];
+const PAGE_SIZE = 10;
 
 interface GradesClientProps {
   role: string;
@@ -62,10 +58,8 @@ interface GradesClientProps {
 
 export default function GradesClient({ role, grupoFormacaoId, initialGrades, initialGruposFormacao }: GradesClientProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const canEdit = role !== "formador_comunitario";
-
-  const PAGE_SIZE = 10;
+  const [, startTransition] = useTransition();
+  const canEdit = temPermissao(role, "formador_geral");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<GradeFormativa | null>(null);
   const [page, setPage] = useState(1);

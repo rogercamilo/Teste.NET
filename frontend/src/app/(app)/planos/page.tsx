@@ -8,7 +8,7 @@ export default async function PlanosPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const user = session.user as { role?: string; organizacaoId?: string; grupoFormacaoId?: string | null };
+  const user = session.user as { perfil?: string; organizacaoId?: string; grupoFormacaoId?: string | null };
   if (!user.organizacaoId) redirect("/login");
 
   const [planosRaw, gruposFormacaoRaw] = await Promise.all([
@@ -28,7 +28,7 @@ export default async function PlanosPage() {
 
   return (
     <PlanosClient
-      role={user.role ?? "formador_comunitario"}
+      role={user.perfil ?? "formador_comunitario"}
       grupoFormacaoId={user.grupoFormacaoId ?? null}
       initialPlanos={planosRaw.map(toPlano)}
       initialGruposFormacao={gruposFormacaoRaw.map(toGrupoFormacao)}

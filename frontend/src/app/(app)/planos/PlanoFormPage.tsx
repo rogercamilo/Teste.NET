@@ -288,7 +288,6 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
     }
   }
 
-  const conflito = undefined; // conflito de nível verificado no servidor
   const retirosComunitarios = form.retiros.filter((r) => r.tipo === "comunitario");
   const retirosPessoais = form.retiros.filter((r) => r.tipo === "pessoal");
 
