@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { updateUser } from "@/lib/users-store";
+import { hashPassword } from "@/lib/users-store";
 import { passwordErrorMessage } from "@/lib/password-validation";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
@@ -20,11 +20,14 @@ export async function POST(request: Request) {
       novaSenha?: string;
     };
 
-    if (!token || typeof token !== "string") {
+    if (!token || typeof token !== "string" || !/^[0-9a-f]{64}$/.test(token)) {
       return NextResponse.json({ error: "Token inválido" }, { status: 400 });
     }
 
-    const pwdError = !novaSenha ? "A nova senha é obrigatória" : passwordErrorMessage(novaSenha);
+    if (!novaSenha) {
+      return NextResponse.json({ error: "A nova senha é obrigatória" }, { status: 400 });
+    }
+    const pwdError = passwordErrorMessage(novaSenha);
     if (pwdError) {
       return NextResponse.json({ error: pwdError }, { status: 400 });
     }
@@ -47,18 +50,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // Hash computado fora da transação (operação CPU-intensiva)
+    const passwordHash = await hashPassword(novaSenha);
+
+    // Token invalidado + senha alterada atomicamente — se um falhar, o outro reverte
     await prisma.$transaction([
       prisma.passwordResetToken.update({
         where: { id: resetToken.id },
         data: { usedAt: new Date() },
       }),
+      prisma.usuario.update({
+        where: { id: resetToken.userId },
+        data: { passwordHash, primeiroAcesso: false, passwordChangedAt: new Date() },
+      }),
     ]);
-
-    await updateUser(resetToken.userId, {
-      password: novaSenha,
-      primeiroAcesso: false,
-      organizacaoId: resetToken.usuario.organizacaoId,
-    });
 
     logAction(
       "password_reset_confirmed",

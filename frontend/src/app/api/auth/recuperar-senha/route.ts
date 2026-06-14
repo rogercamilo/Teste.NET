@@ -51,12 +51,16 @@ export async function POST(request: Request) {
     const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
     const resetUrl = `${appUrl}/recuperar-senha/${token}`;
 
-    await sendPasswordResetEmail({
-      organizacaoId: usuario.organizacaoId,
-      nome: usuario.nome,
-      email: usuario.email,
-      resetUrl,
-    });
+    try {
+      await sendPasswordResetEmail({
+        organizacaoId: usuario.organizacaoId,
+        nome: usuario.nome,
+        email: usuario.email,
+        resetUrl,
+      });
+    } catch (emailErr) {
+      logError("auth/recuperar-senha/email", emailErr);
+    }
 
     logAction("password_reset_requested", usuario.id, getClientIp(request), { email: usuario.email }, usuario.organizacaoId);
     return NextResponse.json({ ok: true });

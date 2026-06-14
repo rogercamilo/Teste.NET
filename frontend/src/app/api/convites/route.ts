@@ -52,9 +52,10 @@ export async function POST(request: Request) {
   try {
     const parsed = parseBody(CreateConviteSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-    const { email, nome, grupoFormacaoId } = parsed.data;
-    // Administradores de organização só podem convidar formador_comunitario ou administrador
-    const perfil = parsed.data.perfil === "formador_geral" ? "administrador" : parsed.data.perfil;
+    const { email, nome, grupoFormacaoId, perfil } = parsed.data;
+    if (perfil === "formador_geral") {
+      return NextResponse.json({ error: "Perfil inválido para convite. Use formador_comunitario ou administrador." }, { status: 400 });
+    }
 
     // Verificar se já existe usuário com esse e-mail
     const existing = await prisma.usuario.findFirst({
