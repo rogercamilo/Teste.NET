@@ -437,7 +437,7 @@ function Pricing() {
         )}
 
         {/* Cards BASICO / INTERMEDIARIO / AVANCADO */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
           {PLANOS_PAGOS.map((plan) => (
             <div
               key={plan.name}
