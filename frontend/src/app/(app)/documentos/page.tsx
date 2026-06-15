@@ -201,7 +201,7 @@ export default function DocumentosPage() {
                     <TableCell className="text-sm">{doc.formandoNome}</TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {TIPO_EVENTO_LABELS[doc.tipoEvento] ?? doc.tipoEvento}
+                        {doc.tipoEvento ? (TIPO_EVENTO_LABELS[doc.tipoEvento] ?? doc.tipoEvento) : "—"}
                       </span>
                     </TableCell>
                     {isGestao && (
