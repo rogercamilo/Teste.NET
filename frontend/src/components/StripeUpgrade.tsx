@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   AlertCircle,
   CalendarDays,
+  Check,
   CheckCircle2,
+  ChevronDown,
   CreditCard,
   ExternalLink,
   Loader2,
@@ -19,6 +21,7 @@ import {
 import { toast } from "sonner";
 import type { BillingInfo } from "@/lib/billing-data";
 import { PLANO_ASSINATURA_LABELS } from "@/types";
+import PlanCalculator, { usePlanCalculatorCheckout } from "@/components/PlanCalculator";
 
 interface StripeUpgradeProps {
   initialBilling: BillingInfo | null;
@@ -138,6 +141,9 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
   const [periodicidade, setPeriodicidade] = useState<"mensal" | "anual">("mensal");
+  const [expandidoPersonalizado, setExpandidoPersonalizado] = useState(false);
+  const { handleCheckout: handlePersonalizadoCheckout, isLoading: isPersonalizadoLoading } =
+    usePlanCalculatorCheckout();
 
   async function handleCheckout(plano: "BASICO" | "INTERMEDIARIO" | "AVANCADO") {
     setUpgrading(plano);
@@ -192,10 +198,26 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
 
   if (isPersonalizado) {
     return (
-      <div className="rounded-xl border border-border bg-muted/30 p-4">
-        <p className="text-sm text-muted-foreground">
-          Plano personalizado configurado pelo suporte. Entre em contato para alterações.
-        </p>
+      <div className="rounded-xl border border-amber-200 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-950/10 p-5">
+        <div className="flex items-start gap-3">
+          <Star className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-300">
+              Plano Personalizado ativo
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400/80">
+              Seu plano foi configurado pelo time Formattio. Para ajustes de capacidade,
+              faturamento ou renovação, entre em contato com{" "}
+              <a
+                href="mailto:contato@formattio.com.br"
+                className="underline hover:no-underline font-medium"
+              >
+                contato@formattio.com.br
+              </a>
+              .
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -394,6 +416,68 @@ export default function StripeUpgrade({ initialBilling }: StripeUpgradeProps) {
             </div>
           );
         })}
+      </div>
+
+      {/* Seção Personalizado */}
+      <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-muted/30 to-amber-500/5 overflow-hidden">
+        <div className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold mb-2">
+                <Star className="h-3 w-3" />
+                Personalizado
+              </div>
+              <h3 className="text-sm font-semibold text-foreground mb-0.5">
+                Sua organização cresceu além do Avançado?
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Acima de 350 membros, o plano Personalizado se adapta ao seu tamanho.
+                Calcule o valor agora e assine sem precisar falar com o time.
+              </p>
+            </div>
+            <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
+              <div className="sm:text-right">
+                <p className="text-[10px] text-muted-foreground">A partir de</p>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-xl font-bold text-foreground">R$ 889</span>
+                  <span className="text-muted-foreground text-xs">/mês</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setExpandidoPersonalizado((v) => !v)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg transition-colors text-xs whitespace-nowrap"
+              >
+                {expandidoPersonalizado ? "Fechar" : "Simular meu plano"}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandidoPersonalizado ? "rotate-180" : ""}`} />
+              </button>
+            </div>
+          </div>
+
+          {!expandidoPersonalizado && (
+            <div className="mt-4 grid grid-cols-2 gap-1.5">
+              {[
+                "Usuários e grupos ilimitados",
+                "SLA com garantia de disponibilidade",
+                "Armazenamento calculado automaticamente",
+                "Suporte prioritário dedicado",
+              ].map((f) => (
+                <div key={f} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Check className="h-3 w-3 text-amber-500 shrink-0" />
+                  <span>{f}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {expandidoPersonalizado && (
+            <div className="mt-6 pt-6 border-t border-border">
+              <PlanCalculator
+                onCheckout={handlePersonalizadoCheckout}
+                isLoading={isPersonalizadoLoading}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Faturas (abaixo do grid quando assinante) */}

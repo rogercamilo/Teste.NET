@@ -285,6 +285,106 @@ export async function sendIncidentNotificationEmail({
   return send(organizacaoId, email, `Notificação de incidente de segurança — ${orgNome.replace(/[\r\n]/g, "")}`, html);
 }
 
+export async function sendPlanLimitReachedEmail({
+  organizacaoId,
+  email,
+  orgNome,
+  tipoLimite,
+}: {
+  organizacaoId: string;
+  email: string;
+  orgNome: string;
+  tipoLimite: "usuarios" | "storage";
+}): Promise<{ sent: boolean; error?: string }> {
+  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const safeOrg = escapeHtml(orgNome);
+  const safeAppUrl = safeUrl(appUrl);
+  const calculadoraUrl = `${safeAppUrl}/configuracoes?tab=plano`;
+
+  const recursoLabel = tipoLimite === "usuarios" ? "usuários ativos" : "armazenamento";
+  const mailtoSubject = encodeURIComponent(`Plano Personalizado — ${orgNome}`);
+  const mailtoBody = encodeURIComponent(
+    `Nome do responsável: \nNome da organização: ${orgNome}\nNúmero estimado de membros: \nTelefone/WhatsApp para retorno: `
+  );
+  const mailtoHref = `mailto:contato@formattio.com.br?subject=${mailtoSubject}&body=${mailtoBody}`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 580px; margin: 0 auto; color: #1a1a1a;">
+      <div style="background: #fef3c7; border-left: 4px solid #d97706; padding: 14px 18px; border-radius: 4px; margin-bottom: 24px;">
+        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #92400e;">
+          Limite do Plano Avançado atingido — ${safeOrg}
+        </p>
+      </div>
+
+      <p>Olá!</p>
+      <p>
+        Sua organização <strong>${safeOrg}</strong> atingiu o limite de <strong>${recursoLabel}</strong>
+        do <strong>Plano Avançado</strong>. Para continuar crescendo sem interrupções, convidamos você a
+        conhecer o <strong>Plano Personalizado Formattio</strong>.
+      </p>
+
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0 0 12px; font-size: 13px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">
+          O que você ganha no Plano Personalizado
+        </p>
+        <table style="width: 100%; border-collapse: collapse;">
+          ${[
+            ["Usuários ilimitados", "Sem teto — cresça sem restrições"],
+            ["Armazenamento sob demanda", "Calculado automaticamente pela quantidade de membros"],
+            ["SLA com garantia de disponibilidade", "Acordo de nível de serviço dedicado"],
+            ["Suporte prioritário", "Atendimento dedicado ao seu time"],
+            ["Onboarding guiado", "O time Formattio configura tudo com você"],
+            ["Contrato personalizado", "Termos adaptados à sua realidade"],
+          ].map(([feat, desc]) => `
+            <tr>
+              <td style="padding: 6px 0; vertical-align: top; width: 20px;">
+                <span style="color: #d97706; font-size: 16px;">✓</span>
+              </td>
+              <td style="padding: 6px 8px; vertical-align: top;">
+                <strong style="font-size: 13px;">${feat}</strong>
+                <br/><span style="font-size: 12px; color: #6b7280;">${desc}</span>
+              </td>
+            </tr>
+          `).join("")}
+        </table>
+      </div>
+
+      <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+        <p style="margin: 0 0 4px; font-size: 12px; color: #92400e; font-weight: 600; text-transform: uppercase;">A partir de</p>
+        <p style="margin: 0; font-size: 32px; font-weight: 800; color: #1a1a1a;">R$ 889<span style="font-size: 14px; font-weight: 400; color: #6b7280;">/mês</span></p>
+        <p style="margin: 4px 0 0; font-size: 12px; color: #6b7280;">Mensal ou anual · Calculado pelo número de membros</p>
+      </div>
+
+      <p style="text-align: center; margin: 28px 0 12px;">
+        <a href="${calculadoraUrl}"
+           style="display: inline-block; background: #b25433; color: white; text-decoration: none;
+                  padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 15px;">
+          Simular meu plano agora
+        </a>
+      </p>
+      <p style="text-align: center; margin: 0;">
+        <a href="${mailtoHref}"
+           style="font-size: 13px; color: #6b7280; text-decoration: underline;">
+          Ou fale diretamente com nosso time
+        </a>
+      </p>
+
+      <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+      <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+        Formattio — plataforma de gestão formativa<br/>
+        Você recebeu este e-mail porque é administrador da organização ${safeOrg}.
+      </p>
+    </div>
+  `;
+
+  return send(
+    organizacaoId,
+    email,
+    `Limite do Plano Avançado atingido — conheça o Plano Personalizado`,
+    html
+  );
+}
+
 export async function sendLimitAlertEmail({
   organizacaoId,
   email,

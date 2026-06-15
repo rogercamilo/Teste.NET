@@ -103,7 +103,11 @@ async function handleEvent(event: Stripe.Event) {
       if (!org) break;
 
       const priceId = sub.items.data[0]?.price.id;
-      const plano = priceId ? resolvePlan(priceId) : null;
+      // Planos com price_data dinâmico (PERSONALIZADO) não têm priceId no mapa —
+      // usamos o metadata da subscription como fallback.
+      const plano =
+        (priceId ? resolvePlan(priceId) : null) ??
+        ((sub.metadata?.plano as PaidPlan | undefined) || null);
 
       await prisma.organizacao.update({
         where: { id: org.id },

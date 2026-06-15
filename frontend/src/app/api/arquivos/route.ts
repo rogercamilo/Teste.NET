@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { canUpload } from "@/lib/plan-limits";
+import { canUpload, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
 
   const uploadCheck = await canUpload(orgId, file.size);
   if (!uploadCheck.allowed) {
+    notifyAvancadoLimitIfNeeded(orgId, "storage");
     return Response.json({ error: uploadCheck.reason }, { status: 403 });
   }
 

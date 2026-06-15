@@ -102,7 +102,8 @@ export type AuditAction =
   | "processo_eclesiastico_concluido"
   | "password_reset_requested"
   | "password_reset_confirmed"
-  | "lgpd_incident_notification_sent";
+  | "lgpd_incident_notification_sent"
+  | "plan_limit_email_enviado";
 
 export interface AuditEntry {
   timestamp: string;

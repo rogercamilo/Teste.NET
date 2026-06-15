@@ -2,7 +2,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
-import { canAddFormando } from "@/lib/plan-limits";
+import { canAddFormando, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateFormandoSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
@@ -115,6 +115,7 @@ export async function POST(request: Request) {
 
     const limitCheck = await canAddFormando(user.organizacaoId!);
     if (!limitCheck.allowed) {
+      notifyAvancadoLimitIfNeeded(user.organizacaoId!, "usuarios");
       return NextResponse.json({ error: limitCheck.reason }, { status: 403 });
     }
 

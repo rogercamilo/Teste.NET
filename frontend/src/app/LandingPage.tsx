@@ -147,7 +147,7 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
                 <div key={i} className={`h-2.5 w-2.5 rounded-full ${c}`} />
               ))}
               <div className="ml-3 text-xs text-slate-500 bg-slate-800 rounded px-3 py-1">
-                app.formattio.com.br/dashboard
+                www.formattio.com.br/.../dashboard
               </div>
             </div>
             <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -338,80 +338,107 @@ function HowItWorks() {
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 
-const plans = [
+const PLANOS_PAGOS = [
   {
-    name: "Gratuito",
-    price: "R$ 0",
-    period: "/mês",
-    desc: "Para começar e explorar a plataforma sem compromisso.",
-    cta: "Criar conta gratuita",
-    ctaHref: "/registro",
+    name: "Básico",
+    precoMensal: 97,
+    precoAnual: 81,
+    totalAnual: 970,
+    desc: "Para comunidades em início de jornada.",
     highlight: false,
+    badge: null as string | null,
     features: [
-      "1 Grupo de formação (grupo local)",
-      "Até 30 formandos",
-      "500 MB de armazenamento",
-      "Dashboard e relatórios",
-      "Planos e grades formativas",
-      "Controle de presenças",
+      "Até 60 usuários ativos",
+      "2 GB de armazenamento",
+      "Todos os módulos incluídos",
       "Suporte por e-mail",
     ],
   },
   {
-    name: "Essencial",
-    price: "R$ 49",
-    period: "/mês",
-    desc: "Para organizações em crescimento com múltiplos grupos.",
-    cta: "Assinar Essencial",
-    ctaHref: "/registro",
+    name: "Intermediário",
+    precoMensal: 197,
+    precoAnual: 164,
+    totalAnual: 1970,
+    desc: "Para comunidades em crescimento.",
     highlight: true,
-    badge: "Mais popular",
+    badge: "Mais popular" as string | null,
     features: [
-      "3 Grupos de formação",
-      "Até 150 formandos",
-      "2 GB de armazenamento",
-      "Tudo do plano Gratuito",
-      "E-mail personalizado (SMTP)",
-      "Convites por e-mail",
+      "Até 140 usuários ativos",
+      "10 GB de armazenamento",
+      "Todos os módulos incluídos",
+      "Jornada Vocacional completa",
       "Suporte prioritário",
     ],
   },
   {
-    name: "Profissional",
-    price: "R$ 149",
-    period: "/mês",
-    desc: "Para organizações grandes que precisam de escala ilimitada.",
-    cta: "Assinar Profissional",
-    ctaHref: "/registro",
+    name: "Avançado",
+    precoMensal: 397,
+    precoAnual: 331,
+    totalAnual: 3970,
+    desc: "Para grandes organizações formativas.",
     highlight: false,
+    badge: null as string | null,
     features: [
-      "Grupos de formação ilimitados",
-      "Formandos ilimitados",
-      "Armazenamento ilimitado",
-      "Tudo do plano Essencial",
-      "Exportação completa de dados",
+      "Até 350 usuários ativos",
+      "30 GB de armazenamento",
+      "Todos os módulos incluídos",
+      "Jornada Vocacional completa",
+      "Exportação de dados",
       "Suporte dedicado",
-      "SLA garantido",
     ],
   },
 ];
 
 function Pricing() {
+  const [anual, setAnual] = useState(false);
+  const [expandido, setExpandido] = useState(false);
+
   return (
     <section id="precos" className="bg-slate-950 py-24">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3">Preços</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Planos para cada tamanho de comunidade
           </h2>
           <p className="text-slate-400 max-w-xl mx-auto">
-            Comece gratuitamente. Escale conforme sua comunidade cresce. Sem taxas ocultas.
+            Comece sem compromisso. Escale conforme sua comunidade cresce. Sem taxas ocultas.
           </p>
         </div>
 
+        {/* Toggle mensal/anual */}
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex items-center gap-1 rounded-full bg-slate-900 border border-white/10 p-1">
+            <button
+              onClick={() => setAnual(false)}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                !anual ? "bg-white text-slate-950" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Mensal
+            </button>
+            <button
+              onClick={() => setAnual(true)}
+              className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                anual ? "bg-white text-slate-950" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Anual
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                −17%
+              </span>
+            </button>
+          </div>
+        </div>
+        {anual && (
+          <p className="text-center text-xs text-emerald-400 font-medium -mt-7 mb-10">
+            Equivale a 2 meses grátis por ano
+          </p>
+        )}
+
+        {/* Cards BASICO / INTERMEDIARIO / AVANCADO */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-          {plans.map((plan) => (
+          {PLANOS_PAGOS.map((plan) => (
             <div
               key={plan.name}
               className={`relative rounded-2xl border p-6 flex flex-col ${
@@ -429,10 +456,17 @@ function Pricing() {
 
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mt-2 mb-2">
-                  <span className="text-3xl font-bold text-white">{plan.price}</span>
-                  <span className="text-slate-400 text-sm">{plan.period}</span>
+                <div className="flex items-baseline gap-1 mt-2 mb-1">
+                  <span className="text-3xl font-bold text-white">
+                    R$ {anual ? plan.precoAnual : plan.precoMensal}
+                  </span>
+                  <span className="text-slate-400 text-sm">/mês</span>
                 </div>
+                {anual && (
+                  <p className="text-xs text-slate-500 mb-2">
+                    R$ {plan.totalAnual.toLocaleString("pt-BR")} cobrado anualmente
+                  </p>
+                )}
                 <p className="text-sm text-slate-400">{plan.desc}</p>
               </div>
 
@@ -446,24 +480,180 @@ function Pricing() {
               </ul>
 
               <Link
-                href={plan.ctaHref}
+                href="/registro"
                 className={`block text-center text-sm font-semibold px-4 py-3 rounded-xl transition-colors ${
                   plan.highlight
                     ? "bg-primary text-white hover:bg-primary/90"
                     : "border border-white/20 text-slate-300 hover:border-white/40 hover:text-white"
                 }`}
               >
-                {plan.cta}
+                Assinar {plan.name}
               </Link>
             </div>
           ))}
         </div>
 
+        {/* Card Personalizado */}
+        <div className="mt-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-slate-900 to-amber-950/20 overflow-hidden">
+          <div className="p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-10">
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-semibold mb-4">
+                  <Star className="h-3 w-3" />
+                  Personalizado
+                </div>
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
+                  Sua organização tem necessidades únicas?
+                </h3>
+                <p className="text-sm text-slate-400 leading-relaxed mb-5">
+                  Para dioceses, congregações, redes formativas e organizações acima de 350 membros.
+                  Informe a quantidade de membros e calculamos o valor ideal para o seu caso.
+                  Pagamento mensal ou anual.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    "Usuários e grupos ilimitados",
+                    "Armazenamento calculado automaticamente",
+                    "SLA com garantia de disponibilidade",
+                    "Onboarding guiado pelo time Formattio",
+                    "Suporte prioritário dedicado",
+                    "Faturamento por boleto ou PIX",
+                    "Contratos personalizados",
+                    "Treinamento para formadores",
+                  ].map((f) => (
+                    <div key={f} className="flex items-center gap-2 text-sm text-slate-300">
+                      <Check className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col items-start md:items-end gap-3 md:min-w-[200px] shrink-0">
+                <div className="md:text-right">
+                  <p className="text-xs text-slate-500 mb-1">A partir de</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-white">R$ 889</span>
+                    <span className="text-slate-400 text-sm">/mês</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Mensal ou anual</p>
+                </div>
+                <button
+                  onClick={() => setExpandido((v) => !v)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-xl transition-colors text-sm whitespace-nowrap"
+                >
+                  {expandido ? "Fechar calculadora" : "Simular meu plano"}
+                  <ChevronDown className={`h-4 w-4 transition-transform ${expandido ? "rotate-180" : ""}`} />
+                </button>
+                <p className="text-xs text-slate-500 md:text-right">Retorno em até 24h úteis</p>
+              </div>
+            </div>
+
+            {/* Calculadora expansível */}
+            {expandido && (
+              <div className="mt-8 pt-8 border-t border-white/10">
+                <p className="text-sm font-medium text-slate-300 mb-4">
+                  Arraste para indicar o número de membros ativos da sua organização:
+                </p>
+                <LandingCalculator />
+              </div>
+            )}
+          </div>
+        </div>
+
         <p className="text-center text-xs text-slate-500 mt-8">
-          Preços em reais. Cobrança mensal. Cancele a qualquer momento.
+          Preços em reais. Cancele a qualquer momento. Plano anual cobrado em parcela única.
         </p>
       </div>
     </section>
+  );
+}
+
+function LandingCalculator() {
+  const [usuarios, setUsuarios] = useState(500);
+  const [periodicidade, setPeriodicidade] = useState<"mensal" | "anual">("mensal");
+
+  const SLIDER_MIN = 500;
+  const SLIDER_MAX = 5000;
+  const SLIDER_STEP = 50;
+
+  function calcMensal(u: number) {
+    const blocos = u <= 500 ? 0 : Math.ceil((u - 500) / 50);
+    return 889 + blocos * 100;
+  }
+  function calcAnualMensal(u: number) { return Math.round(calcMensal(u) * 0.83); }
+  function calcAnualTotal(u: number)  { return Math.round(calcMensal(u) * 12 * 0.83); }
+  function calcStorage(u: number)     { return Math.ceil((u * 25 * 3) / 1024); }
+
+  const preco = periodicidade === "anual" ? calcAnualMensal(usuarios) : calcMensal(usuarios);
+  const pct = ((usuarios - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex justify-center">
+        <div className="inline-flex items-center gap-1 rounded-full bg-slate-800 border border-white/10 p-1">
+          {(["mensal", "anual"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriodicidade(p)}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                periodicidade === p ? "bg-white text-slate-950" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              {p === "mensal" ? "Mensal" : "Anual (−17%)"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-slate-400">Membros ativos</span>
+        <span className="text-lg font-bold text-white">{usuarios.toLocaleString("pt-BR")}</span>
+      </div>
+
+      <div className="relative">
+        <div className="relative h-2 bg-slate-700 rounded-full">
+          <div className="absolute h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+        </div>
+        <input
+          type="range" min={SLIDER_MIN} max={SLIDER_MAX} step={SLIDER_STEP} value={usuarios}
+          onChange={(e) => setUsuarios(Number(e.target.value))}
+          className="absolute inset-0 w-full h-2 opacity-0 cursor-pointer"
+        />
+      </div>
+
+      <div className="rounded-xl bg-slate-800/60 border border-white/10 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-bold text-white">R$ {preco.toLocaleString("pt-BR")}</span>
+            <span className="text-slate-400 text-sm">/mês</span>
+          </div>
+          {periodicidade === "anual" && (
+            <p className="text-xs text-slate-500 mt-0.5">
+              R$ {calcAnualTotal(usuarios).toLocaleString("pt-BR")} cobrado anualmente
+            </p>
+          )}
+          <p className="text-xs text-slate-500 mt-1">{calcStorage(usuarios)} GB de armazenamento incluídos</p>
+        </div>
+        <Link
+          href="/registro"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-xl transition-colors text-sm whitespace-nowrap"
+        >
+          Criar conta e assinar
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      <p className="text-xs text-slate-500 text-center">
+        Acima de 5.000 membros?{" "}
+        <a
+          href={`mailto:contato@formattio.com.br?subject=${encodeURIComponent("Plano Personalizado — grande porte")}`}
+          className="text-amber-400 hover:underline"
+        >
+          Fale com o time
+        </a>
+      </p>
+    </div>
   );
 }
 

@@ -6,6 +6,7 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateUserSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
+import { canAddUser, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 
 import { isAdminOrAbove, SessionUser } from "@/lib/auth-helpers";
 
@@ -66,6 +67,12 @@ export async function POST(request: Request) {
     const parsed = parseBody(CreateUserSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { nome, email, password, perfil, grupoFormacaoId, ativo } = parsed.data;
+
+    const limitCheck = await canAddUser(actor.organizacaoId);
+    if (!limitCheck.allowed) {
+      notifyAvancadoLimitIfNeeded(actor.organizacaoId, "usuarios");
+      return NextResponse.json({ error: limitCheck.reason }, { status: 403 });
+    }
 
     if (await findByEmail(email, actor.organizacaoId)) {
       return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });

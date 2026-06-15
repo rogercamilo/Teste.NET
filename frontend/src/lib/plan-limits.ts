@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { PlanoAssinatura } from "@prisma/client";
+import { logAction } from "@/lib/audit-log";
+import { sendPlanLimitReachedEmail } from "@/lib/email";
 
 export interface PlanLimits {
   /** Total de usuários ativos (formandos + usuários da plataforma). 0 = sem assinatura ativa. */
@@ -169,3 +171,58 @@ export async function getUsage(orgId: string) {
 }
 
 export type UsageInfo = Awaited<ReturnType<typeof getUsage>>;
+
+// ── Notificação de limite AVANCADO ────────────────────────────────────────────
+
+const NOTIFY_COOLDOWN_DAYS = 7;
+
+/**
+ * Quando uma org AVANCADO bate no limite, envia um e-mail aos admins sugerindo
+ * o upgrade para PERSONALIZADO. Respeita cooldown de 7 dias por tipo de limite.
+ * Fire-and-forget — não bloqueia a resposta da API.
+ */
+export function notifyAvancadoLimitIfNeeded(
+  orgId: string,
+  tipoLimite: "usuarios" | "storage"
+): void {
+  doNotify(orgId, tipoLimite).catch(() => {});
+}
+
+async function doNotify(
+  orgId: string,
+  tipoLimite: "usuarios" | "storage"
+): Promise<void> {
+  const org = await prisma.organizacao.findUnique({
+    where: { id: orgId },
+    select: { nome: true, planoAssinatura: true },
+  });
+  if (!org || org.planoAssinatura !== "AVANCADO") return;
+
+  const cooldownDate = new Date(Date.now() - NOTIFY_COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
+  const recent = await prisma.auditLog.findFirst({
+    where: {
+      organizacaoId: orgId,
+      acao: "plan_limit_email_enviado",
+      detalhes: { path: ["tipoLimite"], equals: tipoLimite },
+      criadoEm: { gte: cooldownDate },
+    },
+  });
+  if (recent) return;
+
+  const admins = await prisma.usuario.findMany({
+    where: { organizacaoId: orgId, perfil: "administrador", deletedAt: null, ativo: true },
+    select: { id: true, email: true },
+  });
+  if (admins.length === 0) return;
+
+  for (const admin of admins) {
+    await sendPlanLimitReachedEmail({
+      organizacaoId: orgId,
+      email: admin.email,
+      orgNome: org.nome,
+      tipoLimite,
+    });
+  }
+
+  logAction("plan_limit_email_enviado", "system", undefined, { tipoLimite }, orgId);
+}
