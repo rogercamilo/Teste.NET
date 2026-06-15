@@ -86,11 +86,15 @@ export default function PlanCalculator({ onCheckout, isLoading }: PlanCalculator
         </div>
 
         {/* Range input */}
-        <div className="relative pt-1">
+        <div className="relative py-2">
           <div className="relative h-2 bg-slate-700 rounded-full">
             <div
               className="absolute h-full bg-amber-500 rounded-full transition-all"
               style={{ width: `${sliderPercent}%` }}
+            />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 border-amber-500 shadow-md pointer-events-none transition-all"
+              style={{ left: `${sliderPercent}%` }}
             />
           </div>
           <input
@@ -100,7 +104,7 @@ export default function PlanCalculator({ onCheckout, isLoading }: PlanCalculator
             step={SLIDER_STEP}
             value={usuarios}
             onChange={(e) => setUsuarios(Number(e.target.value))}
-            className="absolute inset-0 w-full h-2 opacity-0 cursor-pointer"
+            className="absolute inset-0 w-full opacity-0 cursor-pointer"
             aria-label="Número de usuários"
           />
         </div>

@@ -611,14 +611,18 @@ function LandingCalculator() {
         <span className="text-lg font-bold text-white">{usuarios.toLocaleString("pt-BR")}</span>
       </div>
 
-      <div className="relative">
+      <div className="relative py-2">
         <div className="relative h-2 bg-slate-700 rounded-full">
           <div className="absolute h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+          <div
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 border-amber-500 shadow-md pointer-events-none transition-all"
+            style={{ left: `${pct}%` }}
+          />
         </div>
         <input
           type="range" min={SLIDER_MIN} max={SLIDER_MAX} step={SLIDER_STEP} value={usuarios}
           onChange={(e) => setUsuarios(Number(e.target.value))}
-          className="absolute inset-0 w-full h-2 opacity-0 cursor-pointer"
+          className="absolute inset-0 w-full opacity-0 cursor-pointer"
         />
       </div>
 
