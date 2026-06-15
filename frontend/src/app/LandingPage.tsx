@@ -503,21 +503,20 @@ function HowItWorks() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {steps.map(({ number, title, desc }, i) => (
-            <div key={number} className="relative">
-              {i < steps.length - 1 && (
-                <div className="hidden md:block absolute top-6 left-full w-full h-px bg-gradient-to-r from-white/20 to-transparent -translate-x-4 z-0" />
-              )}
-              <div className="relative z-10">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary font-bold text-lg mb-5">
+        <div className="relative">
+          {/* Linha contínua que conecta os 3 passos */}
+          <div className="hidden md:block absolute top-6 inset-x-0 h-px bg-white/15 z-0" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {steps.map(({ number, title, desc }) => (
+              <div key={number} className="relative z-10">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-slate-900 text-primary font-bold text-lg mb-5 ring-4 ring-slate-900">
                   {number}
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
                 <p className="text-sm text-slate-400 leading-relaxed">{desc}</p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>
