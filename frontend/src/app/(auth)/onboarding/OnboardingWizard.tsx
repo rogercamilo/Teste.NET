@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertCircle, Building2, Settings, Home, CheckCircle2,
-  ChevronRight, Palette, Upload, X, Check, Users, BookOpen, GraduationCap, Heart,
+  ChevronRight, Palette, Upload, X, Check, Users, BookOpen, GraduationCap, Heart, CreditCard,
 } from "lucide-react";
 import { THEME_PALETTES, applyThemePalette } from "@/lib/themes";
 import type { TipoOrganizacao, TipoGrupoFormacao } from "@/types";
@@ -81,9 +81,9 @@ const TIPO_ORG_OPTIONS: {
   { key: "centro_formativo", icon: BookOpen, desc: "Centro de cursos, retiros e formações livres." },
 ];
 
-export default function OnboardingWizard({ org }: { org: OrgData }) {
+export default function OnboardingWizard({ org, initialStep = 1 }: { org: OrgData; initialStep?: number }) {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(initialStep);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -103,16 +103,18 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
   const [themeKey, setThemeKey] = useState(org.temaCor ?? "Formattio");
 
   // Step 3 — plan
-  const [plano, setPlano] = useState(org.planoAssinatura ?? "INTERMEDIARIO");
+  const [plano, setPlano] = useState(
+    org.planoAssinatura && org.planoAssinatura !== "GRATUITO" ? org.planoAssinatura : "INTERMEDIARIO"
+  );
 
-  // Step 4 — terminology
-  const [termoGrupoFormacao, setTermoGrupoFormacao] = useState(org.termoGrupoFormacao);
-  const [termoFormando, setTermoFormando] = useState(org.termoFormando);
-  const [termoFormador, setTermoFormador] = useState(org.termoFormador);
-  const [termoPreDiscipulado, setTermoPreDiscipulado] = useState(org.termoPreDiscipulado);
-  const [termoDiscipulado, setTermoDiscipulado] = useState(org.termoDiscipulado);
-  const [termoPrimeirasPromessas, setTermoPrimeirasPromessas] = useState(org.termoPrimeirasPromessas);
-  const [termoFormacaoPermanente, setTermoFormacaoPermanente] = useState(org.termoFormacaoPermanente);
+  // Step 4 — terminology (empty = usa os termos padrão do sistema)
+  const [termoGrupoFormacao, setTermoGrupoFormacao] = useState("");
+  const [termoFormando, setTermoFormando] = useState("");
+  const [termoFormador, setTermoFormador] = useState("");
+  const [termoPreDiscipulado, setTermoPreDiscipulado] = useState("");
+  const [termoDiscipulado, setTermoDiscipulado] = useState("");
+  const [termoPrimeirasPromessas, setTermoPrimeirasPromessas] = useState("");
+  const [termoFormacaoPermanente, setTermoFormacaoPermanente] = useState("");
 
   // Step 5 — first group
   const [grupoFormacaoNome, setGrupoFormacaoNome] = useState("");
@@ -167,6 +169,26 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
     if (!res.ok) throw new Error("Falha ao salvar plano");
   }
 
+  async function handleStripeCheckout() {
+    if (!plano) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plano, periodicidade: "mensal", context: "onboarding" }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Erro ao iniciar pagamento");
+      window.location.href = data.url!;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao processar pagamento");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function saveStep4() {
     const res = await fetch("/api/organizacao", {
       method: "PUT",
@@ -218,7 +240,6 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
         await saveStep2();
         setStep(3);
       } else if (step === 3) {
-        await saveStep3();
         setStep(4);
       } else if (step === 4) {
         await saveStep4();
@@ -606,27 +627,56 @@ export default function OnboardingWizard({ org }: { org: OrgData }) {
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-6">
-            <Button
-              variant="ghost"
-              onClick={() => { setError(null); setStep((s) => s - 1); }}
-              disabled={step === 1 || loading}
-            >
-              Voltar
-            </Button>
-            <Button onClick={handleNext} disabled={loading} className="gap-1.5">
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  {step === 5 ? "Finalizando..." : "Salvando..."}
-                </span>
-              ) : (
-                <>
-                  {step === 5 ? "Concluir e ir para o Dashboard" : "Próximo"}
-                  {step < 5 && <ChevronRight className="h-4 w-4" />}
-                </>
-              )}
-            </Button>
+          <div className="mt-6">
+            {step === 3 ? (
+              <div className="space-y-3">
+                <Button onClick={handleStripeCheckout} disabled={loading} className="w-full gap-2">
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      Redirecionando...
+                    </span>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4" />
+                      Contratar {PLANOS.find((p) => p.key === plano)?.nome ?? ""} agora
+                    </>
+                  )}
+                </Button>
+                <div className="flex items-center justify-between">
+                  <Button variant="ghost" onClick={() => { setError(null); setStep(2); }} disabled={loading}>
+                    Voltar
+                  </Button>
+                  <Button variant="ghost" onClick={handleNext} disabled={loading} className="gap-1 text-muted-foreground hover:text-foreground">
+                    Continuar no período de experiência
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  onClick={() => { setError(null); setStep((s) => s - 1); }}
+                  disabled={step === 1 || loading}
+                >
+                  Voltar
+                </Button>
+                <Button onClick={handleNext} disabled={loading} className="gap-1.5">
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      {step === 5 ? "Finalizando..." : "Salvando..."}
+                    </span>
+                  ) : (
+                    <>
+                      {step === 5 ? "Concluir e ir para o Dashboard" : "Próximo"}
+                      {step < 5 && <ChevronRight className="h-4 w-4" />}
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 

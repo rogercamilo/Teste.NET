@@ -19,13 +19,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Stripe não configurado" }, { status: 503 });
   }
 
-  let parsed: { plano?: string; periodicidade?: string };
+  let parsed: { plano?: string; periodicidade?: string; context?: string };
   try {
-    parsed = await req.json() as { plano?: string; periodicidade?: string };
+    parsed = await req.json() as { plano?: string; periodicidade?: string; context?: string };
   } catch {
     return NextResponse.json({ error: "Corpo da requisição inválido" }, { status: 400 });
   }
-  const { plano, periodicidade = "mensal" } = parsed;
+  const { plano, periodicidade = "mensal", context } = parsed;
   if (!plano || !VALID_PLANS.includes(plano as StripePaidPlan)) {
     return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
   }
@@ -79,8 +79,12 @@ export async function POST(req: NextRequest) {
         metadata: { organizacaoId: org.id },
         ...(trialEnd ? { trial_end: trialEnd } : {}),
       },
-      success_url: `${appUrl}/configuracoes?tab=plano&checkout=success`,
-      cancel_url: `${appUrl}/configuracoes?tab=plano&checkout=cancelled`,
+      success_url: context === "onboarding"
+        ? `${appUrl}/onboarding?checkout=success`
+        : `${appUrl}/configuracoes?tab=plano&checkout=success`,
+      cancel_url: context === "onboarding"
+        ? `${appUrl}/onboarding`
+        : `${appUrl}/configuracoes?tab=plano&checkout=cancelled`,
     });
 
     logAction(

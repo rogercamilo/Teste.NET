@@ -77,6 +77,42 @@ export const THEME_PALETTES: ThemePalette[] = [
     "oklch(0.951 0.020 200)",
     "oklch(0.418 0.115 200)"
   ),
+  mkPalette(
+    "vermelho", "Vermelho", "#ef4444",
+    "oklch(0.628 0.249 27)",
+    "oklch(0.951 0.025 27)",
+    "oklch(0.418 0.182 27)"
+  ),
+  mkPalette(
+    "indigo", "Índigo", "#6366f1",
+    "oklch(0.585 0.233 277)",
+    "oklch(0.951 0.025 277)",
+    "oklch(0.418 0.182 277)"
+  ),
+  mkPalette(
+    "laranja", "Laranja", "#f97316",
+    "oklch(0.705 0.213 48)",
+    "oklch(0.958 0.025 48)",
+    "oklch(0.418 0.145 48)"
+  ),
+  mkPalette(
+    "esmeralda", "Esmeralda", "#10b981",
+    "oklch(0.696 0.170 162)",
+    "oklch(0.951 0.022 162)",
+    "oklch(0.418 0.140 162)"
+  ),
+  mkPalette(
+    "violeta", "Violeta", "#8b5cf6",
+    "oklch(0.606 0.250 303)",
+    "oklch(0.951 0.025 303)",
+    "oklch(0.418 0.182 303)"
+  ),
+  mkPalette(
+    "ciano", "Ciano", "#06b6d4",
+    "oklch(0.715 0.143 215)",
+    "oklch(0.951 0.020 215)",
+    "oklch(0.418 0.115 215)"
+  ),
 ];
 
 export function applyThemePalette(key: string): void {

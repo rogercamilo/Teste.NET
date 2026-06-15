@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import OnboardingWizard from "./OnboardingWizard";
 import { prisma } from "@/lib/prisma";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>;
+}) {
   const session = await auth();
   if (!session?.user?.organizacaoId) redirect("/login");
   const { organizacaoId } = session.user;
@@ -22,5 +26,8 @@ export default async function OnboardingPage() {
   if (!org) redirect("/login");
   if (org.onboardingConcluido) redirect("/dashboard");
 
-  return <OnboardingWizard org={org} />;
+  const sp = await searchParams;
+  const initialStep = sp.checkout === "success" ? 4 : 1;
+
+  return <OnboardingWizard org={org} initialStep={initialStep} />;
 }

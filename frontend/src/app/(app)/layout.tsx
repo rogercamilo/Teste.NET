@@ -41,6 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         endereco: org.endereco ?? "",
         missao: org.missao ?? "",
         anoFundacao: org.anoFundacao ?? "",
+        logoUrl: org.logoUrl ?? undefined,
         termoGrupoFormacao: org.termoGrupoFormacao ?? undefined,
         termoFormando: org.termoFormando ?? undefined,
         termoFormador: org.termoFormador ?? undefined,

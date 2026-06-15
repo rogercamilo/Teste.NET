@@ -15,6 +15,7 @@ const brandingSelect = {
   endereco: true,
   missao: true,
   anoFundacao: true,
+  logoUrl: true,
   termoGrupoFormacao: true,
   termoFormando: true,
   termoFormador: true,
