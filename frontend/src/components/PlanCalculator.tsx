@@ -89,11 +89,11 @@ export default function PlanCalculator({ onCheckout, isLoading }: PlanCalculator
         <div className="relative py-2">
           <div className="relative h-2 bg-slate-700 rounded-full">
             <div
-              className="absolute h-full bg-amber-500 rounded-full transition-all"
+              className="absolute h-full bg-amber-500 rounded-full"
               style={{ width: `${sliderPercent}%` }}
             />
             <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 border-amber-500 shadow-md pointer-events-none transition-all"
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 border-amber-500 shadow-md pointer-events-none"
               style={{ left: `${sliderPercent}%` }}
             />
           </div>
