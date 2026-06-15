@@ -36,7 +36,7 @@ export async function GET() {
           criadoEm: true,
           detalhes: true,
           organizacao: { select: { nome: true } },
-          usuario: { select: { nome: true } },
+          usuario: { select: { nome: true, email: true } },
         },
       }),
       prisma.auditLog.groupBy({

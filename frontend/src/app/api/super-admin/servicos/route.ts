@@ -85,7 +85,7 @@ export async function GET() {
       })),
       db: {
         formandos: formandosCount,
-        moradas: gruposFormacaoCount,
+        gruposFormacao: gruposFormacaoCount,
         usuarios: usuariosCount,
         agendamentos: agendamentosCount,
         presencas: presencasCount,

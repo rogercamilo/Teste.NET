@@ -6,7 +6,7 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { validatePassword } from "@/lib/password-validation";
 import Link from "next/link";
 
@@ -58,44 +58,47 @@ export default function RegistroForm() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80 opacity-90" />
-        <div className="relative z-10 flex flex-col items-center text-center text-primary-foreground max-w-sm">
-          <div className="mb-8">
-            <img
-              src="/brand/formatio-symbol-mono-white.svg"
-              alt="Formattio"
-              width={80}
-              height={80}
-              className="mx-auto"
-            />
-          </div>
-          <h1 className="text-3xl font-bold leading-tight mb-3">
-            Formattio
+  <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Left panel — identidade Formattio fixa; quem registra ainda não é cliente da plataforma */}
+      <div
+        className="hidden lg:flex lg:w-5/12 flex-col justify-between p-10"
+        style={{ backgroundColor: "#B25433" }}
+      >
+        {/* Logo — topo esquerdo */}
+        <img
+          src="/brand/formatio-symbol-mono-white.svg"
+          alt="Formattio"
+          width={144}
+          height={144}
+        />
+
+        {/* Headline, descrição e URL — agrupados no rodapé */}
+        <div>
+          <h1
+            className="text-4xl font-bold leading-tight mb-5"
+            style={{ color: "#FFFFFF" }}
+          >
+            Comece a jornada formativa da sua comunidade.
           </h1>
-          <p className="text-base text-white/90 font-medium mb-4">Gestão formativa para comunidades</p>
-          <p className="text-sm text-white/60 leading-relaxed">
-            Registre sua organização e comece a gerenciar a jornada formativa da sua comunidade.
+          <p
+            className="text-base leading-relaxed mb-8"
+            style={{ color: "rgba(255,255,255,0.68)" }}
+          >
+            Cadastre membros, organize grupos e estruture planos formativos por nível.
           </p>
-          <div className="mt-8 space-y-3 text-left w-full">
-            {["14 dias de trial gratuito", "Sem cartão de crédito", "Cancele quando quiser"].map((item) => (
-              <div key={item} className="flex items-center gap-2 text-sm text-white/80">
-                <CheckCircle2 className="h-4 w-4 text-emerald-300 shrink-0" />
-                {item}
-              </div>
-            ))}
-          </div>
+          <p
+            className="text-xs font-medium tracking-widest uppercase"
+            style={{ color: "rgba(255,255,255,0.45)" }}
+          >
+            www.formattio.com.br
+          </p>
         </div>
-        <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-white/5 -translate-y-1/3 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-white/5 translate-y-1/3 -translate-x-1/3" />
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-4 bg-background overflow-hidden">
         {/* Mobile logo */}
-        <div className="flex items-center justify-center mb-8 lg:hidden">
+        <div className="flex items-center justify-center mb-6 lg:hidden">
           <img
             src="/brand/formatio-symbol.svg"
             alt="Formattio"
@@ -106,8 +109,8 @@ export default function RegistroForm() {
           <p className="font-semibold text-foreground text-sm leading-tight">Formattio</p>
         </div>
 
-        <div className="w-full max-w-sm py-8">
-          <div className="mb-6">
+        <div className="w-full max-w-sm">
+          <div className="mb-3">
             <h2 className="text-2xl font-bold text-foreground">Criar conta</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Registre sua organização — é grátis por 14 dias.
@@ -121,20 +124,20 @@ export default function RegistroForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
+          <form onSubmit={handleSubmit} className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="orgNome">Nome da organização</Label>
               <Input
                 id="orgNome"
-                placeholder="Ex: Comunidade Missionária Dom Bosco"
+                placeholder="Ex: Instituto de Formação Comunitária"
                 value={orgNome}
                 onChange={(e) => setOrgNome(e.target.value)}
                 required
-                className="h-10"
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="adminNome">Seu nome</Label>
               <Input
                 id="adminNome"
@@ -142,11 +145,11 @@ export default function RegistroForm() {
                 value={adminNome}
                 onChange={(e) => setAdminNome(e.target.value)}
                 required
-                className="h-10"
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="adminEmail">E-mail</Label>
               <Input
                 id="adminEmail"
@@ -155,11 +158,11 @@ export default function RegistroForm() {
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
                 required
-                className="h-10"
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="senha">Senha</Label>
               <div className="relative">
                 <Input
@@ -169,7 +172,7 @@ export default function RegistroForm() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   required
-                  className="pr-9 h-10"
+                  className="pr-9 h-9"
                 />
                 <button
                   type="button"
@@ -186,7 +189,7 @@ export default function RegistroForm() {
               )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="confirmarSenha">Confirmar senha</Label>
               <Input
                 id="confirmarSenha"
@@ -195,14 +198,14 @@ export default function RegistroForm() {
                 value={confirmarSenha}
                 onChange={(e) => setConfirmarSenha(e.target.value)}
                 required
-                className="h-10"
+                className="h-9"
               />
               {confirmarSenha && !senhasIguais && (
                 <p className="text-xs text-destructive">As senhas não coincidem</p>
               )}
             </div>
 
-            <div className="flex items-start gap-2 pt-1">
+            <div className="flex items-start gap-2">
               <input
                 id="privacidade"
                 type="checkbox"
@@ -223,7 +226,7 @@ export default function RegistroForm() {
               </label>
             </div>
 
-            <Button type="submit" className="w-full h-10 mt-2" disabled={loading}>
+            <Button type="submit" className="w-full h-9 mt-1" disabled={loading}>
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -233,7 +236,7 @@ export default function RegistroForm() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <p className="text-center text-sm text-muted-foreground mt-3">
             Já tem conta?{" "}
             <Link href="/login" className="text-primary hover:underline font-medium">
               Entrar
