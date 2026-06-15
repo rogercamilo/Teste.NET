@@ -112,7 +112,7 @@ export default function DocumentosPage() {
     const matchSearch =
       !search ||
       d.nome.toLowerCase().includes(search.toLowerCase()) ||
-      d.formandoNome.toLowerCase().includes(search.toLowerCase());
+      (d.formandoNome ?? "").toLowerCase().includes(search.toLowerCase());
     const matchTipo = tipoFiltro === "todos" || d.tipoEvento === tipoFiltro;
     return matchSearch && matchTipo;
   });
