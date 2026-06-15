@@ -27,5 +27,5 @@ export default async function Home() {
     select: { onboardingConcluido: true },
   }).catch(() => null);
 
-  return <LandingPage isNewOrg={!org?.onboardingConcluido} />;
+  return <LandingPage isNewOrg={org === null} />;
 }

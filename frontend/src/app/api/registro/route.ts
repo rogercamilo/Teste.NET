@@ -110,6 +110,9 @@ export async function POST(request: Request) {
     if (err instanceof Error && err.message === "EMAIL_EXISTS") {
       return NextResponse.json({ error: "Não foi possível completar o cadastro. Verifique os dados e tente novamente." }, { status: 409 });
     }
+    if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
+      return NextResponse.json({ error: "Organização já cadastrada. Faça login." }, { status: 409 });
+    }
     logError("registro", err);
     return NextResponse.json({ error: "Falha ao criar organização" }, { status: 500 });
   }
