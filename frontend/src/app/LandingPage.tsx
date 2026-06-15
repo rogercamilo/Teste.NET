@@ -18,10 +18,10 @@ import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 function Nav({ isNewOrg }: { isNewOrg: boolean }) {
   const [open, setOpen] = useState(false);
   const navLinks = [
-    ["Recursos", "#recursos"],
-    ["Para quem é", "#para-quem-e"],
-    ["Preços", "#precos"],
-    ["FAQ", "#faq"],
+    ["Recursos", "/recursos"],
+    ["Para quem é", "/para-quem-e"],
+    ["Preços", "/precos"],
+    ["FAQ", "/faq"],
   ];
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
@@ -32,9 +32,9 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
 
         <nav className="hidden md:flex items-center gap-8">
           {navLinks.map(([label, href]) => (
-            <a key={label} href={href} className="text-sm text-slate-400 hover:text-white transition-colors">
+            <Link key={label} href={href} className="text-sm text-slate-400 hover:text-white transition-colors">
               {label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -63,10 +63,10 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
       {open && (
         <div className="md:hidden border-t border-white/10 bg-slate-950 px-4 py-4 space-y-3">
           {navLinks.map(([label, href]) => (
-            <a key={label} href={href} onClick={() => setOpen(false)}
+            <Link key={label} href={href} onClick={() => setOpen(false)}
               className="block text-sm text-slate-400 hover:text-white py-1">
               {label}
-            </a>
+            </Link>
           ))}
           <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
             {isNewOrg ? (
