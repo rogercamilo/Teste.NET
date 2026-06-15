@@ -1,15 +1,13 @@
 ﻿import Link from "next/link";
 import { FileText } from "lucide-react";
 import type { Metadata } from "next";
+import { TERMS_VERSION, TERMS_DATE } from "@/lib/legal-versions";
+import { LegalSectionHeader } from "@/components/LegalSectionHeader";
 
 export const metadata: Metadata = {
   title: "Termos de Uso — Formattio",
   description: "Condições de uso da plataforma Formattio para organizações e usuários.",
 };
-
-import { TERMS_VERSION } from "@/lib/legal-versions";
-export { TERMS_VERSION };
-export const TERMS_DATE = "24 de maio de 2026";
 
 const tocSections = [
   { id: "aceitacao", num: "1", label: "Aceitação" },
@@ -101,7 +99,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 1. Aceitação ─────────────────────────────────────── */}
             <section id="aceitacao" className="scroll-mt-20">
-              <SectionHeader num="1" title="Aceitação" />
+              <LegalSectionHeader num="1" title="Aceitação" />
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
@@ -123,12 +121,12 @@ export default function TermosDeUsoPage() {
 
             {/* ── 2. Descrição do Serviço ──────────────────────────── */}
             <section id="descricao" className="scroll-mt-20">
-              <SectionHeader num="2" title="Descrição do Serviço" />
+              <LegalSectionHeader num="2" title="Descrição do Serviço" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Formattio é uma plataforma SaaS (Software as a Service) de gestão de formação comunitária.
                   Permite que organizações (doravante "<strong>Organização</strong>" ou "<strong>Tenant</strong>")
-                  gerenciem formandos, moradas, planos formativos, presenças e documentos em ambiente com
+                  gerenciem formandos, grupos de formação, planos formativos, presenças e documentos em ambiente com
                   segregação lógica completa de dados entre organizações distintas.
                 </p>
               </div>
@@ -136,7 +134,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 3. Natureza Empresarial ──────────────────────────── */}
             <section id="natureza" className="scroll-mt-20">
-              <SectionHeader num="3" title="Natureza Empresarial da Plataforma" />
+              <LegalSectionHeader num="3" title="Natureza Empresarial da Plataforma" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A plataforma destina-se exclusivamente a <strong>uso profissional e organizacional</strong>,
@@ -154,7 +152,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 4. Elegibilidade ─────────────────────────────────── */}
             <section id="elegibilidade" className="scroll-mt-20">
-              <SectionHeader num="4" title="Elegibilidade" />
+              <LegalSectionHeader num="4" title="Elegibilidade" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>Para utilizar a Formattio, você deve:</p>
                 <ul>
@@ -167,7 +165,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 5. Cadastro e Conta ──────────────────────────────── */}
             <section id="cadastro" className="scroll-mt-20">
-              <SectionHeader num="5" title="Cadastro e Conta" />
+              <LegalSectionHeader num="5" title="Cadastro e Conta" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Cada Organização cadastra um Administrador responsável pela conta. O Administrador é
@@ -190,7 +188,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 6. Planos e Pagamento ────────────────────────────── */}
             <section id="planos" className="scroll-mt-20">
-              <SectionHeader num="6" title="Planos e Pagamento" />
+              <LegalSectionHeader num="6" title="Planos e Pagamento" />
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
@@ -235,7 +233,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 7. Uso Aceitável ─────────────────────────────────── */}
             <section id="uso-aceitavel" className="scroll-mt-20">
-              <SectionHeader num="7" title="Uso Aceitável" />
+              <LegalSectionHeader num="7" title="Uso Aceitável" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   É <strong>vedado</strong> ao usuário:
@@ -268,7 +266,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 8. Dados e Privacidade ───────────────────────────── */}
             <section id="dados-privacidade" className="scroll-mt-20">
-              <SectionHeader num="8" title="Dados e Privacidade (LGPD)" />
+              <LegalSectionHeader num="8" title="Dados e Privacidade (LGPD)" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Organização é o <strong>controlador</strong> dos dados pessoais dos formandos que insere
@@ -294,7 +292,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 9. Propriedade Intelectual ───────────────────────── */}
             <section id="propriedade" className="scroll-mt-20">
-              <SectionHeader num="9" title="Propriedade Intelectual" />
+              <LegalSectionHeader num="9" title="Propriedade Intelectual" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Todo o código-fonte, design, marca e conteúdo da plataforma Formattio são de propriedade
@@ -311,7 +309,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 10. Disponibilidade e Garantias ──────────────────── */}
             <section id="disponibilidade" className="scroll-mt-20">
-              <SectionHeader num="10" title="Disponibilidade e Isenção de Garantias" />
+              <LegalSectionHeader num="10" title="Disponibilidade e Isenção de Garantias" />
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
@@ -348,7 +346,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 11. Segurança da Informação ──────────────────────── */}
             <section id="seguranca" className="scroll-mt-20">
-              <SectionHeader num="11" title="Segurança da Informação" />
+              <LegalSectionHeader num="11" title="Segurança da Informação" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Formattio adota medidas técnicas e administrativas razoáveis e compatíveis com o estado
@@ -373,7 +371,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 12. Backup, Retenção e Exclusão ──────────────────── */}
             <section id="backup-retencao" className="scroll-mt-20">
-              <SectionHeader num="12" title="Backup, Retenção e Exclusão de Dados" />
+              <LegalSectionHeader num="12" title="Backup, Retenção e Exclusão de Dados" />
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
@@ -406,7 +404,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 13. Exportação de Dados ──────────────────────────── */}
             <section id="exportacao" className="scroll-mt-20">
-              <SectionHeader num="13" title="Exportação de Dados" />
+              <LegalSectionHeader num="13" title="Exportação de Dados" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A exportação de dados observará os formatos e limitações técnicas disponibilizados pela
@@ -421,7 +419,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 14. Subprocessadores ─────────────────────────────── */}
             <section id="subprocessadores" className="scroll-mt-20">
-              <SectionHeader num="14" title="Subprocessadores" />
+              <LegalSectionHeader num="14" title="Subprocessadores" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Formattio poderá utilizar provedores terceirizados ("<strong>suboperadores</strong>" ou
@@ -445,7 +443,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 15. Logs e Auditoria ─────────────────────────────── */}
             <section id="logs-auditoria" className="scroll-mt-20">
-              <SectionHeader num="15" title="Logs, Auditoria e Validade Probatória" />
+              <LegalSectionHeader num="15" title="Logs, Auditoria e Validade Probatória" />
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
@@ -465,7 +463,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 16. Limitação de Responsabilidade ────────────────── */}
             <section id="limitacao" className="scroll-mt-20">
-              <SectionHeader num="16" title="Limitação de Responsabilidade" />
+              <LegalSectionHeader num="16" title="Limitação de Responsabilidade" />
               <div className="space-y-4">
                 <div className="rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50/60 dark:bg-red-950/20 px-4 py-4">
                   <p className="text-sm font-semibold text-red-800 dark:text-red-300 mb-3">
@@ -513,7 +511,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 17. Indenização ──────────────────────────────────── */}
             <section id="indenizacao" className="scroll-mt-20">
-              <SectionHeader num="17" title="Indenização" />
+              <LegalSectionHeader num="17" title="Indenização" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Organização compromete-se a indenizar e manter a Formattio indene de quaisquer
@@ -533,7 +531,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 18. Força Maior ──────────────────────────────────── */}
             <section id="forca-maior" className="scroll-mt-20">
-              <SectionHeader num="18" title="Força Maior e Caso Fortuito" />
+              <LegalSectionHeader num="18" title="Força Maior e Caso Fortuito" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Formattio não será responsabilizada por falhas ou atrasos decorrentes de eventos de força
@@ -546,7 +544,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 19. Suspensão e Rescisão ─────────────────────────── */}
             <section id="suspensao" className="scroll-mt-20">
-              <SectionHeader num="19" title="Suspensão Preventiva e Rescisão" />
+              <LegalSectionHeader num="19" title="Suspensão Preventiva e Rescisão" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Formattio poderá <strong>suspender preventivamente</strong> o acesso à plataforma quando
@@ -563,7 +561,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 20. Alterações ───────────────────────────────────── */}
             <section id="alteracoes" className="scroll-mt-20">
-              <SectionHeader num="20" title="Alterações nestes Termos" />
+              <LegalSectionHeader num="20" title="Alterações nestes Termos" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Estes Termos podem ser atualizados. Quando ocorrer alteração relevante, notificaremos por
@@ -580,7 +578,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 21. Legislação e Foro ────────────────────────────── */}
             <section id="foro" className="scroll-mt-20">
-              <SectionHeader num="21" title="Legislação Aplicável e Foro" />
+              <LegalSectionHeader num="21" title="Legislação Aplicável e Foro" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Estes Termos são regidos pela legislação brasileira, incluindo a Lei nº 13.709/2018
@@ -596,7 +594,7 @@ export default function TermosDeUsoPage() {
 
             {/* ── 22. Contato ──────────────────────────────────────── */}
             <section id="contato" className="scroll-mt-20">
-              <SectionHeader num="22" title="Contato" />
+              <LegalSectionHeader num="22" title="Contato" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Dúvidas sobre estes Termos podem ser enviadas para{" "}
@@ -635,13 +633,3 @@ export default function TermosDeUsoPage() {
   );
 }
 
-function SectionHeader({ num, title }: { num: string; title: string }) {
-  return (
-    <div className="flex items-start gap-3 mb-5">
-      <span className="flex-none mt-0.5 w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center leading-none shrink-0">
-        {num}
-      </span>
-      <h2 className="text-xl font-semibold text-foreground leading-snug">{title}</h2>
-    </div>
-  );
-}

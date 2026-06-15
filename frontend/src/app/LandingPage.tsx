@@ -43,7 +43,12 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
         </div>
 
         {/* Mobile menu button */}
-        <button className="md:hidden text-slate-400 hover:text-white" onClick={() => setOpen(!open)}>
+        <button
+          className="md:hidden text-slate-400 hover:text-white"
+          onClick={() => setOpen(!open)}
+          aria-label={open ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={open}
+        >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
@@ -142,7 +147,7 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
                 <div key={i} className={`h-2.5 w-2.5 rounded-full ${c}`} />
               ))}
               <div className="ml-3 text-xs text-slate-500 bg-slate-800 rounded px-3 py-1">
-                app.Formattio.com.br/dashboard
+                app.formattio.com.br/dashboard
               </div>
             </div>
             <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -222,7 +227,7 @@ const features = [
   {
     icon: Calendar,
     title: "Agenda e presenças",
-    desc: "Agende formações, acompanhe a frequencia dos formandos por encontro e monitore a participação de cada formando ao longo do tempo.",
+    desc: "Agende formações, acompanhe a frequência dos formandos por encontro e monitore a participação de cada formando ao longo do tempo.",
     color: "bg-emerald-500/10 text-emerald-400",
   },
   {
@@ -508,7 +513,7 @@ function FAQ() {
         <div className="space-y-3">
           {faqs.map(({ q, a }, i) => (
             <button
-              key={i}
+              key={q}
               onClick={() => setOpen(open === i ? null : i)}
               className="w-full text-left rounded-xl border border-white/10 bg-slate-800/40 hover:border-white/20 transition-colors overflow-hidden"
             >
@@ -684,9 +689,9 @@ function Footer() {
               <ul className="space-y-2">
                 {links.map(([label, href]) => (
                   <li key={label}>
-                    <a href={href} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+                    <Link href={href} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
                       {label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

@@ -1,15 +1,13 @@
 ﻿import Link from "next/link";
 import { Shield } from "lucide-react";
 import type { Metadata } from "next";
+import { PRIVACY_VERSION, PRIVACY_DATE } from "@/lib/legal-versions";
+import { LegalSectionHeader } from "@/components/LegalSectionHeader";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade — Formattio",
   description: "Como a Formattio coleta, usa e protege seus dados pessoais em conformidade com a LGPD.",
 };
-
-import { PRIVACY_VERSION } from "@/lib/legal-versions";
-export { PRIVACY_VERSION };
-export const PRIVACY_DATE = "23 de maio de 2026";
 
 const tocSections = [
   { id: "estrutura-juridica", num: "1", label: "Estrutura Jurídica" },
@@ -97,7 +95,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 1. Estrutura Jurídica ───────────────────────────── */}
             <section id="estrutura-juridica" className="scroll-mt-20">
-              <SectionHeader num="1" title="Estrutura Jurídica e Papéis no Tratamento" />
+              <LegalSectionHeader num="1" title="Estrutura Jurídica e Papéis no Tratamento" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>A Formattio opera em duplo papel no ecossistema de proteção de dados:</p>
                 <ul>
@@ -121,7 +119,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 2. Princípios LGPD (NOVO) ──────────────────────── */}
             <section id="principios-lgpd" className="scroll-mt-20">
-              <SectionHeader num="2" title="Princípios Gerais de Tratamento (Art. 6º LGPD)" />
+              <LegalSectionHeader num="2" title="Princípios Gerais de Tratamento (Art. 6º LGPD)" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   O tratamento de dados pessoais realizado pela Formattio observa os princípios previstos no
@@ -165,7 +163,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 3. Responsabilidade das Organizações ────────────── */}
             <section id="responsabilidade-org" className="scroll-mt-20">
-              <SectionHeader num="3" title="Responsabilidade das Organizações Usuárias" />
+              <LegalSectionHeader num="3" title="Responsabilidade das Organizações Usuárias" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Cada organização assinante é responsável pela legitimidade da coleta, definição das
@@ -194,7 +192,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 4. Dados Coletados ──────────────────────────────── */}
             <section id="dados-coletados" className="scroll-mt-20">
-              <SectionHeader num="4" title="Dados Coletados" />
+              <LegalSectionHeader num="4" title="Dados Coletados" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <h3>4.1 Dados fornecidos diretamente</h3>
                 <ul>
@@ -237,7 +235,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 5. Dados Sensíveis ──────────────────────────────── */}
             <section id="dados-sensiveis" className="scroll-mt-20">
-              <SectionHeader num="5" title="Dados Pessoais Sensíveis" />
+              <LegalSectionHeader num="5" title="Dados Pessoais Sensíveis" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Formattio reconhece que organizações de formação comunitária, pastoral, vocacional ou
@@ -267,7 +265,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 6. Dados de Menores ─────────────────────────────── */}
             <section id="dados-menores" className="scroll-mt-20">
-              <SectionHeader num="6" title="Dados de Menores de Idade" />
+              <LegalSectionHeader num="6" title="Dados de Menores de Idade" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Nos termos do art. 14 da LGPD, o tratamento de dados pessoais de crianças (menores de
@@ -297,7 +295,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 7. Finalidade e Base Legal ──────────────────────── */}
             <section id="finalidade-base-legal" className="scroll-mt-20">
-              <SectionHeader num="7" title="Finalidade e Base Legal" />
+              <LegalSectionHeader num="7" title="Finalidade e Base Legal" />
               <div className="overflow-x-auto rounded-lg border border-border/60">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
@@ -335,7 +333,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 8. Retenção de Dados ────────────────────────────── */}
             <section id="retencao" className="scroll-mt-20">
-              <SectionHeader num="8" title="Retenção de Dados" />
+              <LegalSectionHeader num="8" title="Retenção de Dados" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Os dados são retidos pelos prazos descritos abaixo, após os quais são excluídos de forma
@@ -386,7 +384,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 9. Segurança da Informação ──────────────────────── */}
             <section id="seguranca" className="scroll-mt-20">
-              <SectionHeader num="9" title="Segurança da Informação" />
+              <LegalSectionHeader num="9" title="Segurança da Informação" />
               <div className="space-y-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <p>
@@ -460,7 +458,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 10. Incidentes de Segurança ─────────────────────── */}
             <section id="incidentes" className="scroll-mt-20">
-              <SectionHeader num="10" title="Incidentes de Segurança" />
+              <LegalSectionHeader num="10" title="Incidentes de Segurança" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Em caso de incidente de segurança que possa acarretar risco ou dano relevante aos titulares
@@ -495,7 +493,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 11. Transferência Internacional ─────────────────── */}
             <section id="transferencia-internacional" className="scroll-mt-20">
-              <SectionHeader num="11" title="Transferência Internacional de Dados" />
+              <LegalSectionHeader num="11" title="Transferência Internacional de Dados" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   A Formattio utiliza subprocessadores localizados nos <strong className="text-foreground">Estados
@@ -544,7 +542,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 12. Compartilhamento ────────────────────────────── */}
             <section id="compartilhamento" className="scroll-mt-20">
-              <SectionHeader num="12" title="Compartilhamento de Dados" />
+              <LegalSectionHeader num="12" title="Compartilhamento de Dados" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   A Formattio <strong>não comercializa</strong> dados pessoais. Compartilhamos dados somente
@@ -561,7 +559,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 13. Cookies ─────────────────────────────────────── */}
             <section id="cookies" className="scroll-mt-20">
-              <SectionHeader num="13" title="Cookies" />
+              <LegalSectionHeader num="13" title="Cookies" />
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
@@ -614,7 +612,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 14. Direitos do Titular ─────────────────────────── */}
             <section id="direitos-titular" className="scroll-mt-20">
-              <SectionHeader num="14" title="Direitos do Titular (LGPD)" />
+              <LegalSectionHeader num="14" title="Direitos do Titular (LGPD)" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Nos termos do art. 18 da LGPD, você possui os seguintes direitos em relação aos seus dados:
@@ -669,7 +667,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 15. Canal de Privacidade ────────────────────────── */}
             <section id="canal-privacidade" className="scroll-mt-20">
-              <SectionHeader num="15" title="Canal de Privacidade e Proteção de Dados" />
+              <LegalSectionHeader num="15" title="Canal de Privacidade e Proteção de Dados" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   A Formattio mantém um{" "}
@@ -719,7 +717,7 @@ export default function PoliticaPrivacidadePage() {
 
             {/* ── 16. Alterações ──────────────────────────────────── */}
             <section id="alteracoes" className="scroll-mt-20">
-              <SectionHeader num="16" title="Alterações nesta Política" />
+              <LegalSectionHeader num="16" title="Alterações nesta Política" />
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p>
                   Esta Política pode ser atualizada periodicamente para refletir mudanças no serviço,
@@ -772,13 +770,3 @@ export default function PoliticaPrivacidadePage() {
   );
 }
 
-function SectionHeader({ num, title }: { num: string; title: string }) {
-  return (
-    <div className="flex items-start gap-3 mb-5">
-      <span className="flex-none mt-0.5 w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center leading-none shrink-0">
-        {num}
-      </span>
-      <h2 className="text-xl font-semibold text-foreground leading-snug">{title}</h2>
-    </div>
-  );
-}
