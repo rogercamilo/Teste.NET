@@ -62,9 +62,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Honra o trial restante: Stripe exige trial_end >= 2 dias no futuro
+    // Trial só é honrado quando vem de Configurações — no onboarding o usuário está optando por pagar agora
     const twoDaysFromNow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
     const trialEnd =
+      context !== "onboarding" &&
       org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt > twoDaysFromNow
         ? Math.floor(org.trialExpiresAt.getTime() / 1000)
         : undefined;
