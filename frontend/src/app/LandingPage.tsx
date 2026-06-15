@@ -151,7 +151,7 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
                 <div key={i} className={`h-2.5 w-2.5 rounded-full ${c}`} />
               ))}
               <div className="ml-3 text-xs text-slate-500 bg-slate-800 rounded px-3 py-1">
-                app.formattio.com.br/dashboard
+                www.formattio.com.br
               </div>
             </div>
             <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -219,17 +219,17 @@ const painPoints = [
   {
     icon: Archive,
     title: "Sua instituição provavelmente não tem um histórico formativo confiável",
-    desc: "Não é descuido — é ausência de estrutura de governança. Quando o formador muda, o contexto vai junto. A instituição opera sem memória histórica e, com o tempo, nem percebe que isso é um problema.",
+    desc: "Não é descuido — é ausência de estrutura de governança. Quando o formador muda, o contexto formativovai junto. A instituição opera sem memória histórica e, com o tempo, nem percebe que isso é um problema.",
   },
   {
     icon: FileWarning,
     title: "A maioria das instituições não sabe que precisa manter registros formais",
-    desc: "O direito canônico exige que comunidades e institutos religiosos mantenham documentação formal da jornada de seus membros. Na prática, pouquíssimas estão em conformidade — e muitas nunca souberam que precisariam estar.",
+    desc: "O direito canônico exige que novas comunidades e institutos religiosos mantenham documentação formal da jornada de seus membros. Na prática, pouquíssimas estão em conformidade — e muitas nunca souberam que precisariam estar. Essa é uma providência que precisa ser tomada.",
   },
   {
     icon: Network,
     title: "Formação vocacional, permanente, cursos — como está o andamento de cada um?",
-    desc: "Se a resposta depende de perguntar individualmente a cada formador, não há visão gerencial. Dados dos grupos, documentos e registros de marcos formativos existem em silos — quando existem. Sem visibilidade consolidada e uma trilha auditável, é impossível gerir o processo formativo com seriedade institucional.",
+    desc: "Se a resposta depende de perguntar individualmente a cada formador, não há visão gerencial. Dados dos grupos, documentos e registros de marcos formativos existem em de forma inadequada e separadas — quando existem. Sem visibilidade consolidada e uma trilha auditável, é impossível gerir o processo formativo com seriedade institucional.",
   },
   {
     icon: MessageSquare,
@@ -333,7 +333,7 @@ function Features() {
             <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
               <FileText className="h-6 w-6 text-amber-400" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium mb-3">
                 <Star className="h-3 w-3" />
                 Exclusivo para Nova Comunidades e Institutos Religiosos
@@ -341,10 +341,9 @@ function Features() {
               <h3 className="text-xl font-semibold text-white mb-2">
                 Jornada Vocacional e documentos eclesiásticos
               </h3>
-              <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
-                Para comunidades com processos canônicos formais: geração automática de 8 tipos de documentos
-                PDF — pedidos de ingresso, avaliações de etapa, cartas de apresentação e declarações. Fluxo de
-                aprovação por estágio, anexos digitalizados e rastreabilidade completa para auditoria arquidiocesana.
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Para comunidades com processos canônicos formais: geração automática de 8 tipos de documentos PDF — pedidos de ingresso, avaliações de etapa, cartas de apresentação e declarações. Fluxo de
+                aprovação por estágio, anexos digitalizados, livro registro e rastreabilidade completa para auditoria.
               </p>
             </div>
           </div>
