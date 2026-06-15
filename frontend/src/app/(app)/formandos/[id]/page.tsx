@@ -27,10 +27,7 @@ export default async function FormandoDetailPage({
       where: { id, organizacaoId: user.organizacaoId, deletedAt: null, ...grupoFormacaoFilter },
       include: { progressoEtapas: true },
     }),
-    prisma.organizacao.findUnique({
-      where: { id: user.organizacaoId },
-      select: { termoFormando: true, termoFormador: true, tipoOrganizacao: true },
-    }),
+    getOrgBranding(user.organizacaoId),
   ]);
 
   if (!formandoRow) redirect("/formandos");
@@ -44,7 +41,7 @@ export default async function FormandoDetailPage({
         })
       : [];
 
-  const [comentariosRows, eventosRows, presencasRows, grupoFormacaoRow, todosGruposFormacaoRows] =
+  const [comentariosRows, eventosRows, presencasRows, grupoFormacaoRow, todosGruposFormacaoRows, agendamentosRows] =
     await Promise.all([
       prisma.comentarioFormando.findMany({
         where: { formandoId: id, organizacaoId: user.organizacaoId },
@@ -67,17 +64,16 @@ export default async function FormandoDetailPage({
         select: { id: true, nome: true, nivelFormativo: true },
         orderBy: { nome: "asc" },
       }),
+      prisma.agendamento.findMany({
+        where: {
+          organizacaoId: user.organizacaoId,
+          nivelFormativo: formandoRow.nivelFormativo,
+          ...(formandoRow.grupoFormacaoId ? { grupoFormacaoId: formandoRow.grupoFormacaoId } : {}),
+          deletedAt: null,
+        },
+        orderBy: { dataInicio: "desc" },
+      }),
     ]);
-
-  const agendamentosRows = await prisma.agendamento.findMany({
-    where: {
-      organizacaoId: user.organizacaoId,
-      nivelFormativo: formandoRow.nivelFormativo,
-      ...(formandoRow.grupoFormacaoId ? { grupoFormacaoId: formandoRow.grupoFormacaoId } : {}),
-      deletedAt: null,
-    },
-    orderBy: { dataInicio: "desc" },
-  });
 
   // Grade total from the formando's morada grade
   let gradeTotal: number | null = null;

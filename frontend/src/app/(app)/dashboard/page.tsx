@@ -271,15 +271,15 @@ export default async function DashboardPage() {
   const grupoFormacaoId = isFormadorComunitario ? (user.grupoFormacaoId ?? null) : null;
   const semMorada = isFormadorComunitario && !grupoFormacaoId;
 
-  let grupoFormacaoNome: string | null = null;
-  if (grupoFormacaoId) {
-    const grupoFormacao = await prisma.grupoFormacao.findUnique({ where: { id: grupoFormacaoId }, select: { nome: true } });
-    grupoFormacaoNome = grupoFormacao?.nome ?? null;
-  }
-
-  const stats = semMorada
-    ? null
-    : await getDashboardData(user.organizacaoId, grupoFormacaoId, user.id ?? null, perfil).catch(() => null);
+  const [grupoFormacao, stats] = await Promise.all([
+    grupoFormacaoId
+      ? prisma.grupoFormacao.findUnique({ where: { id: grupoFormacaoId }, select: { nome: true } })
+      : Promise.resolve(null),
+    semMorada
+      ? Promise.resolve(null)
+      : getDashboardData(user.organizacaoId, grupoFormacaoId, user.id ?? null, perfil).catch(() => null),
+  ]);
+  const grupoFormacaoNome = grupoFormacao?.nome ?? null;
 
   return <DashboardClient stats={stats} perfil={perfil} grupoFormacaoNome={grupoFormacaoNome} semMorada={semMorada} />;
 }

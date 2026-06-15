@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
@@ -23,10 +24,12 @@ const brandingSelect = {
   termoFormacaoPermanente: true,
 } as const;
 
-export async function getOrgBranding(organizacaoId: string) {
-  return unstable_cache(
+// React.cache deduplicates calls within the same render (request-level memoization).
+// unstable_cache persists the result across requests for 30 s (server-side data cache).
+export const getOrgBranding = cache((organizacaoId: string) =>
+  unstable_cache(
     () => prisma.organizacao.findUnique({ where: { id: organizacaoId }, select: brandingSelect }),
     [orgBrandingTag(organizacaoId)],
     { revalidate: 30, tags: [orgBrandingTag(organizacaoId)] }
-  )();
-}
+  )()
+);

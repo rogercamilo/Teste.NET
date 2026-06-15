@@ -110,26 +110,19 @@ export async function PUT(request: Request, { params }: Params) {
       });
 
       if (body.progressoEtapas) {
-        for (const p of body.progressoEtapas) {
-          await tx.progressoEtapa.upsert({
-            where: { formandoId_nivelFormativo: { formandoId: id, nivelFormativo: p.nivel } },
-            create: {
-              formandoId: id, nivelFormativo: p.nivel,
-              formacoesComunitariasRealizadas: p.formacoesComunitariasRealizadas ?? 0,
-              retirosComunitariosRealizados: p.retirosComunitariosRealizados ?? 0,
-              retirosPessoaisRealizados: p.retirosPessoaisRealizados ?? 0,
-              iniciouEm: p.iniciouEm ? new Date(p.iniciouEm) : null,
-              concluiuEm: p.concluiuEm ? new Date(p.concluiuEm) : null,
-            },
-            update: {
-              formacoesComunitariasRealizadas: p.formacoesComunitariasRealizadas ?? 0,
-              retirosComunitariosRealizados: p.retirosComunitariosRealizados ?? 0,
-              retirosPessoaisRealizados: p.retirosPessoaisRealizados ?? 0,
-              iniciouEm: p.iniciouEm ? new Date(p.iniciouEm) : null,
-              concluiuEm: p.concluiuEm ? new Date(p.concluiuEm) : null,
-            },
-          });
-        }
+        const niveis = body.progressoEtapas.map((p) => p.nivel);
+        await tx.progressoEtapa.deleteMany({ where: { formandoId: id, nivelFormativo: { in: niveis } } });
+        await tx.progressoEtapa.createMany({
+          data: body.progressoEtapas.map((p) => ({
+            formandoId: id,
+            nivelFormativo: p.nivel,
+            formacoesComunitariasRealizadas: p.formacoesComunitariasRealizadas ?? 0,
+            retirosComunitariosRealizados: p.retirosComunitariosRealizados ?? 0,
+            retirosPessoaisRealizados: p.retirosPessoaisRealizados ?? 0,
+            iniciouEm: p.iniciouEm ? new Date(p.iniciouEm) : null,
+            concluiuEm: p.concluiuEm ? new Date(p.concluiuEm) : null,
+          })),
+        });
       }
 
       return tx.formando.findUniqueOrThrow({ where: { id, organizacaoId: user.organizacaoId }, include: { progressoEtapas: true } });
