@@ -15,7 +15,7 @@ import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
 
-function Nav({ isNewOrg }: { isNewOrg: boolean }) {
+function Nav() {
   const [open, setOpen] = useState(false);
   const navLinks = [
     ["Recursos", "/recursos"],
@@ -39,15 +39,12 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          {isNewOrg ? (
-            <Link href="/registro" className="text-sm font-medium bg-white text-slate-950 hover:bg-slate-100 transition-colors px-4 py-2 rounded-lg">
-              Cadastre-se
-            </Link>
-          ) : (
-            <Link href="/login" className="text-sm font-medium bg-white text-slate-950 hover:bg-slate-100 transition-colors px-4 py-2 rounded-lg">
-              Fazer Login
-            </Link>
-          )}
+          <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors px-4 py-2 rounded-lg">
+            Entrar
+          </Link>
+          <Link href="/registro" className="text-sm font-medium bg-white text-slate-950 hover:bg-slate-100 transition-colors px-4 py-2 rounded-lg">
+            Cadastre-se
+          </Link>
         </div>
 
         <button
@@ -69,15 +66,12 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
             </Link>
           ))}
           <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
-            {isNewOrg ? (
-              <Link href="/registro" className="text-sm font-medium bg-white text-slate-950 text-center px-4 py-2 rounded-lg">
-                Cadastre-se
-              </Link>
-            ) : (
-              <Link href="/login" className="text-sm font-medium bg-white text-slate-950 text-center px-4 py-2 rounded-lg">
-                Fazer Login
-              </Link>
-            )}
+            <Link href="/login" onClick={() => setOpen(false)} className="text-sm font-medium text-slate-300 text-center px-4 py-2 rounded-lg border border-white/20">
+              Entrar
+            </Link>
+            <Link href="/registro" onClick={() => setOpen(false)} className="text-sm font-medium bg-white text-slate-950 text-center px-4 py-2 rounded-lg">
+              Cadastre-se
+            </Link>
           </div>
         </div>
       )}
@@ -1047,7 +1041,7 @@ function FinalCTA({ isNewOrg }: { isNewOrg: boolean }) {
 export default function LandingPage({ isNewOrg }: { isNewOrg: boolean }) {
   return (
     <div className="font-sans antialiased">
-      <Nav isNewOrg={isNewOrg} />
+      <Nav />
       <Hero isNewOrg={isNewOrg} />
       <TrustBar />
       <PainPoints />
