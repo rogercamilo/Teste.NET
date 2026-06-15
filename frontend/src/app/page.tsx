@@ -5,13 +5,13 @@ import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Formattio — Gestão formativa para comunidades",
+  title: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
   description:
-    "Plataforma de gestão formativa para comunidades e organizações. Cadastro de formandos, planos formativos, controle de presenças e jornada vocacional em conformidade com a LGPD.",
+    "Acompanhe a jornada formativa de cada membro com a profundidade que ela merece. Grupos de formação, planos formativos, Jornada Vocacional, documentos eclesiásticos e conformidade com a LGPD.",
   openGraph: {
-    title: "Formattio — Gestão formativa para comunidades",
+    title: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
     description:
-      "Do cadastro ao acompanhamento das formações aplicadas, o Formattio centraliza toda a jornada formativa dos seus membros em uma plataforma simples, segura e em conformidade com a LGPD.",
+      "Chega de planilhas. Gerencie formandos, planos formativos, presenças e documentos eclesiásticos em uma plataforma segura, integrada e em conformidade com o direito canônico e a LGPD.",
     type: "website",
     locale: "pt_BR",
   },

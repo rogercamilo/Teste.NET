@@ -1,12 +1,14 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Users, BookOpen, Calendar, BarChart3, Mail,
+  Users, BookOpen, Calendar,
   Check, ChevronDown, ChevronRight, Menu, X, ArrowRight,
   Lock, Shield, Zap, Globe, Star,
   Bell, BellOff, CheckCircle2, Loader2,
+  Archive, FileWarning, Network, MessageSquare,
+  FileText, Compass, BellRing, Building2, Heart, BookMarked, GraduationCap,
 } from "lucide-react";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 
@@ -14,6 +16,12 @@ import { usePushSubscription } from "@/hooks/use-push-subscription";
 
 function Nav({ isNewOrg }: { isNewOrg: boolean }) {
   const [open, setOpen] = useState(false);
+  const navLinks = [
+    ["Recursos", "#recursos"],
+    ["Para quem é", "#para-quem-e"],
+    ["Preços", "#precos"],
+    ["FAQ", "#faq"],
+  ];
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -21,9 +29,8 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
           <img src="/brand/formatio-horizontal-on-dark.svg" alt="Formattio" height={32} className="h-8 w-auto" />
         </Link>
 
-        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
-          {[["Recursos", "#recursos"], ["Preços", "#precos"], ["FAQ", "#faq"]].map(([label, href]) => (
+          {navLinks.map(([label, href]) => (
             <a key={label} href={href} className="text-sm text-slate-400 hover:text-white transition-colors">
               {label}
             </a>
@@ -42,7 +49,6 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
           )}
         </div>
 
-        {/* Mobile menu button */}
         <button
           className="md:hidden text-slate-400 hover:text-white"
           onClick={() => setOpen(!open)}
@@ -53,10 +59,9 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
         </button>
       </div>
 
-      {/* Mobile drawer */}
       {open && (
         <div className="md:hidden border-t border-white/10 bg-slate-950 px-4 py-4 space-y-3">
-          {[["Recursos", "#recursos"], ["Preços", "#precos"], ["FAQ", "#faq"]].map(([label, href]) => (
+          {navLinks.map(([label, href]) => (
             <a key={label} href={href} onClick={() => setOpen(false)}
               className="block text-sm text-slate-400 hover:text-white py-1">
               {label}
@@ -84,27 +89,26 @@ function Nav({ isNewOrg }: { isNewOrg: boolean }) {
 function Hero({ isNewOrg }: { isNewOrg: boolean }) {
   return (
     <section className="relative min-h-screen bg-slate-950 flex items-center overflow-hidden">
-      {/* Grid background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:48px_48px]" />
-      {/* Radial glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-4 pt-32 pb-24 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-medium mb-8">
           <Zap className="h-3 w-3" />
-          Plano gratuito disponível · Sem cartão de crédito
+          Período de experiência de 30 dias · Sem cartão de crédito
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-          Gestão formativa para{" "}
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight tracking-tight mb-6">
+          Chega de planilhas.{" "}
           <span className="bg-gradient-to-r from-primary to-amber-300 bg-clip-text text-transparent">
-            comunidades que crescem
+            Acompanhe a jornada formativa dos seus membros com a profundidade que ela merece.
           </span>
         </h1>
 
         <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Do cadastro ao acompanhamento das formações aplicadas, o Formattio centraliza toda a jornada formativa
-          dos seus membros em uma plataforma simples, segura e em conformidade com a LGPD (Lei geral de proteção de dados).
+          Grupos de formação, planos formativos, controle de presenças, avaliação nas dimensões Humana,
+          Espiritual e Comunitária — e geração automática de documentos eclesiásticos. Tudo integrado,
+          seguro e em conformidade com a LGPD.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -135,7 +139,7 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
 
         <p className="mt-6 text-xs text-slate-500">
           {isNewOrg
-            ? "Grátis para sempre com 1 Grupo de formação e até 30 formandos. Sem prazo de expiração."
+            ? "Período de experiência de 30 dias com acesso completo. Sem cartão de crédito."
             : "Entre com suas credenciais para acessar a plataforma."}
         </p>
 
@@ -147,15 +151,15 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
                 <div key={i} className={`h-2.5 w-2.5 rounded-full ${c}`} />
               ))}
               <div className="ml-3 text-xs text-slate-500 bg-slate-800 rounded px-3 py-1">
-                www.formattio.com.br/.../dashboard
+                app.formattio.com.br/dashboard
               </div>
             </div>
             <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: "Formandos", value: "142", color: "text-blue-400" },
-                { label: "Formações", value: "28", color: "text-emerald-400" },
-                { label: "Presenças", value: "94%", color: "text-violet-400" },
-                { label: "Grupos de formação", value: "3", color: "text-amber-400" },
+                { label: "Presenças", value: "94%", color: "text-emerald-400" },
+                { label: "Grupos de formação", value: "5", color: "text-amber-400" },
+                { label: "Documentos gerados", value: "38", color: "text-violet-400" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="rounded-xl bg-slate-800/60 p-4 border border-white/5">
                   <p className="text-xs text-slate-500 mb-1">{label}</p>
@@ -188,10 +192,10 @@ function Hero({ isNewOrg }: { isNewOrg: boolean }) {
 
 function TrustBar() {
   const items = [
-    { icon: Lock, label: "Dados criptografados em trânsito e repouso" },
+    { icon: Lock, label: "Dados criptografados em trânsito e em repouso" },
     { icon: Shield, label: "Conformidade com a LGPD" },
     { icon: Globe, label: "Hospedagem redundante no Brasil" },
-    { icon: Star, label: "Suporte em português" },
+    { icon: BookOpen, label: "Jornada Vocacional integrada" },
   ];
   return (
     <section className="bg-slate-900 border-y border-white/5 py-6">
@@ -209,43 +213,102 @@ function TrustBar() {
   );
 }
 
+// ── Pain Points ───────────────────────────────────────────────────────────────
+
+const painPoints = [
+  {
+    icon: Archive,
+    title: "Sua instituição provavelmente não tem um histórico formativo confiável",
+    desc: "Não é descuido — é ausência de estrutura de governança. Quando o formador muda, o contexto vai junto. A instituição opera sem memória histórica e, com o tempo, nem percebe que isso é um problema.",
+  },
+  {
+    icon: FileWarning,
+    title: "A maioria das instituições não sabe que precisa manter registros formais",
+    desc: "O direito canônico exige que comunidades e institutos religiosos mantenham documentação formal da jornada de seus membros. Na prática, pouquíssimas estão em conformidade — e muitas nunca souberam que precisariam estar.",
+  },
+  {
+    icon: Network,
+    title: "Formação vocacional, permanente, cursos — como está o andamento de cada um?",
+    desc: "Se a resposta depende de perguntar individualmente a cada formador, não há visão gerencial. Dados dos grupos, documentos e registros de marcos formativos existem em silos — quando existem. Sem visibilidade consolidada e uma trilha auditável, é impossível gerir o processo formativo com seriedade institucional.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Avisos e comunicados circulam por grupos de mensagem sem estrutura",
+    desc: "Misturados com conversas do dia a dia, sem registro e sem garantia de que a informação chegou a quem precisava. A comunicação da comunidade merece a mesma seriedade que o restante do processo formativo.",
+  },
+];
+
+function PainPoints() {
+  return (
+    <section className="bg-slate-900 border-b border-white/5 py-24">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="text-center mb-16">
+          <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3">O cenário atual</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Você reconhece esse cenário?
+          </h2>
+          <p className="text-slate-400 max-w-xl mx-auto">
+            A maioria das instituições formativas opera sem perceber essas lacunas — até o momento em que elas se tornam urgentes.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {painPoints.map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="flex gap-5 rounded-2xl border border-white/8 bg-slate-800/30 p-6">
+              <div className="shrink-0 mt-0.5">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-white mb-2 leading-snug">{title}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Features ──────────────────────────────────────────────────────────────────
 
-const features = [
+const regularFeatures = [
+  {
+    icon: Compass,
+    title: "Avaliação nas 3 perspectivas formativas",
+    desc: "Acompanhe cada formando sob as dimensões Humana, Espiritual e Comunitária. Registre avaliações por encontro e visualize a evolução ao longo das etapas no dashboard do grupo.",
+    color: "bg-violet-500/10 text-violet-400",
+  },
   {
     icon: Users,
-    title: "Gestão de formandos",
-    desc: "Cadastre membros com histórico completo — nível formativo, presença, documentos, anotações e linha do tempo de eventos.",
+    title: "Histórico completo do formando",
+    desc: "Cadastro rico com linha do tempo de eventos, nível formativo, anotações, documentos anexados e evolução de presença — tudo acessível e seguro a qualquer momento.",
     color: "bg-blue-500/10 text-blue-400",
   },
   {
     icon: BookOpen,
     title: "Planos e grades formativas",
-    desc: "Estruture o conteúdo em eixos e etapas. Crie grades formativas reutilizáveis por etapas de formação e associe planos formativos a cada Grupo de formação.",
-    color: "bg-violet-500/10 text-violet-400",
+    desc: "Estruture o conteúdo em eixos e etapas com retiros previstos. Crie grades reutilizáveis e associe planos formativos a cada grupo com rastreabilidade de execução.",
+    color: "bg-indigo-500/10 text-indigo-400",
   },
   {
     icon: Calendar,
-    title: "Agenda e presenças",
-    desc: "Agende formações, acompanhe a frequência dos formandos por encontro e monitore a participação de cada formando ao longo do tempo.",
+    title: "Agenda e controle de presença",
+    desc: "Agende encontros, registre presenças por formando e acompanhe a frequência ao longo do tempo — base de dados para os relatórios de encerramento de etapa.",
     color: "bg-emerald-500/10 text-emerald-400",
   },
   {
-    icon: BarChart3,
-    title: "Dashboard em tempo real",
-    desc: "Visualize métricas de evolução, taxa de realização, distribuição por nível e funil formativo com atualização automática.",
-    color: "bg-amber-500/10 text-amber-400",
-  },
-  {
-    icon: Mail,
-    title: "Comunicação integrada",
-    desc: "Convide formadores por e-mail, personalize templates com a identidade da sua comunidade e gerencie notificações de forma personalizada.",
+    icon: BellRing,
+    title: "Comunicação proativa com formandos",
+    desc: "Formandos e formadores recebem notificações sobre encontros, agendamentos e comunicados diretamente no dispositivo — sem depender de grupos de mensagem. Informação certa, na hora certa.",
     color: "bg-pink-500/10 text-pink-400",
   },
   {
     icon: Shield,
     title: "Segurança e conformidade",
-    desc: "Logs de auditoria completos, exportação de dados, direito ao esquecimento (LGPD) e política de privacidade incluída.",
+    desc: "Logs de auditoria completos, criptografia de campos sensíveis, exportação de dados, direito ao esquecimento (LGPD) e política de privacidade inclusa desde o primeiro dia.",
     color: "bg-teal-500/10 text-teal-400",
   },
 ];
@@ -260,13 +323,36 @@ function Features() {
             Tudo que sua comunidade precisa
           </h2>
           <p className="text-slate-400 max-w-xl mx-auto">
-            Uma plataforma completa para acompanhar e gerir a jornada formativa dos seus formandos,
-            desde o ingresso até a formação permanente.
+            Uma plataforma completa para acompanhar a jornada formativa dos seus membros — do primeiro contato à formação permanente.
           </p>
         </div>
 
+        {/* Hero feature — Jornada Vocacional */}
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-7 mb-6">
+          <div className="flex flex-col md:flex-row md:items-start gap-5">
+            <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <FileText className="h-6 w-6 text-amber-400" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium mb-3">
+                <Star className="h-3 w-3" />
+                Exclusivo para Nova Comunidades e Institutos Religiosos
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Jornada Vocacional e documentos eclesiásticos
+              </h3>
+              <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
+                Para comunidades com processos canônicos formais: geração automática de 8 tipos de documentos
+                PDF — pedidos de ingresso, avaliações de etapa, cartas de apresentação e declarações. Fluxo de
+                aprovação por estágio, anexos digitalizados e rastreabilidade completa para auditoria arquidiocesana.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Regular features grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map(({ icon: Icon, title, desc, color }) => (
+          {regularFeatures.map(({ icon: Icon, title, desc, color }) => (
             <div
               key={title}
               className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 hover:border-white/20 transition-colors"
@@ -284,24 +370,126 @@ function Features() {
   );
 }
 
+// ── Para quem é ───────────────────────────────────────────────────────────────
+
+const orgTypes = [
+  {
+    type: "Nova Comunidade",
+    title: "Formação vocacional estruturada",
+    borderClass: "border-t-amber-500",
+    iconClass: "bg-amber-500/10 text-amber-400",
+    icon: Building2,
+    features: [
+      "Jornada Vocacional com documentos canônicos",
+      "Etapas formativas e progressão estruturada",
+      "Avaliação nas 3 perspectivas (H/E/C)",
+      "Conformidade com o direito canônico",
+    ],
+  },
+  {
+    type: "Grupo de Oração",
+    title: "Encontros livres, gestão simples",
+    borderClass: "border-t-blue-500",
+    iconClass: "bg-blue-500/10 text-blue-400",
+    icon: Heart,
+    features: [
+      "Grupos de formação de modo livre",
+      "Registro de presenças por encontro",
+      "Eventos especiais: retiros, vigílias, missões",
+      "Comunicação direta com os membros",
+    ],
+  },
+  {
+    type: "Instituto Religioso",
+    title: "Rigor canônico em escala",
+    borderClass: "border-t-violet-500",
+    iconClass: "bg-violet-500/10 text-violet-400",
+    icon: BookMarked,
+    features: [
+      "Formação estruturada com múltiplos grupos",
+      "Documentos canônicos integrados",
+      "Visão gerencial consolidada do Instituto",
+      "Trilha auditável para a coordenação",
+    ],
+  },
+  {
+    type: "Centro Formativo",
+    title: "Cursos e formações abertas",
+    borderClass: "border-t-emerald-500",
+    iconClass: "bg-emerald-500/10 text-emerald-400",
+    icon: GraduationCap,
+    features: [
+      "Grades de conteúdo reutilizáveis",
+      "Múltiplas turmas simultâneas",
+      "Controle de participação e frequência",
+      "Histórico de cada participante",
+    ],
+  },
+];
+
+function ParaQuemE() {
+  return (
+    <section id="para-quem-e" className="bg-slate-950 py-24 border-t border-white/5">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="text-center mb-16">
+          <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3">Para quem é</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Uma plataforma para cada tipo de organização formativa
+          </h2>
+          <p className="text-slate-400 max-w-xl mx-auto">
+            Da comunidade de vida ao centro de formação: o Formattio se adapta ao modelo formativo da sua instituição.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {orgTypes.map(({ type, title, borderClass, iconClass, icon: Icon, features }) => (
+            <div
+              key={type}
+              className={`rounded-2xl border-t-2 border border-white/10 bg-slate-900/60 p-6 ${borderClass}`}
+            >
+              <div className="flex items-start gap-4 mb-5">
+                <div className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-0.5">{type}</p>
+                  <h3 className="text-base font-semibold text-white">{title}</h3>
+                </div>
+              </div>
+              <ul className="space-y-2.5">
+                {features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-slate-400">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── How it works ──────────────────────────────────────────────────────────────
 
 function HowItWorks() {
   const steps = [
     {
       number: "01",
-      title: "Cadastre sua comunidade",
-      desc: "Em menos de 2 minutos, configure sua comunidade, personalize o nome da plataforma e convide seus formadores por e-mail.",
+      title: "Configure sua organização",
+      desc: "Cadastre sua comunidade, defina o tipo de instituição, crie os Grupos de Formação e convide os formadores responsáveis por e-mail — tudo em menos de 10 minutos.",
     },
     {
       number: "02",
-      title: "Configure a estrutura",
-      desc: "Adicione Grupos de formação, defina planos formativos por etapa formativa, e cadastre seus formandos.",
+      title: "Defina a jornada formativa",
+      desc: "Monte Planos Formativos com eixos e etapas, crie Grades de Formação com os conteúdos detalhados e associe cada grade ao grupo correspondente.",
     },
     {
       number: "03",
-      title: "Acompanhe a adesão formativa",
-      desc: "Dashboard em tempo real com métricas de evolução, presença e funil formativo. Histórico completo de cada membro.",
+      title: "Acompanhe e documente",
+      desc: "Registre presenças, avalie cada formando nas 3 perspectivas, avance etapas e gere automaticamente os documentos eclesiásticos e relatórios de encerramento.",
     },
   ];
 
@@ -665,32 +853,40 @@ function LandingCalculator() {
 
 const faqs = [
   {
-    q: "O plano Gratuito expira?",
-    a: "Não. O plano Gratuito é permanente. Você pode usar o Formattio com 1 Grupo de formação e até 30 formandos por tempo indeterminado, sem cartão de crédito.",
+    q: "Quais tipos de comunidade o Formattio atende?",
+    a: "O Formattio atende Nova Comunidades, Grupos de Oração, Institutos Religiosos e Centros Formativos. Cada tipo tem configuração padrão adequada ao seu modelo, mas você pode personalizar conforme a realidade da sua instituição.",
   },
   {
-    q: "O que é um 'Grupo de formação' no Formattio?",
-    a: "Um Grupo de formação é um conjunto de pessoas dentro da sua comunidade que percorrerão um caminho formativo. Cada grupo de formação tem seus próprios formandos, formador responsável, plano formativo e grade de conteúdos.",
+    q: "O que é a Jornada Vocacional no Formattio?",
+    a: "É o módulo de acompanhamento processual canônico, disponível para Nova Comunidades e Institutos Religiosos. Ele gerencia o fluxo de aprovação de cada etapa do percurso vocacional e gera automaticamente 8 tipos de documentos PDF exigidos pelo direito canônico — pedidos de ingresso, avaliações, cartas de apresentação, declarações e outros — com base nos dados já cadastrados no sistema.",
+  },
+  {
+    q: "O que são as 3 perspectivas formativas?",
+    a: "São as três dimensões de avaliação de cada formando: Humana (maturidade, autoconhecimento, crescimento integral), Espiritual (vida de oração, intimidade com Deus, sacramental) e Comunitária (vivência fraterna, comunhão, apostolado). O Formattio permite registrar e acompanhar a evolução em cada dimensão ao longo das etapas, alimentando os relatórios de encerramento.",
+  },
+  {
+    q: "O que é um 'Grupo de Formação' no Formattio?",
+    a: "Um Grupo de Formação é um conjunto de pessoas dentro da sua comunidade que percorrerão um caminho formativo juntas. Cada grupo tem seus próprios formandos, formador responsável, plano formativo e grade de conteúdos. Grupos podem ser estruturados (com etapas e progressão canônica) ou livres (para encontros, cursos ou aprofundamentos).",
   },
   {
     q: "Meus dados estão seguros?",
-    a: "Sim. Todos os dados são criptografados em trânsito (HTTPS/TLS) e em repouso. A plataforma é hospedada em infraestrutura redundante e está em conformidade com a LGPD.",
+    a: "Sim. Todos os dados são criptografados em trânsito (HTTPS/TLS) e em repouso. Campos sensíveis têm criptografia adicional em nível de campo (AES-256). A plataforma é hospedada em infraestrutura redundante no Brasil e está em conformidade com a LGPD.",
   },
   {
-    q: "O que é a LGPD?",
-    a: "A LGPD é a lei que protege os dados pessoais e estabelece regras para que empresas utilizem essas informações com segurança, transparência e responsabilidade. Estar em conformidade com a LGPD ajuda a aumentar a confiança dos clientes, fortalecer a credibilidade da marca, evitar riscos jurídicos e multas, além de demonstrar profissionalismo e compromisso com a proteção dos dados dos usuários. O Formattio foi desenvolvido desde o início com foco na conformidade com a LGPD, garantindo que os dados dos seus formandos estejam protegidos e que sua organização esteja em conformidade com a legislação brasileira de proteção de dados.",
+    q: "O que é a LGPD e por que isso importa para minha comunidade?",
+    a: "A LGPD (Lei Geral de Proteção de Dados) é a legislação brasileira que regula o uso de dados pessoais. Comunidades que cadastram membros — com nome, endereço, documentos e histórico pessoal — estão sujeitas à LGPD. O Formattio foi construído desde o início com conformidade em mente: logs de auditoria, exportação de dados, direito ao esquecimento e política de privacidade inclusa.",
   },
   {
     q: "Posso migrar meus dados de outra plataforma?",
-    a: "Sim. O Formattio possui importação via arquivo e exportação completa de dados em JSON a qualquer momento. Você nunca fica preso na plataforma.",
+    a: "Sim. O Formattio possui importação via arquivo e exportação completa dos dados da sua organização em JSON a qualquer momento. Você nunca fica preso na plataforma.",
   },
   {
-    q: "Como funciona o upgrade de plano?",
-    a: "Acesse Configurações → Plano na plataforma e escolha o plano desejado. A cobrança é mensal, proporcional ao dia da ativação, e pode ser cancelada a qualquer momento.",
+    q: "Como funciona o período de experiência e o upgrade de plano?",
+    a: "Ao criar sua conta, você tem 30 dias de acesso completo à plataforma — é o seu período de experiência, sem cartão de crédito. Ao final, escolha o plano que melhor se adapta ao tamanho da sua comunidade em Configurações → Plano. A cobrança é mensal ou anual, e pode ser cancelada a qualquer momento.",
   },
   {
     q: "Há suporte em português?",
-    a: "Sim. Toda a plataforma, documentação e suporte são em português do Brasil. Nosso time de suporte responde por e-mail em até 24 horas nos dias úteis.",
+    a: "Sim. Toda a plataforma, documentação e suporte são em português do Brasil. Nosso time responde por e-mail em até 24 horas nos dias úteis.",
   },
 ];
 
@@ -817,10 +1013,10 @@ function FinalCTA({ isNewOrg }: { isNewOrg: boolean }) {
           {isNewOrg ? (
             <>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Pronto para organizar sua comunidade?
+                Pronto para organizar a jornada formativa da sua comunidade?
               </h2>
               <p className="text-slate-400 mb-8 max-w-lg mx-auto">
-                Crie sua conta gratuitamente em 2 minutos. Nenhum cartão de crédito necessário.
+                Crie sua conta e explore o Formattio por 30 dias, com acesso completo. Sem cartão de crédito.
               </p>
               <Link href="/registro" className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm">
                 Cadastre-se gratuitamente
@@ -867,7 +1063,7 @@ function Footer() {
           {[
             {
               title: "Produto",
-              links: [["Recursos", "#recursos"], ["Preços", "#precos"], ["FAQ", "#faq"]],
+              links: [["Recursos", "#recursos"], ["Para quem é", "#para-quem-e"], ["Preços", "#precos"], ["FAQ", "#faq"]],
             },
             {
               title: "Conta",
@@ -910,7 +1106,9 @@ export default function LandingPage({ isNewOrg }: { isNewOrg: boolean }) {
       <Nav isNewOrg={isNewOrg} />
       <Hero isNewOrg={isNewOrg} />
       <TrustBar />
+      <PainPoints />
       <Features />
+      <ParaQuemE />
       <HowItWorks />
       <Pricing />
       <FAQ />
