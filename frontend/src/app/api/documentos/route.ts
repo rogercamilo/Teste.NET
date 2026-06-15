@@ -1,6 +1,6 @@
 ﻿import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { uploadFile } from "@/lib/storage";
+import { uploadFile, deleteFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
@@ -94,23 +94,31 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Falha ao salvar documento." }, { status: 500 });
   }
 
-  const documento = await prisma.arquivo.create({
-    data: {
-      organizacaoId: orgId,
-      nome,
-      tamanho: file.size,
-      tipo: file.type,
-      extensao,
-      storageKey,
-      uploadedById: user.id,
-      uploadedByNome: user.name ?? null,
-      eventoId,
-      formandoId,
-      formandoNome,
-      tipoEvento,
-      grupoFormacaoId: grupoFormacaoId ?? null,
-    },
-  });
+  let documento: Awaited<ReturnType<typeof prisma.arquivo.create>>;
+  try {
+    documento = await prisma.arquivo.create({
+      data: {
+        organizacaoId: orgId,
+        nome,
+        tamanho: file.size,
+        tipo: file.type,
+        extensao,
+        storageKey,
+        uploadedById: user.id,
+        uploadedByNome: user.name ?? null,
+        eventoId,
+        formandoId,
+        formandoNome,
+        tipoEvento,
+        grupoFormacaoId: grupoFormacaoId ?? null,
+      },
+    });
+  } catch (err) {
+    logError("documentos POST db", err);
+    // Arquivo foi salvo no storage mas o registro de banco falhou — remove para evitar órfão
+    deleteFile(storageKey).catch(() => {});
+    return Response.json({ error: "Falha ao registrar documento." }, { status: 500 });
+  }
 
   logAction("document_uploaded", user.id, getClientIp(request), {
     documentoId: documento.id,

@@ -17,12 +17,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   }
 
-  const body = (await request.json()) as {
-    organizacaoId?: string | null;
-    descricao?: string;
-    dataIncidente?: string;
-    medidas?: string;
-  };
+  let body: { organizacaoId?: string | null; descricao?: string; dataIncidente?: string; medidas?: string };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "Corpo da requisição inválido" }, { status: 400 });
+  }
 
   const descricao = body.descricao?.trim() ?? "";
   const dataIncidente = body.dataIncidente?.trim() ?? "";

@@ -65,7 +65,7 @@ export async function PUT(request: Request, { params }: Params) {
       const formador = await prisma.usuario.findFirst({
         where: { id: body.formadorId, organizacaoId: user.organizacaoId, deletedAt: null },
       });
-      if (!formador) return NextResponse.json({ error: "Formador não encontrado" }, { status: 400 });
+      if (!formador) return NextResponse.json({ error: "Formador não encontrado" }, { status: 404 });
     }
 
     const newFormadorId = body.formadorId ?? null;
@@ -128,8 +128,7 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json(toGrupoFormacao(updated));
   } catch (err) {
     logError("moradas/[id] PUT", err);
-    const detail = process.env.NODE_ENV !== "production" && err instanceof Error ? err.message : undefined;
-    return NextResponse.json({ error: "Falha ao atualizar morada", ...(detail && { detail }) }, { status: 500 });
+    return NextResponse.json({ error: "Falha ao atualizar morada" }, { status: 500 });
   }
 }
 

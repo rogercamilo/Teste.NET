@@ -21,10 +21,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
   }
 
-  const body = await request.json() as {
-    currentPassword?: string;
-    newPassword?: string;
-  };
+  let body: { currentPassword?: string; newPassword?: string };
+  try {
+    body = await request.json() as { currentPassword?: string; newPassword?: string };
+  } catch {
+    return NextResponse.json({ error: "Corpo da requisição inválido" }, { status: 400 });
+  }
   const { currentPassword, newPassword } = body;
 
   const pwdError = !newPassword ? "Nova senha é obrigatória" : passwordErrorMessage(newPassword);

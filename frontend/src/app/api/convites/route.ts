@@ -26,16 +26,21 @@ export async function GET(request: Request) {
     criadoPor: { select: { nome: true } },
   };
 
-  if (!pagination) {
-    const convites = await prisma.conviteUsuario.findMany({ where, orderBy, select });
-    return NextResponse.json(convites);
-  }
+  try {
+    if (!pagination) {
+      const convites = await prisma.conviteUsuario.findMany({ where, orderBy, select });
+      return NextResponse.json(convites);
+    }
 
-  const [convites, total] = await Promise.all([
-    prisma.conviteUsuario.findMany({ where, orderBy, select, skip: pagination.skip, take: pagination.take }),
-    prisma.conviteUsuario.count({ where }),
-  ]);
-  return NextResponse.json(convites, { headers: paginationHeaders(total, pagination) });
+    const [convites, total] = await Promise.all([
+      prisma.conviteUsuario.findMany({ where, orderBy, select, skip: pagination.skip, take: pagination.take }),
+      prisma.conviteUsuario.count({ where }),
+    ]);
+    return NextResponse.json(convites, { headers: paginationHeaders(total, pagination) });
+  } catch (err) {
+    logError("convites GET", err);
+    return NextResponse.json({ error: "Falha ao carregar convites" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -144,12 +149,17 @@ export async function DELETE(request: Request) {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
 
-  const convite = await prisma.conviteUsuario.findFirst({
-    where: { id, organizacaoId: user.organizacaoId },
-  });
-  if (!convite) return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
+  try {
+    const convite = await prisma.conviteUsuario.findFirst({
+      where: { id, organizacaoId: user.organizacaoId },
+    });
+    if (!convite) return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
 
-  await prisma.conviteUsuario.delete({ where: { id } });
-  logAction("convite_cancelado", user.id, getClientIp(request), { conviteId: id }, user.organizacaoId);
-  return NextResponse.json({ ok: true });
+    await prisma.conviteUsuario.delete({ where: { id } });
+    logAction("convite_cancelado", user.id, getClientIp(request), { conviteId: id }, user.organizacaoId);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    logError("convites DELETE", err);
+    return NextResponse.json({ error: "Falha ao cancelar convite" }, { status: 500 });
+  }
 }

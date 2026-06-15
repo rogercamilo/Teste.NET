@@ -17,49 +17,54 @@ export async function GET(req: NextRequest) {
   const statusFiltro = searchParams.get("status") ?? undefined;
   const formandoId = searchParams.get("formandoId") ?? undefined;
 
-  const processos = await prisma.processoEclesiastico.findMany({
-    where: {
-      organizacaoId: user.organizacaoId,
-      ...(tipoFiltro ? { tipo: tipoFiltro as TipoProcessoEclesiastico } : {}),
-      ...(statusFiltro ? { status: statusFiltro as never } : {}),
-      ...(formandoId ? { formandoId } : {}),
-    },
-    include: {
-      formando: { select: { id: true, nome: true } },
-      criadoPor: { select: { id: true, nome: true } },
-      documentos: true,
-    },
-    orderBy: { criadoEm: "desc" },
-  });
+  try {
+    const processos = await prisma.processoEclesiastico.findMany({
+      where: {
+        organizacaoId: user.organizacaoId,
+        ...(tipoFiltro ? { tipo: tipoFiltro as TipoProcessoEclesiastico } : {}),
+        ...(statusFiltro ? { status: statusFiltro as never } : {}),
+        ...(formandoId ? { formandoId } : {}),
+      },
+      include: {
+        formando: { select: { id: true, nome: true } },
+        criadoPor: { select: { id: true, nome: true } },
+        documentos: true,
+      },
+      orderBy: { criadoEm: "desc" },
+    });
 
-  const result = processos.map((p) => ({
-    id: p.id,
-    organizacaoId: p.organizacaoId,
-    formandoId: p.formandoId,
-    formandoNome: p.formando.nome,
-    tipo: p.tipo,
-    nivelFormativo: p.nivelFormativo,
-    status: p.status,
-    dadosFormulario: p.dadosFormulario,
-    favoravelRenovacao: p.favoravelRenovacao,
-    numeroRenovacao: p.numeroRenovacao,
-    criadoPorId: p.criadoPorId,
-    criadoPorNome: p.criadoPor.nome,
-    criadoEm: p.criadoEm.toISOString(),
-    atualizadoEm: p.atualizadoEm.toISOString(),
-    documentos: p.documentos.map((d) => ({
-      id: d.id,
-      processoId: d.processoId,
-      tipo: d.tipo,
-      status: d.status,
-      versao: d.versao,
-      arquivoId: d.arquivoId,
-      geradoEm: d.geradoEm?.toISOString() ?? null,
-      criadoEm: d.criadoEm.toISOString(),
-    })),
-  }));
+    const result = processos.map((p) => ({
+      id: p.id,
+      organizacaoId: p.organizacaoId,
+      formandoId: p.formandoId,
+      formandoNome: p.formando.nome,
+      tipo: p.tipo,
+      nivelFormativo: p.nivelFormativo,
+      status: p.status,
+      dadosFormulario: p.dadosFormulario,
+      favoravelRenovacao: p.favoravelRenovacao,
+      numeroRenovacao: p.numeroRenovacao,
+      criadoPorId: p.criadoPorId,
+      criadoPorNome: p.criadoPor.nome,
+      criadoEm: p.criadoEm.toISOString(),
+      atualizadoEm: p.atualizadoEm.toISOString(),
+      documentos: p.documentos.map((d) => ({
+        id: d.id,
+        processoId: d.processoId,
+        tipo: d.tipo,
+        status: d.status,
+        versao: d.versao,
+        arquivoId: d.arquivoId,
+        geradoEm: d.geradoEm?.toISOString() ?? null,
+        criadoEm: d.criadoEm.toISOString(),
+      })),
+    }));
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (err) {
+    logError("processos-eclesiasticos GET", err);
+    return NextResponse.json({ error: "Falha ao carregar processos" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {

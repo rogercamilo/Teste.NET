@@ -77,7 +77,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     if (body.grupoFormacaoId) {
       const grupoFormacao = await prisma.grupoFormacao.findFirst({ where: { id: body.grupoFormacaoId, organizacaoId: user.organizacaoId, ativo: true } });
-      if (!grupoFormacao) return NextResponse.json({ error: "Grupo de formação não encontrado" }, { status: 400 });
+      if (!grupoFormacao) return NextResponse.json({ error: "Grupo de formação não encontrado" }, { status: 404 });
     }
 
     const updated = await prisma.$transaction(async (tx) => {

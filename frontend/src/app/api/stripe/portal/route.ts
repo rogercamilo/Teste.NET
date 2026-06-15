@@ -17,22 +17,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Stripe não configurado" }, { status: 503 });
   }
 
-  const org = await prisma.organizacao.findUnique({
-    where: { id: user.organizacaoId },
-    select: { stripeCustomerId: true },
-  });
-
-  if (!org?.stripeCustomerId) {
-    return NextResponse.json(
-      { error: "Nenhuma assinatura ativa. Faça upgrade primeiro." },
-      { status: 400 }
-    );
-  }
-
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
   let portalUrl: string;
   try {
+    const org = await prisma.organizacao.findUnique({
+      where: { id: user.organizacaoId },
+      select: { stripeCustomerId: true },
+    });
+
+    if (!org?.stripeCustomerId) {
+      return NextResponse.json(
+        { error: "Nenhuma assinatura ativa. Faça upgrade primeiro." },
+        { status: 400 }
+      );
+    }
+
     const portalSession = await stripe!.billingPortal.sessions.create({
       customer: org.stripeCustomerId,
       return_url: `${appUrl}/configuracoes?tab=plano`,

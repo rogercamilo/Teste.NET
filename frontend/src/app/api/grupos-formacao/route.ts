@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       const formador = await prisma.usuario.findFirst({
         where: { id: body.formadorId, organizacaoId: user.organizacaoId, deletedAt: null },
       });
-      if (!formador) return NextResponse.json({ error: "Formador não encontrado" }, { status: 400 });
+      if (!formador) return NextResponse.json({ error: "Formador não encontrado" }, { status: 404 });
     }
 
     const row = await prisma.$transaction(async (tx) => {
