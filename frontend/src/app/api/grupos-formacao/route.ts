@@ -7,7 +7,7 @@ import { CreateGrupoFormacaoSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { GrupoFormacao } from "@/types";
 
-import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
+import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 
 
 import { toGrupoFormacao } from "@/lib/converters";
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!isGestao(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   const rl = await limiters.mutation(user.id ?? getClientIp(request));
   if (!rl.allowed) {

@@ -16,7 +16,7 @@ import {
   NOTA_ADESAO_LABELS,
   NOTA_ADESAO_CORES,
   NOTA_ADESAO_DOT,
-  PERSPECTIV_LABELS,
+  PERSPECTIVA_LABELS,
   TIPO_PROCESSO_LABELS,
   STATUS_PROCESSO_LABELS,
   STATUS_PROCESSO_COLORS,
@@ -33,11 +33,13 @@ import {
   type DocumentoAnexo,
   type NotaAdesao,
   type TipoDesligamento,
-  type PerspectivFormativa,
+  type PerspectivaFormativa,
   type GrupoFormacao,
   type ProcessoEclesiastico,
   type TipoProcessoEclesiastico,
   type NivelFormativo,
+  type Modalidade,
+  type EstadoCivil,
   type TipoOrganizacao,
   hasCanonicalAccess,
 } from "@/types";
@@ -103,7 +105,7 @@ import { format, parseISO, differenceInYears, differenceInDays } from "date-fns"
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
-const PERSPECTIVAS_INFO: Record<PerspectivFormativa, { desc: string; cor: string; bg: string }> = {
+const PERSPECTIVAS_INFO: Record<PerspectivaFormativa, { desc: string; cor: string; bg: string }> = {
   humana: {
     desc: "Autoconhecimento, maturidade afetiva, vida equilibrada e crescimento integral.",
     cor: "text-violet-700",
@@ -121,7 +123,7 @@ const PERSPECTIVAS_INFO: Record<PerspectivFormativa, { desc: string; cor: string
   },
 };
 
-const PERSPECTIVAS: PerspectivFormativa[] = ["humana", "espiritual", "comunitaria"];
+const PERSPECTIVAS: PerspectivaFormativa[] = ["humana", "espiritual", "comunitaria"];
 
 const STATUS_COLORS: Record<StatusFormacao, string> = {
   agendada: "bg-blue-100 text-blue-700 border-blue-200",
@@ -193,9 +195,9 @@ export default function FormandoDetailClient({
   const [editForm, setEditForm] = useState({
     nome: "",
     dataNascimento: "",
-    estadoCivil: "solteiro" as "solteiro" | "casado" | "divorciado" | "viuvo",
-    modalidade: "presencial" as "presencial" | "online" | "hibrida",
-    nivelFormativo: "pre-discipulado" as "pre-discipulado" | "discipulado" | "primeiras-promessas" | "formacao-permanente",
+    estadoCivil: "solteiro" as EstadoCivil,
+    modalidade: "presencial" as Modalidade,
+    nivelFormativo: "pre-discipulado" as NivelFormativo,
     dataIngresso: "",
     telefone: "",
     email: "",
@@ -218,7 +220,7 @@ export default function FormandoDetailClient({
     textoAvaliacao: string;
   }>({ periodoInicio: "", periodoFim: "", notaAdesao: "boa", textoAvaliacao: "" });
 
-  const [perspectivaOpen, setPerspectivaOpen] = useState<PerspectivFormativa | null>(null);
+  const [perspectivaOpen, setPerspectivaOpen] = useState<PerspectivaFormativa | null>(null);
   const [perspectivaForm, setPerspectivaForm] = useState<{ nota: NotaAdesao; texto: string }>({
     nota: "boa",
     texto: "",
@@ -497,7 +499,7 @@ export default function FormandoDetailClient({
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Erro");
       setPerspectivaOpen(null);
       setPerspectivaForm({ nota: "boa", texto: "" });
-      toast.success(`Avaliação da perspectiva ${PERSPECTIV_LABELS[perspectivaOpen]} registrada.`);
+      toast.success(`Avaliação da perspectiva ${PERSPECTIVA_LABELS[perspectivaOpen]} registrada.`);
       startTransition(() => router.refresh());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao registrar perspectiva.");
@@ -1247,7 +1249,7 @@ export default function FormandoDetailClient({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <CardTitle className={`text-sm font-semibold ${info.cor}`}>
-                                  Perspectiva {PERSPECTIV_LABELS[persp]}
+                                  Perspectiva {PERSPECTIVA_LABELS[persp]}
                                 </CardTitle>
                                 {ultimaNota ? (
                                   <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${NOTA_ADESAO_CORES[ultimaNota]}`}>
@@ -2540,7 +2542,7 @@ export default function FormandoDetailClient({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {perspectivaOpen ? `Perspectiva ${PERSPECTIV_LABELS[perspectivaOpen]}` : "Avaliação de Perspectiva"}
+              {perspectivaOpen ? `Perspectiva ${PERSPECTIVA_LABELS[perspectivaOpen]}` : "Avaliação de Perspectiva"}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-5 py-2">

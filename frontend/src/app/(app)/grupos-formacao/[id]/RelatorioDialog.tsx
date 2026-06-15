@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import {
   NIVEL_FORMATIVO_LABELS, NOTA_ADESAO_LABELS, NOTA_ADESAO_CORES,
   RECOMENDACAO_LABELS, RECOMENDACAO_CORES, STATUS_RELATORIO_CORES,
-  PERSPECTIV_LABELS,
+  PERSPECTIVA_LABELS,
   type Formando, type RelatorioEtapa, type NotaAdesao,
   type RecomendacaoEtapa, type NivelFormativo,
 } from "@/types";
@@ -231,7 +231,7 @@ export function RelatorioDialog({
                 const val = form[field] as NotaAdesao | "";
                 return (
                   <div key={p} className="space-y-1.5">
-                    <Label className="text-xs">{PERSPECTIV_LABELS[p]}</Label>
+                    <Label className="text-xs">{PERSPECTIVA_LABELS[p]}</Label>
                     {readonly ? (
                       val ? (
                         <div className={cn("inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium border", NOTA_ADESAO_CORES[val as NotaAdesao])}>

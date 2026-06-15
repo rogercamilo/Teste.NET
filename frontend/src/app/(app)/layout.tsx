@@ -1,7 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getOrgBranding } from "@/lib/org-cache";
-import { isAdmin, type ComunidadeConfig, type TipoOrganizacao } from "@/types";
+import { isGestao, type ComunidadeConfig, type TipoOrganizacao } from "@/types";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
 import { ComunidadeProvider } from "@/components/layout/ComunidadeProvider";
@@ -33,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const org = await getOrgBranding(sessionUser.organizacaoId);
     if (org) {
       orgBranding = { ...orgBranding, ...org };
-      if (!org.onboardingConcluido && isAdmin(sessionUser.role)) redirect("/onboarding");
+      if (!org.onboardingConcluido && isGestao(sessionUser.role)) redirect("/onboarding");
       comunidadeInitial = {
         tipoOrganizacao: org.tipoOrganizacao as TipoOrganizacao,
         nome: org.nome,

@@ -4,7 +4,7 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { PushSendSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import { sendPushToOrg } from "@/lib/push";
-import { isAdmin } from "@/lib/auth-helpers";
+import { isGestao } from "@/lib/auth-helpers";
 import type { SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function POST(request: Request) {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (!user?.id || !user?.organizacaoId) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
-  if (!isAdmin(user.role)) {
+  if (!isGestao(user.role)) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

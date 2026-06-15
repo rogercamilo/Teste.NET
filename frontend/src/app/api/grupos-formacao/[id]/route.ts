@@ -6,7 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import type { GrupoFormacao } from "@/types";
 import { UpdateGrupoFormacaoSchema, parseBody, isValidId } from "@/lib/schemas";
 
-import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
+import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 import { criarNotificacao } from "@/lib/notificacoes";
 type Params = { params: Promise<{ id: string }> };
 import { toGrupoFormacao } from "@/lib/converters";
@@ -29,7 +29,7 @@ export async function PUT(request: Request, { params }: Params) {
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const isFC = user.role === "formador_comunitario";
-  if (!isAdmin(user.role) && !isFC) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!isGestao(user.role) && !isFC) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
@@ -137,7 +137,7 @@ export async function DELETE(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdmin(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!isGestao(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;

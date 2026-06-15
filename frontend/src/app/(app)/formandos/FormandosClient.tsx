@@ -15,6 +15,7 @@ import {
   type GrupoFormacao,
   type NivelFormativo,
   type Modalidade,
+  type EstadoCivil,
   type ProgressoEtapa,
 } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,7 +98,7 @@ const ESTADO_CIVIL_LABELS = {
 type FormState = {
   nome: string;
   dataNascimento: string;
-  estadoCivil: "solteiro" | "casado" | "divorciado" | "viuvo";
+  estadoCivil: EstadoCivil;
   modalidade: Modalidade;
   nivelFormativo: NivelFormativo;
   dataIngresso: string;

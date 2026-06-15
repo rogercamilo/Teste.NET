@@ -24,7 +24,7 @@ export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comun
 export type PlanoAssinatura = "GRATUITO" | "BASICO" | "INTERMEDIARIO" | "AVANCADO" | "PERSONALIZADO";
 export type StatusOrganizacao = "TRIAL" | "ATIVO" | "SUSPENSO" | "CANCELADO";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
-export type PerspectivFormativa = "humana" | "espiritual" | "comunitaria";
+export type PerspectivaFormativa = "humana" | "espiritual" | "comunitaria";
 export type TipoCompromisso = "individual" | "geral";
 export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoal" | "atividade-extra";
 
@@ -77,7 +77,7 @@ export interface Formando {
   id: string;
   nome: string;
   dataNascimento: string;
-  estadoCivil: "solteiro" | "casado" | "divorciado" | "viuvo";
+  estadoCivil: EstadoCivil;
   modalidade: Modalidade;
   nivelFormativo: NivelFormativo;
   dataIngresso: string;
@@ -275,7 +275,7 @@ export type NotaAdesao = "otima" | "boa" | "regular" | "insuficiente";
 export type TipoDesligamento = "voluntario" | "compulsorio";
 
 export interface DocumentoAnexo {
-  id: string;       // ID gerado pelo servidor
+  id: string;
   nome: string;
   tamanho: number;
   tipo: string;
@@ -292,7 +292,7 @@ export interface EventoFormando {
   periodoInicio?: string;
   periodoFim?: string;
   notaAdesao?: NotaAdesao;
-  perspectiva?: PerspectivFormativa;
+  perspectiva?: PerspectivaFormativa;
   textoAvaliacao?: string;
   /** solicitacao-desligamento / desligamento / licenca */
   motivo?: string;
@@ -463,7 +463,7 @@ export function isSuperAdmin(role: string | undefined): boolean {
   return role === "super_admin";
 }
 
-export function isAdmin(role: string | undefined): boolean {
+export function isGestao(role: string | undefined): boolean {
   return role === "administrador" || role === "formador_geral";
 }
 
@@ -605,7 +605,7 @@ export const NOTA_ADESAO_CORES: Record<NotaAdesao, string> = {
   insuficiente: "bg-red-100 text-red-700",
 };
 
-export const PERSPECTIV_LABELS: Record<PerspectivFormativa, string> = {
+export const PERSPECTIVA_LABELS: Record<PerspectivaFormativa, string> = {
   humana: "Humana",
   espiritual: "Espiritual",
   comunitaria: "Comunitária",
@@ -775,7 +775,7 @@ export interface ProcessoEclesiastico {
   formandoId: string;
   formandoNome?: string;
   tipo: TipoProcessoEclesiastico;
-  nivelFormativo: string;
+  nivelFormativo: NivelFormativo;
   status: StatusProcessoEclesiastico;
   dadosFormulario: Record<string, unknown>;
   favoravelRenovacao?: boolean | null;

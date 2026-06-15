@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getOrgBranding } from "@/lib/org-cache";
 import { toFormando, toComentario, toEvento, toPresenca, toAgendamento, toGrupoFormacao } from "@/lib/converters";
 import type { SessionUser } from "@/lib/auth-helpers";
-import type { DocumentoAnexo } from "@/types";
+import type { DocumentoAnexo, NivelFormativo } from "@/types";
 import { hasCanonicalAccess } from "@/types";
 import FormandoDetailClient from "./FormandoDetailClient";
 
@@ -125,7 +125,7 @@ export default async function FormandoDetailPage({
         organizacaoId: p.organizacaoId,
         formandoId: p.formandoId,
         tipo: p.tipo,
-        nivelFormativo: p.nivelFormativo,
+        nivelFormativo: p.nivelFormativo as NivelFormativo,
         status: p.status,
         dadosFormulario: p.dadosFormulario as Record<string, unknown>,
         favoravelRenovacao: p.favoravelRenovacao,

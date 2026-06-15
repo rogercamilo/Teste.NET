@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEtapaLabels } from "@/lib/data-store";
 import {
   MODALIDADE_LABELS,
-  isAdmin,
+  isGestao,
   type NivelFormativo,
   type GradeFormativa,
   type Eixo,
@@ -132,7 +132,7 @@ export default function GradeFormPage({
   initialUsuarios = [],
 }: GradeFormPageProps) {
   const router = useRouter();
-  const canManageFormacoes = isAdmin(role);
+  const canManageFormacoes = isGestao(role);
 
   const etapaLabels = useEtapaLabels();
   const isEditing = !!id;

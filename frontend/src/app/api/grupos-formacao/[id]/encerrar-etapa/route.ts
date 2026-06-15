@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { isAdmin, SessionUser as SU } from "@/lib/auth-helpers";
+import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 import { toGrupoFormacao } from "@/lib/converters";
 import { isValidId } from "@/lib/schemas";
 
@@ -15,7 +15,7 @@ export async function POST(request: Request, { params }: Params) {
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   const isFC = user.role === "formador_comunitario";
-  if (!isAdmin(user.role) && !isFC) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!isGestao(user.role) && !isFC) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });

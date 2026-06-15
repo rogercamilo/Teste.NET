@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth-helpers";
-import { hasCanonicalAccess } from "@/types";
+import { hasCanonicalAccess, type NivelFormativo } from "@/types";
 import ProcessoDetalheClient from "./ProcessoDetalheClient";
 
 export default async function ProcessoDetalhePage({
@@ -79,7 +79,7 @@ export default async function ProcessoDetalhePage({
           numFilhos: processo.formando.numFilhos ?? null,
         },
         tipo: processo.tipo,
-        nivelFormativo: processo.nivelFormativo,
+        nivelFormativo: processo.nivelFormativo as NivelFormativo,
         status: processo.status,
         dadosFormulario: processo.dadosFormulario as Record<string, unknown>,
         favoravelRenovacao: processo.favoravelRenovacao,

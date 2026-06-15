@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth-helpers";
-import { hasCanonicalAccess } from "@/types";
+import { hasCanonicalAccess, type NivelFormativo } from "@/types";
 import JornadaVocacionalClient from "./JornadaVocacionalClient";
 
 export default async function JornadaVocacionalPage() {
@@ -35,7 +35,7 @@ export default async function JornadaVocacionalPage() {
     formandoId: p.formandoId,
     formandoNome: p.formando.nome,
     tipo: p.tipo,
-    nivelFormativo: p.nivelFormativo,
+    nivelFormativo: p.nivelFormativo as NivelFormativo,
     status: p.status,
     dadosFormulario: p.dadosFormulario as Record<string, unknown>,
     favoravelRenovacao: p.favoravelRenovacao,

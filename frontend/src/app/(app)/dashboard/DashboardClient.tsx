@@ -4,7 +4,7 @@ import {
   NIVEL_FORMATIVO_LABELS,
   STATUS_FORMACAO_LABELS,
   NIVEL_CORES,
-  PERSPECTIV_LABELS,
+  PERSPECTIVA_LABELS,
   NOTA_ADESAO_LABELS,
   NOTA_ADESAO_CORES,
   type NivelFormativo,
@@ -12,7 +12,7 @@ import {
   type StatusFormacao,
   type DashboardStats,
   type PerfilUsuario,
-  type PerspectivFormativa,
+  type PerspectivaFormativa,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +69,7 @@ function semaforoClasses(taxa: number): { dot: string; bar: string; label: strin
 
 // ── Perspectiva badge ───────────────────────────────────────────────────────
 
-const PERSPECTIVAS: PerspectivFormativa[] = ["humana", "espiritual", "comunitaria"];
+const PERSPECTIVAS: PerspectivaFormativa[] = ["humana", "espiritual", "comunitaria"];
 
 function NotaBadge({ nota }: { nota?: NotaAdesao }) {
   if (!nota) return <span className="text-xs text-muted-foreground/60">—</span>;
@@ -501,7 +501,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
               <span className="text-xs text-muted-foreground font-medium">{termos.formando}</span>
               {PERSPECTIVAS.map((p) => (
                 <span key={p} className="text-xs text-muted-foreground font-medium text-center">
-                  {PERSPECTIV_LABELS[p]}
+                  {PERSPECTIVA_LABELS[p]}
                 </span>
               ))}
             </div>
@@ -518,7 +518,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
                     <div className="hidden sm:block" />
                     {PERSPECTIVAS.map((persp) => (
                       <div key={persp} className="flex items-center justify-between sm:justify-center gap-2">
-                        <span className="text-xs text-muted-foreground sm:hidden">{PERSPECTIV_LABELS[persp]}</span>
+                        <span className="text-xs text-muted-foreground sm:hidden">{PERSPECTIVA_LABELS[persp]}</span>
                         <NotaBadge nota={f.perspectivas?.[persp] as NotaAdesao | undefined} />
                       </div>
                     ))}

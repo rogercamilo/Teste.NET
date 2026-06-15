@@ -13,6 +13,7 @@ import {
   totalRequerido,
   type GrupoFormacao,
   type Formando,
+  type EstadoCivil,
   type Modalidade,
   type NivelFormativo,
   type ProgressoEtapa,
@@ -31,7 +32,7 @@ import {
   STATUS_RELATORIO_CORES,
   NOTA_ADESAO_LABELS,
   NOTA_ADESAO_CORES,
-  PERSPECTIV_LABELS,
+  PERSPECTIVA_LABELS,
   RECOMENDACAO_LABELS,
   RECOMENDACAO_CORES,
 } from "@/types";
@@ -122,7 +123,7 @@ const NIVEL_SEQUENCE: NivelFormativo[] = [
 type FormandoFormState = {
   nome: string;
   dataNascimento: string;
-  estadoCivil: "solteiro" | "casado" | "divorciado" | "viuvo";
+  estadoCivil: EstadoCivil;
   modalidade: Modalidade;
   dataIngresso: string;
   telefone: string;
@@ -1240,7 +1241,7 @@ export default function GrupoFormacaoDetail({
                                   if (!nota) return null;
                                   return (
                                     <div key={p} className="flex items-center gap-1.5">
-                                      <span className="text-xs text-muted-foreground">{PERSPECTIV_LABELS[p]}:</span>
+                                      <span className="text-xs text-muted-foreground">{PERSPECTIVA_LABELS[p]}:</span>
                                       <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium", NOTA_ADESAO_CORES[nota])}>
                                         {NOTA_ADESAO_LABELS[nota]}
                                       </span>
