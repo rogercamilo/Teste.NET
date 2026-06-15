@@ -1,8 +1,4 @@
-﻿/**
- * Email template — stored per-tenant in ConfiguracaoOrg.emailTemplate (PostgreSQL).
- * Falls back to DEFAULT_EMAIL_TEMPLATE when no DB record exists.
- * NEVER import this module in client components — uses Prisma (Node.js only).
- */
+﻿// NEVER import in client components — uses Prisma (Node.js only).
 import { prisma } from "@/lib/prisma";
 
 export interface TemplateStep {
@@ -43,7 +39,7 @@ export const DEFAULT_EMAIL_TEMPLATE: EmailTemplate = {
     },
     {
       titulo: "Explore a plataforma",
-      descricao: "Após redefinir a senha, terá acesso completo à sua morada e aos formandos.",
+      descricao: "Após redefinir a senha, terá acesso completo ao seu grupo de formação e aos formandos.",
     },
   ],
   textoBotao: "Acessar a Plataforma",
@@ -94,7 +90,7 @@ export interface TemplateVars {
   url: string;
 }
 
-function escapeHtml(str: string): string {
+export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -228,7 +224,7 @@ export function buildEmailHtml(template: EmailTemplate, vars: TemplateVars): str
               </table>
 
               <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">
-                Caso tenha dificuldades no acesso, entre em contacto com o administrador da plataforma.
+                Caso tenha dificuldades no acesso, entre em contato com o administrador da plataforma.
               </p>
             </td>
           </tr>

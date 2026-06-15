@@ -1,20 +1,11 @@
 ﻿import { Resend } from "resend";
 import nodemailer from "nodemailer";
 import { loadSmtpConfig, isSmtpReady, type SmtpConfig } from "./smtp-config";
-import { loadEmailTemplate, buildEmailHtml } from "./email-template";
+import { loadEmailTemplate, buildEmailHtml, escapeHtml } from "./email-template";
 import { logError } from "./audit-log";
 
-function esc(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
-
 function safeUrl(url: string): string {
-  return url.startsWith("http://") || url.startsWith("https://") ? esc(url) : "#";
+  return url.startsWith("http://") || url.startsWith("https://") ? escapeHtml(url) : "#";
 }
 
 // Resend takes priority over SMTP when RESEND_API_KEY is set
@@ -26,12 +17,17 @@ async function sendViaResend(
   subject: string,
   html: string
 ): Promise<{ sent: boolean; error?: string }> {
-  const { error } = await resend!.emails.send({ from: RESEND_FROM, to, subject, html });
-  if (error) {
-    logError("email/resend", error);
-    return { sent: false, error: error.message };
+  try {
+    const { error } = await resend!.emails.send({ from: RESEND_FROM, to, subject, html });
+    if (error) {
+      logError("email/resend", error);
+      return { sent: false, error: error.message };
+    }
+    return { sent: true };
+  } catch (err) {
+    logError("email/resend", err);
+    return { sent: false, error: err instanceof Error ? err.message : "Falha no envio" };
   }
-  return { sent: true };
 }
 
 function createTransporter(config: SmtpConfig) {
@@ -97,8 +93,8 @@ export async function sendInviteEmail({
   inviteUrl: string;
   orgNome: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = esc(nome);
-  const safeOrg = esc(orgNome);
+  const safeName = escapeHtml(nome);
+  const safeOrg = escapeHtml(orgNome);
   const safeInviteUrl = safeUrl(inviteUrl);
   const html = `
     <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
@@ -134,14 +130,14 @@ export async function sendAccountDeletionEmail({
   nome: string;
   email: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = esc(nome);
+  const safeName = escapeHtml(nome);
   const html = `
     <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
       <h2 style="color: #dc2626;">Conta encerrada</h2>
       <p>Olá, <strong>${safeName}</strong>.</p>
       <p>Sua conta na plataforma <strong>Formattio</strong> foi encerrada conforme solicitado.</p>
       <p>Seus dados pessoais foram anonimizados imediatamente. Logs de auditoria são mantidos por 12 meses conforme exigência legal.</p>
-      <p>Se não solicitou esta exclusão, entre em contato imediatamente com <a href="mailto:privacidade@Formattio.app">privacidade@Formattio.app</a>.</p>
+      <p>Se não solicitou esta exclusão, entre em contato imediatamente com <a href="mailto:privacidade@formattio.com.br">privacidade@formattio.com.br</a>.</p>
       <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
       <p style="color: #999; font-size: 12px;">Formattio — plataforma de gestão formativa</p>
     </div>
@@ -163,9 +159,9 @@ export async function sendCredentialResetEmail({
   orgNome: string;
 }): Promise<{ sent: boolean; error?: string }> {
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  const safeName = esc(nome);
-  const safeOrg = esc(orgNome);
-  const safePassword = esc(tempPassword);
+  const safeName = escapeHtml(nome);
+  const safeOrg = escapeHtml(orgNome);
+  const safePassword = escapeHtml(tempPassword);
   const safeAppUrl = safeUrl(appUrl);
   const html = `
     <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
@@ -186,7 +182,7 @@ export async function sendCredentialResetEmail({
       <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px 16px;margin:16px 0;">
         <p style="margin:0;font-size:13px;color:#991b1b;">
           <strong>Atenção:</strong> Se você não solicitou esta redefinição, entre em contato imediatamente com o suporte em
-          <a href="mailto:suporte@Formattio.app" style="color:#991b1b;">suporte@Formattio.app</a>.
+          <a href="mailto:suporte@formattio.com.br" style="color:#991b1b;">suporte@formattio.com.br</a>.
         </p>
       </div>
       <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
@@ -207,8 +203,8 @@ export async function sendPasswordResetEmail({
   email: string;
   resetUrl: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = esc(nome);
-  const safeUrl = resetUrl.startsWith("http://") || resetUrl.startsWith("https://") ? esc(resetUrl) : "#";
+  const safeName = escapeHtml(nome);
+  const safeResetUrl = safeUrl(resetUrl);
   const html = `
     <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
       <h2 style="color: #1a1a1a;">Recuperação de senha</h2>
@@ -216,7 +212,7 @@ export async function sendPasswordResetEmail({
       <p>Recebemos uma solicitação para redefinir a senha da sua conta na plataforma <strong>Formattio</strong>.</p>
       <p>Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>2 horas</strong>.</p>
       <p style="text-align: center; margin: 32px 0;">
-        <a href="${safeUrl}"
+        <a href="${safeResetUrl}"
            style="background: #6d28d9; color: white; text-decoration: none;
                   padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 15px;">
           Redefinir senha
@@ -224,7 +220,7 @@ export async function sendPasswordResetEmail({
       </p>
       <p style="color: #666; font-size: 13px;">
         Se não conseguir clicar no botão, copie e cole este link no seu navegador:<br/>
-        <a href="${safeUrl}">${safeUrl}</a>
+        <a href="${safeResetUrl}">${safeResetUrl}</a>
       </p>
       <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px 16px; margin: 16px 0;">
         <p style="margin: 0; font-size: 13px; color: #991b1b;">
@@ -255,11 +251,11 @@ export async function sendIncidentNotificationEmail({
   dataIncidente: string;
   medidas: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = esc(nome);
-  const safeOrg = esc(orgNome);
-  const safeDesc = esc(descricao);
-  const safeMedidas = esc(medidas);
-  const safeData = esc(dataIncidente);
+  const safeName = escapeHtml(nome);
+  const safeOrg = escapeHtml(orgNome);
+  const safeDesc = escapeHtml(descricao);
+  const safeMedidas = escapeHtml(medidas);
+  const safeData = escapeHtml(dataIncidente);
   const html = `
     <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
       <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; margin-bottom: 24px;">
@@ -304,8 +300,8 @@ export async function sendLimitAlertEmail({
   percentUsed: number;
   appUrl: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeRecurso = esc(recurso);
-  const safeOrg = esc(orgNome);
+  const safeRecurso = escapeHtml(recurso);
+  const safeOrg = escapeHtml(orgNome);
   const safePct = Number(percentUsed).toFixed(0);
   const safeAppUrl = safeUrl(appUrl);
   const html = `

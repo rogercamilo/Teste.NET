@@ -21,7 +21,6 @@ export async function criarNotificacao(input: CriarNotificacaoInput): Promise<vo
   }
 }
 
-// Cria notificações em paralelo para múltiplos destinatários.
 export async function criarNotificacoes(
   inputs: CriarNotificacaoInput[]
 ): Promise<void> {
@@ -87,7 +86,7 @@ export async function formadoresDosGrupos(
     where: { id: { in: grupoFormacaoIds }, formadorId: { not: null } },
     select: { formadorId: true, organizacaoId: true },
   });
-  const ids = [...new Set(grupos.map((g) => g.formadorId!))] ;
+  const ids = [...new Set(grupos.map((g) => g.formadorId!))];
   return ids;
 }
 
