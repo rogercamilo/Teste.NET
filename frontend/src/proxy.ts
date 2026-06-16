@@ -80,15 +80,17 @@ export default auth(function proxy(req) {
 
   // CSRF: rejeita requisições de mutação vindas de origens diferentes da aplicação.
   // Stripe webhook usa verificação de assinatura própria; NextAuth tem proteção CSRF nativa.
-  // Usa NEXTAUTH_URL como origem confiável para evitar falso-positivo quando o Next.js
-  // resolve req.nextUrl com http:// mas o browser envia Origin: https:// (ex: Railway).
-  const trustedOrigin = (() => {
-    try { return new URL(process.env.NEXTAUTH_URL ?? "").origin; } catch { return req.nextUrl.origin; }
+  // Confia em DUAS origens: NEXTAUTH_URL (corrige mismatch http/https em produção) e
+  // req.nextUrl.origin (permite acesso via IP de rede local em dev, ex: http://192.168.x.x:3000).
+  const trustedOrigins = (() => {
+    const set = new Set([req.nextUrl.origin]);
+    try { set.add(new URL(process.env.NEXTAUTH_URL ?? "").origin); } catch { /* ignora URL inválida */ }
+    return set;
   })();
   const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method ?? "");
   if (isMutation && !pathname.startsWith("/api/stripe/webhook") && !pathname.startsWith("/api/auth/")) {
     const origin = req.headers.get("origin");
-    if (origin !== null && origin !== trustedOrigin) {
+    if (origin !== null && !trustedOrigins.has(origin)) {
       return new NextResponse(
         JSON.stringify({ error: "Origem da requisição inválida" }),
         { status: 403, headers: { "Content-Type": "application/json" } }
