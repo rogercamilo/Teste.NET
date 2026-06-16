@@ -44,12 +44,14 @@ export default function RegistroForm() {
       const data = await res.json() as { error?: string };
       if (!res.ok) { setError(data.error ?? "Não foi possível criar sua conta agora. Tente novamente."); setLoading(false); return; }
 
-      // Auto-login
+      // Auto-login após registro
       const result = await signIn("credentials", { email: adminEmail, password: senha, redirect: false });
       if (result?.error) {
         router.push("/login");
+        router.refresh();
       } else {
         router.push("/onboarding");
+        router.refresh();
       }
     } catch {
       setError("Sem conexão com o servidor. Verifique sua internet e tente novamente.");
