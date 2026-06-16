@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const ip = getClientIp(request);
   const rl = await limiters.register(ip);
   if (!rl.allowed) {
-    return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
+    return NextResponse.json({ error: "Muitas tentativas seguidas. Aguarde alguns minutos antes de tentar novamente." }, { status: 429 });
   }
 
   try {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const pwValidation = validatePassword(senha);
     if (!pwValidation.valid) {
       return NextResponse.json(
-        { error: `Senha inválida: ${pwValidation.errors.join("; ")}` },
+        { error: `A senha não atende aos requisitos: ${pwValidation.errors.join(", ").toLowerCase()}.` },
         { status: 400 }
       );
     }
@@ -108,12 +108,12 @@ export async function POST(request: Request) {
     );
   } catch (err) {
     if (err instanceof Error && err.message === "EMAIL_EXISTS") {
-      return NextResponse.json({ error: "Não foi possível completar o cadastro. Verifique os dados e tente novamente." }, { status: 409 });
+      return NextResponse.json({ error: "Este e-mail já possui uma conta. Tente fazer login ou use outro e-mail." }, { status: 409 });
     }
     if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
-      return NextResponse.json({ error: "Organização já cadastrada. Faça login." }, { status: 409 });
+      return NextResponse.json({ error: "Esta plataforma já possui um cadastro ativo. Entre em contato com o administrador." }, { status: 409 });
     }
     logError("registro", err);
-    return NextResponse.json({ error: "Falha ao criar organização" }, { status: 500 });
+    return NextResponse.json({ error: "Não foi possível criar sua conta agora. Tente novamente em alguns instantes." }, { status: 500 });
   }
 }

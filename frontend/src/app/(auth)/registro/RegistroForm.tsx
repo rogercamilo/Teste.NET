@@ -30,9 +30,9 @@ export default function RegistroForm() {
     e.preventDefault();
     setError(null);
 
-    if (!senhasIguais) { setError("As senhas não coincidem"); return; }
-    if (pwErrors.length > 0) { setError(pwErrors.join("; ")); return; }
-    if (!aceitouPrivacidade) { setError("Aceite a Política de Privacidade para continuar"); return; }
+    if (!senhasIguais) { setError("As senhas não coincidem. Verifique e tente novamente."); return; }
+    if (pwErrors.length > 0) { setError("Verifique os requisitos da senha indicados abaixo."); return; }
+    if (!aceitouPrivacidade) { setError("É necessário aceitar a Política de Privacidade e os Termos de Uso para continuar."); return; }
 
     setLoading(true);
     try {
@@ -42,7 +42,7 @@ export default function RegistroForm() {
         body: JSON.stringify({ orgNome, adminNome, adminEmail, senha, aceitouPrivacidade }),
       });
       const data = await res.json() as { error?: string };
-      if (!res.ok) { setError(data.error ?? "Erro ao criar conta"); setLoading(false); return; }
+      if (!res.ok) { setError(data.error ?? "Não foi possível criar sua conta agora. Tente novamente."); setLoading(false); return; }
 
       // Auto-login
       const result = await signIn("credentials", { email: adminEmail, password: senha, redirect: false });
@@ -52,14 +52,14 @@ export default function RegistroForm() {
         router.push("/onboarding");
       }
     } catch {
-      setError("Falha de conexão. Tente novamente.");
+      setError("Sem conexão com o servidor. Verifique sua internet e tente novamente.");
       setLoading(false);
     }
   }
 
   return (
   <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Left panel — identidade Formattio fixa; quem registra ainda não é cliente da plataforma */}
+      {/* Left panel */}
       <div
         className="hidden lg:flex lg:w-5/12 flex-col justify-between p-10"
         style={{ backgroundColor: "#B25433" }}
@@ -96,7 +96,7 @@ export default function RegistroForm() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-4 bg-background overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-start md:justify-center px-6 py-8 bg-background overflow-y-auto">
         {/* Mobile logo */}
         <div className="flex items-center justify-center mb-6 lg:hidden">
           <img
@@ -124,45 +124,51 @@ export default function RegistroForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-2">
-            <div className="space-y-1">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1.5">
               <Label htmlFor="orgNome">Nome da organização</Label>
               <Input
                 id="orgNome"
                 placeholder="Ex: Instituto de Formação Comunitária"
                 value={orgNome}
                 onChange={(e) => setOrgNome(e.target.value)}
+                autoComplete="organization"
                 required
-                className="h-9"
+                className="h-11"
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label htmlFor="adminNome">Seu nome</Label>
               <Input
                 id="adminNome"
                 placeholder="Nome completo"
                 value={adminNome}
                 onChange={(e) => setAdminNome(e.target.value)}
+                autoComplete="name"
                 required
-                className="h-9"
+                className="h-11"
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label htmlFor="adminEmail">E-mail</Label>
               <Input
                 id="adminEmail"
                 type="email"
+                inputMode="email"
                 placeholder="seu@email.com"
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
+                autoComplete="email"
+                autoCapitalize="off"
+                autoCorrect="off"
                 required
-                className="h-9"
+                className="h-11"
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label htmlFor="senha">Senha</Label>
               <div className="relative">
                 <Input
@@ -171,13 +177,15 @@ export default function RegistroForm() {
                   placeholder="Mínimo 8 caracteres"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
+                  autoComplete="new-password"
                   required
-                  className="pr-9 h-9"
+                  className="pr-10 h-11"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -189,7 +197,7 @@ export default function RegistroForm() {
               )}
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label htmlFor="confirmarSenha">Confirmar senha</Label>
               <Input
                 id="confirmarSenha"
@@ -197,21 +205,22 @@ export default function RegistroForm() {
                 placeholder="Repita a senha"
                 value={confirmarSenha}
                 onChange={(e) => setConfirmarSenha(e.target.value)}
+                autoComplete="new-password"
                 required
-                className="h-9"
+                className="h-11"
               />
               {confirmarSenha && !senhasIguais && (
                 <p className="text-xs text-destructive">As senhas não coincidem</p>
               )}
             </div>
 
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3 py-1">
               <input
                 id="privacidade"
                 type="checkbox"
                 checked={aceitouPrivacidade}
                 onChange={(e) => setAceitouPrivacidade(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-border cursor-pointer"
+                className="mt-0.5 h-4 w-4 rounded border-border cursor-pointer shrink-0"
               />
               <label htmlFor="privacidade" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
                 Li e concordo com a{" "}
@@ -226,7 +235,7 @@ export default function RegistroForm() {
               </label>
             </div>
 
-            <Button type="submit" className="w-full h-9 mt-1" disabled={loading}>
+            <Button type="submit" className="w-full h-11 mt-1" disabled={loading}>
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
