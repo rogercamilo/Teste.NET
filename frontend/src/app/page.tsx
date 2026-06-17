@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
   description:
     "Acompanhe a jornada formativa de cada membro com a profundidade que ela merece. Grupos de formação, planos formativos, Jornada Vocacional, documentos eclesiásticos e conformidade com a LGPD.",
+  ...(process.env.FB_APP_ID ? { other: { "fb:app_id": process.env.FB_APP_ID } } : {}),
   openGraph: {
     title: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
     description:
