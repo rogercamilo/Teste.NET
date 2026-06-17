@@ -14,6 +14,16 @@ export const metadata: Metadata = {
       "Chega de planilhas. Gerencie formandos, planos formativos, presenças e documentos eclesiásticos em uma plataforma segura, integrada e em conformidade com o direito canônico e a LGPD.",
     type: "website",
     locale: "pt_BR",
+    url: "https://www.formattio.com.br",
+    siteName: "Formattio",
+    images: [
+      {
+        url: "/brand/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "Formattio",
+      },
+    ],
   },
 };
 

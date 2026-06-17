@@ -8,6 +8,7 @@ import Providers from "@/components/Providers";
 import CookieBanner from "@/components/CookieBanner";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.formattio.com.br"),
   title: "Formattio",
   description: "Plataforma formativa para gestão e acompanhamento da jornada comunitária",
   manifest: "/site.webmanifest",
