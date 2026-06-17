@@ -53,6 +53,7 @@ export default auth(function proxy(req) {
     "/para-quem-e",
     "/precos",
     "/faq",
+    "/api/og",
     "/api/health",
     "/api/public/",
     "/api/registro",
