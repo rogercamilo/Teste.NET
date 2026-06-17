@@ -273,7 +273,7 @@ export default async function DashboardPage() {
 
   const [grupoFormacao, stats] = await Promise.all([
     grupoFormacaoId
-      ? prisma.grupoFormacao.findUnique({ where: { id: grupoFormacaoId }, select: { nome: true } })
+      ? prisma.grupoFormacao.findUnique({ where: { id: grupoFormacaoId, organizacaoId: user.organizacaoId }, select: { nome: true } })
       : Promise.resolve(null),
     semMorada
       ? Promise.resolve(null)

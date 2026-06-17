@@ -25,6 +25,7 @@ export default async function OnboardingPage({
 
   if (!org) redirect("/login");
   if (org.onboardingConcluido) redirect("/dashboard");
+  if ((session.user as { role?: string }).role === "formador_comunitario") redirect("/dashboard");
 
   const sp = await searchParams;
   const initialStep = sp.checkout === "success" ? 4 : sp.checkout === "cancelled" ? 3 : 1;

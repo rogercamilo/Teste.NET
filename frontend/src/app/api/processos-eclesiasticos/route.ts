@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   const user = session?.user as SessionUser | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (user.role === "formador_comunitario") return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const tipoFiltro = searchParams.get("tipo") ?? undefined;

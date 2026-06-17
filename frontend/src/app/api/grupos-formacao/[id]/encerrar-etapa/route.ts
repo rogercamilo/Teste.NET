@@ -42,7 +42,7 @@ export async function POST(request: Request, { params }: Params) {
 
     const updated = await prisma.$transaction(async (tx) => {
       const moradaAtualizada = await tx.grupoFormacao.update({
-        where: { id },
+        where: { id, organizacaoId: user.organizacaoId },
         data: { vigenciaFim: encerradoEm },
       });
 

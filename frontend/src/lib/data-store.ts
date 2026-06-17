@@ -12,7 +12,7 @@ import type { ComunidadeConfig, NivelFormativo } from "@/types";
 // ---------------------------------------------------------------------------
 // ComunidadeConfig — backed by /api/organizacao via shared ComunidadeContext
 // ---------------------------------------------------------------------------
-export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => void] {
+export function useComunidade(): [ComunidadeConfig, (c: ComunidadeConfig) => Promise<void>] {
   return useContext(ComunidadeContext);
 }
 

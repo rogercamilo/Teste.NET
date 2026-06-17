@@ -22,7 +22,10 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const pagination = parsePagination(searchParams);
-    const where = { organizacaoId: user.organizacaoId, deletedAt: null as null };
+    const where: Record<string, unknown> = { organizacaoId: user.organizacaoId, deletedAt: null };
+    if (user.role === "formador_comunitario") {
+      where.grupoFormacaoId = user.grupoFormacaoId ?? null;
+    }
     const orderBy = { dataInicio: "asc" as const };
 
     if (!pagination) {
@@ -55,6 +58,10 @@ export async function POST(request: Request) {
     const parsed = parseBody(CreateAgendamentoSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
+
+    if (user.role === "formador_comunitario" && body.grupoFormacaoId && body.grupoFormacaoId !== user.grupoFormacaoId) {
+      return NextResponse.json({ error: "Sem permissão para criar agendamento em outra morada" }, { status: 403 });
+    }
 
     const formacao = await prisma.formacao.findFirst({
       where: { id: body.formacaoId, deletedAt: null, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },

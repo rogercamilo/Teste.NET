@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth-helpers";
-import { hasCanonicalAccess, type NivelFormativo } from "@/types";
+import { hasCanonicalAccess, temPermissao, type NivelFormativo } from "@/types";
 import JornadaVocacionalClient from "./JornadaVocacionalClient";
 
 export default async function JornadaVocacionalPage() {
@@ -18,6 +18,7 @@ export default async function JornadaVocacionalPage() {
   });
 
   if (!hasCanonicalAccess(org?.tipoOrganizacao)) redirect("/dashboard");
+  if (!temPermissao(user.role, "formador_geral")) redirect("/dashboard");
 
   const processos = await prisma.processoEclesiastico.findMany({
     where: { organizacaoId: user.organizacaoId },

@@ -40,6 +40,9 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (user.role === "formador_comunitario" && existing.grupoFormacaoId !== (user.grupoFormacaoId ?? null)) {
+      return NextResponse.json({ error: "Sem permissão para modificar este agendamento" }, { status: 403 });
+    }
     const parsed = parseBody(UpdateAgendamentoSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
@@ -82,6 +85,9 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const existing = await prisma.agendamento.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    if (user.role === "formador_comunitario" && existing.grupoFormacaoId !== (user.grupoFormacaoId ?? null)) {
+      return NextResponse.json({ error: "Sem permissão para excluir este agendamento" }, { status: 403 });
+    }
     await prisma.agendamento.update({ where: { id, organizacaoId: user.organizacaoId }, data: { deletedAt: new Date() } });
     logAction("agendamento_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });

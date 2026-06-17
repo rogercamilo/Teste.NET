@@ -1145,7 +1145,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
           </DialogHeader>
@@ -1658,12 +1658,16 @@ function ComunidadeTab() {
     setDirty(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome da comunidade é obrigatório.");
-    setComunidade({ ...form, logoUrl: logo ?? undefined, temaCor: themeKey });
-    setDirty(false);
-    router.refresh();
-    toast.success("Configurações da comunidade salvas!");
+    try {
+      await setComunidade({ ...form, logoUrl: logo ?? undefined, temaCor: themeKey });
+      setDirty(false);
+      router.refresh();
+      toast.success("Configurações da comunidade salvas!");
+    } catch {
+      toast.error("Erro ao salvar configurações. Tente novamente.");
+    }
   }
 
   function handleReset() {

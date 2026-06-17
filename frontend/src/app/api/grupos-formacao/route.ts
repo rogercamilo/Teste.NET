@@ -21,7 +21,10 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const pagination = parsePagination(searchParams);
-    const where = { organizacaoId: user.organizacaoId };
+    const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
+    if (user.role === "formador_comunitario") {
+      where.id = user.grupoFormacaoId ?? "__none__";
+    }
     const orderBy = { nome: "asc" as const };
 
     if (!pagination) {

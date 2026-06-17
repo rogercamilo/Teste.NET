@@ -13,9 +13,9 @@ const DEFAULT_COMUNIDADE: ComunidadeConfig = {
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
-type ComunidadeCtx = [ComunidadeConfig, (c: ComunidadeConfig) => void];
+type ComunidadeCtx = [ComunidadeConfig, (c: ComunidadeConfig) => Promise<void>];
 
-export const ComunidadeContext = createContext<ComunidadeCtx>([DEFAULT_COMUNIDADE, () => {}]);
+export const ComunidadeContext = createContext<ComunidadeCtx>([DEFAULT_COMUNIDADE, () => Promise.resolve()]);
 
 // initialData comes from the Server Component layout — eliminates the client-side
 // fetch on mount that was causing a flash of default terminology on every page.
@@ -31,13 +31,18 @@ export function ComunidadeProvider({
     ...initialData,
   });
 
-  const save = (c: ComunidadeConfig) => {
+  const save = async (c: ComunidadeConfig): Promise<void> => {
+    const prev = state;
     setState(c);
-    fetch("/api/organizacao", {
+    const res = await fetch("/api/organizacao", {
       method: "PUT",
       headers: JSON_HEADERS,
       body: JSON.stringify(c),
-    }).catch(() => {});
+    });
+    if (!res.ok) {
+      setState(prev);
+      throw new Error("Falha ao salvar configurações");
+    }
   };
 
   return (

@@ -157,6 +157,7 @@ export default function GrupoFormacaoDetail({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isAdmin = userRole === "administrador";
+  const isFormadorGeral = userRole === "formador_geral";
   const isFC = userRole === "formador_comunitario";
 
   const [grupoFormacao, setGrupoFormacao] = useState<GrupoFormacao>(initialGrupoFormacao);
@@ -212,6 +213,8 @@ export default function GrupoFormacaoDetail({
   // Nova Etapa Formativa state
   const [novaEtapaOpen, setNovaEtapaOpen] = useState(false);
   const [novaEtapaForm, setNovaEtapaForm] = useState({ vigenciaInicio: "", dataMissaCompromisso: "" });
+
+  const [savingFormando, setSavingFormando] = useState(false);
 
   // Encerrar Etapa Formativa state
   const [encerrarOpen, setEncerrarOpen] = useState(false);
@@ -425,18 +428,23 @@ export default function GrupoFormacaoDetail({
     const url = editingFormando ? `/api/formandos/${editingFormando.id}` : "/api/formandos";
     const method = editingFormando ? "PUT" : "POST";
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({})) as { error?: string };
-      return toast.error(err.error ?? "Erro ao salvar formando.");
+    setSavingFormando(true);
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        return toast.error(err.error ?? "Erro ao salvar formando.");
+      }
+      toast.success(editingFormando ? `${termoFormando} atualizado!` : `${termoFormando} criado!`);
+      setFormDialogOpen(false);
+      startTransition(() => router.refresh());
+    } finally {
+      setSavingFormando(false);
     }
-    toast.success(editingFormando ? `${termoFormando} atualizado!` : `${termoFormando} criado!`);
-    setFormDialogOpen(false);
-    startTransition(() => router.refresh());
   }
 
   async function handleDeleteFormando() {
@@ -625,19 +633,19 @@ export default function GrupoFormacaoDetail({
             )}
           </div>
           <div className="flex gap-2 shrink-0 flex-wrap">
-            {(isFC || isAdmin) && !grupoFormacao.vigenciaFim && (
+            {(isFC || isAdmin || isFormadorGeral) && grupoFormacao.tipo === "estruturado" && !grupoFormacao.vigenciaFim && (
               <Button variant="outline" size="sm" onClick={openDatasEtapa} className="gap-1.5 text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 Datas da Etapa
               </Button>
             )}
-            {(isFC || isAdmin) && !grupoFormacao.vigenciaFim && currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
+            {(isFC || isAdmin || isFormadorGeral) && grupoFormacao.tipo === "estruturado" && !grupoFormacao.vigenciaFim && currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
               <Button variant="outline" size="sm" onClick={() => { setEncerrarForm({ encerradoEm: "" }); setEncerrarOpen(true); }} className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50">
                 <Flag className="h-4 w-4" />
                 Encerrar Etapa
               </Button>
             )}
-            {(isFC || isAdmin) && currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
+            {(isFC || isAdmin || isFormadorGeral) && grupoFormacao.tipo === "estruturado" && currentNivelIdx < NIVEL_SEQUENCE.length - 1 && (
               <Button
                 variant="outline" size="sm"
                 onClick={openNovaEtapa}
@@ -649,7 +657,7 @@ export default function GrupoFormacaoDetail({
                 Nova Etapa
               </Button>
             )}
-            {(isFC || isAdmin) && (
+            {(isFC || isAdmin || isFormadorGeral) && (
               <Button variant="outline" size="sm" onClick={openEdit}>
                 <Pencil className="h-4 w-4 mr-1.5" />
                 Editar
@@ -1595,9 +1603,9 @@ export default function GrupoFormacaoDetail({
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setFormDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveFormando}>
-              {editingFormando ? "Salvar alterações" : `Criar ${termoFormando.toLowerCase()}`}
+            <Button variant="outline" onClick={() => setFormDialogOpen(false)} disabled={savingFormando}>Cancelar</Button>
+            <Button onClick={handleSaveFormando} disabled={savingFormando}>
+              {savingFormando ? "Salvando..." : editingFormando ? "Salvar alterações" : `Criar ${termoFormando.toLowerCase()}`}
             </Button>
           </DialogFooter>
         </DialogContent>

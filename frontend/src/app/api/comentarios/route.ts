@@ -21,6 +21,9 @@ export async function GET(request: Request) {
     const formandoId = searchParams.get("formandoId");
     const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
     if (formandoId) where.formandoId = formandoId;
+    if (user.role === "formador_comunitario") {
+      where.formando = { grupoFormacaoId: user.grupoFormacaoId ?? null };
+    }
     const pagination = parsePagination(searchParams);
     const orderBy = { criadoEm: "desc" as const };
 

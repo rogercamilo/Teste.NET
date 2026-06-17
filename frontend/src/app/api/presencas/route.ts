@@ -23,6 +23,9 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = { organizacaoId: user.organizacaoId };
     if (agendamentoId) where.agendamentoId = agendamentoId;
     if (formandoId) where.formandoId = formandoId;
+    if (user.role === "formador_comunitario") {
+      where.formando = { grupoFormacaoId: user.grupoFormacaoId ?? null };
+    }
     const pagination = parsePagination(searchParams);
     const orderBy = { data: "desc" as const };
 

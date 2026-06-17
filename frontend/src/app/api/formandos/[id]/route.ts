@@ -75,6 +75,11 @@ export async function PUT(request: Request, { params }: Params) {
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 
+    // formador_comunitario não pode mover formandos para outro grupo
+    if (user.role === "formador_comunitario" && body.grupoFormacaoId !== undefined && body.grupoFormacaoId !== (user.grupoFormacaoId ?? null)) {
+      return NextResponse.json({ error: "Sem permissão para mover formando para outra morada" }, { status: 403 });
+    }
+
     if (body.grupoFormacaoId) {
       const grupoFormacao = await prisma.grupoFormacao.findFirst({ where: { id: body.grupoFormacaoId, organizacaoId: user.organizacaoId, ativo: true } });
       if (!grupoFormacao) return NextResponse.json({ error: "Grupo de formação não encontrado" }, { status: 404 });

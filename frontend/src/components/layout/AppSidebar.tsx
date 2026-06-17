@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { usePathname } from "next/navigation";
@@ -17,6 +18,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { navGroupsGestao, navGroupsFormador, navGroupsSuperAdmin, type NavGroup } from "./nav-items";
@@ -36,6 +38,10 @@ interface AppSidebarProps {
 
 export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
   const [comunidade] = useComunidade();
   // Logo carregada client-side via useComunidade para evitar transferir base64 no SSR
   const logo = comunidade.logoUrl ?? null;

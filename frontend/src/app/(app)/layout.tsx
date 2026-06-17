@@ -79,7 +79,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <main className="flex-1 overflow-auto p-4 md:p-6">
             {children}
           </main>
-          <footer className="shrink-0 border-t border-border/60 bg-card/50 px-4 md:px-6 py-2.5">
+          <footer className="shrink-0 border-t border-border/60 bg-card/50 px-4 md:px-6 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-xs text-muted-foreground">
               <p>
                 {sessionUser.role !== "super_admin" && (orgBranding.nomePlataforma || orgBranding.nome)

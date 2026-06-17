@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -44,7 +44,6 @@ interface Props {
 
 export default function JornadaVocacionalClient({ initialProcessos, userRole, termos }: Props) {
   const router = useRouter();
-  const [processos] = useState<ProcessoEclesiastico[]>(initialProcessos);
   const [search, setSearch] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
@@ -53,7 +52,7 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
   const isGestao = temPermissao(userRole, "formador_geral");
 
   const filtered = useMemo(() => {
-    return processos.filter((p) => {
+    return initialProcessos.filter((p) => {
       const matchSearch =
         !search ||
         p.formandoNome?.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,12 +61,12 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
       const matchStatus = statusFiltro === "todos" || p.status === statusFiltro;
       return matchSearch && matchTipo && matchStatus;
     });
-  }, [processos, search, tipoFiltro, statusFiltro, termos]);
+  }, [initialProcessos, search, tipoFiltro, statusFiltro, termos]);
 
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const tiposUnicos = Array.from(new Set(processos.map((p) => p.tipo)));
-  const statusUnicos = Array.from(new Set(processos.map((p) => p.status)));
+  const tiposUnicos = Array.from(new Set(initialProcessos.map((p) => p.tipo)));
+  const statusUnicos = Array.from(new Set(initialProcessos.map((p) => p.status)));
 
   return (
     <div className="space-y-6">
@@ -101,10 +100,10 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Filter className="hidden sm:block h-4 w-4 text-muted-foreground shrink-0" />
           <Select value={tipoFiltro} onValueChange={(v) => { setTipoFiltro(v ?? "todos"); setPage(1); }}>
-            <SelectTrigger className="w-52">
+            <SelectTrigger className="w-full sm:w-52">
               <SelectValue placeholder="Tipo de processo" />
             </SelectTrigger>
             <SelectContent>
@@ -117,7 +116,7 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
             </SelectContent>
           </Select>
           <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v ?? "todos"); setPage(1); }}>
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -134,7 +133,7 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
 
       {/* Tabela */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
               <FolderOpen className="h-10 w-10 opacity-30" />
