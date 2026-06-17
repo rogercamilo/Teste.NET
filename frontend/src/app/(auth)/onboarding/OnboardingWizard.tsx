@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,6 +107,17 @@ export default function OnboardingWizard({ org, initialStep = 1 }: { org: OrgDat
     org.planoAssinatura && org.planoAssinatura !== "GRATUITO" ? org.planoAssinatura : "INTERMEDIARIO"
   );
 
+  // Restaura o plano selecionado quando o usuário volta do Stripe sem concluir o pagamento
+  useEffect(() => {
+    if (initialStep === 3) {
+      const saved = sessionStorage.getItem("onboarding_plano");
+      if (saved) {
+        setPlano(saved);
+        sessionStorage.removeItem("onboarding_plano");
+      }
+    }
+  }, [initialStep]);
+
   // Step 4 — terminology (empty = usa os termos padrão do sistema)
   const [termoGrupoFormacao, setTermoGrupoFormacao] = useState("");
   const [termoFormando, setTermoFormando] = useState("");
@@ -173,6 +184,7 @@ export default function OnboardingWizard({ org, initialStep = 1 }: { org: OrgDat
     if (!plano) return;
     setError(null);
     setLoading(true);
+    sessionStorage.setItem("onboarding_plano", plano);
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -183,6 +195,7 @@ export default function OnboardingWizard({ org, initialStep = 1 }: { org: OrgDat
       if (!res.ok) throw new Error(data.error ?? "Erro ao iniciar pagamento");
       window.location.href = data.url!;
     } catch (err) {
+      sessionStorage.removeItem("onboarding_plano");
       setError(err instanceof Error ? err.message : "Erro ao processar pagamento");
     } finally {
       setLoading(false);
@@ -530,11 +543,11 @@ export default function OnboardingWizard({ org, initialStep = 1 }: { org: OrgDat
                     <Input id="termoPreDiscipulado" value={termoPreDiscipulado} onChange={(e) => setTermoPreDiscipulado(e.target.value)} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="termoDiscipulado">2.ª etapa</Label>
+                    <Label htmlFor="termoDiscipulado">2.ª etapa <span className="font-normal text-muted-foreground">(Ex: "Discipulado")</span></Label>
                     <Input id="termoDiscipulado" value={termoDiscipulado} onChange={(e) => setTermoDiscipulado(e.target.value)} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="termoPrimeirasPromessas">3.ª etapa</Label>
+                    <Label htmlFor="termoPrimeirasPromessas">3.ª etapa <span className="font-normal text-muted-foreground">(Ex: "Primeiras Promessas")</span></Label>
                     <Input id="termoPrimeirasPromessas" value={termoPrimeirasPromessas} onChange={(e) => setTermoPrimeirasPromessas(e.target.value)} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
@@ -550,25 +563,25 @@ export default function OnboardingWizard({ org, initialStep = 1 }: { org: OrgDat
           {step === 5 && (
             <div className="space-y-4">
               <div>
-                <h2 className="font-semibold text-foreground">Criar primeiro grupo de formação</h2>
+                <h2 className="font-semibold text-foreground">Crie o seu primeiro grupo de formação</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Opcional — pode adicionar seus grupos depois em Gestão → Grupos de formação.
                 </p>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="grupoFormacaoNome">Nome do grupo</Label>
+                <Label htmlFor="grupoFormacaoNome">Nome do grupo de formação</Label>
                 <Input id="grupoFormacaoNome" placeholder={`Ex: ${termoGrupoFormacao || "Grupo"} São João`} value={grupoFormacaoNome} onChange={(e) => setGrupoFormacaoNome(e.target.value)} className="h-10" />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="grupoFormacaoLocalReuniao">Local de reunião</Label>
-                <Input id="grupoFormacaoLocalReuniao" placeholder="Ex: Paróquia São João, Salão 2" value={grupoFormacaoLocalReuniao} onChange={(e) => setGrupoFormacaoLocalReuniao(e.target.value)} className="h-10" />
+                <Input id="grupoFormacaoLocalReuniao" placeholder="Ex: Centro de evangelização, Capela" value={grupoFormacaoLocalReuniao} onChange={(e) => setGrupoFormacaoLocalReuniao(e.target.value)} className="h-10" />
               </div>
 
               {/* Tipo do grupo */}
               <div className="space-y-2">
-                <Label>Tipo de grupo</Label>
+                <Label>Tipo de grupo de formação</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -580,9 +593,9 @@ export default function OnboardingWizard({ org, initialStep = 1 }: { org: OrgDat
                     }`}
                   >
                     <span className={`text-xs font-semibold ${grupoTipo === "estruturado" ? "text-primary" : "text-foreground"}`}>
-                      Estruturado
+                      Jornada vocacional
                     </span>
-                    <p className="text-xs text-muted-foreground leading-snug">Etapas canônicas com progressão formal.</p>
+                    <p className="text-xs text-muted-foreground leading-snug">Grupos para etapas vocacionais com progressão formal.</p>
                   </button>
                   <button
                     type="button"
@@ -594,9 +607,9 @@ export default function OnboardingWizard({ org, initialStep = 1 }: { org: OrgDat
                     }`}
                   >
                     <span className={`text-xs font-semibold ${grupoTipo === "livre" ? "text-primary" : "text-foreground"}`}>
-                      Livre
+                      Jornada livre
                     </span>
-                    <p className="text-xs text-muted-foreground leading-snug">Oração, aprofundamento ou curso pontual.</p>
+                    <p className="text-xs text-muted-foreground leading-snug">Grupos de oração, escolas de formação ou cursos pontuais.</p>
                   </button>
                 </div>
               </div>
@@ -648,7 +661,7 @@ export default function OnboardingWizard({ org, initialStep = 1 }: { org: OrgDat
                     Voltar
                   </Button>
                   <Button variant="ghost" onClick={handleNext} disabled={loading} className="gap-1 text-muted-foreground hover:text-foreground">
-                    Continuar no período de experiência
+                    Quero o período de experiência
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>

@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         ? `${appUrl}/onboarding?checkout=success`
         : `${appUrl}/configuracoes?tab=plano&checkout=success`,
       cancel_url: context === "onboarding"
-        ? `${appUrl}/onboarding`
+        ? `${appUrl}/onboarding?checkout=cancelled`
         : `${appUrl}/configuracoes?tab=plano&checkout=cancelled`,
     });
 

@@ -27,7 +27,7 @@ export default async function OnboardingPage({
   if (org.onboardingConcluido) redirect("/dashboard");
 
   const sp = await searchParams;
-  const initialStep = sp.checkout === "success" ? 4 : 1;
+  const initialStep = sp.checkout === "success" ? 4 : sp.checkout === "cancelled" ? 3 : 1;
 
   return <OnboardingWizard org={org} initialStep={initialStep} />;
 }
