@@ -62,8 +62,8 @@ export async function sendPushToOrg(
   });
 
   const fullPayload: PushPayload = {
-    icon: "/brand/formatio-symbol.svg",
-    badge: "/brand/formatio-symbol.svg",
+    icon: "/push-icon-192.png",
+    badge: "/push-badge-96.png",
     ...payload,
   };
 

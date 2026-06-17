@@ -11,8 +11,8 @@ self.addEventListener("push", (event) => {
   const title = data.titulo ?? "Formattio";
   const options = {
     body: data.corpo ?? "",
-    icon: data.icon ?? "/brand/formatio-symbol.svg",
-    badge: data.badge ?? "/brand/formatio-symbol.svg",
+    icon: data.icon ?? "/push-icon-192.png",
+    badge: data.badge ?? "/push-badge-96.png",
     data: { url: data.url ?? "/" },
     vibrate: [200, 100, 200],
   };

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     siteName: "Formattio",
     images: [
       {
-        url: "/api/og",
+        url: "/brand/og-card.png",
         width: 1200,
         height: 630,
         alt: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     title: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
     description:
       "Chega de planilhas. Gerencie formandos, planos formativos, presenças e documentos eclesiásticos em uma plataforma segura, integrada e em conformidade com o direito canônico e a LGPD.",
-    images: ["/api/og"],
+    images: ["/brand/og-card.png"],
   },
 };
 
