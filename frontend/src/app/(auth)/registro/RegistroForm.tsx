@@ -69,8 +69,8 @@ export default function RegistroForm() {
         <img
           src="/brand/formatio-symbol-mono-white.svg"
           alt="Formattio"
-          width={112}
-          height={112}
+          width={172}
+          height={172}
         />
 
         <div>
@@ -84,7 +84,7 @@ export default function RegistroForm() {
             className="text-sm leading-relaxed mb-6"
             style={{ color: "rgba(255,255,255,0.68)" }}
           >
-            Cadastre membros, organize grupos e estruture planos formativos por nível.
+            Cadastre seus formandos, organize grupos de formação e estruture planos e grades formativas por etapas.
           </p>
           <p
             className="text-xs font-medium tracking-widest uppercase"
