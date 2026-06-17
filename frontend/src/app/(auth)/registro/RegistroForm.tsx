@@ -60,30 +60,28 @@ export default function RegistroForm() {
   }
 
   return (
-  <div className="min-h-screen flex flex-col lg:flex-row">
+  <div className="h-screen overflow-hidden flex flex-col lg:flex-row">
       {/* Left panel */}
       <div
-        className="hidden lg:flex lg:w-5/12 flex-col justify-between p-10"
+        className="hidden lg:flex lg:w-5/12 flex-col justify-between p-8"
         style={{ backgroundColor: "#B25433" }}
       >
-        {/* Logo — topo esquerdo */}
         <img
           src="/brand/formatio-symbol-mono-white.svg"
           alt="Formattio"
-          width={144}
-          height={144}
+          width={112}
+          height={112}
         />
 
-        {/* Headline, descrição e URL — agrupados no rodapé */}
         <div>
           <h1
-            className="text-4xl font-bold leading-tight mb-5"
+            className="text-3xl font-bold leading-tight mb-4"
             style={{ color: "#FFFFFF" }}
           >
             Comece a jornada formativa da sua comunidade.
           </h1>
           <p
-            className="text-base leading-relaxed mb-8"
+            className="text-sm leading-relaxed mb-6"
             style={{ color: "rgba(255,255,255,0.68)" }}
           >
             Cadastre membros, organize grupos e estruture planos formativos por nível.
@@ -98,37 +96,37 @@ export default function RegistroForm() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex flex-col items-center justify-start md:justify-center px-6 py-8 bg-background overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-4 bg-background">
         {/* Mobile logo */}
-        <div className="flex items-center justify-center mb-6 lg:hidden">
+        <div className="flex items-center justify-center mb-4 lg:hidden">
           <img
             src="/brand/formatio-symbol.svg"
             alt="Formattio"
-            width={40}
-            height={40}
-            className="mr-2.5 shrink-0"
+            width={32}
+            height={32}
+            className="mr-2 shrink-0"
           />
           <p className="font-semibold text-foreground text-sm leading-tight">Formattio</p>
         </div>
 
         <div className="w-full max-w-sm">
-          <div className="mb-3">
-            <h2 className="text-2xl font-bold text-foreground">Criar conta</h2>
-            <p className="text-sm text-muted-foreground mt-1">
+          <div className="mb-2">
+            <h2 className="text-xl font-bold text-foreground">Criar conta</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
               Registre sua organização — é grátis por 14 dias.
             </p>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+            <div className="flex items-center gap-2 p-2.5 mb-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="orgNome">Nome da organização</Label>
+          <form onSubmit={handleSubmit} className="space-y-2">
+            <div className="space-y-1">
+              <Label htmlFor="orgNome" className="text-xs">Nome da organização</Label>
               <Input
                 id="orgNome"
                 placeholder="Ex: Instituto de Formação Comunitária"
@@ -136,12 +134,12 @@ export default function RegistroForm() {
                 onChange={(e) => setOrgNome(e.target.value)}
                 autoComplete="organization"
                 required
-                className="h-11"
+                className="h-9 text-sm"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="adminNome">Seu nome</Label>
+            <div className="space-y-1">
+              <Label htmlFor="adminNome" className="text-xs">Seu nome</Label>
               <Input
                 id="adminNome"
                 placeholder="Nome completo"
@@ -149,12 +147,12 @@ export default function RegistroForm() {
                 onChange={(e) => setAdminNome(e.target.value)}
                 autoComplete="name"
                 required
-                className="h-11"
+                className="h-9 text-sm"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="adminEmail">E-mail</Label>
+            <div className="space-y-1">
+              <Label htmlFor="adminEmail" className="text-xs">E-mail</Label>
               <Input
                 id="adminEmail"
                 type="email"
@@ -166,12 +164,12 @@ export default function RegistroForm() {
                 autoCapitalize="off"
                 autoCorrect="off"
                 required
-                className="h-11"
+                className="h-9 text-sm"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="senha">Senha</Label>
+            <div className="space-y-1">
+              <Label htmlFor="senha" className="text-xs">Senha</Label>
               <div className="relative">
                 <Input
                   id="senha"
@@ -181,7 +179,7 @@ export default function RegistroForm() {
                   onChange={(e) => setSenha(e.target.value)}
                   autoComplete="new-password"
                   required
-                  className="pr-10 h-11"
+                  className="pr-10 h-9 text-sm"
                 />
                 <button
                   type="button"
@@ -193,14 +191,14 @@ export default function RegistroForm() {
                 </button>
               </div>
               {senha && pwErrors.length > 0 && (
-                <ul className="text-xs text-destructive space-y-0.5 mt-1">
+                <ul className="text-xs text-destructive space-y-0.5">
                   {pwErrors.map((e) => <li key={e}>• {e}</li>)}
                 </ul>
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="confirmarSenha">Confirmar senha</Label>
+            <div className="space-y-1">
+              <Label htmlFor="confirmarSenha" className="text-xs">Confirmar senha</Label>
               <Input
                 id="confirmarSenha"
                 type="password"
@@ -209,14 +207,14 @@ export default function RegistroForm() {
                 onChange={(e) => setConfirmarSenha(e.target.value)}
                 autoComplete="new-password"
                 required
-                className="h-11"
+                className="h-9 text-sm"
               />
               {confirmarSenha && !senhasIguais && (
                 <p className="text-xs text-destructive">As senhas não coincidem</p>
               )}
             </div>
 
-            <div className="flex items-start gap-3 py-1">
+            <div className="flex items-start gap-2.5 py-0.5">
               <input
                 id="privacidade"
                 type="checkbox"
@@ -237,7 +235,7 @@ export default function RegistroForm() {
               </label>
             </div>
 
-            <Button type="submit" className="w-full h-11 mt-1" disabled={loading}>
+            <Button type="submit" className="w-full h-9 text-sm" disabled={loading}>
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -247,7 +245,7 @@ export default function RegistroForm() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-3">
+          <p className="text-center text-sm text-muted-foreground mt-2">
             Já tem conta?{" "}
             <Link href="/login" className="text-primary hover:underline font-medium">
               Entrar

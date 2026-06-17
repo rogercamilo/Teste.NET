@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Users, BookOpen, Calendar,
@@ -923,10 +923,13 @@ function FAQ() {
 // ── Push Subscribe ────────────────────────────────────────────────────────────
 
 function PushSubscribeSection() {
+  const [mounted, setMounted] = useState(false);
   const { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
     usePushSubscription();
 
-  if (!isSupported) return null;
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || !isSupported) return null;
 
   return (
     <section id="notificacoes" className="bg-slate-900 border-t border-white/5 py-20">
