@@ -87,10 +87,9 @@ if (
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  // trustHost em desenvolvimento — em produção a validação de host é feita via NEXTAUTH_URL.
-  // Em produção, trustHost: false força o NextAuth a validar o header Host contra NEXTAUTH_URL,
-  // prevenindo Host header injection.
-  trustHost: process.env.NODE_ENV !== "production",
+  // Em desenvolvimento sempre confia no host. Em produção, confia apenas se AUTH_TRUST_HOST
+  // estiver definida (necessário quando o app roda atrás de um proxy reverso, como Railway).
+  trustHost: process.env.NODE_ENV !== "production" || !!process.env.AUTH_TRUST_HOST,
   providers,
   callbacks: {
     ...authConfig.callbacks,
