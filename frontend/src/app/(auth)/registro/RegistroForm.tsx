@@ -60,7 +60,7 @@ export default function RegistroForm() {
   }
 
   return (
-  <div className="h-screen overflow-hidden flex flex-col lg:flex-row">
+  <div className="h-dvh flex flex-col lg:flex-row">
       {/* Left panel */}
       <div
         className="hidden lg:flex lg:w-5/12 flex-col justify-between p-8"
@@ -96,7 +96,7 @@ export default function RegistroForm() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-4 bg-background">
+      <div className="flex-1 flex flex-col items-center justify-start sm:justify-center px-6 py-4 bg-background overflow-y-auto">
         {/* Mobile logo */}
         <div className="flex items-center justify-center mb-4 lg:hidden">
           <img

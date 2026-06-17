@@ -659,7 +659,7 @@ export default function GrupoFormacaoDetail({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{formandosDaMorada.length}</p>
@@ -681,7 +681,8 @@ export default function GrupoFormacaoDetail({
       </div>
 
       <Tabs defaultValue="resumo">
-        <TabsList className="bg-muted/50 h-9">
+        <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <TabsList className="bg-muted/50 h-9 min-w-max">
           <TabsTrigger value="resumo" className="text-xs h-7 gap-1.5">
             <Home className="h-3.5 w-3.5" />
             Resumo
@@ -703,6 +704,7 @@ export default function GrupoFormacaoDetail({
             Relatórios
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* TAB RESUMO */}
         <TabsContent value="resumo" className="mt-4 space-y-4">

@@ -816,7 +816,7 @@ export default function FormandoDetailClient({
           </div>
 
           {/* Métricas principais */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="text-center">
               <p className="text-2xl font-bold text-foreground">{realizadosAtual}</p>
               <p className="text-sm text-muted-foreground mt-0.5">de {totalAtual} encontros</p>
@@ -925,7 +925,8 @@ export default function FormandoDetailClient({
       </Card>
 
       <Tabs defaultValue="visao-geral">
-        <TabsList className="bg-muted/50 h-9">
+        <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <TabsList className="bg-muted/50 h-9 min-w-max">
           <TabsTrigger value="visao-geral" className="text-xs h-7">
             Visão geral
           </TabsTrigger>
@@ -953,6 +954,7 @@ export default function FormandoDetailClient({
             Registro de solicitações
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* Jornada Formativa */}
         <TabsContent value="jornada" className="mt-4">
@@ -1326,7 +1328,7 @@ export default function FormandoDetailClient({
         {/* Visão geral da jornada formativa */}
         <TabsContent value="visao-geral" className="mt-4 space-y-4">
           {/* Painel de indicadores globais */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Card className="border-0 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">

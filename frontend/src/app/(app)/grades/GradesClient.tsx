@@ -117,7 +117,7 @@ export default function GradesClient({ role, grupoFormacaoId, initialGrades, ini
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2">
         <div className="p-3 rounded-xl bg-card border border-border/60 shadow-sm text-center">
           <p className="text-xl font-bold text-foreground">{visibleGrades.length}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Grades ativas</p>

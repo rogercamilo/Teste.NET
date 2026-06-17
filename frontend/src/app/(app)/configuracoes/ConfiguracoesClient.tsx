@@ -163,7 +163,8 @@ export default function ConfiguracoesClient({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-muted/50 h-9">
+        <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <TabsList className="bg-muted/50 h-9 min-w-max">
           <TabsTrigger value="perfil" className="text-xs h-7 gap-1.5">
             <User className="h-3.5 w-3.5" />
             Perfil
@@ -205,6 +206,7 @@ export default function ConfiguracoesClient({
             Privacidade
           </TabsTrigger>
         </TabsList>
+        </div>
 
         <TabsContent value="perfil" className="mt-4">
           <PerfilTab userId={userId} userName={userName} userEmail={userEmail} />
