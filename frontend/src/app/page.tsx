@@ -14,7 +14,7 @@ export const metadata: Metadata = {
       "Chega de planilhas. Gerencie formandos, planos formativos, presenças e documentos eclesiásticos em uma plataforma segura, integrada e em conformidade com o direito canônico e a LGPD.",
     type: "website",
     locale: "pt_BR",
-    url: "https://www.formattio.com.br",
+    url: "https://www.formattio.com.br/",
     siteName: "Formattio",
     images: [
       {
@@ -24,6 +24,13 @@ export const metadata: Metadata = {
         alt: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
       },
     ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
+    description:
+      "Chega de planilhas. Gerencie formandos, planos formativos, presenças e documentos eclesiásticos em uma plataforma segura, integrada e em conformidade com o direito canônico e a LGPD.",
+    images: ["/api/og"],
   },
 };
 

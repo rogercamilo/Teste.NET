@@ -8,17 +8,17 @@ const CREAM = "#FBF8F4";
 const DARK = "#2A1E16";
 const MUTED = "#8C6F5E";
 
-// SVG logo encoded as data URL (edge-safe, no Buffer)
-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><g transform="translate(5 0) skewX(-9)" fill="none" stroke="${CLAY}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M18 50V19H38"/><path d="M18 33H32"/></g><circle cx="48" cy="46" r="1.8" fill="${CLAY}" opacity="0.5"/><circle cx="51" cy="36" r="2.5" fill="${CLAY}" opacity="0.75"/><circle cx="54" cy="25" r="3.2" fill="${CLAY}"/></svg>`;
-const LOGO_URL = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(LOGO_SVG)}`;
-
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
+  const url = new URL(req.url);
+  const { searchParams } = url;
   const title = searchParams.get("title");
   const subtitle = searchParams.get("subtitle");
 
   const heading = title ?? "Formattio";
   const isHome = !title;
+
+  // Use absolute URL so Satori can fetch the PNG (SVG not supported in <img>)
+  const logoUrl = `${url.protocol}//${url.host}/brand/icon-512.png`;
 
   return new ImageResponse(
     (
@@ -64,9 +64,9 @@ export async function GET(req: NextRequest) {
           }}
         />
 
-        {/* Logo symbol */}
+        {/* Logo symbol — must be a rasterized PNG; Satori does not support SVG in <img> */}
         <img
-          src={LOGO_URL}
+          src={logoUrl}
           width={isHome ? 152 : 96}
           height={isHome ? 152 : 96}
           style={{ width: isHome ? "152px" : "96px", height: isHome ? "152px" : "96px" }}

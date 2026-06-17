@@ -4,6 +4,18 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   // argon2 uses native addons — must not be bundled by webpack
   serverExternalPackages: ["argon2", "@react-pdf/renderer"],
+
+  async redirects() {
+    return [
+      // Force HTTPS: Railway/proxy sets x-forwarded-proto when traffic arrives via HTTP
+      {
+        source: "/:path*",
+        has: [{ type: "header", key: "x-forwarded-proto", value: "http" }],
+        destination: "https://www.formattio.com.br/:path*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 // Only wrap with Sentry when org+project are configured (skips in CI without Sentry vars)
