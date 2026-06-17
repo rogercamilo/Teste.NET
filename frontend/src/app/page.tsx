@@ -18,10 +18,10 @@ export const metadata: Metadata = {
     siteName: "Formattio",
     images: [
       {
-        url: "/brand/icon-512.png",
-        width: 512,
-        height: 512,
-        alt: "Formattio",
+        url: "/api/og",
+        width: 1200,
+        height: 630,
+        alt: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
       },
     ],
   },
