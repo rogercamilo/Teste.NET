@@ -1,4 +1,4 @@
-﻿import { auth } from "@/auth";
+﻿import { auth } from "@/auth.config";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
