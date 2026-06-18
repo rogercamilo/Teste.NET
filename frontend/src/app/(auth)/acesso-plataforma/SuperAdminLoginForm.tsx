@@ -1,68 +1,29 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, ShieldAlert, ShieldCheck } from "lucide-react";
+import { superAdminLogin, type LoginState } from "./actions";
+
+const initialState: LoginState = {};
 
 export default function SuperAdminLoginForm() {
+  const [state, formAction, isPending] = useActionState(superAdminLogin, initialState);
+
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
-  const [mfaRequired, setMfaRequired] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  // formKey reset the action state when user wants to go back from MFA screen
+  const [formKey, setFormKey] = useState(0);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setFormError(null);
+  const mfaRequired = state.mfaRequired ?? false;
 
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        loginSource: "super_admin",
-        ...(mfaRequired ? { totp: totpCode } : {}),
-        redirect: false,
-      });
-
-      // NextAuth v5 beta: em caso de sucesso retorna undefined; em caso de erro pode
-      // retornar { error: "..." } (betas antigos) ou lançar exceção (betas mais recentes).
-      if (result?.error === "MFARequired") {
-        setMfaRequired(true);
-        setFormError(null);
-      } else if (result?.error) {
-        setFormError(
-          mfaRequired
-            ? "Código inválido. Verifique o aplicativo autenticador."
-            : "Credenciais inválidas ou acesso não autorizado."
-        );
-      } else {
-        // Usa location.replace para forçar reload completo com o novo cookie de sessão
-        window.location.replace("/super-admin/dashboard");
-        return; // evita chamar setLoading(false) antes da navegação
-      }
-    } catch (err) {
-      // NextAuth v5 beta lança SignInError em vez de retornar { error } em versões recentes
-      const code = (err as { code?: string })?.code ?? "";
-      const msg = err instanceof Error ? err.message : "";
-      if (code === "MFARequired" || msg.includes("MFARequired")) {
-        setMfaRequired(true);
-        setFormError(null);
-      } else {
-        setFormError(
-          mfaRequired
-            ? "Código inválido. Verifique o aplicativo autenticador."
-            : "Credenciais inválidas ou acesso não autorizado."
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
+  function handleBackFromMfa() {
+    setTotpCode("");
+    setFormKey((k) => k + 1); // remonta o form e reseta o state do useActionState
   }
 
   return (
@@ -90,15 +51,15 @@ export default function SuperAdminLoginForm() {
           </p>
         </div>
 
-        {formError && (
+        {state.error && (
           <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-red-950/50 border border-red-800/50 text-red-300 text-sm">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            {formError}
+            {state.error}
           </div>
         )}
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form key={formKey} action={formAction} className="space-y-4">
             {!mfaRequired ? (
               <>
                 <div className="space-y-1.5">
@@ -109,6 +70,7 @@ export default function SuperAdminLoginForm() {
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <Input
                       id="email"
+                      name="email"
                       type="email"
                       placeholder="admin@Formattio.app"
                       className="pl-9 h-10 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-600 focus-visible:ring-red-500/30 focus-visible:border-red-500/50"
@@ -128,6 +90,7 @@ export default function SuperAdminLoginForm() {
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <Input
                       id="password"
+                      name="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       className="pl-9 pr-9 h-10 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-600 focus-visible:ring-red-500/30 focus-visible:border-red-500/50"
@@ -149,6 +112,10 @@ export default function SuperAdminLoginForm() {
               </>
             ) : (
               <div className="space-y-3">
+                {/* Preserva credenciais para o segundo submit (com TOTP) */}
+                <input type="hidden" name="email" value={email} />
+                <input type="hidden" name="password" value={password} />
+
                 <p className="text-sm text-slate-400">
                   Digite o código de 6 dígitos do seu aplicativo autenticador.
                 </p>
@@ -158,6 +125,7 @@ export default function SuperAdminLoginForm() {
                   </Label>
                   <Input
                     id="totp"
+                    name="totp"
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]{6}"
@@ -173,7 +141,7 @@ export default function SuperAdminLoginForm() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setMfaRequired(false); setTotpCode(""); setFormError(null); }}
+                  onClick={handleBackFromMfa}
                   className="text-xs text-slate-500 hover:text-slate-300 underline transition-colors"
                 >
                   Voltar ao login
@@ -184,9 +152,9 @@ export default function SuperAdminLoginForm() {
             <Button
               type="submit"
               className="w-full h-10 bg-red-800 hover:bg-red-700 text-white border-0 mt-2"
-              disabled={loading}
+              disabled={isPending}
             >
-              {loading ? (
+              {isPending ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 rounded-full border-2 border-red-300/30 border-t-red-300 animate-spin" />
                   {mfaRequired ? "Verificando..." : "Autenticando..."}
