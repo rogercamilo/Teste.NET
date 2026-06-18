@@ -42,3 +42,15 @@ export function formatDataBr(date: Date): string {
     timeZone: "America/Sao_Paulo",
   });
 }
+
+/**
+ * Converte o campo foto/imagemUrl do banco no src correto para <img>.
+ * - base64 legado (começa com "data:"): retorna direto
+ * - key R2/local: retorna /api/imagens/serve?key=<key>
+ * - null/undefined: retorna undefined
+ */
+export function resolveImageSrc(keyOrBase64: string | undefined | null): string | undefined {
+  if (!keyOrBase64) return undefined;
+  if (keyOrBase64.startsWith("data:")) return keyOrBase64;
+  return `/api/imagens/serve?key=${encodeURIComponent(keyOrBase64)}`;
+}

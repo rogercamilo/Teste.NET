@@ -1,11 +1,12 @@
 /**
- * Abstração de armazenamento de arquivos.
+ * Abstração de armazenamento de arquivos — SERVER ONLY.
  * Modo local (dev): salva em data/uploads/<storageKey>
  * Modo R2 (prod): salva no bucket Cloudflare R2 quando as env vars estiverem configuradas.
  *
  * Env vars para R2:
  *   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME
  */
+import "server-only";
 
 import { randomBytes } from "crypto";
 import { join, resolve, sep } from "path";
@@ -190,16 +191,4 @@ export async function getFileUrl(
 export async function getImageR2Url(storageKey: string, ttl = 3600): Promise<string | null> {
   if (!R2_ENABLED) return null;
   return getPresignedUrlR2(storageKey, ttl);
-}
-
-/**
- * Converte um valor do campo `foto` / `imagemUrl` do BD no `src` correto para <img>.
- * - base64 legacy (começa com "data:"): retorna direto
- * - key R2/local: retorna /api/imagens/serve?key=<key>
- * - null/undefined: retorna undefined
- */
-export function resolveImageSrc(keyOrBase64: string | undefined | null): string | undefined {
-  if (!keyOrBase64) return undefined;
-  if (keyOrBase64.startsWith("data:")) return keyOrBase64;
-  return `/api/imagens/serve?key=${encodeURIComponent(keyOrBase64)}`;
 }

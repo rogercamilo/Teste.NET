@@ -75,8 +75,7 @@ import { format, parseISO, differenceInYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
-import { applyPhoneMask, stripPhone } from "@/lib/utils";
-import { resolveImageSrc } from "@/lib/storage";
+import { applyPhoneMask, stripPhone, resolveImageSrc } from "@/lib/utils";
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();

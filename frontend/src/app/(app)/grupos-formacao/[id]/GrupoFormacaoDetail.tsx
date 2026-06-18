@@ -92,8 +92,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { resolveImageSrc } from "@/lib/storage";
+import { cn, resolveImageSrc } from "@/lib/utils";
 import { format, parseISO, differenceInYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";

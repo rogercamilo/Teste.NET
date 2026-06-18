@@ -14,8 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle2, FileText, Lock } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { resolveImageSrc } from "@/lib/storage";
+import { cn, resolveImageSrc } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   NIVEL_FORMATIVO_LABELS, NOTA_ADESAO_LABELS, NOTA_ADESAO_CORES,
