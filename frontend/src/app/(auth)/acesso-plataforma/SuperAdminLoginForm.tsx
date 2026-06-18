@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export default function SuperAdminLoginForm() {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,28 +21,47 @@ export default function SuperAdminLoginForm() {
     setLoading(true);
     setFormError(null);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      loginSource: "super_admin",
-      ...(mfaRequired ? { totp: totpCode } : {}),
-      redirect: false,
-    });
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        loginSource: "super_admin",
+        ...(mfaRequired ? { totp: totpCode } : {}),
+        redirect: false,
+      });
 
-    setLoading(false);
-
-    if (result?.error === "MFARequired") {
-      setMfaRequired(true);
-      setFormError(null);
-    } else if (result?.error) {
-      setFormError(
-        mfaRequired
-          ? "Código inválido. Verifique o aplicativo autenticador."
-          : "Credenciais inválidas ou acesso não autorizado."
-      );
-    } else {
-      router.push("/super-admin/dashboard");
-      router.refresh();
+      // NextAuth v5 beta: em caso de sucesso retorna undefined; em caso de erro pode
+      // retornar { error: "..." } (betas antigos) ou lançar exceção (betas mais recentes).
+      if (result?.error === "MFARequired") {
+        setMfaRequired(true);
+        setFormError(null);
+      } else if (result?.error) {
+        setFormError(
+          mfaRequired
+            ? "Código inválido. Verifique o aplicativo autenticador."
+            : "Credenciais inválidas ou acesso não autorizado."
+        );
+      } else {
+        // Usa location.replace para forçar reload completo com o novo cookie de sessão
+        window.location.replace("/super-admin/dashboard");
+        return; // evita chamar setLoading(false) antes da navegação
+      }
+    } catch (err) {
+      // NextAuth v5 beta lança SignInError em vez de retornar { error } em versões recentes
+      const code = (err as { code?: string })?.code ?? "";
+      const msg = err instanceof Error ? err.message : "";
+      if (code === "MFARequired" || msg.includes("MFARequired")) {
+        setMfaRequired(true);
+        setFormError(null);
+      } else {
+        setFormError(
+          mfaRequired
+            ? "Código inválido. Verifique o aplicativo autenticador."
+            : "Credenciais inválidas ou acesso não autorizado."
+        );
+      }
+    } finally {
+      setLoading(false);
     }
   }
 

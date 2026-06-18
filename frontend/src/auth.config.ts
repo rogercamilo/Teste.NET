@@ -32,6 +32,21 @@ export const authConfig = {
     authorized({ auth }) {
       return !!auth?.user;
     },
+    // Session callback edge-compatible: mapeia os campos custom do JWT para session.user
+    // sem chamar o DB — necessário para que o proxy (middleware) leia req.auth?.user?.role.
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as { id?: string }).id = token.id as string;
+        (session.user as { role?: string }).role = token.role as string;
+        (session.user as { organizacaoId?: string | null }).organizacaoId =
+          token.organizacaoId as string | null;
+        (session.user as { grupoFormacaoId?: string | null }).grupoFormacaoId =
+          token.grupoFormacaoId as string | null;
+        (session.user as { primeiroAcesso?: boolean }).primeiroAcesso =
+          token.primeiroAcesso as boolean;
+      }
+      return session;
+    },
   },
 } satisfies NextAuthConfig;
 
