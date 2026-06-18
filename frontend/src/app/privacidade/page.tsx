@@ -493,6 +493,12 @@ export default function PoliticaPrivacidadePage() {
                     Registro e documentação do incidente no{" "}
                     <strong>Registro de Operações de Tratamento</strong> interno, conforme art. 37 da LGPD.
                   </li>
+                  <li>
+                    Em caso de incidente detectado ao nível de um subprocessador (por exemplo, Cloudflare R2),
+                    o subprocessador é contratualmente obrigado a <strong>notificar a Formattio sem demora
+                    injustificada</strong>, nos termos dos respectivos DPAs celebrados. Ao ser notificada, a
+                    Formattio adotará imediatamente as medidas descritas nesta seção.
+                  </li>
                 </ul>
               </div>
             </section>
@@ -525,7 +531,7 @@ export default function PoliticaPrivacidadePage() {
                     <tbody className="divide-y divide-border/40">
                       {[
                         ["Railway", "EUA / UE", "Data Processing Agreement (DPA); cláusulas contratuais padrão"],
-                        ["Cloudflare R2", "EUA / múltiplas regiões", "DPA Cloudflare; certificação ISO 27001; armazena documentos (PDF/DOCX) e imagens de identificação de formandos com acesso autenticado e isolamento por organização"],
+                        ["Cloudflare R2", "EUA / múltiplas regiões", "DPA Cloudflare v6.3; Cláusulas Contratuais Padrão da UE (EU SCCs — Módulo 2); Estrutura de Privacidade de Dados UE–EUA (Data Privacy Framework); ISO 27001; SOC 2 Tipo II; PCI DSS Nível 1. Armazena documentos (PDF/DOCX) e imagens de formandos com acesso autenticado e isolamento por organização"],
                         ["Stripe", "EUA", "DPA Stripe; certificação PCI-DSS Level 1; cláusulas padrão UE"],
                         ["Resend", "EUA", "DPA Resend; dados limitados a e-mail transacional"],
                         ["Sentry", "EUA", "DPA Sentry; sendDefaultPii: false (sem PII em erros)"],
