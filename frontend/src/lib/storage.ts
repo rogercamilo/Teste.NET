@@ -14,7 +14,7 @@ import type { S3Client } from "@aws-sdk/client-s3";
 
 const LOCAL_ROOT = join(process.cwd(), "data", "uploads");
 
-const R2_ENABLED = !!(
+export const R2_ENABLED = !!(
   process.env.R2_ACCOUNT_ID &&
   process.env.R2_ACCESS_KEY_ID &&
   process.env.R2_SECRET_ACCESS_KEY &&
@@ -181,4 +181,25 @@ export async function getFileUrl(
 ): Promise<string> {
   if (R2_ENABLED) return getPresignedUrlR2(storageKey, ttl);
   return `/api/arquivos/${arquivoId}`;
+}
+
+/**
+ * Retorna a pre-signed URL para uma imagem no R2 (TTL em segundos, padrão 3600 = 1h).
+ * Retorna null em modo local — use readLocalFile + Response direto no serve handler.
+ */
+export async function getImageR2Url(storageKey: string, ttl = 3600): Promise<string | null> {
+  if (!R2_ENABLED) return null;
+  return getPresignedUrlR2(storageKey, ttl);
+}
+
+/**
+ * Converte um valor do campo `foto` / `imagemUrl` do BD no `src` correto para <img>.
+ * - base64 legacy (começa com "data:"): retorna direto
+ * - key R2/local: retorna /api/imagens/serve?key=<key>
+ * - null/undefined: retorna undefined
+ */
+export function resolveImageSrc(keyOrBase64: string | undefined | null): string | undefined {
+  if (!keyOrBase64) return undefined;
+  if (keyOrBase64.startsWith("data:")) return keyOrBase64;
+  return `/api/imagens/serve?key=${encodeURIComponent(keyOrBase64)}`;
 }

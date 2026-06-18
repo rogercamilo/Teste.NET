@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     const pagination = parsePagination(searchParams);
     const findManyArgs = {
       where,
+      omit: { foto: true as const },
       include: { progressoEtapas: true, grupoFormacao: { select: { gradeId: true } } },
       orderBy: { nome: "asc" as const },
     };

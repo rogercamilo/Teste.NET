@@ -27,13 +27,15 @@ export async function GET(request: Request) {
     }
     const orderBy = { nome: "asc" as const };
 
+    const omit = { imagemUrl: true as const };
+
     if (!pagination) {
-      const rows = await prisma.grupoFormacao.findMany({ where, orderBy });
+      const rows = await prisma.grupoFormacao.findMany({ where, orderBy, omit });
       return NextResponse.json(rows.map(toGrupoFormacao));
     }
 
     const [rows, total] = await Promise.all([
-      prisma.grupoFormacao.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.grupoFormacao.findMany({ where, orderBy, omit, skip: pagination.skip, take: pagination.take }),
       prisma.grupoFormacao.count({ where }),
     ]);
     return NextResponse.json(rows.map(toGrupoFormacao), { headers: paginationHeaders(total, pagination) });

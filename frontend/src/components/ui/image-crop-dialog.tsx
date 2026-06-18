@@ -16,8 +16,11 @@ import { toast } from "sonner";
 interface ImageCropDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Chamado com o base64 JPEG após o crop */
-  onSave: (base64: string) => void;
+  /**
+   * Chamado após o crop com a key R2 (quando uploadEndpoint for fornecido)
+   * ou com o data URL base64 (quando não for).
+   */
+  onSave: (imageData: string) => void;
   /** Chamado quando o usuário remove a imagem existente */
   onRemove?: () => void;
   /** Se já existe uma imagem (exibe botão Remover) */
@@ -25,6 +28,13 @@ interface ImageCropDialogProps {
   title?: string;
   /** Tamanho do lado do quadrado exportado em px (padrão 280) */
   outputSize?: number;
+  /**
+   * Endpoint para upload automático após o crop (ex: "/api/imagens").
+   * Quando fornecido, o componente faz POST multipart/form-data e chama
+   * onSave com a key retornada pelo servidor.
+   * Quando ausente, onSave recebe o data URL base64 diretamente.
+   */
+  uploadEndpoint?: string;
 }
 
 export function ImageCropDialog({
@@ -35,6 +45,7 @@ export function ImageCropDialog({
   hasImage = false,
   title = "Foto",
   outputSize = 280,
+  uploadEndpoint,
 }: ImageCropDialogProps) {
   const [imagemSrc, setImagemSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -91,7 +102,25 @@ export function ImageCropDialog({
         outputSize,
         outputSize,
       );
-      onSave(canvas.toDataURL("image/jpeg", 0.82));
+
+      if (uploadEndpoint) {
+        const blob = await new Promise<Blob>((resolve) =>
+          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.82)
+        );
+        const fd = new FormData();
+        fd.append("file", new File([blob], "photo.jpg", { type: "image/jpeg" }));
+        const res = await fetch(uploadEndpoint, { method: "POST", body: fd });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({})) as { error?: string };
+          toast.error(body.error ?? "Erro ao fazer upload da imagem.");
+          return;
+        }
+        const { key } = await res.json() as { key: string };
+        onSave(key);
+      } else {
+        onSave(canvas.toDataURL("image/jpeg", 0.82));
+      }
+
       handleClose();
     } finally {
       setSaving(false);

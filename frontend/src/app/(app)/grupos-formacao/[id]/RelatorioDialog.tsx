@@ -15,6 +15,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle2, FileText, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { resolveImageSrc } from "@/lib/storage";
 import { toast } from "sonner";
 import {
   NIVEL_FORMATIVO_LABELS, NOTA_ADESAO_LABELS, NOTA_ADESAO_CORES,
@@ -198,7 +199,7 @@ export function RelatorioDialog({
         <DialogHeader>
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              {formando.foto && <AvatarImage src={formando.foto} alt={formando.nome} />}
+              {resolveImageSrc(formando.foto) && <AvatarImage src={resolveImageSrc(formando.foto)!} alt={formando.nome} />}
               <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">

@@ -76,6 +76,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
 import { applyPhoneMask, stripPhone } from "@/lib/utils";
+import { resolveImageSrc } from "@/lib/storage";
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
@@ -727,11 +728,11 @@ function FormandoCard({
   );
   const idade = differenceInYears(new Date(), parseISO(formando.dataNascimento));
 
-  async function handleFotoSave(base64: string) {
+  async function handleFotoSave(imageData: string) {
     const res = await fetch(`/api/formandos/${formando.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ foto: base64 }),
+      body: JSON.stringify({ foto: imageData }),
     });
     if (!res.ok) { toast.error("Erro ao salvar foto."); return; }
     toast.success("Foto atualizada.");
@@ -761,7 +762,7 @@ function FormandoCard({
               title="Alterar foto"
             >
               <Avatar className="h-10 w-10">
-                {formando.foto && <AvatarImage src={formando.foto} alt={formando.nome} />}
+                {resolveImageSrc(formando.foto) && <AvatarImage src={resolveImageSrc(formando.foto)!} alt={formando.nome} />}
                 <AvatarFallback className={`font-semibold text-sm ${NIVEL_AVATAR_BG[formando.nivelFormativo]}`}>
                   {getInitials(formando.nome)}
                 </AvatarFallback>
@@ -853,6 +854,7 @@ function FormandoCard({
         hasImage={!!formando.foto}
         onSave={handleFotoSave}
         onRemove={handleFotoRemove}
+        uploadEndpoint="/api/imagens"
       />
     </Card>
   );

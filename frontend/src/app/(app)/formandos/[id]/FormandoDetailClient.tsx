@@ -49,6 +49,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatPhone, applyPhoneMask, stripPhone } from "@/lib/utils";
+import { resolveImageSrc } from "@/lib/storage";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -709,7 +710,7 @@ export default function FormandoDetailClient({
             title="Alterar foto"
           >
             <Avatar className="h-16 w-16">
-              {formando.foto && <AvatarImage src={formando.foto} alt={formando.nome} />}
+              {resolveImageSrc(formando.foto) && <AvatarImage src={resolveImageSrc(formando.foto)!} alt={formando.nome} />}
               <AvatarFallback className={`text-lg font-bold ${NIVEL_CORES[formando.nivelFormativo]}`}>
                 {initials}
               </AvatarFallback>
@@ -2525,8 +2526,9 @@ export default function FormandoDetailClient({
         onOpenChange={setFotoDialogOpen}
         title={`Foto de ${formando.nome}`}
         hasImage={!!formando.foto}
-        onSave={async (base64) => {
-          const res = await fetch(`/api/formandos/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foto: base64 }) });
+        uploadEndpoint="/api/imagens"
+        onSave={async (imageData) => {
+          const res = await fetch(`/api/formandos/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foto: imageData }) });
           if (!res.ok) { toast.error("Erro ao salvar foto."); return; }
           toast.success("Foto atualizada.");
           startTransition(() => router.refresh());

@@ -48,7 +48,7 @@ export type PrismaFormacao = {
 export type PrismaFormando = {
   id: string; organizacaoId: string; nome: string; dataNascimento: Date; estadoCivil: string;
   modalidade: string; nivelFormativo: string; dataIngresso: Date; telefone: string; email: string;
-  ativo: boolean; motivoInatividade: string | null; foto: string | null; turmaId: string | null;
+  ativo: boolean; motivoInatividade: string | null; foto?: string | null; turmaId: string | null;
   grupoFormacaoId: string | null; totalFormacoes: number; formacoesRealizadas: number;
   nomeSocial: string | null; nacionalidade: string | null; rg: string | null;
   orgaoEmissor: string | null; cep: string | null; paroquiaReferencia: string | null;
@@ -77,7 +77,7 @@ export type PrismaGrupoFormacao = {
   id: string; organizacaoId: string; nome: string; localReuniao: string | null;
   tipo: string; nivelFormativo: string | null; formadorId: string | null; planoId: string | null;
   gradeId: string | null; vigenciaInicio: Date | null; vigenciaFim: Date | null;
-  imagemUrl: string | null; ativo: boolean; criadoEm: Date;
+  imagemUrl?: string | null; ativo: boolean; criadoEm: Date;
 };
 
 export type PrismaPlano = {

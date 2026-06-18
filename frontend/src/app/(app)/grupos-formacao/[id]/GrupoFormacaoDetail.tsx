@@ -93,6 +93,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { resolveImageSrc } from "@/lib/storage";
 import { format, parseISO, differenceInYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -581,9 +582,9 @@ export default function GrupoFormacaoDetail({
               onClick={() => (isFC || isAdmin) && setImagemDialogOpen(true)}
               title={(isFC || isAdmin) ? "Clique para alterar a imagem" : undefined}
             >
-              {grupoFormacao.imagemUrl ? (
+              {resolveImageSrc(grupoFormacao.imagemUrl) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={grupoFormacao.imagemUrl} alt={grupoFormacao.nome} className="h-full w-full object-cover" />
+                <img src={resolveImageSrc(grupoFormacao.imagemUrl)!} alt={grupoFormacao.nome} className="h-full w-full object-cover" />
               ) : (
                 grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"
               )}
@@ -1194,7 +1195,7 @@ export default function GrupoFormacaoDetail({
                       {/* Linha do formando */}
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9 shrink-0">
-                          {formando.foto && <AvatarImage src={formando.foto} alt={formando.nome} />}
+                          {resolveImageSrc(formando.foto) && <AvatarImage src={resolveImageSrc(formando.foto)!} alt={formando.nome} />}
                           <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
                             {initials}
                           </AvatarFallback>
@@ -1634,7 +1635,8 @@ export default function GrupoFormacaoDetail({
         onOpenChange={setImagemDialogOpen}
         title="Imagem de identificação"
         hasImage={!!grupoFormacao.imagemUrl}
-        onSave={(base64) => salvarImagem(base64)}
+        uploadEndpoint="/api/imagens"
+        onSave={(imageData) => salvarImagem(imageData)}
         onRemove={() => salvarImagem(null)}
       />
 
