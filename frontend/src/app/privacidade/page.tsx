@@ -210,7 +210,10 @@ export default function PoliticaPrivacidadePage() {
                     da organização.
                   </li>
                   <li>
-                    <strong>Documentos:</strong> arquivos PDF/DOCX enviados por usuários autenticados.
+                    <strong>Documentos e imagens:</strong> arquivos PDF/DOCX e imagens de identificação
+                    de formandos e grupos de formação enviados por usuários autenticados. Esses arquivos são
+                    armazenados no Cloudflare R2 (ver seção 11) e acessíveis apenas mediante autenticação,
+                    com isolamento por organização.
                   </li>
                 </ul>
                 <h3>4.2 Dados coletados automaticamente</h3>
@@ -411,8 +414,11 @@ export default function PoliticaPrivacidadePage() {
                       para evitar armazenamento persistente local de dados pessoais sensíveis no navegador.
                     </li>
                     <li>
-                      Arquivos armazenados no Cloudflare R2 com acesso controlado via{" "}
-                      <strong>URLs pré-assinadas</strong> com expiração de 15 minutos.
+                      Arquivos (PDF/DOCX) e imagens de identificação armazenados no{" "}
+                      <strong>Cloudflare R2</strong> com acesso exclusivamente autenticado, isolamento por
+                      organização (tenant) e entrega via <strong>URLs pré-assinadas</strong> com expiração
+                      de 15 minutos (documentos) ou 1 hora (imagens). Nenhum arquivo é acessível por URL
+                      pública direta.
                     </li>
                     <li>
                       <strong>Controle de acesso baseado em perfil</strong> (RBAC): separação de permissões
@@ -519,7 +525,7 @@ export default function PoliticaPrivacidadePage() {
                     <tbody className="divide-y divide-border/40">
                       {[
                         ["Railway", "EUA / UE", "Data Processing Agreement (DPA); cláusulas contratuais padrão"],
-                        ["Cloudflare R2", "EUA / múltiplas regiões", "DPA Cloudflare; certificação ISO 27001"],
+                        ["Cloudflare R2", "EUA / múltiplas regiões", "DPA Cloudflare; certificação ISO 27001; armazena documentos (PDF/DOCX) e imagens de identificação de formandos com acesso autenticado e isolamento por organização"],
                         ["Stripe", "EUA", "DPA Stripe; certificação PCI-DSS Level 1; cláusulas padrão UE"],
                         ["Resend", "EUA", "DPA Resend; dados limitados a e-mail transacional"],
                         ["Sentry", "EUA", "DPA Sentry; sendDefaultPii: false (sem PII em erros)"],
