@@ -45,13 +45,14 @@ async function getRegistration(): Promise<ServiceWorkerRegistration> {
 }
 
 export function usePushSubscription(): UsePushSubscriptionReturn {
-  const [permission, setPermission] = useState<PushPermission>("default");
+  const [permission, setPermission] = useState<PushPermission>(() =>
+    isSupported ? (Notification.permission as PushPermission) : "default"
+  );
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!isSupported) return;
-    setPermission(Notification.permission as PushPermission);
 
     navigator.serviceWorker.ready
       .then(async (reg) => {
