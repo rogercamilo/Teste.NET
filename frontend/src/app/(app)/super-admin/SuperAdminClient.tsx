@@ -22,10 +22,14 @@ import {
   TrendingUp, TrendingDown, AlertTriangle, Gift, Ban, BadgeCheck,
   DollarSign, Activity, Minus, Scale, FileText, CheckCircle2, Clock,
   Shield, KeyRound, CalendarPlus, Search, ExternalLink, CircleAlert,
-  Filter, X, BarChart3, type LucideIcon,
+  Filter, X, BarChart3, LayoutDashboard, Server, Lock, Send,
+  Loader2, ShieldAlert, HardDrive, Database, Cloud, CloudOff, Trash2,
+  Home, UserSquare, type LucideIcon,
 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -82,8 +86,38 @@ interface LgpdData {
   cookieAnaliticos: number;
 }
 
+interface ServicosData {
+  storage: { provider: "r2" | "local"; totalArquivos: number; totalBytes: number; totalMB: number };
+  topOrgsStorage: { organizacaoId: string; nome: string; arquivos: number; bytes: number; mb: number }[];
+  db: {
+    formandos: number; gruposFormacao: number; usuarios: number; agendamentos: number;
+    presencas: number; formacoes: number; auditLogs: number; arquivos: number;
+  };
+  recentUploads: {
+    id: string; nome: string; tamanho: number; tipo: string;
+    uploadedByNome: string | null; criadoEm: string; orgNome: string;
+  }[];
+}
+
+interface SegurancaData {
+  recentLogs: {
+    id: string; acao: string; ip: string | null; criadoEm: string; detalhes: unknown;
+    organizacao: { nome: string } | null;
+    usuario: { nome: string; email: string } | null;
+  }[];
+  topAcoes7d: { acao: string; _count: { id: number } }[];
+  deletionPendentes: number;
+  recentDeletions: {
+    id: string; tipo: string; status: string;
+    usuarioId: string | null; organizacaoId: string | null;
+    solicitadoEm: string; processadoEm: string | null;
+  }[];
+  privacyCount7d: number;
+  logsCount24h: number;
+}
+
 type DialogAcao = "suspender" | "reativar" | "cancelar" | "plano" | "excluir" | "cortesia" | "revogar-cortesia" | "estender-trial" | null;
-type Tab = "organizacoes" | "financeiro" | "cortesias" | "lgpd";
+type Tab = "visao-geral" | "organizacoes" | "financeiro" | "cortesias" | "infraestrutura" | "seguranca" | "lgpd";
 
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -112,9 +146,12 @@ const PLANO_COLORS: Record<string, string> = {
 };
 
 const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
+  { id: "visao-geral", label: "Visão Geral", Icon: LayoutDashboard },
   { id: "organizacoes", label: "Organizações", Icon: Building2 },
   { id: "financeiro", label: "Financeiro", Icon: DollarSign },
   { id: "cortesias", label: "Cortesias", Icon: Gift },
+  { id: "infraestrutura", label: "Infraestrutura", Icon: Server },
+  { id: "seguranca", label: "Segurança", Icon: Lock },
   { id: "lgpd", label: "LGPD", Icon: Shield },
 ];
 
@@ -136,6 +173,25 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
+
+function fmtDate(d: string) {
+  return new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+const ACAO_CLASS: Record<string, string> = {
+  organizacao_deleted: "bg-red-50 text-red-700 border-red-200",
+  organizacao_cancelada: "bg-red-50 text-red-600 border-red-100",
+  organizacao_suspended: "bg-amber-50 text-amber-700 border-amber-200",
+  organizacao_cortesia_concedida: "bg-violet-50 text-violet-700 border-violet-200",
+  organizacao_cortesia_revogada: "bg-orange-50 text-orange-700 border-orange-200",
+  organizacao_reactivated: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  organizacao_plan_changed: "bg-blue-50 text-blue-700 border-blue-200",
+  login_success: "bg-slate-50 text-slate-600 border-slate-200",
+  login_failure: "bg-red-50 text-red-600 border-red-100",
+  login_blocked: "bg-red-50 text-red-700 border-red-200",
+  user_created: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  user_deleted: "bg-red-50 text-red-600 border-red-100",
+};
 
 function engajamentoBadge(count: number) {
   if (count === 0) return null;
@@ -177,12 +233,23 @@ function activityBadge(lastActivityAt: string | null) {
 
 export default function SuperAdminClient() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("organizacoes");
+  const [tab, setTab] = useState<Tab>("visao-geral");
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [lgpd, setLgpd] = useState<LgpdData | null>(null);
   const [lgpdLoaded, setLgpdLoaded] = useState(false);
+  const [servicos, setServicos] = useState<ServicosData | null>(null);
+  const [servicosLoaded, setServicosLoaded] = useState(false);
+  const [seguranca, setSeguranca] = useState<SegurancaData | null>(null);
+  const [segurancaLoaded, setSegurancaLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [incidenteOrgId, setIncidenteOrgId] = useState<string>("");
+  const [incidenteDescricao, setIncidenteDescricao] = useState("");
+  const [incidenteDataEvento, setIncidenteDataEvento] = useState("");
+  const [incidenteMedidas, setIncidenteMedidas] = useState("");
+  const [incidenteSending, setIncidenteSending] = useState(false);
+  const [incidenteResult, setIncidenteResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [incidenteError, setIncidenteError] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [lgpdActionLoading, setLgpdActionLoading] = useState<string | null>(null);
   const [pageOrgs, setPageOrgs] = useState(1);
@@ -245,6 +312,28 @@ export default function SuperAdminClient() {
     }
   }, []);
 
+  const loadServicos = useCallback(async () => {
+    try {
+      const res = await fetch("/api/super-admin/servicos");
+      if (!res.ok) { toast.error("Falha ao carregar dados de infraestrutura."); return; }
+      setServicos(await res.json() as ServicosData);
+      setServicosLoaded(true);
+    } catch {
+      toast.error("Erro de rede.");
+    }
+  }, []);
+
+  const loadSeguranca = useCallback(async () => {
+    try {
+      const res = await fetch("/api/super-admin/seguranca");
+      if (!res.ok) { toast.error("Falha ao carregar dados de segurança."); return; }
+      setSeguranca(await res.json() as SegurancaData);
+      setSegurancaLoaded(true);
+    } catch {
+      toast.error("Erro de rede.");
+    }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPageOrgs(1); setPageCortesias(1); }, [orgs]);
   useEffect(() => { setPageOrgs(1); }, [orgFilter, filterStatus, filterPlano, filterTipo, filterOnboarding]);
@@ -253,6 +342,45 @@ export default function SuperAdminClient() {
   useEffect(() => {
     if (tab === "lgpd" && !lgpdLoaded) loadLgpd();
   }, [tab, lgpdLoaded, loadLgpd]);
+
+  useEffect(() => {
+    if (tab === "infraestrutura" && !servicosLoaded) loadServicos();
+  }, [tab, servicosLoaded, loadServicos]);
+
+  useEffect(() => {
+    if (tab === "seguranca" && !segurancaLoaded) loadSeguranca();
+  }, [tab, segurancaLoaded, loadSeguranca]);
+
+  async function submitIncidente(e: React.FormEvent) {
+    e.preventDefault();
+    setIncidenteError("");
+    setIncidenteResult(null);
+    if (!incidenteDescricao.trim() || !incidenteDataEvento || !incidenteMedidas.trim()) {
+      setIncidenteError("Preencha todos os campos obrigatórios.");
+      return;
+    }
+    setIncidenteSending(true);
+    try {
+      const res = await fetch("/api/super-admin/lgpd/incidente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizacaoId: incidenteOrgId || null,
+          descricao: incidenteDescricao,
+          dataIncidente: incidenteDataEvento,
+          medidas: incidenteMedidas,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setIncidenteError(json.error ?? "Erro ao enviar notificações."); return; }
+      setIncidenteResult(json);
+      setIncidenteDescricao(""); setIncidenteDataEvento(""); setIncidenteMedidas(""); setIncidenteOrgId("");
+    } catch {
+      setIncidenteError("Erro de conexão. Tente novamente.");
+    } finally {
+      setIncidenteSending(false);
+    }
+  }
 
   async function executeAction(orgId: string, acao: string, extra?: Record<string, unknown>) {
     setActionLoading(orgId);
@@ -439,7 +567,12 @@ export default function SuperAdminClient() {
           <h1 className="text-base font-semibold">Super Admin — Formattio</h1>
           <p className="text-xs text-muted-foreground">Gestão do negócio, contratos e compliance</p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={() => {
+          void load();
+          if (servicosLoaded) void loadServicos();
+          if (segurancaLoaded) void loadSeguranca();
+          if (lgpdLoaded) void loadLgpd();
+        }} className="gap-1.5">
           <RefreshCw className="h-4 w-4" />Atualizar
         </Button>
       </div>
@@ -508,6 +641,176 @@ export default function SuperAdminClient() {
           </button>
         ))}
       </div>
+
+      {/* ── Tab: Visão Geral ─────────────────────────────────────────────────── */}
+      {tab === "visao-geral" && metricas && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-1 pt-4 px-4">
+                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <DollarSign className="h-3.5 w-3.5" />MRR
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                {metricas.mrrReal != null ? (
+                  <>
+                    <div className="text-2xl font-bold">{currFmt.format(metricas.mrrReal)}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      real via Stripe <span className="text-slate-400">· est. {mrrFmt}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{mrrFmt}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">receita estimada</div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-1 pt-4 px-4">
+                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5" />Organizações
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="text-2xl font-bold">{metricas.totalOrgs}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {metricas.orgsAtivas} ativas · {metricas.orgsTrials} trial · {metricas.orgsSuspensas} suspensas
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-1 pt-4 px-4">
+                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Activity className="h-3.5 w-3.5" />Crescimento (30d)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="text-2xl font-bold flex items-center gap-1.5">
+                  {metricas.crescimento30d}
+                  <span className={`text-sm font-medium flex items-center gap-0.5 ${metricas.crescimentoPercent >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    {metricas.crescimentoPercent > 0
+                      ? <TrendingUp className="h-3.5 w-3.5" />
+                      : metricas.crescimentoPercent < 0
+                        ? <TrendingDown className="h-3.5 w-3.5" />
+                        : <Minus className="h-3.5 w-3.5 text-muted-foreground" />}
+                    {metricas.crescimentoPercent > 0 ? "+" : ""}{metricas.crescimentoPercent}%
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  vs {metricas.crescimentoAnterior30d} no período anterior
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-1 pt-4 px-4">
+                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <TrendingDown className="h-3.5 w-3.5" />Churn Rate (30d)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className={`text-2xl font-bold ${metricas.churnRate30d > 5 ? "text-red-600" : metricas.churnRate30d > 0 ? "text-amber-600" : ""}`}>
+                  {metricas.churnRate30d}%
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {metricas.canceladas30d} org{metricas.canceladas30d !== 1 ? "s" : ""} cancelada{metricas.canceladas30d !== 1 ? "s" : ""}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-medium">Status das organizações</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 space-y-2">
+                {[
+                  { label: "Ativas", count: metricas.orgsAtivas, color: "bg-emerald-500" },
+                  { label: "Trial", count: metricas.orgsTrials, color: "bg-blue-500" },
+                  { label: "Suspensas", count: metricas.orgsSuspensas, color: "bg-amber-500" },
+                  { label: "Canceladas", count: metricas.orgsCanceladas, color: "bg-red-500" },
+                ].map(({ label, count, color }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`} />
+                    <span className="text-sm flex-1">{label}</span>
+                    <span className="text-sm font-semibold">{count}</span>
+                    <span className="text-xs text-muted-foreground w-8 text-right">
+                      {metricas.totalOrgs > 0 ? Math.round((count / metricas.totalOrgs) * 100) : 0}%
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-medium">Distribuição de planos</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 space-y-2">
+                {[
+                  { label: "Gratuito", key: "GRATUITO", color: "bg-slate-400" },
+                  { label: "Básico", key: "BASICO", color: "bg-sky-500" },
+                  { label: "Intermediário", key: "INTERMEDIARIO", color: "bg-violet-500" },
+                  { label: "Avançado", key: "AVANCADO", color: "bg-amber-500" },
+                  { label: "Personalizado", key: "PERSONALIZADO", color: "bg-emerald-500" },
+                ].map(({ label, key, color }) => {
+                  const count = metricas.planoBreakdown[key] ?? 0;
+                  return (
+                    <div key={key} className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`} />
+                      <span className="text-sm flex-1">{label}</span>
+                      <span className="text-sm font-semibold">{count}</span>
+                      <span className="text-xs text-muted-foreground w-8 text-right">
+                        {metricas.totalOrgs > 0 ? Math.round((count / metricas.totalOrgs) * 100) : 0}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-medium">Totais da plataforma</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 space-y-3">
+                {[
+                  { icon: Users, label: "Formandos", value: metricas.totalFormandos },
+                  { icon: Home, label: "Grupos de Formação", value: metricas.totalGruposFormacao },
+                  { icon: UserSquare, label: "Usuários", value: metricas.totalUsuarios },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Icon className="h-3.5 w-3.5" />{label}
+                    </div>
+                    <span className="font-semibold text-sm tabular-nums">{value.toLocaleString("pt-BR")}</span>
+                  </div>
+                ))}
+                <div className="pt-2 border-t space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">ARR</span>
+                    <span className="font-semibold text-sm tabular-nums">{currFmt.format(metricas.arr)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Ticket médio</span>
+                    <span className="font-semibold text-sm tabular-nums">{currFmt.format(metricas.ticketMedio)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Cortesias ativas</span>
+                    <span className="font-semibold text-sm tabular-nums">{metricas.orgsCortesia}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* ── Tab: Organizações ────────────────────────────────────────────────── */}
       {tab === "organizacoes" && (
@@ -1096,6 +1399,277 @@ export default function SuperAdminClient() {
         </div>
       )}
 
+      {/* ── Tab: Infraestrutura ──────────────────────────────────────────────── */}
+      {tab === "infraestrutura" && (
+        servicos ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <HardDrive className="h-4 w-4 text-muted-foreground" />
+                    Armazenamento
+                    <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-medium ${
+                      servicos.storage.provider === "r2"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}>
+                      {servicos.storage.provider === "r2"
+                        ? <span className="flex items-center gap-1"><Cloud className="h-3 w-3 inline" /> Cloudflare R2</span>
+                        : <span className="flex items-center gap-1"><CloudOff className="h-3 w-3 inline" /> Disco Local</span>}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Total de arquivos</span>
+                    <span className="font-semibold text-sm">{servicos.storage.totalArquivos.toLocaleString("pt-BR")}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Espaço utilizado</span>
+                    <span className="font-semibold text-sm">{formatBytes(servicos.storage.totalBytes)}</span>
+                  </div>
+                  {servicos.topOrgsStorage.length > 0 && (
+                    <div className="pt-2 border-t space-y-1.5">
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Top por armazenamento</p>
+                      {servicos.topOrgsStorage.map((org) => (
+                        <div key={org.organizacaoId} className="flex items-center gap-2 text-xs">
+                          <span className="flex-1 truncate">{org.nome}</span>
+                          <span className="text-muted-foreground">{org.arquivos} arqs</span>
+                          <span className="font-medium w-16 text-right">{formatBytes(org.bytes)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Database className="h-4 w-4 text-muted-foreground" />
+                    Banco de Dados
+                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
+                      PostgreSQL
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                    {[
+                      { label: "Formandos", value: servicos.db.formandos },
+                      { label: "Grupos", value: servicos.db.gruposFormacao },
+                      { label: "Usuários", value: servicos.db.usuarios },
+                      { label: "Agendamentos", value: servicos.db.agendamentos },
+                      { label: "Presenças", value: servicos.db.presencas },
+                      { label: "Formações", value: servicos.db.formacoes },
+                      { label: "Arquivos", value: servicos.db.arquivos },
+                      { label: "Audit Logs", value: servicos.db.auditLogs },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="flex justify-between items-center py-0.5 border-b border-dashed border-border/50">
+                        <span className="text-xs text-muted-foreground">{label}</span>
+                        <span className="text-xs font-semibold tabular-nums">{value.toLocaleString("pt-BR")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {servicos.recentUploads.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm font-medium">Uploads Recentes</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Arquivo</TableHead>
+                        <TableHead>Organização</TableHead>
+                        <TableHead>Enviado por</TableHead>
+                        <TableHead className="text-right">Tamanho</TableHead>
+                        <TableHead>Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {servicos.recentUploads.map((u) => (
+                        <TableRow key={u.id}>
+                          <TableCell className="font-medium text-sm max-w-56 truncate">{u.nome}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{u.orgNome}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{u.uploadedByNome ?? "—"}</TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">{formatBytes(u.tamanho)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{fmtDate(u.criadoEm)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />Carregando dados de infraestrutura...
+          </div>
+        )
+      )}
+
+      {/* ── Tab: Segurança ───────────────────────────────────────────────────── */}
+      {tab === "seguranca" && (
+        seguranca ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-1 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Eventos (24h)</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-2xl font-bold">{seguranca.logsCount24h}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">ações registradas</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-1 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Trash2 className="h-3.5 w-3.5" />Exclusões Pendentes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className={`text-2xl font-bold ${seguranca.deletionPendentes > 0 ? "text-amber-600" : ""}`}>
+                    {seguranca.deletionPendentes}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">solicitações LGPD</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-1 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Aceites Privacidade (7d)</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-2xl font-bold">{seguranca.privacyCount7d}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">novos aceites</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-1 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Ação mais frequente (7d)</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-sm font-bold truncate">
+                    {seguranca.topAcoes7d[0]?.acao?.replace(/_/g, " ") ?? "—"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {seguranca.topAcoes7d[0]?._count?.id ?? 0} ocorrências
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm font-medium">Top ações — últimos 7 dias</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-1.5">
+                  {seguranca.topAcoes7d.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum registro.</p>
+                  ) : seguranca.topAcoes7d.map((a) => (
+                    <div key={a.acao} className="flex items-center gap-2">
+                      <span className="text-xs bg-muted rounded px-1.5 py-0.5 font-mono flex-1 truncate">{a.acao}</span>
+                      <span className="text-sm font-semibold tabular-nums w-8 text-right">{a._count.id}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    Solicitações de Exclusão (LGPD)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  {seguranca.recentDeletions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhuma solicitação registrada.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {seguranca.recentDeletions.map((d) => (
+                        <div key={d.id} className="flex items-center gap-2 text-xs">
+                          <span className={`px-1.5 py-0.5 rounded-full border font-medium ${
+                            d.status === "pendente"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : d.status === "processando"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          }`}>{d.status}</span>
+                          <span className="text-muted-foreground capitalize">{d.tipo}</span>
+                          <span className="text-muted-foreground ml-auto">
+                            {new Date(d.solicitadoEm).toLocaleDateString("pt-BR")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-medium">Audit Log — Últimas {seguranca.recentLogs.length} entradas</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ação</TableHead>
+                      <TableHead>Organização</TableHead>
+                      <TableHead>Usuário</TableHead>
+                      <TableHead>IP</TableHead>
+                      <TableHead>Data/Hora</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {seguranca.recentLogs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          Nenhum registro encontrado.
+                        </TableCell>
+                      </TableRow>
+                    ) : seguranca.recentLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium font-mono ${
+                            ACAO_CLASS[log.acao] ?? "bg-muted text-muted-foreground border-border"
+                          }`}>
+                            {log.acao}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{log.organizacao?.nome ?? "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {log.usuario?.nome ?? log.usuario?.email ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono text-muted-foreground">{log.ip ?? "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{fmtDate(log.criadoEm)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />Carregando dados de segurança...
+          </div>
+        )
+      )}
+
       {/* ── Tab: LGPD ─────────────────────────────────────────────────────────── */}
       {tab === "lgpd" && (
         <div className="space-y-6">
@@ -1108,6 +1682,106 @@ export default function SuperAdminClient() {
             </div>
           ) : (
             <>
+              <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4 text-red-500" />
+                    Notificação de Incidente de Segurança — LGPD Art. 48
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Notifica titulares de dados pessoais sobre incidentes que possam acarretar risco ou dano relevante.
+                  </p>
+                </CardHeader>
+                <CardContent className="px-4 pb-5">
+                  {incidenteResult ? (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 space-y-2">
+                      <div className="flex items-center gap-2 text-emerald-700 font-medium">
+                        <CheckCircle2 className="h-5 w-5" />
+                        Notificações enviadas
+                      </div>
+                      <p className="text-sm text-emerald-800">
+                        {incidenteResult.sent} de {incidenteResult.total} e-mails enviados com sucesso.
+                        {incidenteResult.failed > 0 && ` ${incidenteResult.failed} falhou(aram).`}
+                      </p>
+                      <button
+                        className="text-xs text-emerald-700 underline mt-1"
+                        onClick={() => setIncidenteResult(null)}
+                      >
+                        Enviar outra notificação
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={submitIncidente} className="space-y-4 max-w-xl">
+                      <div className="space-y-1.5">
+                        <Label>Organização afetada</Label>
+                        <Select value={incidenteOrgId || "__all__"} onValueChange={(v) => setIncidenteOrgId(!v || v === "__all__" ? "" : v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__all__">Todas as organizações</SelectItem>
+                            {orgs.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">Deixe em branco para notificar todos os usuários da plataforma.</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="incidenteData">Data do incidente <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="incidenteData"
+                          type="date"
+                          value={incidenteDataEvento}
+                          onChange={(e) => setIncidenteDataEvento(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="incidenteDescricao">Descrição do incidente <span className="text-destructive">*</span></Label>
+                        <Textarea
+                          id="incidenteDescricao"
+                          rows={4}
+                          placeholder="Descreva o que ocorreu, quais dados podem ter sido afetados e o possível impacto."
+                          value={incidenteDescricao}
+                          onChange={(e) => setIncidenteDescricao(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="incidenteMedidas">Medidas adotadas <span className="text-destructive">*</span></Label>
+                        <Textarea
+                          id="incidenteMedidas"
+                          rows={3}
+                          placeholder="Descreva as ações tomadas para conter o incidente e proteger os titulares."
+                          value={incidenteMedidas}
+                          onChange={(e) => setIncidenteMedidas(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      {incidenteError && <p className="text-sm text-destructive">{incidenteError}</p>}
+
+                      <div className="flex items-center gap-3 pt-1">
+                        <button
+                          type="submit"
+                          disabled={incidenteSending}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-60 transition-colors"
+                        >
+                          {incidenteSending ? (
+                            <><Loader2 className="h-4 w-4 animate-spin" />Enviando...</>
+                          ) : (
+                            <><Send className="h-4 w-4" />Enviar notificação</>
+                          )}
+                        </button>
+                        <p className="text-xs text-muted-foreground">Esta ação envia e-mails imediatamente aos titulares.</p>
+                      </div>
+                    </form>
+                  )}
+                </CardContent>
+              </Card>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardHeader className="pb-1 pt-4 px-4">
