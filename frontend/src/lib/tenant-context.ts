@@ -2,15 +2,17 @@
  * Tenant context — extrai organizacaoId da sessão NextAuth e fornece
  * helpers para garantir que todas as queries Prisma filtrem pelo tenant correto.
  *
- * Fase 2: single-tenant (DEFAULT_ORG_ID). Fase 3 adiciona multi-tenancy real.
+ * Phase 3: multi-tenant. organizacaoId vem sempre da sessão JWT (não de env var).
+ * DEFAULT_ORG_ID mantido como fallback de conveniência para dev/seed e instalações
+ * single-tenant legadas; não é usado em runtime para usuários autenticados.
  */
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth-helpers";
 
-/** ID fixo da organização padrão (single-tenant).
- *  Deve coincidir com o ID criado no seed. */
+/** Fallback de conveniência para dev/seed. Em produção multi-tenant, cada usuário
+ *  autenticado carrega o próprio organizacaoId na sessão JWT. */
 export const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID ?? "org_default";
 
 /** Retorna o organizacaoId da sessão atual, ou lança se não autenticado ou sem organização. */

@@ -85,7 +85,7 @@ session.user.id, .perfil, .organizacaoId, .primeiroAcesso
 **Roles** (`perfil`): `formador_comunitario` < `formador_geral` < `administrador`  
 Helper: `temPermissao(userPerfil, requiredPerfil)` in `types/index.ts`
 
-### Database & Multi-Tenancy
+### Database & Multi-Tenancy (Phase 3 — active)
 
 Every table has `organizacaoId` — all queries must be scoped to the current tenant:
 ```ts
@@ -93,7 +93,7 @@ Every table has `organizacaoId` — all queries must be scoped to the current te
 prisma.formando.findMany({ where: { organizacaoId: user.organizacaoId } })
 ```
 
-`DEFAULT_ORG_ID` env var identifies the single tenant (Phase 2 = single-tenant). True multi-tenancy is planned for Phase 3 but not implemented.
+`organizacaoId` is always read from the session JWT (`session.user.organizacaoId`). `DEFAULT_ORG_ID` env var is optional — retained as a convenience for dev/seed scripts and single-tenant legacy deployments; not used in runtime paths for authenticated users.
 
 After any schema change: `npm run db:generate` to regenerate the client.
 
@@ -134,7 +134,7 @@ Required in `frontend/.env.local`:
 AUTH_SECRET=<32-byte hex>
 NEXTAUTH_URL=http://localhost:3000
 DATABASE_URL=postgresql://formativo:formativo_dev@localhost:5432/formacao_comunitaria
-DEFAULT_ORG_ID=org_default
+DEFAULT_ORG_ID=org_default  # optional in Phase 3; used by seed and dev tools
 
 # Field-level encryption key (strongly recommended in production)
 # Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"

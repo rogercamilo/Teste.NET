@@ -18,7 +18,11 @@ const schema = z
       .refine((v) => v.startsWith("postgresql://") || v.startsWith("postgres://"), {
         message: "DATABASE_URL must start with postgresql:// or postgres://",
       }),
-    DEFAULT_ORG_ID: z.string().min(1, "DEFAULT_ORG_ID must not be empty"),
+
+    // Phase 2 legacy — optional in Phase 3 (multi-tenant). Keep for dev convenience and
+    // single-tenant deployments that still rely on it; public-branding falls back to
+    // Formattio defaults when unset.
+    DEFAULT_ORG_ID: z.string().min(1).optional(),
 
     // Application URL
     NEXTAUTH_URL: z.string().url("NEXTAUTH_URL must be a valid URL").optional(),
