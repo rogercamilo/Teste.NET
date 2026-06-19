@@ -17,6 +17,8 @@ export async function GET() {
     inicio7d.setDate(agora.getDate() - 7);
     const inicio24h = new Date(agora);
     inicio24h.setHours(agora.getHours() - 24);
+    const inicio30d = new Date(agora);
+    inicio30d.setDate(agora.getDate() - 30);
 
     const [
       recentLogs,
@@ -25,6 +27,7 @@ export async function GET() {
       recentDeletions,
       privacyCount7d,
       logsCount24h,
+      superAdminLogs,
     ] = await Promise.all([
       prisma.auditLog.findMany({
         orderBy: { criadoEm: "desc" },
@@ -54,6 +57,19 @@ export async function GET() {
       }),
       prisma.privacyAcceptance.count({ where: { criadoEm: { gte: inicio7d } } }),
       prisma.auditLog.count({ where: { criadoEm: { gte: inicio24h } } }),
+      prisma.auditLog.findMany({
+        where: { usuario: { perfil: "super_admin" }, criadoEm: { gte: inicio30d } },
+        orderBy: { criadoEm: "desc" },
+        take: 30,
+        select: {
+          id: true,
+          acao: true,
+          criadoEm: true,
+          detalhes: true,
+          organizacao: { select: { nome: true } },
+          usuario: { select: { nome: true, email: true } },
+        },
+      }),
     ]);
 
     return NextResponse.json({
@@ -63,6 +79,7 @@ export async function GET() {
       recentDeletions,
       privacyCount7d,
       logsCount24h,
+      superAdminLogs,
     });
   } catch (err) {
     logError("super-admin/seguranca GET", err);

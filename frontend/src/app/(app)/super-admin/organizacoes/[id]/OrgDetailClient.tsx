@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, Building2, Users, CalendarPlus, KeyRound, AlertTriangle,
   BadgeCheck, Ban, Gift, TrendingUp, Clock, CheckCircle2, RefreshCw,
+  HardDrive, Mail, MailX, Activity, BarChart3,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +54,38 @@ interface UsuarioEntry {
 }
 
 interface Stats { formandos: number; grupos: number; usuarios: number }
+interface NivelCount { nivelFormativo: string; _count: { id: number } }
+
+const NIVEL_LABELS: Record<string, string> = {
+  "pre-discipulado": "Pré-Discipulado",
+  discipulado: "Discipulado",
+  "primeiras-promessas": "Primeiras Promessas",
+  "formacao-permanente": "Formação Permanente",
+};
+
+const STORAGE_LIMITS: Record<string, number> = {
+  GRATUITO: 0,
+  BASICO: 2 * 1024 * 1024 * 1024,
+  INTERMEDIARIO: 10 * 1024 * 1024 * 1024,
+  AVANCADO: 30 * 1024 * 1024 * 1024,
+  PERSONALIZADO: 0,
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function activityBadge(lastActivityAt: Date | null) {
+  if (!lastActivityAt) return <span className="text-xs text-muted-foreground">Nunca</span>;
+  const days = Math.floor((Date.now() - new Date(lastActivityAt).getTime()) / 86_400_000);
+  if (days === 0) return <span className="text-xs text-emerald-600 font-medium">Hoje</span>;
+  if (days <= 7) return <span className="text-xs text-emerald-600">{days}d atrás</span>;
+  if (days <= 30) return <span className="text-xs text-amber-600">{days}d atrás</span>;
+  return <span className="text-xs text-red-600 flex items-center gap-0.5"><AlertTriangle className="h-3 w-3" />{days}d atrás</span>;
+}
 
 const STATUS_COLORS: Record<string, string> = {
   ATIVO: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -109,14 +142,28 @@ export default function OrgDetailClient({
   logs,
   admins,
   stats,
+  formandosPorNivel,
+  storageBytes,
+  presencasTotal,
+  presencasPresentes,
+  smtpConfigured,
+  lastActivityAt,
+  engajamento7d,
 }: {
   org: OrgFull;
   logs: AuditEntry[];
   admins: UsuarioEntry[];
   stats: Stats;
+  formandosPorNivel: NivelCount[];
+  storageBytes: number;
+  presencasTotal: number;
+  presencasPresentes: number;
+  smtpConfigured: boolean;
+  lastActivityAt: Date | null;
+  engajamento7d: number;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"usuarios" | "logs">("usuarios");
+  const [tab, setTab] = useState<"formandos" | "usuarios" | "logs">("formandos");
   const [pageUsers, setPageUsers] = useState(1);
   const [pageLogs, setPageLogs] = useState(1);
   const [loading, setLoading] = useState<string | null>(null);
@@ -208,6 +255,66 @@ export default function OrgDetailClient({
         ))}
       </div>
 
+      {/* Extra metrics row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Storage */}
+        <Card>
+          <CardContent className="px-4 pt-3 pb-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><HardDrive className="h-3 w-3" />Storage</p>
+            <p className="text-base font-bold mt-0.5">{formatBytes(storageBytes)}</p>
+            {(() => {
+              const limit = STORAGE_LIMITS[org.planoAssinatura] ?? 0;
+              if (!limit) return <p className="text-xs text-muted-foreground">Ilimitado</p>;
+              const pct = Math.min(100, Math.round((storageBytes / limit) * 100));
+              return (
+                <div className="mt-1.5 space-y-1">
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${pct >= 80 ? "bg-red-500" : pct >= 60 ? "bg-amber-400" : "bg-emerald-500"}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{pct}% de {formatBytes(limit)}</p>
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+
+        {/* Taxa de presença */}
+        <Card>
+          <CardContent className="px-4 pt-3 pb-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" />Taxa de presença</p>
+            <p className="text-base font-bold mt-0.5">
+              {presencasTotal > 0 ? `${Math.round((presencasPresentes / presencasTotal) * 100)}%` : "—"}
+            </p>
+            <p className="text-xs text-muted-foreground">{presencasPresentes}/{presencasTotal} registros</p>
+          </CardContent>
+        </Card>
+
+        {/* Engajamento 7d */}
+        <Card>
+          <CardContent className="px-4 pt-3 pb-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><BarChart3 className="h-3 w-3" />Engajamento (7d)</p>
+            <p className={`text-base font-bold mt-0.5 ${engajamento7d >= 30 ? "text-emerald-600" : engajamento7d >= 8 ? "text-blue-600" : engajamento7d > 0 ? "text-amber-600" : "text-muted-foreground"}`}>
+              {engajamento7d} ações
+            </p>
+            <p className="text-xs text-muted-foreground">últ. 7 dias</p>
+          </CardContent>
+        </Card>
+
+        {/* Última atividade */}
+        <Card>
+          <CardContent className="px-4 pt-3 pb-3">
+            <p className="text-xs text-muted-foreground">Última atividade</p>
+            <div className="text-base font-medium mt-0.5">{activityBadge(lastActivityAt)}</div>
+            {lastActivityAt && (
+              <p className="text-xs text-muted-foreground">{new Date(lastActivityAt).toLocaleDateString("pt-BR")}</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Info grid */}
       <Card>
         <CardHeader className="pb-2 pt-4 px-4">
@@ -264,6 +371,14 @@ export default function OrgDetailClient({
                 )}
               </div>
             )}
+            <div>
+              <p className="text-xs text-muted-foreground">E-mail (SMTP)</p>
+              <p className={`font-medium flex items-center gap-1 ${smtpConfigured ? "text-emerald-700" : "text-muted-foreground"}`}>
+                {smtpConfigured
+                  ? <><Mail className="h-3.5 w-3.5" />Próprio configurado</>
+                  : <><MailX className="h-3.5 w-3.5" />Padrão Formattio</>}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -317,7 +432,7 @@ export default function OrgDetailClient({
 
       {/* Tabs */}
       <div className="flex gap-0 border-b">
-        {(["usuarios", "logs"] as const).map((t) => (
+        {(["formandos", "usuarios", "logs"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -328,11 +443,83 @@ export default function OrgDetailClient({
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
-            {t === "usuarios" ? <Users className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-            {t === "usuarios" ? `Usuários (${admins.length})` : `Audit Log (${logs.length})`}
+            {t === "formandos" && <Activity className="h-4 w-4" />}
+            {t === "usuarios" && <Users className="h-4 w-4" />}
+            {t === "logs" && <Clock className="h-4 w-4" />}
+            {t === "formandos" ? `Formandos (${stats.formandos})` : t === "usuarios" ? `Usuários (${admins.length})` : `Audit Log (${logs.length})`}
           </button>
         ))}
       </div>
+
+      {/* Tab: Formandos */}
+      {tab === "formandos" && (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium">Distribuição por Nível Formativo</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {formandosPorNivel.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum formando cadastrado.</p>
+              ) : (
+                <div className="space-y-3">
+                  {formandosPorNivel.map((n) => {
+                    const pct = stats.formandos > 0 ? Math.round((n._count.id / stats.formandos) * 100) : 0;
+                    return (
+                      <div key={n.nivelFormativo} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{NIVEL_LABELS[n.nivelFormativo] ?? n.nivelFormativo}</span>
+                          <span className="text-muted-foreground tabular-nums">{n._count.id} <span className="text-xs">({pct}%)</span></span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full rounded-full bg-primary/70" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium">Taxa de Presença (acumulado)</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {presencasTotal === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum registro de presença encontrado.</p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-end gap-3">
+                    <p className="text-3xl font-bold">
+                      {Math.round((presencasPresentes / presencasTotal) * 100)}%
+                    </p>
+                    <p className="text-sm text-muted-foreground pb-1">
+                      {presencasPresentes} presentes de {presencasTotal} registros
+                    </p>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        presencasPresentes / presencasTotal >= 0.75
+                          ? "bg-emerald-500"
+                          : presencasPresentes / presencasTotal >= 0.5
+                            ? "bg-amber-400"
+                            : "bg-red-400"
+                      }`}
+                      style={{ width: `${Math.round((presencasPresentes / presencasTotal) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {presencasTotal - presencasPresentes} ausências registradas
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Tab: Usuários */}
       {tab === "usuarios" && (

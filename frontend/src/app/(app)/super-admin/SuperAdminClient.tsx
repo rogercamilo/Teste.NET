@@ -24,7 +24,7 @@ import {
   Shield, KeyRound, CalendarPlus, Search, ExternalLink, CircleAlert,
   Filter, X, BarChart3, LayoutDashboard, Server, Lock, Send,
   Loader2, ShieldAlert, HardDrive, Database, Cloud, CloudOff, Trash2,
-  Home, UserSquare, type LucideIcon,
+  Home, UserSquare, Download, type LucideIcon,
 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
@@ -114,6 +114,11 @@ interface SegurancaData {
   }[];
   privacyCount7d: number;
   logsCount24h: number;
+  superAdminLogs: {
+    id: string; acao: string; criadoEm: string; detalhes: unknown;
+    organizacao: { nome: string } | null;
+    usuario: { nome: string; email: string } | null;
+  }[];
 }
 
 type DialogAcao = "suspender" | "reativar" | "cancelar" | "plano" | "excluir" | "cortesia" | "revogar-cortesia" | "estender-trial" | null;
@@ -165,6 +170,42 @@ const STORAGE_LIMITS: Record<string, number> = {
   AVANCADO:     30 * 1024 * 1024 * 1024,
   PERSONALIZADO:0, // ilimitado — tratado separadamente
 };
+
+const TIPO_LABELS: Record<string, string> = {
+  nova_comunidade: "Nova Comunidade",
+  grupo_oracao: "Grupo de Oração",
+  instituto_religioso: "Instituto Religioso",
+  centro_formativo: "Centro Formativo",
+};
+
+function exportOrgsCSV(orgs: OrgRow[]) {
+  const headers = ["Nome", "Tipo", "Status", "Plano", "Formandos", "Grupos", "Usuários", "Storage (MB)", "Onboarding", "Cadastro", "Última Atividade"];
+  const rows = orgs.map((o) => [
+    o.nome,
+    TIPO_LABELS[o.tipoOrganizacao] ?? o.tipoOrganizacao,
+    o.status,
+    o.planoAssinatura,
+    o._count.formandos,
+    o._count.gruposFormacao,
+    o._count.usuarios,
+    (o.storageBytes / (1024 * 1024)).toFixed(2),
+    o.onboardingConcluido ? "Concluído" : "Pendente",
+    new Date(o.criadoEm).toLocaleDateString("pt-BR"),
+    o.lastActivityAt ? new Date(o.lastActivityAt).toLocaleDateString("pt-BR") : "Nunca",
+  ]);
+  const csv = [headers, ...rows]
+    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `organizacoes_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -820,7 +861,13 @@ export default function SuperAdminClient() {
               <CardTitle className="text-sm font-medium">
                 Organizações ({filteredOrgs.length}{search.trim() || orgFilter !== "all" || hasAdvancedFilter ? ` de ${orgs.length}` : ""})
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <button
+                onClick={() => exportOrgsCSV(filteredOrgs)}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md px-2.5 py-1 hover:bg-muted transition-colors"
+                title="Exportar lista como CSV"
+              >
+                <Download className="h-3.5 w-3.5" />Exportar CSV
+              </button>
             </div>
 
             {/* Quick-filter badges (trials / fantasmas) */}
@@ -1618,6 +1665,51 @@ export default function SuperAdminClient() {
                 </CardContent>
               </Card>
             </div>
+
+            <Card>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Ações do Super Admin — últimos 30 dias ({seguranca.superAdminLogs?.length ?? 0})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ação</TableHead>
+                      <TableHead>Organização</TableHead>
+                      <TableHead>Operador</TableHead>
+                      <TableHead>Data/Hora</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {!seguranca.superAdminLogs?.length ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                          Nenhuma ação de super admin nos últimos 30 dias.
+                        </TableCell>
+                      </TableRow>
+                    ) : seguranca.superAdminLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium font-mono ${
+                            ACAO_CLASS[log.acao] ?? "bg-muted text-muted-foreground border-border"
+                          }`}>
+                            {log.acao}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{log.organizacao?.nome ?? "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {log.usuario?.nome ?? log.usuario?.email ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{fmtDate(log.criadoEm)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader className="pb-2 pt-4 px-4">
