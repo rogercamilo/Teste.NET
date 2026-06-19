@@ -1,4 +1,5 @@
 ﻿import { NextResponse } from "next/server";
+import { randomBytes, createHash } from "crypto";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sendInviteEmail } from "@/lib/email";
@@ -93,13 +94,19 @@ export async function POST(request: Request) {
       if (!grupoFormacao) return NextResponse.json({ error: "Grupo de formação não encontrado" }, { status: 404 });
     }
 
-    const convite = await prisma.conviteUsuario.create({
+    // Generate raw token (sent in email) and store only its SHA-256 hash in the DB.
+    // A compromised database does not expose usable invite tokens.
+    const rawToken = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+
+    await prisma.conviteUsuario.create({
       data: {
         organizacaoId: user.organizacaoId,
         email: email.toLowerCase().trim(),
         nome: nome.trim(),
         perfil: perfil as PerfilUsuario,
         grupoFormacaoId: grupoFormacaoId || null,
+        token: tokenHash,
         expiresAt,
         criadoPorId: user.id!,
       },
@@ -111,7 +118,7 @@ export async function POST(request: Request) {
     });
 
     const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-    const inviteUrl = `${appUrl}/convite/${convite.token}`;
+    const inviteUrl = `${appUrl}/convite/${rawToken}`;
 
     const emailResult = await sendInviteEmail({
       organizacaoId: user.organizacaoId!,
@@ -130,7 +137,7 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json(
-      { id: convite.id, emailSent: emailResult.sent },
+      { emailSent: emailResult.sent },
       { status: 201 }
     );
   } catch (err) {

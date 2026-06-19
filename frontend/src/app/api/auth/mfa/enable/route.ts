@@ -29,6 +29,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Configure o MFA antes de ativá-lo" }, { status: 400 });
   }
 
+  if (!user.mfaSecretExpiresAt || user.mfaSecretExpiresAt < new Date()) {
+    return NextResponse.json(
+      { error: "Tempo de configuração do MFA expirado. Inicie o processo novamente." },
+      { status: 400 }
+    );
+  }
+
   const body = await request.json() as { totp?: string };
   if (!body.totp || typeof body.totp !== "string") {
     return NextResponse.json({ error: "Código TOTP é obrigatório" }, { status: 400 });
@@ -38,7 +45,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Código inválido" }, { status: 400 });
   }
 
-  await updateUser(userId, { mfaEnabled: true, organizacaoId });
+  await updateUser(userId, { mfaEnabled: true, mfaSecretExpiresAt: null, organizacaoId });
   logAction("mfa_enabled", userId, getClientIp(request), {}, organizacaoId);
 
   return NextResponse.json({ ok: true });

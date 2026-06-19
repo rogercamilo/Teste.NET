@@ -1,4 +1,5 @@
 ﻿import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/users-store";
 import { validatePassword } from "@/lib/password-validation";
@@ -7,7 +8,12 @@ import { limiters } from "@/lib/rate-limit";
 
 type Params = { params: Promise<{ token: string }> };
 
-const TOKEN_RE = /^[0-9a-f-]{32,36}$/i;
+// Raw token is 32 random bytes encoded as 64 hex chars
+const TOKEN_RE = /^[0-9a-f]{64}$/i;
+
+function hashToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
 
 export async function GET(request: Request, { params }: Params) {
   const { token } = await params;
@@ -19,7 +25,7 @@ export async function GET(request: Request, { params }: Params) {
   if (!TOKEN_RE.test(token)) return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
 
   const convite = await prisma.conviteUsuario.findFirst({
-    where: { token },
+    where: { token: hashToken(token) },
     select: {
       id: true, email: true, nome: true, perfil: true, expiresAt: true, aceitoEm: true,
       organizacao: { select: { nome: true } },
@@ -65,9 +71,10 @@ export async function POST(request: Request, { params }: Params) {
 
     // Hash computado antes da transação para não bloquear a conexão com operação CPU-intensiva
     const passwordHash = await hashPassword(senha);
+    const tokenHash = hashToken(token);
 
     const { usuario, convite } = await prisma.$transaction(async (tx) => {
-      const found = await tx.conviteUsuario.findFirst({ where: { token } });
+      const found = await tx.conviteUsuario.findFirst({ where: { token: tokenHash } });
       if (!found) throw new Error("NOT_FOUND");
       if (found.aceitoEm) throw new Error("ALREADY_ACCEPTED");
       if (found.expiresAt < new Date()) throw new Error("EXPIRED");

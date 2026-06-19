@@ -23,6 +23,9 @@ export interface UserAuth {
   primeiroAcesso?: boolean;
   mfaEnabled?: boolean;
   mfaSecret?: string;
+  mfaSecretExpiresAt?: Date;
+  loginFailures?: number;
+  lockedUntil?: Date;
   passwordChangedAt?: Date;
 }
 
@@ -119,6 +122,9 @@ function toUserAuth(u: {
   primeiroAcesso: boolean;
   mfaEnabled: boolean;
   mfaSecret: string | null;
+  mfaSecretExpiresAt: Date | null;
+  loginFailures: number;
+  lockedUntil: Date | null;
   passwordChangedAt: Date | null;
 }): UserAuth {
   return {
@@ -134,6 +140,9 @@ function toUserAuth(u: {
     primeiroAcesso: u.primeiroAcesso,
     mfaEnabled: u.mfaEnabled,
     mfaSecret: tryDecryptMfaSecret(u.mfaSecret),
+    mfaSecretExpiresAt: u.mfaSecretExpiresAt ?? undefined,
+    loginFailures: u.loginFailures,
+    lockedUntil: u.lockedUntil ?? undefined,
     passwordChangedAt: u.passwordChangedAt ?? undefined,
   };
 }
@@ -257,10 +266,11 @@ export async function createUser(
 
 export async function updateUser(
   id: string,
-  data: Omit<Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">>, "grupoFormacaoId"> & {
+  data: Omit<Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">>, "grupoFormacaoId" | "mfaSecretExpiresAt"> & {
     password?: string;
     organizacaoId: string;
     grupoFormacaoId?: string | null;
+    mfaSecretExpiresAt?: Date | null;
   }
 ): Promise<UserAuth | null> {
   const orgId = data.organizacaoId;
@@ -283,6 +293,7 @@ export async function updateUser(
       ...(rest.mfaSecret !== undefined && {
         mfaSecret: rest.mfaSecret ? encryptField(rest.mfaSecret) : null,
       }),
+      ...("mfaSecretExpiresAt" in data && { mfaSecretExpiresAt: data.mfaSecretExpiresAt ?? null }),
       ...(newPasswordHash ? { passwordHash: newPasswordHash, passwordChangedAt: new Date() } : {}),
     },
   });
@@ -298,6 +309,30 @@ export async function deleteUser(
     data: { deletedAt: new Date(), ativo: false },
   });
   return result.count > 0;
+}
+
+const MAX_LOGIN_FAILURES = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+export async function recordLoginFailure(userId: string): Promise<void> {
+  const updated = await prisma.usuario.update({
+    where: { id: userId },
+    data: { loginFailures: { increment: 1 } },
+    select: { loginFailures: true },
+  });
+  if (updated.loginFailures >= MAX_LOGIN_FAILURES) {
+    await prisma.usuario.update({
+      where: { id: userId },
+      data: { lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) },
+    });
+  }
+}
+
+export async function clearLoginFailures(userId: string): Promise<void> {
+  await prisma.usuario.update({
+    where: { id: userId },
+    data: { loginFailures: 0, lockedUntil: null },
+  });
 }
 
 export function toPublic(u: UserAuth): UserPublic {

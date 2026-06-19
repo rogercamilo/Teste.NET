@@ -29,8 +29,10 @@ export async function POST() {
   const uri = generateTotpUri(user.email, secret);
   const qrDataUrl = await QRCode.toDataURL(uri);
 
-  // Store secret (not yet enabled — only active after /enable confirms a valid code)
-  await updateUser(userId, { mfaSecret: secret, organizacaoId });
+  // Store secret with a 10-minute TTL. If /enable is not called within this window,
+  // the secret is treated as expired and the user must restart the MFA setup flow.
+  const mfaSecretExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  await updateUser(userId, { mfaSecret: secret, mfaSecretExpiresAt, organizacaoId });
 
   return NextResponse.json({ secret, qrDataUrl });
 }

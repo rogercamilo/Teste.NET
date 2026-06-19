@@ -2,7 +2,7 @@
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
-import { authenticateGlobal, findByEmailGlobal, findById } from "@/lib/users-store";
+import { authenticateGlobal, findByEmailGlobal, findById, recordLoginFailure, clearLoginFailures } from "@/lib/users-store";
 import { authConfig } from "@/auth.config";
 import { limiters } from "@/lib/rate-limit";
 import { getClientIp, logAction } from "@/lib/audit-log";
@@ -39,11 +39,21 @@ const providers: NextAuthConfig["providers"] = [
         return null;
       }
 
-      const user = await authenticateGlobal(email, credentials.password as string);
-      if (!user) {
-        logAction("login_failure", undefined, ip, { email });
+      // Check account lockout before the expensive password verification
+      const candidate = await findByEmailGlobal(email);
+      if (candidate?.lockedUntil && candidate.lockedUntil > new Date()) {
+        logAction("login_blocked", candidate.id, ip, { email, reason: "account_locked" }, candidate.organizacaoId);
         return null;
       }
+
+      const user = await authenticateGlobal(email, credentials.password as string);
+      if (!user) {
+        if (candidate?.id) await recordLoginFailure(candidate.id);
+        logAction("login_failure", candidate?.id, ip, { email }, candidate?.organizacaoId);
+        return null;
+      }
+
+      await clearLoginFailures(user.id);
 
       // super_admin só pode acessar pela página exclusiva de acesso à plataforma
       const isSuperAdminSource = credentials.loginSource === "super_admin";

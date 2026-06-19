@@ -207,10 +207,13 @@ model Usuario {
   grupoFormacaoId  String?       @map("morada_id")
   ativo             Boolean       @default(true)
   primeiroAcesso    Boolean       @default(false)
-  mfaSecret         String?       @db.Text
-  mfaEnabled        Boolean       @default(false)
-  passwordChangedAt DateTime?
-  deletedAt         DateTime?
+  mfaSecret            String?   @db.Text
+  mfaEnabled           Boolean   @default(false)
+  mfaSecretExpiresAt   DateTime?
+  loginFailures        Int       @default(0)
+  lockedUntil          DateTime?
+  passwordChangedAt    DateTime?
+  deletedAt            DateTime?
   criadoEm         DateTime      @default(now())
   atualizadoEm     DateTime      @updatedAt
 
@@ -750,7 +753,7 @@ model ConviteUsuario {
   nome              String
   perfil            PerfilUsuario
   grupoFormacaoId   String?   @map("morada_id")
-  token             String    @unique @default(cuid())
+  token             String    @unique
   expiresAt     DateTime
   aceitoEm      DateTime?
   criadoPorId   String
