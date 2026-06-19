@@ -21,7 +21,7 @@ import {
   Building2, Users, RefreshCw, MoreHorizontal,
   TrendingUp, TrendingDown, AlertTriangle, Gift, Ban, BadgeCheck,
   DollarSign, Activity, Minus, Scale, FileText, CheckCircle2, Clock,
-  Shield, KeyRound, CalendarPlus, Search, ExternalLink, type LucideIcon,
+  Shield, KeyRound, CalendarPlus, Search, ExternalLink, CircleAlert, type LucideIcon,
 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,9 @@ interface OrgRow {
   cortesia: boolean;
   cortesiaExpiresAt: string | null;
   cortesiaMotivo: string | null;
+  onboardingConcluido: boolean;
   criadoEm: string;
+  lastActivityAt: string | null;
   _count: { gruposFormacao: number; formandos: number; usuarios: number };
 }
 
@@ -106,6 +108,28 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
 ];
 
 const PAGE_SIZE = 10;
+
+function activityBadge(lastActivityAt: string | null) {
+  if (!lastActivityAt) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500 border border-slate-200">
+        Nunca
+      </span>
+    );
+  }
+  const days = Math.floor((Date.now() - new Date(lastActivityAt).getTime()) / 86_400_000);
+  if (days === 0)
+    return <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">Hoje</span>;
+  if (days <= 7)
+    return <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-600 border border-emerald-200">{days}d atrás</span>;
+  if (days <= 30)
+    return <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 border border-amber-200">{days}d atrás</span>;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 border border-red-200">
+      <CircleAlert className="h-3 w-3" />{days}d atrás
+    </span>
+  );
+}
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
@@ -365,6 +389,7 @@ export default function SuperAdminClient() {
                   <TableHead className="text-center">Grupos</TableHead>
                   <TableHead className="text-center">Formandos</TableHead>
                   <TableHead className="text-center">Usuários</TableHead>
+                  <TableHead>Atividade</TableHead>
                   <TableHead>Cadastro</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -402,6 +427,11 @@ export default function SuperAdminClient() {
                               Trial até {new Date(org.trialExpiresAt).toLocaleDateString("pt-BR")}
                             </span>
                           )}
+                          {!org.onboardingConcluido && org.status !== "CANCELADO" && (
+                            <span className="text-xs text-orange-600 flex items-center gap-0.5">
+                              <CircleAlert className="h-3 w-3" />Onboarding incompleto
+                            </span>
+                          )}
                           {org.cortesia && org.cortesiaMotivo && (
                             <span className="text-xs text-muted-foreground truncate max-w-48">{org.cortesiaMotivo}</span>
                           )}
@@ -420,6 +450,7 @@ export default function SuperAdminClient() {
                       <TableCell className="text-center text-sm">{org._count.gruposFormacao}</TableCell>
                       <TableCell className="text-center text-sm">{org._count.formandos}</TableCell>
                       <TableCell className="text-center text-sm">{org._count.usuarios}</TableCell>
+                      <TableCell>{activityBadge(org.lastActivityAt)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(org.criadoEm).toLocaleDateString("pt-BR")}
                       </TableCell>

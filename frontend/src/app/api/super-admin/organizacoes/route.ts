@@ -14,9 +14,24 @@ const ORG_SELECT = {
   cortesia: true,
   cortesiaExpiresAt: true,
   cortesiaMotivo: true,
+  onboardingConcluido: true,
   criadoEm: true,
   _count: { select: { gruposFormacao: true, formandos: true, usuarios: true } },
 } as const;
+
+async function attachLastActivity<T extends { id: string }>(orgs: T[]) {
+  if (orgs.length === 0) return orgs as (T & { lastActivityAt: string | null })[];
+
+  const rows = await prisma.$queryRaw<{ organizacaoId: string; lastActivityAt: Date }[]>`
+    SELECT "organizacaoId", MAX("criadoEm") AS "lastActivityAt"
+    FROM "AuditLog"
+    WHERE "organizacaoId" IS NOT NULL
+    GROUP BY "organizacaoId"
+  `;
+
+  const map = new Map(rows.map((r) => [r.organizacaoId, r.lastActivityAt.toISOString()]));
+  return orgs.map((o) => ({ ...o, lastActivityAt: map.get(o.id) ?? null }));
+}
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -33,14 +48,14 @@ export async function GET(request: Request) {
 
     if (!pagination) {
       const orgs = await prisma.organizacao.findMany({ orderBy, select: ORG_SELECT });
-      return NextResponse.json(orgs);
+      return NextResponse.json(await attachLastActivity(orgs));
     }
 
     const [orgs, total] = await Promise.all([
       prisma.organizacao.findMany({ orderBy, select: ORG_SELECT, skip: pagination.skip, take: pagination.take }),
       prisma.organizacao.count(),
     ]);
-    return NextResponse.json(orgs, { headers: paginationHeaders(total, pagination) });
+    return NextResponse.json(await attachLastActivity(orgs), { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     logError("super-admin/organizacoes", err);
     return NextResponse.json({ error: "Falha ao carregar organizações" }, { status: 500 });
