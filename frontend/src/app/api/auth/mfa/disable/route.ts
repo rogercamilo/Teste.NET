@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const organizacaoId = (session.user as { organizacaoId?: string }).organizacaoId;
   if (!organizacaoId) return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
 
-  const rl = await limiters.passwordChange(userId);
+  const rl = await limiters.mfa(userId);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
   }

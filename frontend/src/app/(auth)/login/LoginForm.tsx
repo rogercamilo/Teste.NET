@@ -15,7 +15,10 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawCallbackUrl = searchParams.get("callbackUrl") ?? "";
-  const callbackUrl = rawCallbackUrl.startsWith("/") ? rawCallbackUrl : "/dashboard";
+  const callbackUrl =
+    rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
+      ? rawCallbackUrl
+      : "/dashboard";
   const error = searchParams.get("error");
 
   const [showPassword, setShowPassword] = useState(false);

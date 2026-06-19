@@ -127,6 +127,9 @@ export const limiters = {
   /** 3 password change attempts per user per hour. */
   passwordChange: (userId: string) => rateLimit(`pwd_change:${userId}`, 3, 60 * 60 * 1000),
 
+  /** 5 MFA operations per user per hour (enable, disable, setup). Separate from passwordChange to avoid shared quota exhaustion. */
+  mfa: (userId: string) => rateLimit(`mfa:${userId}`, 5, 60 * 60 * 1000),
+
   /** 10 login attempts per email per 30 minutes — account-level brute-force protection. */
   loginPerEmail: (email: string) => rateLimit(`login_email:${email.toLowerCase()}`, 10, 30 * 60 * 1000),
 };

@@ -29,6 +29,9 @@ jobs:
           # Skip Prisma binary download during install — we generate manually below
           PRISMA_SKIP_POSTINSTALL_GENERATE: "true"
 
+      - name: Security audit
+        run: npm audit --audit-level=high
+
       - name: Generate Prisma Client
         run: npx prisma generate
 
