@@ -269,7 +269,7 @@ export default function ConfiguracoesClient({
         </TabsContent>
 
         <TabsContent value="notificacoes" className="mt-4">
-          <NotificacoesTab />
+          <NotificacoesTab isGestao={isGestao} />
         </TabsContent>
 
         <TabsContent value="privacidade" className="mt-4">

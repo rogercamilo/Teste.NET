@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Bell, BellOff, BellRing, Copy, Loader2, Send, Smartphone, Users } from "lucide-react";
+import { Bell, BellOff, BellRing, CheckCircle2, Copy, Loader2, Send, Smartphone, Users, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { usePushSubscription } from "@/hooks/use-push-subscription";
 
 // ── Contagem de inscritos ─────────────────────────────────────────────────────
 
@@ -28,6 +29,82 @@ function useSubscriptionCount() {
 
   useEffect(() => { refresh(); }, [refresh]);
   return { count, loading, refresh };
+}
+
+// ── Card: Meu dispositivo ────────────────────────────────────────────────────
+
+function MeuDispositivoCard() {
+  const [mounted, setMounted] = useState(false);
+  const { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
+    usePushSubscription();
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
+
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <Smartphone className="h-4 w-4 text-primary" />
+          Este dispositivo
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Receba alertas instantâneos neste navegador mesmo com a aba fechada.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!isSupported ? (
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+            <XCircle className="h-4 w-4 shrink-0" />
+            Seu navegador não suporta notificações push. Tente Chrome ou Firefox.
+          </div>
+        ) : permission === "denied" ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300">
+              <BellOff className="h-4 w-4 shrink-0" />
+              Notificações bloqueadas neste navegador. Para ativar, desbloqueie nas configurações do site (ícone de cadeado na barra de endereço).
+            </div>
+          </div>
+        ) : isSubscribed ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30 px-3 py-2.5 text-xs text-emerald-800 dark:text-emerald-400">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              Notificações ativas neste dispositivo.
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 text-xs"
+              onClick={unsubscribe}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <BellOff className="h-3.5 w-3.5" />
+              )}
+              Desativar notificações
+            </Button>
+          </div>
+        ) : (
+          <Button
+            size="sm"
+            className="w-full gap-2"
+            onClick={subscribe}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Bell className="h-3.5 w-3.5" />
+            )}
+            {isLoading ? "Ativando…" : "Ativar notificações"}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 // ── Painel de envio manual ────────────────────────────────────────────────────
@@ -152,7 +229,7 @@ function InstrucoesCard() {
         <ol className="space-y-3">
           {[
             "Compartilhe o link do Formattio com seus formandos (WhatsApp, e-mail ou grupo).",
-            'O formando acessa o site e clica em "Ativar notificações" na página inicial.',
+            'O formando acessa o site e clica em "Ativar notificações" na página inicial ou em Configurações.',
             'O dispositivo exibirá um prompt pedindo permissão — o formando toca em "Permitir".',
             "Pronto! O dispositivo passa a receber notificações mesmo com o navegador fechado.",
           ].map((step, i) => (
@@ -250,14 +327,19 @@ function VisaoGeralCard({ count, loading }: { count: number | null; loading: boo
 
 // ── Tab principal ─────────────────────────────────────────────────────────────
 
-export default function NotificacoesTab() {
+export default function NotificacoesTab({ isGestao }: { isGestao?: boolean }) {
   const { count, loading, refresh } = useSubscriptionCount();
 
   return (
     <div className="space-y-4">
-      <VisaoGeralCard count={count} loading={loading} />
-      <InstrucoesCard />
-      <EnviarNotificacaoCard onSent={refresh} />
+      <MeuDispositivoCard />
+      {isGestao && (
+        <>
+          <VisaoGeralCard count={count} loading={loading} />
+          <InstrucoesCard />
+          <EnviarNotificacaoCard onSent={refresh} />
+        </>
+      )}
     </div>
   );
 }
