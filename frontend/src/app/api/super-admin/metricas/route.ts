@@ -39,6 +39,7 @@ export async function GET() {
       crescimentoAnterior30d,
       ultimasOrgs,
       deletionsPendentes,
+      canceladas30d,
     ] = await Promise.all([
       prisma.organizacao.count(),
       prisma.organizacao.count({ where: { status: "ATIVO" } }),
@@ -58,6 +59,7 @@ export async function GET() {
         select: { id: true, nome: true, status: true, planoAssinatura: true, cortesia: true, criadoEm: true },
       }),
       prisma.deletionRequest.count({ where: { status: "pendente" } }),
+      prisma.organizacao.count({ where: { canceladoEm: { gte: inicio30d } } }),
     ]);
 
     // MRR real via Stripe (graceful fallback se Stripe não estiver configurado)
@@ -99,6 +101,14 @@ export async function GET() {
         ? crescimento30d > 0 ? 100 : 0
         : Math.round(((crescimento30d - crescimentoAnterior30d) / crescimentoAnterior30d) * 100);
 
+    const orgsPagantes = (planoBreakdown["BASICO"] ?? 0) + (planoBreakdown["INTERMEDIARIO"] ?? 0)
+      + (planoBreakdown["AVANCADO"] ?? 0) + (planoBreakdown["PERSONALIZADO"] ?? 0);
+    const arr = mrrEstimado * 12;
+    const ticketMedio = orgsPagantes > 0 ? Math.round(mrrEstimado / orgsPagantes) : 0;
+    // churn approximation: canceladas30d / (orgsAtivas + canceladas30d)
+    const churnBase = orgsAtivas + canceladas30d;
+    const churnRate30d = churnBase > 0 ? Math.round((canceladas30d / churnBase) * 100 * 10) / 10 : 0;
+
     return NextResponse.json({
       totalOrgs,
       orgsAtivas,
@@ -117,6 +127,10 @@ export async function GET() {
       crescimentoAnterior30d,
       crescimentoPercent,
       ultimasOrgs,
+      arr,
+      ticketMedio,
+      churnRate30d,
+      canceladas30d,
     });
   } catch (err) {
     logError("super-admin/metricas GET", err);

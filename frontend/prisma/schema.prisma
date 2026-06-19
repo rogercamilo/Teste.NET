@@ -142,6 +142,7 @@ model Organizacao {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   trialExpiresAt       DateTime?
+  canceladoEm          DateTime?
   cortesia             Boolean           @default(false)
   cortesiaExpiresAt    DateTime?
   cortesiaMotivo       String?

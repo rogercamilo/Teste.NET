@@ -160,6 +160,8 @@ export async function PATCH(request: Request, { params }: Params) {
       where: { id },
       data: {
         ...(newStatus ? { status: newStatus } : {}),
+        ...(acao === "cancelar" ? { canceladoEm: new Date() } : {}),
+        ...(acao === "reativar" ? { canceladoEm: null } : {}),
         ...(plano ? { planoAssinatura: plano as PlanoAssinatura } : {}),
       },
     });

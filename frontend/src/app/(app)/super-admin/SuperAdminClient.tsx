@@ -21,7 +21,8 @@ import {
   Building2, Users, RefreshCw, MoreHorizontal,
   TrendingUp, TrendingDown, AlertTriangle, Gift, Ban, BadgeCheck,
   DollarSign, Activity, Minus, Scale, FileText, CheckCircle2, Clock,
-  Shield, KeyRound, CalendarPlus, Search, ExternalLink, CircleAlert, type LucideIcon,
+  Shield, KeyRound, CalendarPlus, Search, ExternalLink, CircleAlert,
+  Filter, X, BarChart3, type LucideIcon,
 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ interface OrgRow {
   id: string;
   nome: string;
   planoAssinatura: string;
+  tipoOrganizacao: string;
   status: string;
   trialExpiresAt: string | null;
   cortesia: boolean;
@@ -40,6 +42,7 @@ interface OrgRow {
   onboardingConcluido: boolean;
   criadoEm: string;
   lastActivityAt: string | null;
+  engajamento7d: number;
   _count: { gruposFormacao: number; formandos: number; usuarios: number };
 }
 
@@ -60,6 +63,10 @@ interface Metricas {
   crescimento30d: number;
   crescimentoAnterior30d: number;
   crescimentoPercent: number;
+  arr: number;
+  ticketMedio: number;
+  churnRate30d: number;
+  canceladas30d: number;
 }
 
 interface LgpdData {
@@ -76,6 +83,7 @@ interface LgpdData {
 
 type DialogAcao = "suspender" | "reativar" | "cancelar" | "plano" | "excluir" | "cortesia" | "revogar-cortesia" | "estender-trial" | null;
 type Tab = "organizacoes" | "financeiro" | "cortesias" | "lgpd";
+
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -110,6 +118,20 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
 ];
 
 const PAGE_SIZE = 10;
+
+function engajamentoBadge(count: number) {
+  if (count === 0) return null;
+  const cls = count >= 30
+    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+    : count >= 8
+      ? "bg-blue-50 text-blue-600 border-blue-200"
+      : "bg-amber-50 text-amber-600 border-amber-200";
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium border ${cls}`}>
+      <BarChart3 className="h-2.5 w-2.5" />{count}/7d
+    </span>
+  );
+}
 
 function activityBadge(lastActivityAt: string | null) {
   if (!lastActivityAt) {
@@ -157,6 +179,10 @@ export default function SuperAdminClient() {
   const [cortesiaExpiry, setCortesiaExpiry] = useState("");
   const [trialDays, setTrialDays] = useState("30");
   const [orgFilter, setOrgFilter] = useState<"all" | "trials" | "fantasmas">("all");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterPlano, setFilterPlano] = useState("");
+  const [filterTipo, setFilterTipo] = useState("");
+  const [filterOnboarding, setFilterOnboarding] = useState(false);
 
   const closeDialog = () => {
     setDialogAcao(null);
@@ -203,7 +229,7 @@ export default function SuperAdminClient() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPageOrgs(1); setPageCortesias(1); }, [orgs]);
-  useEffect(() => { setPageOrgs(1); }, [orgFilter]);
+  useEffect(() => { setPageOrgs(1); }, [orgFilter, filterStatus, filterPlano, filterTipo, filterOnboarding]);
   useEffect(() => { setPageLgpd(1); }, [lgpd]);
 
   useEffect(() => {
@@ -361,10 +387,23 @@ export default function SuperAdminClient() {
     } else {
       base = orgs;
     }
+    if (filterStatus) base = base.filter((o) => o.status === filterStatus);
+    if (filterPlano) base = base.filter((o) => o.planoAssinatura === filterPlano);
+    if (filterTipo) base = base.filter((o) => o.tipoOrganizacao === filterTipo);
+    if (filterOnboarding) base = base.filter((o) => !o.onboardingConcluido);
     return search.trim()
       ? base.filter((o) => o.nome.toLowerCase().includes(search.trim().toLowerCase()))
       : base;
   })();
+
+  const hasAdvancedFilter = !!(filterStatus || filterPlano || filterTipo || filterOnboarding);
+
+  function clearAdvancedFilters() {
+    setFilterStatus("");
+    setFilterPlano("");
+    setFilterTipo("");
+    setFilterOnboarding(false);
+  }
   const cortesiasOrgs = orgs.filter((o) => o.cortesia);
 
   return (
@@ -442,10 +481,12 @@ export default function SuperAdminClient() {
           <CardHeader className="pb-2 pt-4 px-4 gap-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">
-                Organizações ({filteredOrgs.length}{search.trim() || orgFilter !== "all" ? ` de ${orgs.length}` : ""})
+                Organizações ({filteredOrgs.length}{search.trim() || orgFilter !== "all" || hasAdvancedFilter ? ` de ${orgs.length}` : ""})
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </div>
+
+            {/* Quick-filter badges (trials / fantasmas) */}
             {orgFilter !== "all" && (
               <div className="flex items-center gap-2">
                 <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium border ${
@@ -460,18 +501,82 @@ export default function SuperAdminClient() {
                   onClick={() => setOrgFilter("all")}
                   className="text-xs text-muted-foreground hover:text-foreground underline"
                 >
-                  Limpar filtro
+                  Limpar
                 </button>
               </div>
             )}
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome…"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPageOrgs(1); }}
-                className="pl-8 h-8 text-sm"
-              />
+
+            {/* Advanced filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={filterStatus || "__all__"} onValueChange={(v) => setFilterStatus(!v || v === "__all__" ? "" : v)}>
+                <SelectTrigger className="h-7 text-xs w-32 gap-1">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos status</SelectItem>
+                  <SelectItem value="ATIVO">Ativo</SelectItem>
+                  <SelectItem value="TRIAL">Trial</SelectItem>
+                  <SelectItem value="SUSPENSO">Suspenso</SelectItem>
+                  <SelectItem value="CANCELADO">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterPlano || "__all__"} onValueChange={(v) => setFilterPlano(!v || v === "__all__" ? "" : v)}>
+                <SelectTrigger className="h-7 text-xs w-36 gap-1">
+                  <SelectValue placeholder="Plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos planos</SelectItem>
+                  <SelectItem value="GRATUITO">Gratuito</SelectItem>
+                  <SelectItem value="BASICO">Básico</SelectItem>
+                  <SelectItem value="INTERMEDIARIO">Intermediário</SelectItem>
+                  <SelectItem value="AVANCADO">Avançado</SelectItem>
+                  <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterTipo || "__all__"} onValueChange={(v) => setFilterTipo(!v || v === "__all__" ? "" : v)}>
+                <SelectTrigger className="h-7 text-xs w-44 gap-1">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos tipos</SelectItem>
+                  <SelectItem value="nova_comunidade">Nova Comunidade</SelectItem>
+                  <SelectItem value="grupo_oracao">Grupo de Oração</SelectItem>
+                  <SelectItem value="instituto_religioso">Instituto Religioso</SelectItem>
+                  <SelectItem value="centro_formativo">Centro Formativo</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <button
+                onClick={() => setFilterOnboarding((v) => !v)}
+                className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  filterOnboarding
+                    ? "bg-orange-100 text-orange-700 border-orange-300"
+                    : "bg-background text-muted-foreground border-border hover:border-muted-foreground/50"
+                }`}
+              >
+                <Filter className="h-3 w-3" />Onboarding incompleto
+              </button>
+
+              {hasAdvancedFilter && (
+                <button
+                  onClick={clearAdvancedFilters}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />Limpar filtros
+                </button>
+              )}
+
+              <div className="relative flex-1 min-w-40">
+                <Search className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome…"
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPageOrgs(1); }}
+                  className="pl-8 h-7 text-xs"
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -545,7 +650,12 @@ export default function SuperAdminClient() {
                       <TableCell className="text-center text-sm">{org._count.gruposFormacao}</TableCell>
                       <TableCell className="text-center text-sm">{org._count.formandos}</TableCell>
                       <TableCell className="text-center text-sm">{org._count.usuarios}</TableCell>
-                      <TableCell>{activityBadge(org.lastActivityAt)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5">
+                          {activityBadge(org.lastActivityAt)}
+                          {engajamentoBadge(org.engajamento7d)}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(org.criadoEm).toLocaleDateString("pt-BR")}
                       </TableCell>
@@ -643,7 +753,7 @@ export default function SuperAdminClient() {
       {/* ── Tab: Financeiro ──────────────────────────────────────────────────── */}
       {tab === "financeiro" && metricas && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-1 pt-4 px-4">
                 <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
@@ -673,6 +783,20 @@ export default function SuperAdminClient() {
             <Card>
               <CardHeader className="pb-1 pt-4 px-4">
                 <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <TrendingUp className="h-3.5 w-3.5" />ARR
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="text-3xl font-bold">{currFmt.format(metricas.arr)}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  receita anual recorrente
+                  <span className="block text-slate-400 mt-0.5">ticket médio {currFmt.format(metricas.ticketMedio)}/org</span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-1 pt-4 px-4">
+                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3.5 w-3.5" />Crescimento (30d)
                 </CardTitle>
               </CardHeader>
@@ -696,15 +820,15 @@ export default function SuperAdminClient() {
             <Card>
               <CardHeader className="pb-1 pt-4 px-4">
                 <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                  <Building2 className="h-3.5 w-3.5" />Orgs Pagantes
+                  <TrendingDown className="h-3.5 w-3.5" />Churn Rate (30d)
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <div className="text-3xl font-bold">
-                  {(metricas.planoBreakdown["BASICO"] ?? 0) + (metricas.planoBreakdown["INTERMEDIARIO"] ?? 0) + (metricas.planoBreakdown["AVANCADO"] ?? 0) + (metricas.planoBreakdown["PERSONALIZADO"] ?? 0)}
+                <div className={`text-3xl font-bold ${metricas.churnRate30d > 5 ? "text-red-600" : metricas.churnRate30d > 0 ? "text-amber-600" : ""}`}>
+                  {metricas.churnRate30d}%
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  de {metricas.totalOrgs} organizações totais
+                  {metricas.canceladas30d} org{metricas.canceladas30d !== 1 ? "s" : ""} cancelada{metricas.canceladas30d !== 1 ? "s" : ""} nos últimos 30d
                 </div>
               </CardContent>
             </Card>
