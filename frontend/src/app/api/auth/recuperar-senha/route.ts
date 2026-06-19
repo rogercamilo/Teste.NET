@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 
 const TOKEN_TTL_MS = 2 * 60 * 60 * 1000; // 2 horas
 
@@ -39,17 +39,21 @@ export async function POST(request: Request) {
       data: { usedAt: new Date() },
     });
 
-    const token = randomBytes(32).toString("hex");
+    // Gera token aleatório e armazena apenas o hash SHA-256.
+    // O token bruto é enviado ao usuário — comprometimento do banco não expõe tokens utilizáveis.
+    const rawToken = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+
     await prisma.passwordResetToken.create({
       data: {
         userId: usuario.id,
-        token,
+        token: tokenHash,
         expiresAt: new Date(Date.now() + TOKEN_TTL_MS),
       },
     });
 
     const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-    const resetUrl = `${appUrl}/recuperar-senha/${token}`;
+    const resetUrl = `${appUrl}/recuperar-senha/${rawToken}`;
 
     try {
       await sendPasswordResetEmail({

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/users-store";
 import { passwordErrorMessage } from "@/lib/password-validation";
@@ -32,8 +33,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: pwdError }, { status: 400 });
     }
 
+    // Token recebido é o valor bruto — computa hash para buscar no banco.
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+
     const resetToken = await prisma.passwordResetToken.findUnique({
-      where: { token },
+      where: { token: tokenHash },
       include: { usuario: { select: { id: true, organizacaoId: true, email: true, ativo: true, deletedAt: true } } },
     });
 

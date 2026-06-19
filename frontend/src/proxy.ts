@@ -4,21 +4,32 @@ import crypto from "crypto";
 
 const isProd = process.env.NODE_ENV === "production";
 
+const CSP_REPORT_URI = "/api/csp-report";
+
 function buildSecurityHeaders(nonce: string): Record<string, string> {
   return {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "SAMEORIGIN",
+    "X-Permitted-Cross-Domain-Policies": "none",
+    "X-Download-Options": "noopen",
+    "X-DNS-Prefetch-Control": "off",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    ...(isProd ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } : {}),
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(self), usb=(), magnetometer=(), accelerometer=(), gyroscope=()",
+    ...(isProd ? {
+      // HSTS com preload — submeter em https://hstspreload.org após validar domínio.
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      // Report-To define o grupo de endpoints para relatórios de CSP (Reporting API v1).
+      "Report-To": `{"group":"csp-endpoint","max_age":86400,"endpoints":[{"url":"${CSP_REPORT_URI}"}]}`,
+    } : {}),
     "Cross-Origin-Opener-Policy": "same-origin",
     "Cross-Origin-Resource-Policy": "same-origin",
     "Content-Security-Policy": [
       "default-src 'self'",
-      // 'strict-dynamic' allows nonce-trusted scripts to load further scripts dynamically.
-      // In supporting browsers it ignores 'unsafe-inline'; older browsers fall back to it.
-      // 'unsafe-eval' is only needed for Turbopack in dev.
-      `script-src 'nonce-${nonce}' 'strict-dynamic'${isProd ? "" : " 'unsafe-eval'"} https://js.stripe.com 'unsafe-inline'`,
+      // 'strict-dynamic' permite que scripts com nonce carreguem outros scripts dinamicamente.
+      // Em browsers modernos, 'strict-dynamic' ignora 'unsafe-inline' e allowlists de host.
+      // Em dev: 'unsafe-eval' (Turbopack HMR) + 'unsafe-inline' (fallback dev).
+      // Em prod: nenhum dos dois — apenas nonce + strict-dynamic.
+      `script-src 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com${isProd ? "" : " 'unsafe-eval' 'unsafe-inline'"}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
@@ -28,6 +39,7 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      ...(isProd ? [`report-to csp-endpoint`, `report-uri ${CSP_REPORT_URI}`] : []),
     ].join("; "),
   };
 }
@@ -53,10 +65,12 @@ export default auth(function proxy(req) {
     "/para-quem-e",
     "/precos",
     "/faq",
+    "/.well-known/",
     "/api/og",
     "/api/health",
     "/api/public/",
     "/api/registro",
+    "/api/csp-report",
     // /api/convites/[token] handled separately below — only token paths are public
     "/api/cookies/",
     "/api/stripe/webhook",

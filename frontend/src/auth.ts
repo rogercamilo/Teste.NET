@@ -25,15 +25,23 @@ const providers: NextAuthConfig["providers"] = [
       if (!credentials?.email || !credentials?.password) return null;
 
       const ip = request ? getClientIp(request as Request) : "unknown";
-      const rl = await limiters.login(ip);
-      if (!rl.allowed) return null;
+      const email = (credentials.email as string).toLowerCase().trim();
 
-      const user = await authenticateGlobal(
-        credentials.email as string,
-        credentials.password as string
-      );
+      const rlIp = await limiters.login(ip);
+      if (!rlIp.allowed) {
+        logAction("login_blocked", undefined, ip, { email, reason: "ip_rate_limit" });
+        return null;
+      }
+
+      const rlEmail = await limiters.loginPerEmail(email);
+      if (!rlEmail.allowed) {
+        logAction("login_blocked", undefined, ip, { email, reason: "email_rate_limit" });
+        return null;
+      }
+
+      const user = await authenticateGlobal(email, credentials.password as string);
       if (!user) {
-        logAction("login_failure", undefined, ip, { email: credentials.email as string });
+        logAction("login_failure", undefined, ip, { email });
         return null;
       }
 

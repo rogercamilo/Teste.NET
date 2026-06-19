@@ -1,0 +1,4 @@
+Contact: mailto:privacidade@formattio.com.br
+Expires: 2027-01-01T00:00:00.000Z
+Policy: https://www.formattio.com.br/privacidade
+Preferred-Languages: pt-BR, en
