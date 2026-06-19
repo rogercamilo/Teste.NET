@@ -235,6 +235,7 @@ model Usuario {
   documentosEclesiasticosGerados DocumentoEclesiastico[] @relation("DocumentoGerador")
   passwordResetTokens            PasswordResetToken[]
   notificacoes                   Notificacao[]
+  pushSubscriptions              PushSubscription[]
 
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
@@ -863,14 +864,17 @@ model ProcessedWebhookEvent {
 model PushSubscription {
   id            String   @id @default(cuid())
   organizacaoId String
+  usuarioId     String?
   endpoint      String
   p256dh        String   @db.Text
   auth          String   @db.Text
   criadoEm      DateTime @default(now())
 
   organizacao   Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  usuario       Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
 
   @@unique([organizacaoId, endpoint])
+  @@index([usuarioId])
 }
 
 // ==========================================================

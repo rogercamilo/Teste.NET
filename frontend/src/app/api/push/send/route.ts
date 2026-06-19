@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { PushSendSchema, parseBody } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
-import { sendPushToOrg } from "@/lib/push";
+import { sendPushToOrg, sendPushToGroup } from "@/lib/push";
 import { isGestao } from "@/lib/auth-helpers";
 import type { SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -25,15 +25,17 @@ export async function POST(request: Request) {
   try {
     const parsed = parseBody(PushSendSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-    const { titulo, corpo, url } = parsed.data;
+    const { titulo, corpo, url, grupoFormacaoId } = parsed.data;
 
-    const result = await sendPushToOrg(user.organizacaoId, { titulo, corpo, url });
+    const result = grupoFormacaoId
+      ? await sendPushToGroup(user.organizacaoId, grupoFormacaoId, { titulo, corpo, url })
+      : await sendPushToOrg(user.organizacaoId, { titulo, corpo, url });
 
     logAction(
       "push_notification_sent",
       user.id,
       getClientIp(request),
-      { titulo, sent: result.sent, removed: result.removed },
+      { titulo, sent: result.sent, removed: result.removed, grupoFormacaoId: grupoFormacaoId ?? "all" },
       user.organizacaoId
     );
 

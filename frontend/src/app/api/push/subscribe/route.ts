@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { PushSubscribeSchema, PushUnsubscribeSchema, parseBody } from "@/lib/schemas";
 import { rateLimit } from "@/lib/rate-limit";
-
-function getDefaultOrgId(): string {
-  const id = process.env.DEFAULT_ORG_ID;
-  if (!id) throw new Error("DEFAULT_ORG_ID env var not set");
-  return id;
-}
+import type { SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -17,19 +13,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Muitas requisições." }, { status: 429 });
   }
 
+  const session = await auth();
+  const user = session?.user as SU | undefined;
+  if (!user?.id || !user?.organizacaoId) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
   try {
-    const orgId = getDefaultOrgId();
     const parsed = parseBody(PushSubscribeSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-    const { endpoint, p256dh, auth } = parsed.data;
+    const { endpoint, p256dh, auth: authKey } = parsed.data;
 
     await prisma.pushSubscription.upsert({
-      where: { organizacaoId_endpoint: { organizacaoId: orgId, endpoint } },
-      create: { organizacaoId: orgId, endpoint, p256dh, auth },
-      update: { p256dh, auth },
+      where: { organizacaoId_endpoint: { organizacaoId: user.organizacaoId, endpoint } },
+      create: { organizacaoId: user.organizacaoId, usuarioId: user.id, endpoint, p256dh, auth: authKey },
+      update: { p256dh, auth: authKey, usuarioId: user.id },
     });
 
-    logAction("push_subscribed", undefined, ip, { endpoint: endpoint.slice(0, 60) }, orgId);
+    logAction("push_subscribed", user.id, ip, { endpoint: endpoint.slice(0, 60) }, user.organizacaoId);
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     logError("push/subscribe POST", err);
@@ -44,17 +45,22 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Muitas requisições." }, { status: 429 });
   }
 
+  const session = await auth();
+  const user = session?.user as SU | undefined;
+  if (!user?.id || !user?.organizacaoId) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
   try {
-    const orgId = getDefaultOrgId();
     const parsed = parseBody(PushUnsubscribeSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { endpoint } = parsed.data;
 
     await prisma.pushSubscription.deleteMany({
-      where: { organizacaoId: orgId, endpoint },
+      where: { organizacaoId: user.organizacaoId, endpoint },
     });
 
-    logAction("push_unsubscribed", undefined, ip, { endpoint: endpoint.slice(0, 60) }, orgId);
+    logAction("push_unsubscribed", user.id, ip, { endpoint: endpoint.slice(0, 60) }, user.organizacaoId);
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     logError("push/subscribe DELETE", err);

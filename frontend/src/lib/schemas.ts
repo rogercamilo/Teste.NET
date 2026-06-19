@@ -456,6 +456,7 @@ export const PushSendSchema = z.object({
   titulo: nonEmptyString(100),
   corpo: nonEmptyString(300),
   url: z.string().url("URL inválida").max(2048).optional(),
+  grupoFormacaoId: z.string().optional(),
 });
 
 // ── Helpers de resposta ───────────────────────────────────────────────────────

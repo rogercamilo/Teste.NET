@@ -50,17 +50,10 @@ async function sendToOne(sub: StoredSubscription, payload: PushPayload): Promise
   }
 }
 
-export async function sendPushToOrg(
-  organizacaoId: string,
+async function dispatchToSubs(
+  subs: StoredSubscription[],
   payload: PushPayload
 ): Promise<{ sent: number; removed: number; failed: number }> {
-  ensureVapid();
-
-  const subs = await prisma.pushSubscription.findMany({
-    where: { organizacaoId },
-    select: { id: true, endpoint: true, p256dh: true, auth: true },
-  });
-
   const fullPayload: PushPayload = {
     icon: "/push-icon-192.png",
     badge: "/push-badge-96.png",
@@ -90,7 +83,38 @@ export async function sendPushToOrg(
   };
 }
 
+export async function sendPushToOrg(
+  organizacaoId: string,
+  payload: PushPayload
+): Promise<{ sent: number; removed: number; failed: number }> {
+  ensureVapid();
+
+  const subs = await prisma.pushSubscription.findMany({
+    where: { organizacaoId },
+    select: { id: true, endpoint: true, p256dh: true, auth: true },
+  });
+
+  return dispatchToSubs(subs, payload);
+}
+
+export async function sendPushToGroup(
+  organizacaoId: string,
+  grupoFormacaoId: string,
+  payload: PushPayload
+): Promise<{ sent: number; removed: number; failed: number }> {
+  ensureVapid();
+
+  const subs = await prisma.pushSubscription.findMany({
+    where: {
+      organizacaoId,
+      usuario: { grupoFormacaoId },
+    },
+    select: { id: true, endpoint: true, p256dh: true, auth: true },
+  });
+
+  return dispatchToSubs(subs, payload);
+}
+
 export async function countSubscriptions(organizacaoId: string): Promise<number> {
   return prisma.pushSubscription.count({ where: { organizacaoId } });
 }
-
