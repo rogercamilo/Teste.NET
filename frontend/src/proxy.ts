@@ -82,6 +82,8 @@ export default auth(function proxy(req) {
     "/api/auth/providers",
     "/api/auth/error",
     "/api/auth/recuperar-senha",
+    "/ativar-notificacoes",
+    "/api/push/subscribe-formando",
   ];
   // Only /api/convites/<token> (exactly one non-empty segment) is public.
   // /api/convites and /api/convites/ (admin list/create/delete) remain auth-protected.

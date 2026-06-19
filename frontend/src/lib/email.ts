@@ -385,6 +385,51 @@ export async function sendPlanLimitReachedEmail({
   );
 }
 
+export async function sendPushInviteEmail({
+  organizacaoId,
+  nome,
+  email,
+  grupoNome,
+  ativarUrl,
+}: {
+  organizacaoId: string;
+  nome: string;
+  email: string;
+  grupoNome: string | null;
+  ativarUrl: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const safeName = escapeHtml(nome);
+  const safeGrupo = grupoNome ? escapeHtml(grupoNome) : null;
+  const safeUrl = ativarUrl.startsWith("http") ? escapeHtml(ativarUrl) : "#";
+  const grupoLine = safeGrupo
+    ? `<p>Grupo de formação: <strong>${safeGrupo}</strong></p>`
+    : "";
+  const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #1a1a1a;">Ative as notificações, ${safeName}!</h2>
+      <p>Você está cadastrado(a) na plataforma de formação comunitária <strong>Formattio</strong>.</p>
+      ${grupoLine}
+      <p>Clique no botão abaixo para ativar as notificações no seu celular ou computador e receber avisos sobre encontros, datas e comunicados — mesmo com o navegador fechado.</p>
+      <p style="text-align: center; margin: 32px 0;">
+        <a href="${safeUrl}"
+           style="background: #b25433; color: white; text-decoration: none;
+                  padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 15px;">
+          Ativar notificações
+        </a>
+      </p>
+      <p style="color: #666; font-size: 13px;">
+        Se não conseguir clicar no botão, copie e cole este link no seu navegador:<br/>
+        <a href="${safeUrl}">${safeUrl}</a>
+      </p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+      <p style="color: #999; font-size: 12px;">
+        Sem spam. Apenas avisos da sua comunidade. Você pode cancelar a qualquer momento acessando o mesmo link.
+      </p>
+    </div>
+  `;
+  return send(organizacaoId, email, "Ative as notificações da sua comunidade — Formattio", html);
+}
+
 export async function sendLimitAlertEmail({
   organizacaoId,
   email,

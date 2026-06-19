@@ -93,6 +93,7 @@ export type AuditAction =
   | "push_subscribed"
   | "push_unsubscribed"
   | "push_notification_sent"
+  | "push_invite_sent"
   | "relatorio_created"
   | "relatorio_updated"
   | "relatorio_finalizado"

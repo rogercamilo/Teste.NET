@@ -105,10 +105,7 @@ export async function sendPushToGroup(
   ensureVapid();
 
   const subs = await prisma.pushSubscription.findMany({
-    where: {
-      organizacaoId,
-      usuario: { grupoFormacaoId },
-    },
+    where: { organizacaoId, grupoFormacaoId },
     select: { id: true, endpoint: true, p256dh: true, auth: true },
   });
 

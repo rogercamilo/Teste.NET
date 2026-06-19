@@ -10,8 +10,9 @@ import type { Formando, ProgressoEtapa } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
-
+import { sendPushInviteEmail } from "@/lib/email";
 import { toFormando } from "@/lib/converters";
+import crypto from "crypto";
 
 // Safety cap for non-paginated requests — prevents runaway queries on large datasets.
 // Clients using the data-store always load all records; this protects server memory.
@@ -124,6 +125,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Sem permissão para criar formandos em outra morada" }, { status: 403 });
     }
 
+    const tokenAssinatura = crypto.randomBytes(32).toString("hex");
+
     const row = await prisma.formando.create({
       data: {
         organizacaoId: user.organizacaoId,
@@ -140,6 +143,7 @@ export async function POST(request: Request) {
         foto: body.foto ?? null,
         turmaId: body.turmaId ?? null,
         grupoFormacaoId: body.grupoFormacaoId ?? null,
+        tokenAssinatura,
         totalFormacoes: body.totalFormacoes ?? 0,
         formacoesRealizadas: body.formacoesRealizadas ?? 0,
         progressoEtapas: {
@@ -153,9 +157,21 @@ export async function POST(request: Request) {
           })),
         },
       },
-      include: { progressoEtapas: true },
+      include: { progressoEtapas: true, grupoFormacao: { select: { nome: true } } },
     });
     logAction("formando_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
+
+    // Envia e-mail de ativação de notificações (fire-and-forget) se formando tem e-mail
+    if (body.email) {
+      const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+      sendPushInviteEmail({
+        organizacaoId: user.organizacaoId,
+        nome: row.nome,
+        email: row.email,
+        grupoNome: row.grupoFormacao?.nome ?? null,
+        ativarUrl: `${appUrl}/ativar-notificacoes/${tokenAssinatura}`,
+      }).catch(() => {});
+    }
 
     // Notifica FC do grupo (apenas se não foi o próprio FC que adicionou)
     if (row.grupoFormacaoId && user.role !== "formador_comunitario") {
@@ -172,7 +188,8 @@ export async function POST(request: Request) {
       }).catch(() => {});
     }
 
-    return NextResponse.json(toFormando(row), { status: 201 });
+    const { grupoFormacao: _gf, ...rowData } = row;
+    return NextResponse.json(toFormando(rowData), { status: 201 });
   } catch (err) {
     logError("formandos POST", err);
     return NextResponse.json({ error: "Falha ao criar formando" }, { status: 500 });

@@ -323,6 +323,7 @@ model Formando {
   numFilhos             Int?
   turmaId               String?
   grupoFormacaoId       String?   @map("morada_id")
+  tokenAssinatura       String?   @unique
   totalFormacoes        Int       @default(0)
   formacoesRealizadas Int       @default(0)
   deletedAt           DateTime?
@@ -339,6 +340,7 @@ model Formando {
   relatorios             RelatorioEtapa[]
   processosEclesiasticos ProcessoEclesiastico[]
   registrosPromessa      RegistroPromessa[]
+  pushSubscriptions      PushSubscription[]
 
   @@index([organizacaoId])
   @@index([grupoFormacaoId])
@@ -862,19 +864,24 @@ model ProcessedWebhookEvent {
 // ==========================================================
 
 model PushSubscription {
-  id            String   @id @default(cuid())
-  organizacaoId String
-  usuarioId     String?
-  endpoint      String
-  p256dh        String   @db.Text
-  auth          String   @db.Text
-  criadoEm      DateTime @default(now())
+  id              String   @id @default(cuid())
+  organizacaoId   String
+  usuarioId       String?
+  formandoId      String?
+  grupoFormacaoId String?
+  endpoint        String
+  p256dh          String   @db.Text
+  auth            String   @db.Text
+  criadoEm        DateTime @default(now())
 
   organizacao   Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   usuario       Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  formando      Formando?   @relation(fields: [formandoId], references: [id], onDelete: SetNull)
 
   @@unique([organizacaoId, endpoint])
   @@index([usuarioId])
+  @@index([formandoId])
+  @@index([grupoFormacaoId])
 }
 
 // ==========================================================

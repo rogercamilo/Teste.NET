@@ -76,6 +76,7 @@ import {
   ArrowRight,
   Award,
   BarChart3,
+  Bell,
   BookOpen,
   Calendar,
   CheckCircle2,
@@ -754,6 +755,28 @@ export default function FormandoDetailClient({
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
+            {formando.email && (
+              <Button
+                variant="outline"
+                size="sm"
+                title="Reenviar convite de notificações por e-mail"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/formandos/${formando.id}/push-invite`, { method: "POST" });
+                    if (res.ok) toast.success("Convite enviado para " + formando.email);
+                    else {
+                      const { error } = await res.json();
+                      toast.error(error ?? "Falha ao enviar convite.");
+                    }
+                  } catch {
+                    toast.error("Falha ao enviar convite.");
+                  }
+                }}
+              >
+                <Bell className="h-4 w-4 mr-1.5" />
+                Notificações
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

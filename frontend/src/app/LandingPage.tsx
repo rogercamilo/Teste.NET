@@ -1053,7 +1053,6 @@ export default function LandingPage({ isNewOrg }: { isNewOrg: boolean }) {
       <HowItWorks />
       <Pricing />
       <FAQ />
-      <PushSubscribeSection />
       <FinalCTA isNewOrg={isNewOrg} />
       <MarketingFooter />
     </div>
