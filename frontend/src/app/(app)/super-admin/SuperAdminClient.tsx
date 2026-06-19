@@ -55,6 +55,8 @@ interface Metricas {
   totalUsuarios: number;
   planoBreakdown: Record<string, number>;
   mrrEstimado: number;
+  mrrReal: number | null;
+  deletionsPendentes: number;
   crescimento30d: number;
   crescimentoAnterior30d: number;
   crescimentoPercent: number;
@@ -154,6 +156,7 @@ export default function SuperAdminClient() {
   const [cortesiaMotivo, setCortesiaMotivo] = useState("");
   const [cortesiaExpiry, setCortesiaExpiry] = useState("");
   const [trialDays, setTrialDays] = useState("30");
+  const [orgFilter, setOrgFilter] = useState<"all" | "trials" | "fantasmas">("all");
 
   const closeDialog = () => {
     setDialogAcao(null);
@@ -200,6 +203,7 @@ export default function SuperAdminClient() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPageOrgs(1); setPageCortesias(1); }, [orgs]);
+  useEffect(() => { setPageOrgs(1); }, [orgFilter]);
   useEffect(() => { setPageLgpd(1); }, [lgpd]);
 
   useEffect(() => {
@@ -314,13 +318,53 @@ export default function SuperAdminClient() {
     );
   }
 
-  const mrrFmt = metricas
-    ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(metricas.mrrEstimado)
-    : "—";
+  const currFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  const mrrFmt = metricas ? currFmt.format(metricas.mrrEstimado) : "—";
+  const mrrRealFmt = metricas?.mrrReal != null ? currFmt.format(metricas.mrrReal) : null;
 
-  const filteredOrgs = search.trim()
-    ? orgs.filter((o) => o.nome.toLowerCase().includes(search.trim().toLowerCase()))
-    : orgs;
+  const now = Date.now();
+  const trialsExpirando = orgs.filter((o) => {
+    if (o.status !== "TRIAL" || !o.trialExpiresAt) return false;
+    return (new Date(o.trialExpiresAt).getTime() - now) / 86_400_000 <= 7;
+  });
+  const orgsFantasmas = orgs.filter((o) => {
+    if (o.status !== "ATIVO") return false;
+    if (!o.lastActivityAt) return true;
+    return Math.floor((now - new Date(o.lastActivityAt).getTime()) / 86_400_000) > 30;
+  });
+  const filteredOrgs = (() => {
+    let base: OrgRow[];
+    if (orgFilter === "trials") {
+      base = orgs
+        .filter((o) => {
+          if (o.status !== "TRIAL") return false;
+          if (!o.trialExpiresAt) return true;
+          return (new Date(o.trialExpiresAt).getTime() - now) / 86_400_000 <= 7;
+        })
+        .sort((a, b) => {
+          if (!a.trialExpiresAt) return 1;
+          if (!b.trialExpiresAt) return -1;
+          return new Date(a.trialExpiresAt).getTime() - new Date(b.trialExpiresAt).getTime();
+        });
+    } else if (orgFilter === "fantasmas") {
+      base = orgs
+        .filter((o) => {
+          if (o.status !== "ATIVO") return false;
+          if (!o.lastActivityAt) return true;
+          return Math.floor((now - new Date(o.lastActivityAt).getTime()) / 86_400_000) > 30;
+        })
+        .sort((a, b) => {
+          if (!a.lastActivityAt) return -1;
+          if (!b.lastActivityAt) return 1;
+          return new Date(a.lastActivityAt).getTime() - new Date(b.lastActivityAt).getTime();
+        });
+    } else {
+      base = orgs;
+    }
+    return search.trim()
+      ? base.filter((o) => o.nome.toLowerCase().includes(search.trim().toLowerCase()))
+      : base;
+  })();
   const cortesiasOrgs = orgs.filter((o) => o.cortesia);
 
   return (
@@ -336,6 +380,39 @@ export default function SuperAdminClient() {
         </Button>
       </div>
 
+      {/* Alert Bar */}
+      {(trialsExpirando.length > 0 || orgsFantasmas.length > 0 || (metricas?.deletionsPendentes ?? 0) > 0) && (
+        <div className="flex flex-wrap gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/20 dark:border-amber-900">
+          {trialsExpirando.length > 0 && (
+            <button
+              onClick={() => { setTab("organizacoes"); setOrgFilter("trials"); }}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 font-medium transition-colors"
+            >
+              <Clock className="h-3.5 w-3.5" />
+              {trialsExpirando.length} trial{trialsExpirando.length > 1 ? "s" : ""} expirando em ≤7 dias
+            </button>
+          )}
+          {orgsFantasmas.length > 0 && (
+            <button
+              onClick={() => { setTab("organizacoes"); setOrgFilter("fantasmas"); }}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-red-100 text-red-800 border border-red-300 hover:bg-red-200 font-medium transition-colors"
+            >
+              <CircleAlert className="h-3.5 w-3.5" />
+              {orgsFantasmas.length} org{orgsFantasmas.length > 1 ? "s" : ""} sem atividade &gt;30 dias
+            </button>
+          )}
+          {(metricas?.deletionsPendentes ?? 0) > 0 && (
+            <button
+              onClick={() => setTab("lgpd")}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 font-medium transition-colors"
+            >
+              <Scale className="h-3.5 w-3.5" />
+              {metricas!.deletionsPendentes} exclus{metricas!.deletionsPendentes > 1 ? "ões" : "ão"} LGPD pendente{metricas!.deletionsPendentes > 1 ? "s" : ""}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Tab Bar */}
       <div className="flex gap-0 border-b overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TABS.map(({ id, label, Icon }) => (
@@ -350,9 +427,9 @@ export default function SuperAdminClient() {
           >
             <Icon className="h-4 w-4" />
             {label}
-            {id === "lgpd" && lgpd && lgpd.deletionStats.pendentes > 0 && (
+            {id === "lgpd" && (metricas?.deletionsPendentes ?? lgpd?.deletionStats.pendentes ?? 0) > 0 && (
               <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {lgpd.deletionStats.pendentes}
+                {metricas?.deletionsPendentes ?? lgpd?.deletionStats.pendentes}
               </span>
             )}
           </button>
@@ -365,10 +442,28 @@ export default function SuperAdminClient() {
           <CardHeader className="pb-2 pt-4 px-4 gap-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">
-                Organizações ({filteredOrgs.length}{search.trim() ? ` de ${orgs.length}` : ""})
+                Organizações ({filteredOrgs.length}{search.trim() || orgFilter !== "all" ? ` de ${orgs.length}` : ""})
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </div>
+            {orgFilter !== "all" && (
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium border ${
+                  orgFilter === "trials"
+                    ? "bg-amber-100 text-amber-800 border-amber-300"
+                    : "bg-red-100 text-red-800 border-red-300"
+                }`}>
+                  {orgFilter === "trials" ? <Clock className="h-3 w-3" /> : <CircleAlert className="h-3 w-3" />}
+                  {orgFilter === "trials" ? "Trials expirando ≤7 dias" : "Sem atividade >30 dias"}
+                </span>
+                <button
+                  onClick={() => setOrgFilter("all")}
+                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                >
+                  Limpar filtro
+                </button>
+              </div>
+            )}
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input
@@ -552,12 +647,27 @@ export default function SuperAdminClient() {
             <Card>
               <CardHeader className="pb-1 pt-4 px-4">
                 <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                  <DollarSign className="h-3.5 w-3.5" />MRR Estimado
+                  <DollarSign className="h-3.5 w-3.5" />MRR
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <div className="text-3xl font-bold">{mrrFmt}</div>
-                <div className="text-xs text-muted-foreground mt-1">receita mensal recorrente estimada</div>
+                {mrrRealFmt !== null ? (
+                  <>
+                    <div className="text-3xl font-bold">{mrrRealFmt}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      receita real via Stripe
+                      <span className="block text-slate-400 mt-0.5">estimado: {mrrFmt}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold">{mrrFmt}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      receita estimada
+                      <span className="block text-slate-400 mt-0.5">Stripe não configurado</span>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -642,7 +752,14 @@ export default function SuperAdminClient() {
                     <TableCell>Total</TableCell>
                     <TableCell className="text-right">{metricas.totalOrgs}</TableCell>
                     <TableCell />
-                    <TableCell className="text-right">{mrrFmt}</TableCell>
+                    <TableCell className="text-right">
+                      {mrrRealFmt !== null ? (
+                        <span className="flex flex-col items-end gap-0.5">
+                          <span>{mrrRealFmt} <span className="font-normal text-xs text-emerald-600">real</span></span>
+                          <span className="text-xs font-normal text-muted-foreground">{mrrFmt} estimado</span>
+                        </span>
+                      ) : mrrFmt}
+                    </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>

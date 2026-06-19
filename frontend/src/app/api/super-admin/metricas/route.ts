@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { stripe } from "@/lib/stripe";
 import { logError } from "@/lib/audit-log";
 
 // Preços de referência para MRR estimado (R$/mês por organização)
@@ -37,6 +38,7 @@ export async function GET() {
       crescimento30d,
       crescimentoAnterior30d,
       ultimasOrgs,
+      deletionsPendentes,
     ] = await Promise.all([
       prisma.organizacao.count(),
       prisma.organizacao.count({ where: { status: "ATIVO" } }),
@@ -55,7 +57,33 @@ export async function GET() {
         take: 8,
         select: { id: true, nome: true, status: true, planoAssinatura: true, cortesia: true, criadoEm: true },
       }),
+      prisma.deletionRequest.count({ where: { status: "pendente" } }),
     ]);
+
+    // MRR real via Stripe (graceful fallback se Stripe não estiver configurado)
+    let mrrReal: number | null = null;
+    if (stripe) {
+      try {
+        const subs = await stripe.subscriptions.list({ status: "active", limit: 100 });
+        mrrReal = subs.data.reduce((total, sub) => {
+          return total + sub.items.data.reduce((s, item) => {
+            const amount = item.price.unit_amount ?? 0;
+            const qty = item.quantity ?? 1;
+            const interval = item.price.recurring?.interval;
+            const intervalCount = item.price.recurring?.interval_count ?? 1;
+            const monthlyAmount =
+              interval === "year"
+                ? (amount * qty) / (12 * intervalCount)
+                : interval === "week"
+                  ? (amount * qty * 4) / intervalCount
+                  : (amount * qty) / intervalCount;
+            return s + monthlyAmount;
+          }, 0);
+        }, 0) / 100;
+      } catch {
+        // Stripe configurado mas chamada falhou — manter null
+      }
+    }
 
     const planoBreakdown = orgsPorPlano.reduce(
       (acc, g) => ({ ...acc, [g.planoAssinatura]: g._count.id }),
@@ -83,6 +111,8 @@ export async function GET() {
       totalUsuarios,
       planoBreakdown,
       mrrEstimado,
+      mrrReal,
+      deletionsPendentes,
       crescimento30d,
       crescimentoAnterior30d,
       crescimentoPercent,
