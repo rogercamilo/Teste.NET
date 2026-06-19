@@ -144,4 +144,32 @@ describe("limiters", () => {
     const result = await limiters.smtpTest(uid);
     expect(result.allowed).toBe(false);
   });
+
+  it("mutation blocks after 60 attempts", async () => {
+    const uid = k("mutation-user");
+    for (let i = 0; i < 60; i++) await limiters.mutation(uid);
+    const result = await limiters.mutation(uid);
+    expect(result.allowed).toBe(false);
+  });
+
+  it("export blocks after 5 attempts", async () => {
+    const uid = k("export-user");
+    for (let i = 0; i < 5; i++) await limiters.export(uid);
+    const result = await limiters.export(uid);
+    expect(result.allowed).toBe(false);
+  });
+
+  it("conviteAccept blocks after 10 attempts", async () => {
+    const ip = k("convite-ip");
+    for (let i = 0; i < 10; i++) await limiters.conviteAccept(ip);
+    const result = await limiters.conviteAccept(ip);
+    expect(result.allowed).toBe(false);
+  });
+
+  it("passwordChange blocks after 3 attempts", async () => {
+    const uid = k("pwd-user");
+    for (let i = 0; i < 3; i++) await limiters.passwordChange(uid);
+    const result = await limiters.passwordChange(uid);
+    expect(result.allowed).toBe(false);
+  });
 });
