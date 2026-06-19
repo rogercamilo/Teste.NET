@@ -21,9 +21,11 @@ const ORG_SELECT = {
 } as const;
 
 async function attachActivity<T extends { id: string }>(orgs: T[]) {
-  if (orgs.length === 0) return orgs as (T & { lastActivityAt: string | null; engajamento7d: number })[];
+  if (orgs.length === 0) {
+    return orgs as (T & { lastActivityAt: string | null; engajamento7d: number; storageBytes: number })[];
+  }
 
-  const [activityRows, engajamentoRows] = await Promise.all([
+  const [activityRows, engajamentoRows, storageRows] = await Promise.all([
     prisma.$queryRaw<{ organizacaoId: string; lastActivityAt: Date }[]>`
       SELECT "organizacaoId", MAX("criadoEm") AS "lastActivityAt"
       FROM "AuditLog"
@@ -37,15 +39,23 @@ async function attachActivity<T extends { id: string }>(orgs: T[]) {
         AND "criadoEm" >= NOW() - INTERVAL '7 days'
       GROUP BY "organizacaoId"
     `,
+    prisma.$queryRaw<{ organizacaoId: string; bytes: bigint }[]>`
+      SELECT "organizacaoId", COALESCE(SUM("tamanho"), 0) AS bytes
+      FROM "Arquivo"
+      WHERE "organizacaoId" IS NOT NULL
+      GROUP BY "organizacaoId"
+    `,
   ]);
 
   const actMap = new Map(activityRows.map((r) => [r.organizacaoId, r.lastActivityAt.toISOString()]));
   const engMap = new Map(engajamentoRows.map((r) => [r.organizacaoId, Number(r.count)]));
+  const stgMap = new Map(storageRows.map((r) => [r.organizacaoId, Number(r.bytes)]));
 
   return orgs.map((o) => ({
     ...o,
     lastActivityAt: actMap.get(o.id) ?? null,
     engajamento7d: engMap.get(o.id) ?? 0,
+    storageBytes: stgMap.get(o.id) ?? 0,
   }));
 }
 

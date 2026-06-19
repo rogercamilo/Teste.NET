@@ -43,6 +43,7 @@ interface OrgRow {
   criadoEm: string;
   lastActivityAt: string | null;
   engajamento7d: number;
+  storageBytes: number;
   _count: { gruposFormacao: number; formandos: number; usuarios: number };
 }
 
@@ -118,6 +119,23 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
 ];
 
 const PAGE_SIZE = 10;
+
+// Storage limits por plano (bytes) — espelho de plan-limits.ts
+const STORAGE_LIMITS: Record<string, number> = {
+  GRATUITO:     0,
+  BASICO:       2  * 1024 * 1024 * 1024,
+  INTERMEDIARIO:10 * 1024 * 1024 * 1024,
+  AVANCADO:     30 * 1024 * 1024 * 1024,
+  PERSONALIZADO:0, // ilimitado — tratado separadamente
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
 
 function engajamentoBadge(count: number) {
   if (count === 0) return null;
@@ -406,6 +424,13 @@ export default function SuperAdminClient() {
   }
   const cortesiasOrgs = orgs.filter((o) => o.cortesia);
 
+  const orgsStorageCritico = orgs.filter((o) => {
+    if (o.planoAssinatura === "PERSONALIZADO" || o.planoAssinatura === "GRATUITO") return false;
+    const limit = STORAGE_LIMITS[o.planoAssinatura] ?? 0;
+    if (!limit) return false;
+    return o.storageBytes / limit >= 0.8;
+  });
+
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
       {/* Header */}
@@ -420,7 +445,7 @@ export default function SuperAdminClient() {
       </div>
 
       {/* Alert Bar */}
-      {(trialsExpirando.length > 0 || orgsFantasmas.length > 0 || (metricas?.deletionsPendentes ?? 0) > 0) && (
+      {(trialsExpirando.length > 0 || orgsFantasmas.length > 0 || (metricas?.deletionsPendentes ?? 0) > 0 || orgsStorageCritico.length > 0) && (
         <div className="flex flex-wrap gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/20 dark:border-amber-900">
           {trialsExpirando.length > 0 && (
             <button
@@ -447,6 +472,15 @@ export default function SuperAdminClient() {
             >
               <Scale className="h-3.5 w-3.5" />
               {metricas!.deletionsPendentes} exclus{metricas!.deletionsPendentes > 1 ? "ões" : "ão"} LGPD pendente{metricas!.deletionsPendentes > 1 ? "s" : ""}
+            </button>
+          )}
+          {orgsStorageCritico.length > 0 && (
+            <button
+              onClick={() => { setTab("organizacoes"); setFilterStatus("ATIVO"); }}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-red-100 text-red-800 border border-red-300 hover:bg-red-200 font-medium transition-colors"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {orgsStorageCritico.length} org{orgsStorageCritico.length > 1 ? "s" : ""} com storage &gt;80%
             </button>
           )}
         </div>
@@ -632,6 +666,20 @@ export default function SuperAdminClient() {
                               <CircleAlert className="h-3 w-3" />Onboarding incompleto
                             </span>
                           )}
+                          {(() => {
+                            if (org.planoAssinatura === "PERSONALIZADO" || org.planoAssinatura === "GRATUITO") return null;
+                            const limit = STORAGE_LIMITS[org.planoAssinatura] ?? 0;
+                            if (!limit) return null;
+                            const pct = Math.round((org.storageBytes / limit) * 100);
+                            if (pct < 60) return null;
+                            const isHigh = pct >= 80;
+                            return (
+                              <span className={`text-xs flex items-center gap-0.5 ${isHigh ? "text-red-600" : "text-amber-600"}`}>
+                                <AlertTriangle className="h-3 w-3" />
+                                Storage {pct}% ({formatBytes(org.storageBytes)} / {formatBytes(limit)})
+                              </span>
+                            );
+                          })()}
                           {org.cortesia && org.cortesiaMotivo && (
                             <span className="text-xs text-muted-foreground truncate max-w-48">{org.cortesiaMotivo}</span>
                           )}
