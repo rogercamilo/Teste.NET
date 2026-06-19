@@ -112,19 +112,33 @@ function MeuDispositivoCard() {
 
 // ── Painel de envio manual ────────────────────────────────────────────────────
 
-function EnviarNotificacaoCard({ onSent }: { onSent: () => void }) {
+interface EnviarCardProps {
+  onSent: () => void;
+  isGestao: boolean;
+  userGrupoFormacaoId?: string | null;
+}
+
+function EnviarNotificacaoCard({ onSent, isGestao, userGrupoFormacaoId }: EnviarCardProps) {
+  const isFC = !isGestao;
   const [titulo, setTitulo] = useState("");
   const [corpo, setCorpo] = useState("");
   const [sending, setSending] = useState(false);
-  const [destino, setDestino] = useState<"todos" | "grupo">("todos");
+  // FC nunca pode enviar para todos — destino fixo em "grupo"
+  const [destino, setDestino] = useState<"todos" | "grupo">(isFC ? "grupo" : "todos");
   const [grupos, setGrupos] = useState<GrupoOption[]>([]);
-  const [grupoId, setGrupoId] = useState<string>("");
+  // FC começa com o próprio grupo pré-selecionado
+  const [grupoId, setGrupoId] = useState<string>(isFC ? (userGrupoFormacaoId ?? "") : "");
 
   useEffect(() => {
     fetch("/api/grupos-formacao")
       .then((r) => r.ok ? r.json() : [])
-      .then((data: { id: string; nome: string }[]) => setGrupos(data))
+      .then((data: { id: string; nome: string }[]) => {
+        setGrupos(data);
+        // Para gestão, se só há um grupo, pré-seleciona ao trocar para "Por grupo"
+        if (!isFC && data.length === 1 && !grupoId) setGrupoId(data[0].id);
+      })
       .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSend() {
@@ -177,55 +191,66 @@ function EnviarNotificacaoCard({ onSent }: { onSent: () => void }) {
           Enviar notificação
         </CardTitle>
         <CardDescription className="text-xs">
-          Escolha o público-alvo e a mensagem será entregue imediatamente.
+          {isFC
+            ? "Envie um alerta para os membros do seu grupo de formação."
+            : "Escolha o público-alvo e a mensagem será entregue imediatamente."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Destinatário */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Destinatário</Label>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={destino === "todos" ? "default" : "outline"}
-              size="sm"
-              className="flex-1 text-xs h-8"
-              onClick={() => setDestino("todos")}
-            >
-              <Users className="h-3.5 w-3.5 mr-1.5" />
-              Todos da organização
-            </Button>
-            <Button
-              type="button"
-              variant={destino === "grupo" ? "default" : "outline"}
-              size="sm"
-              className="flex-1 text-xs h-8"
-              onClick={() => setDestino("grupo")}
-            >
-              <Bell className="h-3.5 w-3.5 mr-1.5" />
-              Por grupo
-            </Button>
+        {/* Toggle destinatário — apenas para gestão */}
+        {isGestao && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Destinatário</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={destino === "todos" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 text-xs h-8"
+                onClick={() => setDestino("todos")}
+              >
+                <Users className="h-3.5 w-3.5 mr-1.5" />
+                Todos da organização
+              </Button>
+              <Button
+                type="button"
+                variant={destino === "grupo" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 text-xs h-8"
+                onClick={() => setDestino("grupo")}
+              >
+                <Bell className="h-3.5 w-3.5 mr-1.5" />
+                Por grupo
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Seletor de grupo */}
+        {/* Seletor de grupo — gestão vê dropdown; FC vê o próprio grupo como label */}
         {destino === "grupo" && (
           <div className="space-y-1.5">
             <Label className="text-xs">Grupo de formação</Label>
-            <Select value={grupoId} onValueChange={(v) => setGrupoId(v ?? "")}>
-              <SelectTrigger className="text-sm h-8">
-                <SelectValue placeholder="Selecione um grupo…">
-                  {nomeGrupo || "Selecione um grupo…"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {grupos.map((g) => (
-                  <SelectItem key={g.id} value={g.id} className="text-sm">
-                    {g.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isFC ? (
+              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-foreground">
+                <Bell className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                {nomeGrupo || "Seu grupo"}
+              </div>
+            ) : (
+              <Select value={grupoId} onValueChange={(v) => setGrupoId(v ?? "")}>
+                <SelectTrigger className="text-sm h-8">
+                  <SelectValue placeholder="Selecione um grupo…">
+                    {nomeGrupo || "Selecione um grupo…"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {grupos.map((g) => (
+                    <SelectItem key={g.id} value={g.id} className="text-sm">
+                      {g.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         )}
 
@@ -266,7 +291,7 @@ function EnviarNotificacaoCard({ onSent }: { onSent: () => void }) {
           {sending
             ? "Enviando…"
             : destino === "grupo"
-            ? `Enviar para o grupo`
+            ? "Enviar para o grupo"
             : "Enviar para todos os dispositivos"}
         </Button>
       </CardContent>
@@ -401,8 +426,17 @@ function VisaoGeralCard({ count, loading }: { count: number | null; loading: boo
 
 // ── Tab principal ─────────────────────────────────────────────────────────────
 
-export default function NotificacoesTab({ isGestao }: { isGestao?: boolean }) {
+interface NotificacoesTabProps {
+  isGestao?: boolean;
+  userRole?: string;
+  userGrupoFormacaoId?: string | null;
+}
+
+export default function NotificacoesTab({ isGestao = false, userRole, userGrupoFormacaoId }: NotificacoesTabProps) {
   const { count, loading, refresh } = useSubscriptionCount();
+  const isFC = userRole === "formador_comunitario";
+  // FC com grupo pode enviar push para o próprio grupo
+  const canSendPush = isGestao || (isFC && !!userGrupoFormacaoId);
 
   return (
     <div className="space-y-4">
@@ -411,8 +445,14 @@ export default function NotificacoesTab({ isGestao }: { isGestao?: boolean }) {
         <>
           <VisaoGeralCard count={count} loading={loading} />
           <InstrucoesCard />
-          <EnviarNotificacaoCard onSent={refresh} />
         </>
+      )}
+      {canSendPush && (
+        <EnviarNotificacaoCard
+          onSent={refresh}
+          isGestao={isGestao}
+          userGrupoFormacaoId={userGrupoFormacaoId}
+        />
       )}
     </div>
   );

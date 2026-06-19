@@ -108,6 +108,7 @@ interface ConfiguracoesClientProps {
   userName: string;
   userEmail: string;
   userRole: string;
+  userGrupoFormacaoId?: string | null;
   initialGruposFormacao: GrupoFormacao[];
   initialBilling: BillingInfo | null;
   initialUsage: UsageInfo | null;
@@ -127,6 +128,7 @@ export default function ConfiguracoesClient({
   userName,
   userEmail,
   userRole,
+  userGrupoFormacaoId,
   initialGruposFormacao,
   initialBilling,
   initialUsage,
@@ -269,7 +271,7 @@ export default function ConfiguracoesClient({
         </TabsContent>
 
         <TabsContent value="notificacoes" className="mt-4">
-          <NotificacoesTab isGestao={isGestao} />
+          <NotificacoesTab isGestao={isGestao} userRole={userRole} userGrupoFormacaoId={userGrupoFormacaoId} />
         </TabsContent>
 
         <TabsContent value="privacidade" className="mt-4">

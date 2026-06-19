@@ -13,7 +13,9 @@ export async function POST(request: Request) {
   if (!user?.id || !user?.organizacaoId) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
-  if (!isGestao(user.role)) {
+
+  const isFC = user.role === "formador_comunitario";
+  if (!isGestao(user.role) && !isFC) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
@@ -26,6 +28,22 @@ export async function POST(request: Request) {
     const parsed = parseBody(PushSendSchema, await request.json());
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { titulo, corpo, url, grupoFormacaoId } = parsed.data;
+
+    if (isFC) {
+      // Formador comunitário só pode enviar para o próprio grupo
+      if (!grupoFormacaoId) {
+        return NextResponse.json(
+          { error: "Formador comunitário deve especificar o grupo de formação." },
+          { status: 403 }
+        );
+      }
+      if (grupoFormacaoId !== user.grupoFormacaoId) {
+        return NextResponse.json(
+          { error: "Sem permissão para enviar para este grupo." },
+          { status: 403 }
+        );
+      }
+    }
 
     const result = grupoFormacaoId
       ? await sendPushToGroup(user.organizacaoId, grupoFormacaoId, { titulo, corpo, url })

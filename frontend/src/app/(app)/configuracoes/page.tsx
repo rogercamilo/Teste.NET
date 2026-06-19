@@ -32,6 +32,7 @@ export default async function ConfiguracoesPage() {
       userName={session?.user?.name ?? "Usuário"}
       userEmail={session?.user?.email ?? ""}
       userRole={user.role ?? "formador_comunitario"}
+      userGrupoFormacaoId={user.grupoFormacaoId ?? null}
       initialGruposFormacao={gruposFormacao.map(toGrupoFormacao)}
       initialBilling={billingInfo}
       initialUsage={usageInfo}
