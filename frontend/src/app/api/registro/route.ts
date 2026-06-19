@@ -47,12 +47,8 @@ export async function POST(request: Request) {
       });
       if (existingUser) throw new Error("EMAIL_EXISTS");
 
-      // Em Phase 2 (single-tenant), força o ID do org para DEFAULT_ORG_ID
-      // para garantir que o tenant seja sempre o mesmo.
-      const defaultOrgId = process.env.DEFAULT_ORG_ID;
       const newOrg = await tx.organizacao.create({
         data: {
-          ...(defaultOrgId ? { id: defaultOrgId } : {}),
           nome: orgNome.trim(),
           status: "TRIAL",
           planoAssinatura: "GRATUITO",
@@ -111,7 +107,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Este e-mail já possui uma conta. Tente fazer login ou use outro e-mail." }, { status: 409 });
     }
     if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
-      return NextResponse.json({ error: "Esta plataforma já possui um cadastro ativo. Entre em contato com o administrador." }, { status: 409 });
+      return NextResponse.json({ error: "Este e-mail já possui uma conta. Tente fazer login ou use outro e-mail." }, { status: 409 });
     }
     logError("registro", err);
     return NextResponse.json({ error: "Não foi possível criar sua conta agora. Tente novamente em alguns instantes." }, { status: 500 });
