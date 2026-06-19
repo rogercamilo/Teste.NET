@@ -81,6 +81,7 @@ export type AuditAction =
   | "organizacao_deleted"
   | "organizacao_cortesia_concedida"
   | "organizacao_cortesia_revogada"
+  | "organizacao_trial_extended"
   | "dados_exportados"
   | "organizacao_exportada"
   | "mfa_enabled"

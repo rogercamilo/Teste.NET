@@ -31,10 +31,11 @@ export async function PATCH(request: Request, { params }: Params) {
       cortesiaMotivo?: string;
       justificativa?: string;
       usuarioId?: string;
+      trialDays?: number;
     };
     const { acao, plano } = body;
 
-    const validAcoes = ["suspender", "reativar", "cancelar", "cortesia", "revogar-cortesia", "reset-credenciais"] as const;
+    const validAcoes = ["suspender", "reativar", "cancelar", "cortesia", "revogar-cortesia", "reset-credenciais", "estender-trial"] as const;
     const validPlanos: PlanoAssinatura[] = ["GRATUITO", "BASICO", "INTERMEDIARIO", "AVANCADO", "PERSONALIZADO"];
 
     if (acao && !(validAcoes as readonly string[]).includes(acao)) {
@@ -74,6 +75,28 @@ export async function PATCH(request: Request, { params }: Params) {
       });
       logAction("organizacao_cortesia_revogada", user.id ?? undefined, getClientIp(request), { orgId: id }, id);
       return NextResponse.json({ ok: true });
+    }
+
+    // ── Extensão de trial ─────────────────────────────────────────────────────
+    if (acao === "estender-trial") {
+      const days = Number(body.trialDays);
+      if (!Number.isInteger(days) || days < 1 || days > 365) {
+        return NextResponse.json({ error: "trialDays deve ser um inteiro entre 1 e 365." }, { status: 400 });
+      }
+      const base = org.trialExpiresAt && org.trialExpiresAt > new Date()
+        ? org.trialExpiresAt
+        : new Date();
+      const newExpiry = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+      await prisma.organizacao.update({
+        where: { id },
+        data: {
+          trialExpiresAt: newExpiry,
+          status: org.status === "SUSPENSO" || org.status === "CANCELADO" ? "TRIAL" : org.status === "ATIVO" ? "TRIAL" : org.status,
+        },
+      });
+      logAction("organizacao_trial_extended", user.id ?? undefined, getClientIp(request),
+        { orgId: id, days, newExpiry: newExpiry.toISOString() }, id);
+      return NextResponse.json({ ok: true, trialExpiresAt: newExpiry.toISOString() });
     }
 
     // ── Reset de credenciais ──────────────────────────────────────────────────
@@ -166,6 +189,36 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const org = await prisma.organizacao.findUnique({ where: { id } });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
+
+    // Anonimizar PII dos usuários antes de excluir (LGPD Art. 18)
+    const BATCH = 200;
+    let cursor: string | undefined;
+    for (;;) {
+      const batch = await prisma.usuario.findMany({
+        where: { organizacaoId: id },
+        take: BATCH,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        select: { id: true },
+      });
+      if (batch.length === 0) break;
+      const now = new Date();
+      await prisma.$transaction(
+        batch.map((u) =>
+          prisma.usuario.update({
+            where: { id: u.id },
+            data: {
+              nome: "Usuário Removido",
+              email: `removido_${Buffer.from(u.id).toString("hex").slice(0, 16)}@excluido.local`,
+              passwordHash: null,
+              ativo: false,
+              deletedAt: now,
+            },
+          })
+        )
+      );
+      if (batch.length < BATCH) break;
+      cursor = batch[batch.length - 1].id;
+    }
 
     await prisma.deletionRequest.create({
       data: { organizacaoId: id, tipo: "organizacao", status: "concluido", processadoEm: new Date() },

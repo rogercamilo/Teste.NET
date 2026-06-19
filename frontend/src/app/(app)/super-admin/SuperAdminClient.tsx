@@ -21,9 +21,10 @@ import {
   Building2, Users, RefreshCw, MoreHorizontal,
   TrendingUp, TrendingDown, AlertTriangle, Gift, Ban, BadgeCheck,
   DollarSign, Activity, Minus, Scale, FileText, CheckCircle2, Clock,
-  Shield, KeyRound, type LucideIcon,
+  Shield, KeyRound, CalendarPlus, Search, ExternalLink, type LucideIcon,
 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -69,7 +70,7 @@ interface LgpdData {
   cookieAnaliticos: number;
 }
 
-type DialogAcao = "suspender" | "reativar" | "cancelar" | "plano" | "excluir" | "cortesia" | "revogar-cortesia" | null;
+type DialogAcao = "suspender" | "reativar" | "cancelar" | "plano" | "excluir" | "cortesia" | "revogar-cortesia" | "estender-trial" | null;
 type Tab = "organizacoes" | "financeiro" | "cortesias" | "lgpd";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -122,17 +123,20 @@ export default function SuperAdminClient() {
   const [pageCortesias, setPageCortesias] = useState(1);
   const [pageLgpd, setPageLgpd] = useState(1);
 
+  const [search, setSearch] = useState("");
   const [selectedOrg, setSelectedOrg] = useState<OrgRow | null>(null);
   const [dialogAcao, setDialogAcao] = useState<DialogAcao>(null);
   const [novoPlano, setNovoPlano] = useState<string>("");
   const [cortesiaMotivo, setCortesiaMotivo] = useState("");
   const [cortesiaExpiry, setCortesiaExpiry] = useState("");
+  const [trialDays, setTrialDays] = useState("30");
 
   const closeDialog = () => {
     setDialogAcao(null);
     setSelectedOrg(null);
     setCortesiaMotivo("");
     setCortesiaExpiry("");
+    setTrialDays("30");
   };
 
   const load = useCallback(async () => {
@@ -194,6 +198,7 @@ export default function SuperAdminClient() {
       const labels: Record<string, string> = {
         suspender: "suspensa", reativar: "reativada", cancelar: "cancelada",
         cortesia: "cortesia concedida", "revogar-cortesia": "cortesia revogada",
+        "estender-trial": "trial estendido",
       };
       toast.success(`Organização ${labels[acao] ?? "atualizada"} com sucesso.`);
       await load();
@@ -289,6 +294,9 @@ export default function SuperAdminClient() {
     ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(metricas.mrrEstimado)
     : "—";
 
+  const filteredOrgs = search.trim()
+    ? orgs.filter((o) => o.nome.toLowerCase().includes(search.trim().toLowerCase()))
+    : orgs;
   const cortesiasOrgs = orgs.filter((o) => o.cortesia);
 
   return (
@@ -330,9 +338,22 @@ export default function SuperAdminClient() {
       {/* ── Tab: Organizações ────────────────────────────────────────────────── */}
       {tab === "organizacoes" && (
         <Card>
-          <CardHeader className="pb-2 pt-4 px-4 flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Organizações ({orgs.length})</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2 pt-4 px-4 gap-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">
+                Organizações ({filteredOrgs.length}{search.trim() ? ` de ${orgs.length}` : ""})
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome…"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPageOrgs(1); }}
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -341,7 +362,7 @@ export default function SuperAdminClient() {
                   <TableHead>Organização</TableHead>
                   <TableHead>Plano</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Moradas</TableHead>
+                  <TableHead className="text-center">Grupos</TableHead>
                   <TableHead className="text-center">Formandos</TableHead>
                   <TableHead className="text-center">Usuários</TableHead>
                   <TableHead>Cadastro</TableHead>
@@ -349,7 +370,7 @@ export default function SuperAdminClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orgs.slice((pageOrgs - 1) * PAGE_SIZE, pageOrgs * PAGE_SIZE).map((org) => {
+                {filteredOrgs.slice((pageOrgs - 1) * PAGE_SIZE, pageOrgs * PAGE_SIZE).map((org) => {
                   const trialExpired = org.trialExpiresAt && new Date(org.trialExpiresAt) < new Date();
                   const cortesiaExpired = org.cortesiaExpiresAt && new Date(org.cortesiaExpiresAt) < new Date();
                   return (
@@ -357,7 +378,13 @@ export default function SuperAdminClient() {
                       <TableCell className="font-medium">
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-1.5">
-                            <span>{org.nome}</span>
+                            <button
+                              type="button"
+                              className="font-medium hover:underline hover:text-primary text-left"
+                              onClick={() => router.push(`/super-admin/organizacoes/${org.id}`)}
+                            >
+                              {org.nome}
+                            </button>
                             {org.cortesia && (
                               <span className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 font-medium border border-violet-200">
                                 <Gift className="h-3 w-3" />
@@ -406,10 +433,22 @@ export default function SuperAdminClient() {
                               ? <RefreshCw className="h-4 w-4 animate-spin" />
                               : <MoreHorizontal className="h-4 w-4" />}
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={() => router.push(`/super-admin/organizacoes/${org.id}`)}>
+                              <ExternalLink className="h-4 w-4 mr-2" />Ver detalhes
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+
                             <DropdownMenuItem onClick={() => { setSelectedOrg(org); setNovoPlano(org.planoAssinatura); setDialogAcao("plano"); }}>
                               <TrendingUp className="h-4 w-4 mr-2" />Alterar plano
                             </DropdownMenuItem>
+
+                            {(org.status === "TRIAL" || (org.trialExpiresAt !== null)) && (
+                              <DropdownMenuItem onClick={() => { setSelectedOrg(org); setTrialDays("30"); setDialogAcao("estender-trial"); }}>
+                                <CalendarPlus className="h-4 w-4 mr-2" />Estender trial
+                              </DropdownMenuItem>
+                            )}
 
                             {!org.cortesia ? (
                               <DropdownMenuItem className="text-violet-700" onClick={() => { setSelectedOrg(org); setDialogAcao("cortesia"); }}>
@@ -457,18 +496,18 @@ export default function SuperAdminClient() {
                     </TableRow>
                   );
                 })}
-                {orgs.length === 0 && (
+                {filteredOrgs.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                      Nenhuma organização cadastrada.
+                      {search.trim() ? "Nenhuma organização encontrada para a busca." : "Nenhuma organização cadastrada."}
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
-            {orgs.length > 0 && (
+            {filteredOrgs.length > 0 && (
               <div className="px-4 py-3 border-t">
-                <Pagination total={orgs.length} page={pageOrgs} pageSize={PAGE_SIZE} onPageChange={setPageOrgs} />
+                <Pagination total={filteredOrgs.length} page={pageOrgs} pageSize={PAGE_SIZE} onPageChange={setPageOrgs} />
               </div>
             )}
           </CardContent>
@@ -609,7 +648,7 @@ export default function SuperAdminClient() {
               <CardContent className="px-4 pb-4 space-y-3">
                 {[
                   { icon: Users, label: "Formandos", value: metricas.totalFormandos },
-                  { icon: Building2, label: "Moradas", value: metricas.totalGruposFormacao },
+                  { icon: Building2, label: "Grupos", value: metricas.totalGruposFormacao },
                   { icon: Users, label: "Usuários", value: metricas.totalUsuarios },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-center justify-between">
@@ -902,6 +941,54 @@ export default function SuperAdminClient() {
       )}
 
       {/* ── Dialogs ───────────────────────────────────────────────────────────── */}
+      <Dialog open={dialogAcao === "estender-trial"} onOpenChange={closeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus className="h-5 w-5 text-blue-600" />
+              Estender trial — {selectedOrg?.nome}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedOrg?.trialExpiresAt
+                ? `Trial atual expira em ${new Date(selectedOrg.trialExpiresAt).toLocaleDateString("pt-BR")}.`
+                : "A organização não tem data de expiração de trial definida."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            <label className="text-sm font-medium">Dias a adicionar</label>
+            <Input
+              type="number"
+              min={1}
+              max={365}
+              value={trialDays}
+              onChange={(e) => setTrialDays(e.target.value)}
+              className="w-32"
+            />
+            <p className="text-xs text-muted-foreground">
+              {(() => {
+                const d = parseInt(trialDays);
+                if (!d || d < 1) return null;
+                const base = selectedOrg?.trialExpiresAt && new Date(selectedOrg.trialExpiresAt) > new Date()
+                  ? new Date(selectedOrg.trialExpiresAt)
+                  : new Date();
+                const newDate = new Date(base.getTime() + d * 24 * 60 * 60 * 1000);
+                return `Nova data de expiração: ${newDate.toLocaleDateString("pt-BR")}`;
+              })()}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={!trialDays || parseInt(trialDays) < 1 || actionLoading === selectedOrg?.id}
+              onClick={() => selectedOrg && executeAction(selectedOrg.id, "estender-trial", { trialDays: parseInt(trialDays) })}
+            >
+              <CalendarPlus className="h-4 w-4 mr-1.5" />Estender
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={dialogAcao === "cortesia"} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>

@@ -391,7 +391,7 @@ function TabVisaoGeral({ metricas, mrrFmt }: { metricas: Metricas; mrrFmt: strin
           <CardContent className="px-4 pb-4 space-y-3">
             {[
               { icon: Users, label: "Formandos", value: metricas.totalFormandos },
-              { icon: Home, label: "Moradas", value: metricas.totalGruposFormacao },
+              { icon: Home, label: "Grupos de Formação", value: metricas.totalGruposFormacao },
               { icon: UserSquare, label: "Usuários", value: metricas.totalUsuarios },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-center justify-between">
@@ -470,7 +470,7 @@ function TabServicos({ data }: { data: ServicosData }) {
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               {[
                 { label: "Formandos", value: data.db.formandos },
-                { label: "Moradas", value: data.db.gruposFormacao },
+                { label: "Grupos", value: data.db.gruposFormacao },
                 { label: "Usuários", value: data.db.usuarios },
                 { label: "Agendamentos", value: data.db.agendamentos },
                 { label: "Presenças", value: data.db.presencas },
