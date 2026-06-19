@@ -44,13 +44,12 @@ export async function getOrganizacao(organizacaoId: string) {
 }
 
 /** Garante que o organizacaoId do recurso bate com o do tenant atual.
- *  Lança se o recurso não tiver org (null = dado corrompido) ou pertencer a outro tenant.
- *  Use para validar acesso antes de retornar ou modificar um recurso. */
+ *  null = recurso global (acessível a todos os tenants); lança apenas se pertencer a outro tenant. */
 export function assertTenant(
   resourceOrgId: string | null,
   tenantOrgId: string
 ): void {
-  if (resourceOrgId === null || resourceOrgId !== tenantOrgId) {
+  if (resourceOrgId !== null && resourceOrgId !== tenantOrgId) {
     throw new Error("Acesso negado: recurso pertence a outro tenant.");
   }
 }
