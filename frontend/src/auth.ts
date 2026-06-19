@@ -70,6 +70,7 @@ const providers: NextAuthConfig["providers"] = [
         const totpCode = credentials.totp as string | undefined;
         if (!totpCode) throw new MFARequiredError();
         if (!user.mfaSecret || !await verifyTotpToken(totpCode, user.mfaSecret)) {
+          await recordLoginFailure(user.id);
           logAction("login_failure", user.id, ip, { reason: "invalid_mfa" }, user.organizacaoId);
           return null;
         }
@@ -149,7 +150,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const lastCheck = (token._lastDbCheck as number | undefined) ?? 0;
         if (now - lastCheck > 30_000) {
           const dbUser = await findById(token.id as string, token.organizacaoId as string | undefined);
-          if (!dbUser) return null; // User deleted — invalidate session
+          if (!dbUser || !dbUser.ativo) return null; // User deleted or deactivated — invalidate session
 
           // Invalidate if password was changed after this token was issued
           const tokenIssuedAt = (token.iat as number) * 1000;
