@@ -41,6 +41,7 @@ export async function GET() {
       deletionsPendentes,
       canceladas30d,
       orgsSuspensasPagantes,
+      orgsForHistory,
     ] = await Promise.all([
       prisma.organizacao.count(),
       prisma.organizacao.count({ where: { status: "ATIVO" } }),
@@ -64,6 +65,9 @@ export async function GET() {
       prisma.organizacao.findMany({
         where: { status: "SUSPENSO", stripeSubscriptionId: { not: null } },
         select: { id: true, nome: true, planoAssinatura: true },
+      }),
+      prisma.organizacao.findMany({
+        select: { criadoEm: true, canceladoEm: true, planoAssinatura: true },
       }),
     ]);
 
@@ -101,6 +105,17 @@ export async function GET() {
       return total + (MRR_PRICE[g.planoAssinatura] ?? 0) * g._count.id;
     }, 0);
 
+    const mrrHistory = Array.from({ length: 6 }, (_, i) => {
+      const offset = 5 - i;
+      const startOfMonth = new Date(agora.getFullYear(), agora.getMonth() - offset, 1);
+      const endOfMonth = new Date(agora.getFullYear(), agora.getMonth() - offset + 1, 0, 23, 59, 59, 999);
+      const mrr = orgsForHistory.reduce((sum, org) => {
+        const wasActive = org.criadoEm <= endOfMonth && (!org.canceladoEm || org.canceladoEm >= startOfMonth);
+        return sum + (wasActive ? (MRR_PRICE[org.planoAssinatura] ?? 0) : 0);
+      }, 0);
+      return { month: startOfMonth.toLocaleString("pt-BR", { month: "short" }), mrr };
+    });
+
     const crescimentoPercent =
       crescimentoAnterior30d === 0
         ? crescimento30d > 0 ? 100 : 0
@@ -136,6 +151,7 @@ export async function GET() {
       ticketMedio,
       churnRate30d,
       canceladas30d,
+      mrrHistory,
       receitaEmRisco: {
         count: orgsSuspensasPagantes.length,
         mrrEmRisco: orgsSuspensasPagantes.reduce((s, o) => s + (MRR_PRICE[o.planoAssinatura] ?? 0), 0),

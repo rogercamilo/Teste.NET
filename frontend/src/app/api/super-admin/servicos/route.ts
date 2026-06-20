@@ -69,6 +69,21 @@ export async function GET() {
       }),
     ]);
 
+    const agora = new Date();
+    const storageTrend = await Promise.all(
+      [4, 3, 2, 1, 0].map(async (weeksAgo) => {
+        const cutoff = new Date(agora.getTime() - weeksAgo * 7 * 86_400_000);
+        const agg = await prisma.arquivo.aggregate({
+          _sum: { tamanho: true },
+          where: { criadoEm: { lte: cutoff } },
+        });
+        return {
+          label: cutoff.toLocaleDateString("pt-BR", { month: "short", day: "numeric" }),
+          bytes: agg._sum.tamanho ?? 0,
+        };
+      })
+    );
+
     const storageOrgIds = topOrgsStorage.map((o) => o.organizacaoId);
     const pushOrgIds = pushByOrg.map((p) => p.organizacaoId);
     const allOrgIds = [...new Set([...storageOrgIds, ...pushOrgIds])];
@@ -108,6 +123,7 @@ export async function GET() {
           count: p._count.id,
         })),
       },
+      storageTrend,
       db: {
         formandos: formandosCount,
         gruposFormacao: gruposFormacaoCount,

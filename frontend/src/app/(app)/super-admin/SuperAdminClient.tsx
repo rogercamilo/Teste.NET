@@ -73,6 +73,7 @@ interface Metricas {
   ticketMedio: number;
   churnRate30d: number;
   canceladas30d: number;
+  mrrHistory?: { month: string; mrr: number }[];
   receitaEmRisco?: {
     count: number;
     mrrEmRisco: number;
@@ -109,6 +110,7 @@ interface ServicosData {
     pushTotal: number;
     topOrgsPush: { organizacaoId: string; nome: string; count: number }[];
   };
+  storageTrend?: { label: string; bytes: number }[];
 }
 
 interface SegurancaData {
@@ -279,6 +281,62 @@ function activityBadge(lastActivityAt: string | null) {
     <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 border border-red-200">
       <CircleAlert className="h-3 w-3" />{days}d atrás
     </span>
+  );
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function MrrHistoryChart({ data }: { data: { month: string; mrr: number }[] }) {
+  const max = Math.max(...data.map((d) => d.mrr), 1);
+  const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  return (
+    <div className="space-y-1">
+      <div className="flex items-end gap-1 h-14">
+        {data.map((d, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center justify-end">
+            <div
+              className="w-full rounded-t bg-primary/25 hover:bg-primary/40 transition-colors cursor-default"
+              style={{ height: `${Math.max((d.mrr / max) * 48, d.mrr > 0 ? 3 : 0)}px` }}
+              title={fmt.format(d.mrr)}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-1">
+        {data.map((d, i) => (
+          <div key={i} className="flex-1 text-center text-[9px] text-muted-foreground capitalize">{d.month}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StorageSparkline({ data }: { data: { label: string; bytes: number }[] }) {
+  if (data.length < 2) return null;
+  const values = data.map((d) => d.bytes);
+  const max = Math.max(...values, 1);
+  const w = 120, h = 28;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w;
+    const y = h - Math.max((v / max) * (h - 4), v > 0 ? 2 : 0);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return (
+    <div className="space-y-1">
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-7 text-primary opacity-75" aria-hidden>
+        <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+        {values.map((v, i) => {
+          const x = (i / (values.length - 1)) * w;
+          const y = h - Math.max((v / max) * (h - 4), v > 0 ? 2 : 0);
+          return <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r="2.5" fill="currentColor" />;
+        })}
+      </svg>
+      <div className="flex justify-between">
+        {data.map((d, i) => (
+          <span key={i} className="text-[9px] text-muted-foreground">{d.label}</span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1450,6 +1508,20 @@ export default function SuperAdminClient() {
             </Card>
           </div>
 
+          {metricas.mrrHistory && metricas.mrrHistory.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  Evolução do MRR — últimos 6 meses
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <MrrHistoryChart data={metricas.mrrHistory} />
+              </CardContent>
+            </Card>
+          )}
+
           {metricas.receitaEmRisco && metricas.receitaEmRisco.count > 0 && (
             <div className="flex items-start gap-3 p-3.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 dark:bg-red-950/20 dark:border-red-900">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -1709,6 +1781,12 @@ export default function SuperAdminClient() {
                     <span className="text-sm text-muted-foreground">Espaço utilizado</span>
                     <span className="font-semibold text-sm">{formatBytes(servicos.storage.totalBytes)}</span>
                   </div>
+                  {servicos.storageTrend && servicos.storageTrend.length > 1 && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">Crescimento acumulado (4 semanas)</p>
+                      <StorageSparkline data={servicos.storageTrend} />
+                    </div>
+                  )}
                   {servicos.topOrgsStorage.length > 0 && (
                     <div className="pt-2 border-t space-y-1.5">
                       <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Top por armazenamento</p>
