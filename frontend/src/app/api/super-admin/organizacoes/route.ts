@@ -25,24 +25,25 @@ async function attachActivity<T extends { id: string }>(orgs: T[]) {
     return orgs as (T & { lastActivityAt: string | null; engajamento7d: number; storageBytes: number })[];
   }
 
+  const ids = orgs.map((o) => o.id);
   const [activityRows, engajamentoRows, storageRows] = await Promise.all([
     prisma.$queryRaw<{ organizacaoId: string; lastActivityAt: Date }[]>`
       SELECT "organizacaoId", MAX("criadoEm") AS "lastActivityAt"
       FROM "AuditLog"
-      WHERE "organizacaoId" IS NOT NULL
+      WHERE "organizacaoId" = ANY(${ids}::text[])
       GROUP BY "organizacaoId"
     `,
     prisma.$queryRaw<{ organizacaoId: string; count: bigint }[]>`
       SELECT "organizacaoId", COUNT(*) as count
       FROM "AuditLog"
-      WHERE "organizacaoId" IS NOT NULL
+      WHERE "organizacaoId" = ANY(${ids}::text[])
         AND "criadoEm" >= NOW() - INTERVAL '7 days'
       GROUP BY "organizacaoId"
     `,
     prisma.$queryRaw<{ organizacaoId: string; bytes: bigint }[]>`
       SELECT "organizacaoId", COALESCE(SUM("tamanho"), 0) AS bytes
       FROM "Arquivo"
-      WHERE "organizacaoId" IS NOT NULL
+      WHERE "organizacaoId" = ANY(${ids}::text[])
       GROUP BY "organizacaoId"
     `,
   ]);

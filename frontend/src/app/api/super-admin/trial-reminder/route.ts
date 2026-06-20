@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sendTrialExpiringEmail } from "@/lib/email";
-import { logAction, logError } from "@/lib/audit-log";
+import { logAction, getClientIp, logError } from "@/lib/audit-log";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     await logAction(
       "trial_reminder_sent",
       user.id,
-      request.headers.get("x-forwarded-for") ?? undefined,
+      getClientIp(request),
       { orgs: orgsExpirando.length, sent, failed },
       user.organizacaoId ?? undefined,
     );

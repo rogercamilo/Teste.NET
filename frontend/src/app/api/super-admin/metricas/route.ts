@@ -37,7 +37,6 @@ export async function GET() {
       orgsPorPlano,
       crescimento30d,
       crescimentoAnterior30d,
-      ultimasOrgs,
       deletionsPendentes,
       canceladas30d,
       orgsSuspensasPagantes,
@@ -55,11 +54,6 @@ export async function GET() {
       prisma.organizacao.groupBy({ by: ["planoAssinatura"], _count: { id: true } }),
       prisma.organizacao.count({ where: { criadoEm: { gte: inicio30d } } }),
       prisma.organizacao.count({ where: { criadoEm: { gte: inicio60d, lt: inicio30d } } }),
-      prisma.organizacao.findMany({
-        orderBy: { criadoEm: "desc" },
-        take: 8,
-        select: { id: true, nome: true, status: true, planoAssinatura: true, cortesia: true, criadoEm: true },
-      }),
       prisma.deletionRequest.count({ where: { status: "pendente" } }),
       prisma.organizacao.count({ where: { canceladoEm: { gte: inicio30d } } }),
       prisma.organizacao.findMany({
@@ -71,12 +65,25 @@ export async function GET() {
       }),
     ]);
 
-    // MRR real via Stripe (graceful fallback se Stripe não estiver configurado)
+    // MRR real via Stripe — pagina todos os resultados (has_more loop)
     let mrrReal: number | null = null;
     if (stripe) {
       try {
-        const subs = await stripe.subscriptions.list({ status: "active", limit: 100 });
-        mrrReal = subs.data.reduce((total, sub) => {
+        type StripeSub = Awaited<ReturnType<typeof stripe.subscriptions.list>>["data"][number];
+        const allSubs: StripeSub[] = [];
+        let hasMore = true;
+        let startingAfter: string | undefined;
+        while (hasMore) {
+          const page = await stripe.subscriptions.list({
+            status: "active",
+            limit: 100,
+            ...(startingAfter ? { starting_after: startingAfter } : {}),
+          });
+          allSubs.push(...page.data);
+          hasMore = page.has_more;
+          if (page.data.length > 0) startingAfter = page.data[page.data.length - 1].id;
+        }
+        mrrReal = allSubs.reduce((total, sub) => {
           return total + sub.items.data.reduce((s, item) => {
             const amount = item.price.unit_amount ?? 0;
             const qty = item.quantity ?? 1;
@@ -146,7 +153,6 @@ export async function GET() {
       crescimento30d,
       crescimentoAnterior30d,
       crescimentoPercent,
-      ultimasOrgs,
       arr,
       ticketMedio,
       churnRate30d,

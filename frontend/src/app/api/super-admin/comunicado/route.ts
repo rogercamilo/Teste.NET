@@ -14,11 +14,12 @@ export async function POST(request: Request) {
     const body = await request.json() as {
       assunto?: string;
       mensagem?: string;
-      filtros?: { status?: string[]; plano?: string[] };
+      filtros?: { status?: string[]; plano?: string[]; tipo?: string[] };
       orgIds?: string[];
+      quickFilter?: "trials" | "fantasmas";
     };
 
-    const { assunto, mensagem, filtros, orgIds } = body;
+    const { assunto, mensagem, filtros, orgIds, quickFilter } = body;
 
     if (!assunto?.trim() || !mensagem?.trim()) {
       return NextResponse.json({ error: "Assunto e mensagem são obrigatórios." }, { status: 400 });
@@ -28,9 +29,22 @@ export async function POST(request: Request) {
     const orgWhere: Record<string, unknown> = {};
     if (orgIds?.length) {
       orgWhere.id = { in: orgIds };
+    } else if (quickFilter === "trials") {
+      const agora = new Date();
+      const limite = new Date(agora.getTime() + 7 * 86_400_000);
+      orgWhere.status = "TRIAL";
+      orgWhere.trialExpiresAt = { gte: agora, lte: limite };
+    } else if (quickFilter === "fantasmas") {
+      const limite30d = new Date(Date.now() - 30 * 86_400_000);
+      orgWhere.status = "ATIVO";
+      orgWhere.OR = [
+        { usuarios: { none: {} } },
+        { auditLogs: { none: { criadoEm: { gte: limite30d } } } },
+      ];
     } else if (filtros) {
       if (filtros.status?.length) orgWhere.status = { in: filtros.status };
       if (filtros.plano?.length) orgWhere.planoAssinatura = { in: filtros.plano };
+      if (filtros.tipo?.length) orgWhere.tipoOrganizacao = { in: filtros.tipo };
     }
 
     const orgs = await prisma.organizacao.findMany({
@@ -56,19 +70,27 @@ export async function POST(request: Request) {
 
     let sent = 0;
     let failed = 0;
+    const BATCH = 20;
 
-    for (const admin of admins) {
-      const orgNome = orgMap.get(admin.organizacaoId) ?? "Formattio";
-      const result = await sendComunicadoEmail({
-        organizacaoId: admin.organizacaoId,
-        to: admin.email,
-        nome: admin.nome,
-        assunto: assunto.trim(),
-        mensagem: mensagem.trim(),
-        orgNome,
-      });
-      if (result.sent) sent++;
-      else failed++;
+    for (let i = 0; i < admins.length; i += BATCH) {
+      const batch = admins.slice(i, i + BATCH);
+      const results = await Promise.all(
+        batch.map((admin) => {
+          const orgNome = orgMap.get(admin.organizacaoId) ?? "Formattio";
+          return sendComunicadoEmail({
+            organizacaoId: admin.organizacaoId,
+            to: admin.email,
+            nome: admin.nome,
+            assunto: assunto.trim(),
+            mensagem: mensagem.trim(),
+            orgNome,
+          });
+        })
+      );
+      for (const r of results) {
+        if (r.sent) sent++;
+        else failed++;
+      }
     }
 
     await logAction(
