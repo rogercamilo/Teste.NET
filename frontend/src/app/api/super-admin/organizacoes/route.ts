@@ -61,14 +61,13 @@ async function attachActivity<T extends { id: string }>(orgs: T[]) {
 }
 
 export async function GET(request: Request) {
-  const session = await auth();
-  const user = session?.user as SU | undefined;
-  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (user.role !== "super_admin") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
-
   try {
+    const session = await auth();
+    const user = session?.user as SU | undefined;
+    if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    if (user.role !== "super_admin") {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url);
     const pagination = parsePagination(searchParams);
     const orderBy = { criadoEm: "desc" as const };

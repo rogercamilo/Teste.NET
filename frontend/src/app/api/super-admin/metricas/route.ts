@@ -14,12 +14,11 @@ const MRR_PRICE: Record<string, number> = {
 };
 
 export async function GET() {
-  const session = await auth();
-  const user = session?.user;
-  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (user.role !== "super_admin") return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-
   try {
+    const session = await auth();
+    const user = session?.user;
+    if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    if (user.role !== "super_admin") return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     const agora = new Date();
     const inicio30d = new Date(agora); inicio30d.setDate(agora.getDate() - 30);
     const inicio60d = new Date(agora); inicio60d.setDate(agora.getDate() - 60);
