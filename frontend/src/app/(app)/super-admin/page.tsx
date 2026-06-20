@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import type { SessionUser } from "@/lib/auth-helpers";
@@ -8,5 +9,9 @@ export default async function SuperAdminPage() {
   const user = session?.user as SessionUser | undefined;
   if (user?.role !== "super_admin") redirect("/dashboard");
 
-  return <SuperAdminClient />;
+  return (
+    <Suspense>
+      <SuperAdminClient />
+    </Suspense>
+  );
 }

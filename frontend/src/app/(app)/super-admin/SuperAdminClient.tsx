@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,7 @@ import {
   Shield, KeyRound, CalendarPlus, Search, ExternalLink, CircleAlert,
   Filter, X, BarChart3, LayoutDashboard, Server, Lock, Send,
   Loader2, ShieldAlert, HardDrive, Database, Cloud, CloudOff, Trash2,
-  Home, UserSquare, Download, type LucideIcon,
+  Home, UserSquare, Download, Mail, Bell, type LucideIcon,
 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
@@ -72,6 +72,11 @@ interface Metricas {
   ticketMedio: number;
   churnRate30d: number;
   canceladas30d: number;
+  receitaEmRisco?: {
+    count: number;
+    mrrEmRisco: number;
+    orgs: { id: string; nome: string; planoAssinatura: string }[];
+  };
 }
 
 interface LgpdData {
@@ -97,6 +102,12 @@ interface ServicosData {
     id: string; nome: string; tamanho: number; tipo: string;
     uploadedByNome: string | null; criadoEm: string; orgNome: string;
   }[];
+  comunicacao?: {
+    smtpOwnCount: number;
+    totalOrgs: number;
+    pushTotal: number;
+    topOrgsPush: { organizacaoId: string; nome: string; count: number }[];
+  };
 }
 
 interface SegurancaData {
@@ -274,7 +285,15 @@ function activityBadge(lastActivityAt: string | null) {
 
 export default function SuperAdminClient() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("visao-geral");
+  const searchParams = useSearchParams();
+  const initTab = searchParams.get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(
+    TABS.some((x) => x.id === initTab) ? (initTab as Tab) : "visao-geral"
+  );
+  function handleSetTab(newTab: Tab) {
+    setTab(newTab);
+    router.replace(`?tab=${newTab}`, { scroll: false });
+  }
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [lgpd, setLgpd] = useState<LgpdData | null>(null);
@@ -293,6 +312,8 @@ export default function SuperAdminClient() {
   const [incidenteError, setIncidenteError] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [lgpdActionLoading, setLgpdActionLoading] = useState<string | null>(null);
+  const [trialReminderLoading, setTrialReminderLoading] = useState(false);
+  const [trialReminderResult, setTrialReminderResult] = useState<{ orgs: number; sent: number; failed: number } | null>(null);
   const [pageOrgs, setPageOrgs] = useState(1);
   const [pageCortesias, setPageCortesias] = useState(1);
   const [pageLgpd, setPageLgpd] = useState(1);
@@ -420,6 +441,27 @@ export default function SuperAdminClient() {
       setIncidenteError("Erro de conexão. Tente novamente.");
     } finally {
       setIncidenteSending(false);
+    }
+  }
+
+  async function sendTrialReminder() {
+    setTrialReminderLoading(true);
+    setTrialReminderResult(null);
+    try {
+      const res = await fetch("/api/super-admin/trial-reminder", { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(json.error ?? "Erro ao enviar lembretes.");
+        return;
+      }
+      setTrialReminderResult(json);
+      toast.success(
+        `${json.sent} lembrete${json.sent !== 1 ? "s" : ""} enviado${json.sent !== 1 ? "s" : ""} · ${json.orgs} org${json.orgs !== 1 ? "s" : ""} expirando em ≤3 dias`
+      );
+    } catch {
+      toast.error("Erro de rede. Tente novamente.");
+    } finally {
+      setTrialReminderLoading(false);
     }
   }
 
@@ -622,17 +664,28 @@ export default function SuperAdminClient() {
       {(trialsExpirando.length > 0 || orgsFantasmas.length > 0 || (metricas?.deletionsPendentes ?? 0) > 0 || orgsStorageCritico.length > 0) && (
         <div className="flex flex-wrap gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/20 dark:border-amber-900">
           {trialsExpirando.length > 0 && (
-            <button
-              onClick={() => { setTab("organizacoes"); setOrgFilter("trials"); }}
-              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 font-medium transition-colors"
-            >
-              <Clock className="h-3.5 w-3.5" />
-              {trialsExpirando.length} trial{trialsExpirando.length > 1 ? "s" : ""} expirando em ≤7 dias
-            </button>
+            <>
+              <button
+                onClick={() => { handleSetTab("organizacoes"); setOrgFilter("trials"); }}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 font-medium transition-colors"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                {trialsExpirando.length} trial{trialsExpirando.length > 1 ? "s" : ""} expirando em ≤7 dias
+              </button>
+              <button
+                onClick={() => void sendTrialReminder()}
+                disabled={trialReminderLoading}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 font-medium transition-colors disabled:opacity-60"
+              >
+                {trialReminderLoading
+                  ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Enviando...</>
+                  : <><Mail className="h-3.5 w-3.5" />Enviar lembrete{trialReminderResult != null ? ` (${trialReminderResult.sent} enviados)` : ""}</>}
+              </button>
+            </>
           )}
           {orgsFantasmas.length > 0 && (
             <button
-              onClick={() => { setTab("organizacoes"); setOrgFilter("fantasmas"); }}
+              onClick={() => { handleSetTab("organizacoes"); setOrgFilter("fantasmas"); }}
               className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-red-100 text-red-800 border border-red-300 hover:bg-red-200 font-medium transition-colors"
             >
               <CircleAlert className="h-3.5 w-3.5" />
@@ -641,7 +694,7 @@ export default function SuperAdminClient() {
           )}
           {(metricas?.deletionsPendentes ?? 0) > 0 && (
             <button
-              onClick={() => setTab("lgpd")}
+              onClick={() => handleSetTab("lgpd")}
               className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 font-medium transition-colors"
             >
               <Scale className="h-3.5 w-3.5" />
@@ -650,7 +703,7 @@ export default function SuperAdminClient() {
           )}
           {orgsStorageCritico.length > 0 && (
             <button
-              onClick={() => { setTab("organizacoes"); setFilterStatus("ATIVO"); }}
+              onClick={() => { handleSetTab("organizacoes"); setFilterStatus("ATIVO"); }}
               className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-red-100 text-red-800 border border-red-300 hover:bg-red-200 font-medium transition-colors"
             >
               <AlertTriangle className="h-3.5 w-3.5" />
@@ -665,7 +718,7 @@ export default function SuperAdminClient() {
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
-            onClick={() => setTab(id)}
+            onClick={() => handleSetTab(id)}
             className={`flex shrink-0 items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === id
                 ? "border-primary text-primary"
@@ -1232,6 +1285,21 @@ export default function SuperAdminClient() {
             </Card>
           </div>
 
+          {metricas.receitaEmRisco && metricas.receitaEmRisco.count > 0 && (
+            <div className="flex items-start gap-3 p-3.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 dark:bg-red-950/20 dark:border-red-900">
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">
+                  Receita em risco: {currFmt.format(metricas.receitaEmRisco.mrrEmRisco)}/mês
+                </p>
+                <p className="text-xs text-red-600 mt-0.5">
+                  {metricas.receitaEmRisco.count} org{metricas.receitaEmRisco.count > 1 ? "s" : ""} suspensa{metricas.receitaEmRisco.count > 1 ? "s" : ""} com assinatura Stripe ativa:{" "}
+                  {metricas.receitaEmRisco.orgs.map((o) => o.nome).join(", ")}
+                </p>
+              </div>
+            </div>
+          )}
+
           <Card>
             <CardHeader className="pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-medium">Receita por Plano</CardTitle>
@@ -1522,6 +1590,41 @@ export default function SuperAdminClient() {
                 </CardContent>
               </Card>
             </div>
+
+            {servicos.comunicacao && (
+              <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />Comunicação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-3">
+                    <div className="flex justify-between items-center py-0.5 border-b border-dashed border-border/50">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail className="h-3 w-3" />SMTP próprio</span>
+                      <span className="text-xs font-semibold tabular-nums">
+                        {servicos.comunicacao.smtpOwnCount} / {servicos.comunicacao.totalOrgs} orgs
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-0.5 border-b border-dashed border-border/50">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Bell className="h-3 w-3" />Push subs</span>
+                      <span className="text-xs font-semibold tabular-nums">{servicos.comunicacao.pushTotal}</span>
+                    </div>
+                  </div>
+                  {servicos.comunicacao.topOrgsPush.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Top por push</p>
+                      {servicos.comunicacao.topOrgsPush.map((o) => (
+                        <div key={o.organizacaoId} className="flex items-center gap-2 text-xs">
+                          <span className="flex-1 truncate">{o.nome}</span>
+                          <span className="font-medium tabular-nums">{o.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {servicos.recentUploads.length > 0 && (
               <Card>

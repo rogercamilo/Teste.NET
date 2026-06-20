@@ -40,6 +40,7 @@ export async function GET() {
       ultimasOrgs,
       deletionsPendentes,
       canceladas30d,
+      orgsSuspensasPagantes,
     ] = await Promise.all([
       prisma.organizacao.count(),
       prisma.organizacao.count({ where: { status: "ATIVO" } }),
@@ -60,6 +61,10 @@ export async function GET() {
       }),
       prisma.deletionRequest.count({ where: { status: "pendente" } }),
       prisma.organizacao.count({ where: { canceladoEm: { gte: inicio30d } } }),
+      prisma.organizacao.findMany({
+        where: { status: "SUSPENSO", stripeSubscriptionId: { not: null } },
+        select: { id: true, nome: true, planoAssinatura: true },
+      }),
     ]);
 
     // MRR real via Stripe (graceful fallback se Stripe não estiver configurado)
@@ -131,6 +136,11 @@ export async function GET() {
       ticketMedio,
       churnRate30d,
       canceladas30d,
+      receitaEmRisco: {
+        count: orgsSuspensasPagantes.length,
+        mrrEmRisco: orgsSuspensasPagantes.reduce((s, o) => s + (MRR_PRICE[o.planoAssinatura] ?? 0), 0),
+        orgs: orgsSuspensasPagantes,
+      },
     });
   } catch (err) {
     logError("super-admin/metricas GET", err);

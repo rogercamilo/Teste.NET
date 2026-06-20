@@ -24,6 +24,10 @@ export async function GET() {
       auditLogsCount,
       arquivosCount,
       recentUploads,
+      smtpOwnResult,
+      totalOrgsCount,
+      pushTotal,
+      pushByOrg,
     ] = await Promise.all([
       prisma.arquivo.aggregate({ _count: { id: true }, _sum: { tamanho: true } }),
       prisma.arquivo.groupBy({
@@ -54,13 +58,24 @@ export async function GET() {
           organizacao: { select: { nome: true } },
         },
       }),
+      prisma.$queryRaw<[{ c: bigint }]>`SELECT COUNT(*) as c FROM "ConfiguracaoOrg" WHERE "smtpConfig" IS NOT NULL`,
+      prisma.organizacao.count(),
+      prisma.pushSubscription.count(),
+      prisma.pushSubscription.groupBy({
+        by: ["organizacaoId"],
+        _count: { id: true },
+        orderBy: { _count: { id: "desc" } },
+        take: 5,
+      }),
     ]);
 
-    const orgIds = topOrgsStorage.map((o) => o.organizacaoId);
+    const storageOrgIds = topOrgsStorage.map((o) => o.organizacaoId);
+    const pushOrgIds = pushByOrg.map((p) => p.organizacaoId);
+    const allOrgIds = [...new Set([...storageOrgIds, ...pushOrgIds])];
     const orgNames =
-      orgIds.length > 0
+      allOrgIds.length > 0
         ? await prisma.organizacao.findMany({
-            where: { id: { in: orgIds } },
+            where: { id: { in: allOrgIds } },
             select: { id: true, nome: true },
           })
         : [];
@@ -83,6 +98,16 @@ export async function GET() {
         bytes: o._sum.tamanho ?? 0,
         mb: Math.round(((o._sum.tamanho ?? 0) / (1024 * 1024)) * 10) / 10,
       })),
+      comunicacao: {
+        smtpOwnCount: Number(smtpOwnResult[0]?.c ?? 0),
+        totalOrgs: totalOrgsCount,
+        pushTotal,
+        topOrgsPush: pushByOrg.map((p) => ({
+          organizacaoId: p.organizacaoId,
+          nome: orgNomeMap[p.organizacaoId] ?? "—",
+          count: p._count.id,
+        })),
+      },
       db: {
         formandos: formandosCount,
         gruposFormacao: gruposFormacaoCount,

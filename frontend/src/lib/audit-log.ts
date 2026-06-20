@@ -105,7 +105,8 @@ export type AuditAction =
   | "password_reset_requested"
   | "password_reset_confirmed"
   | "lgpd_incident_notification_sent"
-  | "plan_limit_email_enviado";
+  | "plan_limit_email_enviado"
+  | "trial_reminder_sent";
 
 export interface AuditEntry {
   timestamp: string;

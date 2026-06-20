@@ -430,6 +430,67 @@ export async function sendPushInviteEmail({
   return send(organizacaoId, email, "Ative as notificações da sua comunidade — Formattio", html);
 }
 
+export async function sendTrialExpiringEmail({
+  organizacaoId,
+  email,
+  nome,
+  orgNome,
+  trialExpiresAt,
+}: {
+  organizacaoId: string;
+  email: string;
+  nome: string;
+  orgNome: string;
+  trialExpiresAt: Date;
+}): Promise<{ sent: boolean; error?: string }> {
+  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const safeName = escapeHtml(nome);
+  const safeOrg = escapeHtml(orgNome);
+  const safeAppUrl = safeUrl(appUrl);
+  const dataExpiry = trialExpiresAt.toLocaleDateString("pt-BR");
+  const daysLeft = Math.max(0, Math.ceil((trialExpiresAt.getTime() - Date.now()) / 86_400_000));
+  const planoUrl = `${safeAppUrl}/configuracoes?tab=plano`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <div style="background: #fef3c7; border-left: 4px solid #d97706; padding: 14px 18px; border-radius: 4px; margin-bottom: 24px;">
+        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #92400e;">
+          Período de experiência expira em ${daysLeft} dia${daysLeft !== 1 ? "s" : ""}
+        </p>
+      </div>
+      <p>Olá, <strong>${safeName}</strong>!</p>
+      <p>
+        O período de experiência da organização <strong>${safeOrg}</strong> na plataforma Formattio
+        expira em <strong>${dataExpiry}</strong>.
+      </p>
+      <p>
+        Para continuar utilizando todos os recursos sem interrupção, assine um dos planos antes da data de expiração.
+      </p>
+      <p style="text-align: center; margin: 32px 0;">
+        <a href="${planoUrl}"
+           style="background: #b25433; color: white; text-decoration: none;
+                  padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 15px;">
+          Escolher um plano
+        </a>
+      </p>
+      <p style="color: #666; font-size: 13px; text-align: center;">
+        Ou acesse diretamente: <a href="${planoUrl}">${planoUrl}</a>
+      </p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+      <p style="color: #999; font-size: 12px;">
+        Formattio — plataforma de gestão formativa.<br/>
+        Você recebeu este e-mail por ser administrador(a) da organização ${safeOrg}.
+      </p>
+    </div>
+  `;
+  return send(
+    organizacaoId,
+    email,
+    `Seu período de experiência expira em ${daysLeft} dia${daysLeft !== 1 ? "s" : ""} — Formattio`,
+    html
+  );
+}
+
 export async function sendLimitAlertEmail({
   organizacaoId,
   email,
