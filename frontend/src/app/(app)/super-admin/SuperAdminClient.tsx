@@ -24,7 +24,8 @@ import {
   Shield, KeyRound, CalendarPlus, Search, ExternalLink, CircleAlert,
   Filter, X, BarChart3, LayoutDashboard, Server, Lock, Send,
   Loader2, ShieldAlert, HardDrive, Database, Cloud, CloudOff, Trash2,
-  Home, UserSquare, Download, Mail, Bell, type LucideIcon,
+  Home, UserSquare, Download, Mail, Bell, MessageSquare, CheckSquare2,
+  type LucideIcon,
 } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
@@ -331,6 +332,20 @@ export default function SuperAdminClient() {
   const [filterTipo, setFilterTipo] = useState("");
   const [filterOnboarding, setFilterOnboarding] = useState(false);
 
+  // Bulk selection
+  const [selectedOrgIds, setSelectedOrgIds] = useState<Set<string>>(new Set());
+  const [bulkTrialDays, setBulkTrialDays] = useState("30");
+  const [bulkDialogOpen, setBulkDialogOpen] = useState<"trial" | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Comunicado
+  const [comunicadoOpen, setComunicadoOpen] = useState(false);
+  const [comunicadoAssunto, setComunicadoAssunto] = useState("");
+  const [comunicadoMensagem, setComunicadoMensagem] = useState("");
+  const [comunicadoScope, setComunicadoScope] = useState<"filtradas" | "selecionadas">("filtradas");
+  const [comunicadoLoading, setComunicadoLoading] = useState(false);
+  const [comunicadoResult, setComunicadoResult] = useState<{ orgs: number; admins: number; sent: number; failed: number } | null>(null);
+
   const closeDialog = () => {
     setDialogAcao(null);
     setSelectedOrg(null);
@@ -555,6 +570,77 @@ export default function SuperAdminClient() {
       toast.error("Erro de rede.");
     } finally {
       setLgpdActionLoading(null);
+    }
+  }
+
+  function toggleOrgSelection(id: string) {
+    setSelectedOrgIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function togglePageSelection(pageOrgs: OrgRow[]) {
+    const pageIds = pageOrgs.map((o) => o.id);
+    const allSelected = pageIds.every((id) => selectedOrgIds.has(id));
+    setSelectedOrgIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  async function executeBulkAction(acao: "suspender" | "reativar" | "estender_trial") {
+    const orgIds = Array.from(selectedOrgIds);
+    setBulkLoading(true);
+    try {
+      const res = await fetch("/api/super-admin/bulk-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgIds, acao, diasTrial: Number(bulkTrialDays) }),
+      });
+      const json = await res.json().catch(() => ({})) as { success?: number; failed?: number; error?: string };
+      if (!res.ok) { toast.error(json.error ?? "Falha ao executar ação em massa."); return; }
+      toast.success(`${json.success} org${(json.success ?? 0) !== 1 ? "s" : ""} atualizada${(json.success ?? 0) !== 1 ? "s" : ""} com sucesso.${(json.failed ?? 0) > 0 ? ` (${json.failed} falha${(json.failed ?? 0) !== 1 ? "s" : ""})` : ""}`);
+      setSelectedOrgIds(new Set());
+      setBulkDialogOpen(null);
+      await load();
+    } catch {
+      toast.error("Erro de rede. Tente novamente.");
+    } finally {
+      setBulkLoading(false);
+    }
+  }
+
+  async function sendComunicado() {
+    if (!comunicadoAssunto.trim() || !comunicadoMensagem.trim()) {
+      toast.error("Preencha o assunto e a mensagem.");
+      return;
+    }
+    const orgIds = comunicadoScope === "selecionadas" ? Array.from(selectedOrgIds) : undefined;
+    const filtros = comunicadoScope === "filtradas" ? {
+      status: filterStatus ? [filterStatus] : undefined,
+      plano: filterPlano ? [filterPlano] : undefined,
+    } : undefined;
+    setComunicadoLoading(true);
+    setComunicadoResult(null);
+    try {
+      const res = await fetch("/api/super-admin/comunicado", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assunto: comunicadoAssunto, mensagem: comunicadoMensagem, orgIds, filtros }),
+      });
+      const json = await res.json().catch(() => ({})) as { orgs?: number; admins?: number; sent?: number; failed?: number; error?: string };
+      if (!res.ok) { toast.error(json.error ?? "Falha ao enviar comunicado."); return; }
+      setComunicadoResult({ orgs: json.orgs ?? 0, admins: json.admins ?? 0, sent: json.sent ?? 0, failed: json.failed ?? 0 });
+      toast.success(`Comunicado enviado — ${json.sent} de ${json.admins} admin${(json.admins ?? 0) !== 1 ? "s" : ""} alcançado${(json.admins ?? 0) !== 1 ? "s" : ""}.`);
+    } catch {
+      toast.error("Erro de rede. Tente novamente.");
+    } finally {
+      setComunicadoLoading(false);
     }
   }
 
@@ -914,13 +1000,22 @@ export default function SuperAdminClient() {
               <CardTitle className="text-sm font-medium">
                 Organizações ({filteredOrgs.length}{search.trim() || orgFilter !== "all" || hasAdvancedFilter ? ` de ${orgs.length}` : ""})
               </CardTitle>
-              <button
-                onClick={() => exportOrgsCSV(filteredOrgs)}
-                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md px-2.5 py-1 hover:bg-muted transition-colors"
-                title="Exportar lista como CSV"
-              >
-                <Download className="h-3.5 w-3.5" />Exportar CSV
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setComunicadoScope("filtradas"); setComunicadoResult(null); setComunicadoOpen(true); }}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md px-2.5 py-1 hover:bg-muted transition-colors"
+                  title="Enviar comunicado para os admins das orgs filtradas"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />Comunicado
+                </button>
+                <button
+                  onClick={() => exportOrgsCSV(filteredOrgs)}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md px-2.5 py-1 hover:bg-muted transition-colors"
+                  title="Exportar lista como CSV"
+                >
+                  <Download className="h-3.5 w-3.5" />Exportar CSV
+                </button>
+              </div>
             </div>
 
             {/* Quick-filter badges (trials / fantasmas) */}
@@ -1015,11 +1110,72 @@ export default function SuperAdminClient() {
                 />
               </div>
             </div>
+
+            {/* Bulk action bar */}
+            {selectedOrgIds.size > 0 && (
+              <div className="flex flex-wrap items-center gap-2 p-2.5 bg-primary/5 border border-primary/20 rounded-lg">
+                <span className="text-xs font-medium text-primary flex items-center gap-1.5">
+                  <CheckSquare2 className="h-3.5 w-3.5" />
+                  {selectedOrgIds.size} org{selectedOrgIds.size !== 1 ? "s" : ""} selecionada{selectedOrgIds.size !== 1 ? "s" : ""}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button
+                    onClick={() => void executeBulkAction("suspender")}
+                    disabled={bulkLoading}
+                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors disabled:opacity-60"
+                  >
+                    <AlertTriangle className="h-3 w-3" />Suspender
+                  </button>
+                  <button
+                    onClick={() => void executeBulkAction("reativar")}
+                    disabled={bulkLoading}
+                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200 transition-colors disabled:opacity-60"
+                  >
+                    <BadgeCheck className="h-3 w-3" />Reativar
+                  </button>
+                  <button
+                    onClick={() => { setBulkTrialDays("30"); setBulkDialogOpen("trial"); }}
+                    disabled={bulkLoading}
+                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition-colors disabled:opacity-60"
+                  >
+                    <CalendarPlus className="h-3 w-3" />Estender trial
+                  </button>
+                  <button
+                    onClick={() => { setComunicadoScope("selecionadas"); setComunicadoResult(null); setComunicadoOpen(true); }}
+                    disabled={bulkLoading}
+                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-violet-100 text-violet-800 border border-violet-300 hover:bg-violet-200 transition-colors disabled:opacity-60"
+                  >
+                    <MessageSquare className="h-3 w-3" />Comunicado
+                  </button>
+                </div>
+                <button
+                  onClick={() => setSelectedOrgIds(new Set())}
+                  className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />Limpar seleção
+                </button>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8 pl-4">
+                    {(() => {
+                      const pageItems = filteredOrgs.slice((pageOrgs - 1) * PAGE_SIZE, pageOrgs * PAGE_SIZE);
+                      const allSelected = pageItems.length > 0 && pageItems.every((o) => selectedOrgIds.has(o.id));
+                      return (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={() => togglePageSelection(pageItems)}
+                          className="h-4 w-4 accent-primary cursor-pointer"
+                          title={allSelected ? "Desmarcar todos da página" : "Selecionar todos da página"}
+                        />
+                      );
+                    })()}
+                  </TableHead>
                   <TableHead>Organização</TableHead>
                   <TableHead>Plano</TableHead>
                   <TableHead>Status</TableHead>
@@ -1035,8 +1191,17 @@ export default function SuperAdminClient() {
                 {filteredOrgs.slice((pageOrgs - 1) * PAGE_SIZE, pageOrgs * PAGE_SIZE).map((org) => {
                   const trialExpired = org.trialExpiresAt && new Date(org.trialExpiresAt) < new Date();
                   const cortesiaExpired = org.cortesiaExpiresAt && new Date(org.cortesiaExpiresAt) < new Date();
+                  const isSelected = selectedOrgIds.has(org.id);
                   return (
-                    <TableRow key={org.id} className={org.cortesia ? "bg-violet-50/40 dark:bg-violet-950/10" : ""}>
+                    <TableRow key={org.id} className={`${org.cortesia ? "bg-violet-50/40 dark:bg-violet-950/10" : ""} ${isSelected ? "bg-primary/5" : ""}`}>
+                      <TableCell className="pl-4">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleOrgSelection(org.id)}
+                          className="h-4 w-4 accent-primary cursor-pointer"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-1.5">
@@ -1185,7 +1350,7 @@ export default function SuperAdminClient() {
                 })}
                 {filteredOrgs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-10">
                       {search.trim() ? "Nenhuma organização encontrada para a busca." : "Nenhuma organização cadastrada."}
                     </TableCell>
                   </TableRow>
@@ -2337,6 +2502,135 @@ export default function SuperAdminClient() {
               Salvar alteração
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Bulk — Estender Trial ─────────────────────────────────── */}
+      <Dialog open={bulkDialogOpen === "trial"} onOpenChange={(o) => !o && setBulkDialogOpen(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Estender trial — {selectedOrgIds.size} org{selectedOrgIds.size !== 1 ? "s" : ""}</DialogTitle>
+            <DialogDescription>Quantos dias adicionar ao período de experiência?</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="bulkTrialDays">Dias adicionais</Label>
+            <Input
+              id="bulkTrialDays"
+              type="number"
+              min={1}
+              max={365}
+              value={bulkTrialDays}
+              onChange={(e) => setBulkTrialDays(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDialogOpen(null)}>Cancelar</Button>
+            <Button
+              onClick={() => void executeBulkAction("estender_trial")}
+              disabled={bulkLoading || !bulkTrialDays || Number(bulkTrialDays) < 1}
+            >
+              {bulkLoading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processando…</> : "Estender trial"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Comunicado ────────────────────────────────────────────── */}
+      <Dialog open={comunicadoOpen} onOpenChange={(o) => { if (!o) { setComunicadoOpen(false); setComunicadoResult(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />Comunicado direto
+            </DialogTitle>
+            <DialogDescription>
+              Envia e-mail para os <strong>administradores e formadores gerais</strong> das organizações selecionadas.
+            </DialogDescription>
+          </DialogHeader>
+
+          {comunicadoResult ? (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center gap-2 text-emerald-700 font-medium">
+                <CheckCircle2 className="h-5 w-5" />Comunicado enviado!
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Orgs alcançadas", value: comunicadoResult.orgs },
+                  { label: "Admins notificados", value: comunicadoResult.admins },
+                  { label: "Enviados", value: comunicadoResult.sent },
+                  { label: "Falhas", value: comunicadoResult.failed },
+                ].map(({ label, value }) => (
+                  <div key={label} className="p-3 bg-muted rounded-lg">
+                    <div className="text-2xl font-bold">{value}</div>
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setComunicadoResult(null); setComunicadoAssunto(""); setComunicadoMensagem(""); }}>
+                  Novo comunicado
+                </Button>
+                <Button onClick={() => { setComunicadoOpen(false); setComunicadoResult(null); }}>Fechar</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Scope toggle */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Destinatários:</span>
+                <button
+                  onClick={() => setComunicadoScope("filtradas")}
+                  className={`px-2.5 py-1 rounded-full border transition-colors ${comunicadoScope === "filtradas" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-muted-foreground/50"}`}
+                >
+                  Orgs filtradas ({filteredOrgs.length})
+                </button>
+                {selectedOrgIds.size > 0 && (
+                  <button
+                    onClick={() => setComunicadoScope("selecionadas")}
+                    className={`px-2.5 py-1 rounded-full border transition-colors ${comunicadoScope === "selecionadas" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-muted-foreground/50"}`}
+                  >
+                    Selecionadas ({selectedOrgIds.size})
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="comunicadoAssunto">Assunto</Label>
+                <Input
+                  id="comunicadoAssunto"
+                  placeholder="Ex.: Atualização importante da plataforma"
+                  value={comunicadoAssunto}
+                  onChange={(e) => setComunicadoAssunto(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="comunicadoMensagem">Mensagem</Label>
+                <Textarea
+                  id="comunicadoMensagem"
+                  placeholder="Escreva a mensagem que será enviada para os admins das orgs selecionadas…"
+                  rows={5}
+                  value={comunicadoMensagem}
+                  onChange={(e) => setComunicadoMensagem(e.target.value)}
+                />
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                O e-mail será enviado com a identidade visual Formattio para todos os administradores e formadores gerais das organizações no escopo selecionado.
+              </p>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setComunicadoOpen(false)}>Cancelar</Button>
+                <Button
+                  onClick={() => void sendComunicado()}
+                  disabled={comunicadoLoading || !comunicadoAssunto.trim() || !comunicadoMensagem.trim()}
+                >
+                  {comunicadoLoading
+                    ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Enviando…</>
+                    : <><Send className="h-4 w-4 mr-2" />Enviar comunicado</>}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
