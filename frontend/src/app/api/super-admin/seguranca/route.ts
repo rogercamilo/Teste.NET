@@ -4,14 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { logError } from "@/lib/audit-log";
 
 export async function GET() {
-  const session = await auth();
-  const user = session?.user;
-  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (user.role !== "super_admin") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
-
   try {
+    const session = await auth();
+    const user = session?.user;
+    if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    if (user.role !== "super_admin") {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    }
+
     const agora = new Date();
     const inicio7d = new Date(agora);
     inicio7d.setDate(agora.getDate() - 7);

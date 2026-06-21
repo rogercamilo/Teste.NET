@@ -67,6 +67,7 @@ export default function SuperAdminClient() {
   const [segurancaLoaded, setSegurancaLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [metricasError, setMetricasError] = useState<string | null>(null);
 
   // ── Shared filter state (lives here because alert bar modifies it) ─────────
   const [orgFilter, setOrgFilter] = useState<"all" | "trials" | "fantasmas">("all");
@@ -93,23 +94,33 @@ export default function SuperAdminClient() {
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
+    setMetricasError(null);
     try {
       const [orgsRes, metRes] = await Promise.all([
         fetch("/api/super-admin/organizacoes"),
         fetch("/api/super-admin/metricas"),
       ]);
-      if (!orgsRes.ok || !metRes.ok) {
-        const msg = "Falha ao carregar dados do cockpit.";
+
+      // Handle metricas independently — failure here should not block org management
+      if (metRes.ok) {
+        setMetricas(await metRes.json() as Metricas);
+      } else {
+        const body = await metRes.json().catch(() => ({})) as { error?: string };
+        const errMsg = `${body.error ?? "Erro desconhecido"} — HTTP ${metRes.status}`;
+        setMetricasError(errMsg);
+        toast.warning(`Métricas indisponíveis: ${errMsg}`);
+      }
+
+      // Orgs are the cockpit's core — failure here shows the error screen
+      if (!orgsRes.ok) {
+        const body = await orgsRes.json().catch(() => ({})) as { error?: string };
+        const msg = `${body.error ?? "Falha ao carregar organizações"} — HTTP ${orgsRes.status}`;
         setLoadError(msg);
-        toast.error(msg);
+        toast.error("Falha ao carregar cockpit.");
         return;
       }
-      const [orgsData, metricasData] = await Promise.all([
-        orgsRes.json() as Promise<OrgRow[]>,
-        metRes.json() as Promise<Metricas>,
-      ]);
-      setOrgs(orgsData);
-      setMetricas(metricasData);
+
+      setOrgs(await orgsRes.json() as OrgRow[]);
     } catch {
       const msg = "Erro de rede. Verifique sua conexão.";
       setLoadError(msg);
@@ -448,8 +459,19 @@ export default function SuperAdminClient() {
       </div>
 
       {/* Tab content */}
-      {tab === "visao-geral" && metricas && (
-        <TabVisaoGeral metricas={metricas} currFmt={currFmt} mrrFmt={mrrFmt} />
+      {tab === "visao-geral" && (
+        metricas
+          ? <TabVisaoGeral metricas={metricas} currFmt={currFmt} mrrFmt={mrrFmt} />
+          : (
+            <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+              <AlertTriangle className="h-8 w-8 text-amber-500" />
+              <p className="font-medium">Métricas indisponíveis</p>
+              {metricasError && <p className="text-xs text-muted-foreground font-mono max-w-sm">{metricasError}</p>}
+              <Button variant="outline" size="sm" onClick={() => void load()} className="gap-2 mt-1">
+                <RefreshCw className="h-4 w-4" />Tentar novamente
+              </Button>
+            </div>
+          )
       )}
 
       {tab === "organizacoes" && (
@@ -473,8 +495,19 @@ export default function SuperAdminClient() {
         />
       )}
 
-      {tab === "financeiro" && metricas && (
-        <TabFinanceiro metricas={metricas} currFmt={currFmt} mrrFmt={mrrFmt} mrrRealFmt={mrrRealFmt} />
+      {tab === "financeiro" && (
+        metricas
+          ? <TabFinanceiro metricas={metricas} currFmt={currFmt} mrrFmt={mrrFmt} mrrRealFmt={mrrRealFmt} />
+          : (
+            <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+              <AlertTriangle className="h-8 w-8 text-amber-500" />
+              <p className="font-medium">Métricas financeiras indisponíveis</p>
+              {metricasError && <p className="text-xs text-muted-foreground font-mono max-w-sm">{metricasError}</p>}
+              <Button variant="outline" size="sm" onClick={() => void load()} className="gap-2 mt-1">
+                <RefreshCw className="h-4 w-4" />Tentar novamente
+              </Button>
+            </div>
+          )
       )}
 
       {tab === "cortesias" && (

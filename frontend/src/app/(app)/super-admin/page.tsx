@@ -5,9 +5,14 @@ import type { SessionUser } from "@/lib/auth-helpers";
 import SuperAdminClient from "./SuperAdminClient";
 
 export default async function SuperAdminPage() {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
   const user = session?.user as SessionUser | undefined;
-  if (user?.role !== "super_admin") redirect("/dashboard");
+  if (!user || user.role !== "super_admin") redirect("/acesso-plataforma");
 
   return (
     <Suspense>
