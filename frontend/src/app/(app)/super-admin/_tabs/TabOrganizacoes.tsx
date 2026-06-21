@@ -197,9 +197,9 @@ export function TabOrganizacoes({
           <div className="flex flex-wrap items-center gap-2">
             <Select value={filterStatus || "__all__"} onValueChange={(v) => { setFilterStatus(!v || v === "__all__" ? "" : v); setPageOrgs(1); }}>
               <SelectTrigger className="h-7 text-xs w-32 gap-1">
-                <span data-slot="select-value" className="flex flex-1 text-left">
-                  {{ "": "Todos status", ATIVO: "Ativo", TRIAL: "Trial", SUSPENSO: "Suspenso", CANCELADO: "Cancelado" }[filterStatus] ?? "Todos status"}
-                </span>
+                <SelectValue>
+                  {(v: string) => ({ "__all__": "Todos status", ATIVO: "Ativo", TRIAL: "Trial", SUSPENSO: "Suspenso", CANCELADO: "Cancelado" }[v] ?? v)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todos status</SelectItem>
@@ -212,9 +212,9 @@ export function TabOrganizacoes({
 
             <Select value={filterPlano || "__all__"} onValueChange={(v) => { setFilterPlano(!v || v === "__all__" ? "" : v); setPageOrgs(1); }}>
               <SelectTrigger className="h-7 text-xs w-36 gap-1">
-                <span data-slot="select-value" className="flex flex-1 text-left">
-                  {{ "": "Todos planos", GRATUITO: "Gratuito", BASICO: "Básico", INTERMEDIARIO: "Intermediário", AVANCADO: "Avançado", PERSONALIZADO: "Personalizado" }[filterPlano] ?? "Todos planos"}
-                </span>
+                <SelectValue>
+                  {(v: string) => ({ "__all__": "Todos planos", GRATUITO: "Gratuito", BASICO: "Básico", INTERMEDIARIO: "Intermediário", AVANCADO: "Avançado", PERSONALIZADO: "Personalizado" }[v] ?? v)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todos planos</SelectItem>
@@ -228,9 +228,9 @@ export function TabOrganizacoes({
 
             <Select value={filterTipo || "__all__"} onValueChange={(v) => { setFilterTipo(!v || v === "__all__" ? "" : v); setPageOrgs(1); }}>
               <SelectTrigger className="h-7 text-xs w-44 gap-1">
-                <span data-slot="select-value" className="flex flex-1 text-left">
-                  {TIPO_LABELS[filterTipo] ?? "Todos tipos"}
-                </span>
+                <SelectValue>
+                  {(v: string) => TIPO_LABELS[v] ?? (v === "__all__" ? "Todos tipos" : v)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todos tipos</SelectItem>
