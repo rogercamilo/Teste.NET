@@ -132,4 +132,13 @@ export const limiters = {
 
   /** 10 login attempts per email per 30 minutes — account-level brute-force protection. */
   loginPerEmail: (email: string) => rateLimit(`login_email:${email.toLowerCase()}`, 10, 30 * 60 * 1000),
+
+  /** 10 bulk operations per super admin per minute — prevents rapid-fire bulk mutations. */
+  superAdminBulk: (userId: string) => rateLimit(`sa_bulk:${userId}`, 10, 60 * 1000),
+
+  /** 3 mass email sends per super admin per hour — prevents accidental email storms. */
+  superAdminComunicado: (userId: string) => rateLimit(`sa_comunicado:${userId}`, 3, 60 * 60 * 1000),
+
+  /** 5 trial reminder triggers per super admin per hour. */
+  superAdminTrialReminder: (userId: string) => rateLimit(`sa_trial_reminder:${userId}`, 5, 60 * 60 * 1000),
 };

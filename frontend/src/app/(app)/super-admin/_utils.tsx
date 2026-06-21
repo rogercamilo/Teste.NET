@@ -2,16 +2,7 @@
 
 import { BarChart3, CircleAlert } from "lucide-react";
 import type { OrgRow } from "./_types";
-
-// ── Pricing reference ─────────────────────────────────────────────────────────
-
-export const MRR_PRICE: Record<string, number> = {
-  GRATUITO:     0,
-  BASICO:       97,
-  INTERMEDIARIO:197,
-  AVANCADO:     397,
-  PERSONALIZADO:890,
-};
+export { MRR_PRICE } from "@/types";
 
 // ── Style maps ────────────────────────────────────────────────────────────────
 

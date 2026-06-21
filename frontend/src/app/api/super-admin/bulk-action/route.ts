@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { isValidId } from "@/lib/schemas";
+import { limiters } from "@/lib/rate-limit";
 
 type BulkAcao = "suspender" | "reativar" | "estender_trial";
 
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
   const user = session?.user;
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (user.role !== "super_admin") return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+  const rl = await limiters.superAdminBulk(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
     const body = await request.json() as {

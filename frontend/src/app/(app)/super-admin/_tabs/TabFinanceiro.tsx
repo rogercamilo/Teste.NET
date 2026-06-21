@@ -153,7 +153,7 @@ export function TabFinanceiro({ metricas, currFmt, mrrFmt, mrrRealFmt }: Props) 
                 { label: "Personalizado",key: "PERSONALIZADO",color: "bg-emerald-100 text-emerald-700" },
               ].map(({ label, key, color }) => {
                 const count = metricas.planoBreakdown[key] ?? 0;
-                const price = MRR_PRICE[key] ?? 0;
+                const price = (MRR_PRICE as Record<string, number>)[key] ?? 0;
                 const total = count * price;
                 const fmt2 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
                 return (

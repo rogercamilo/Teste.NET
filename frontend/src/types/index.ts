@@ -433,6 +433,15 @@ export const PLANO_ASSINATURA_LABELS: Record<PlanoAssinatura, string> = {
   PERSONALIZADO: "Personalizado",
 };
 
+/** Preços de referência para MRR estimado (R$/mês por organização). */
+export const MRR_PRICE: Record<PlanoAssinatura, number> = {
+  GRATUITO:     0,
+  BASICO:       97,
+  INTERMEDIARIO:197,
+  AVANCADO:     397,
+  PERSONALIZADO:890,
+};
+
 /** Retorna true para tipos de org que têm acesso às features canônicas (Jornada Vocacional, documentos). */
 export function hasCanonicalAccess(tipoOrganizacao: TipoOrganizacao | null | undefined): boolean {
   return tipoOrganizacao === "nova_comunidade" || tipoOrganizacao === "instituto_religioso";

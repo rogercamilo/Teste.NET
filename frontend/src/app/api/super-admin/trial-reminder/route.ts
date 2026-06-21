@@ -3,12 +3,16 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sendTrialExpiringEmail } from "@/lib/email";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { limiters } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const session = await auth();
   const user = session?.user;
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (user.role !== "super_admin") return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+  const rl = await limiters.superAdminTrialReminder(user.id ?? "unknown");
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
     const agora = new Date();

@@ -3,15 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { logError } from "@/lib/audit-log";
-
-// Preços de referência para MRR estimado (R$/mês por organização)
-const MRR_PRICE: Record<string, number> = {
-  GRATUITO:     0,
-  BASICO:       97,
-  INTERMEDIARIO:197,
-  AVANCADO:     397,
-  PERSONALIZADO:890,
-};
+import { MRR_PRICE } from "@/types";
 
 export async function GET() {
   try {
