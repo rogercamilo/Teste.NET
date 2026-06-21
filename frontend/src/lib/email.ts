@@ -529,6 +529,53 @@ export async function sendLimitAlertEmail({
   return send(organizacaoId, email, `Alerta de limite — ${subjectRec} em ${safePct}% (${subjectOrg})`, html);
 }
 
+export async function sendPortalMagicLinkEmail({
+  organizacaoId,
+  nome,
+  email,
+  magicLinkUrl,
+}: {
+  organizacaoId: string;
+  nome: string;
+  email: string;
+  magicLinkUrl: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const safeName = escapeHtml(nome);
+  const safeMagicLink = safeUrl(magicLinkUrl);
+  const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <div style="background: #B25433; padding: 24px 32px; border-radius: 8px 8px 0 0;">
+        <span style="color: white; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">Formattio</span>
+      </div>
+      <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; background: white;">
+        <h2 style="margin: 0 0 16px; font-size: 20px; color: #1a1a1a;">Olá, ${safeName}!</h2>
+        <p style="margin: 0 0 16px; color: #374151; font-size: 14px; line-height: 1.6;">
+          Recebemos uma solicitação de acesso ao seu portal de formação. Clique no botão abaixo para entrar.
+        </p>
+        <p style="margin: 0 0 24px; color: #6b7280; font-size: 13px;">
+          O link é válido por <strong>15 minutos</strong>.
+        </p>
+        <p style="text-align: center; margin: 32px 0;">
+          <a href="${safeMagicLink}"
+             style="background: #B25433; color: white; text-decoration: none;
+                    padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 15px;">
+            Acessar meu portal
+          </a>
+        </p>
+        <p style="color: #9ca3af; font-size: 12px;">
+          Se não conseguir clicar no botão, copie e cole este link no navegador:<br/>
+          <a href="${safeMagicLink}" style="color: #B25433;">${safeMagicLink}</a>
+        </p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+        <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+          Se não solicitou este acesso, ignore este e-mail. Nenhuma ação é necessária.
+        </p>
+      </div>
+    </div>
+  `;
+  return send(organizacaoId, email, "Seu link de acesso ao portal — Formattio", html);
+}
+
 export async function sendComunicadoEmail({
   organizacaoId,
   to,
