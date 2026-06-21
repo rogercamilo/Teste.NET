@@ -1,6 +1,7 @@
 ﻿import { auth } from "@/auth.config";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { jwtVerify } from "jose";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -44,14 +45,37 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
   };
 }
 
-export default auth(function proxy(req) {
+// Rotas públicas do portal do formando (autenticação própria via portal_session)
+const PORTAL_PUBLIC_EXACT = new Set(["/portal", "/portal/verificar"]);
+const PORTAL_PUBLIC_PREFIXES = ["/api/portal/solicitar-acesso", "/api/portal/verificar"];
+
+function isPortalPublic(pathname: string): boolean {
+  return (
+    PORTAL_PUBLIC_EXACT.has(pathname) ||
+    PORTAL_PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
+  );
+}
+
+function isPortalProtected(pathname: string): boolean {
+  return (
+    (pathname.startsWith("/portal/") || pathname.startsWith("/api/portal/")) &&
+    !isPortalPublic(pathname)
+  );
+}
+
+export default auth(async function proxy(req) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isLoggedIn = !!req.auth;
   const role = req.auth?.user?.role;
   const { pathname } = req.nextUrl;
 
   // Exact matches (paths where startsWith would be too broad)
-  const publicExact = ["/"];
+  const publicExact = [
+    "/",
+    // Portal do formando — páginas públicas exatas (não usar prefixo: /portal/* inclui rotas protegidas)
+    "/portal",
+    "/portal/verificar",
+  ];
   // Prefix matches
   const publicPrefixes = [
     "/login",
@@ -84,6 +108,9 @@ export default auth(function proxy(req) {
     "/api/auth/recuperar-senha",
     "/ativar-notificacoes",
     "/api/push/subscribe-formando",
+    // Portal do formando — API pública (magic link)
+    "/api/portal/solicitar-acesso",
+    "/api/portal/verificar",
   ];
   // Only /api/convites/<token> (exactly one non-empty segment) is public.
   // /api/convites and /api/convites/ (admin list/create/delete) remain auth-protected.
@@ -124,6 +151,41 @@ export default auth(function proxy(req) {
       }
     }
   }
+
+  // ── Portal do formando — autenticação independente do NextAuth ───────────────
+  if (isPortalProtected(pathname)) {
+    const portalToken = req.cookies.get("portal_session")?.value;
+    if (!portalToken) {
+      return NextResponse.redirect(new URL("/portal", req.url));
+    }
+    try {
+      const authSecret = process.env.AUTH_SECRET;
+      if (!authSecret) throw new Error("AUTH_SECRET não configurado");
+      const { payload } = await jwtVerify(
+        portalToken,
+        new TextEncoder().encode(authSecret),
+        { audience: "portal" }
+      );
+      const formandoId = payload.formandoId as string;
+      const formandoOrg = payload.organizacaoId as string;
+      if (!formandoId || !formandoOrg) throw new Error("Payload inválido");
+
+      const requestHeaders = new Headers(req.headers);
+      requestHeaders.set("x-nonce", nonce);
+      requestHeaders.set("x-formando-id", formandoId);
+      requestHeaders.set("x-formando-org", formandoOrg);
+      const response = NextResponse.next({ request: { headers: requestHeaders } });
+      for (const [key, value] of Object.entries(buildSecurityHeaders(nonce))) {
+        response.headers.set(key, value);
+      }
+      return response;
+    } catch {
+      const response = NextResponse.redirect(new URL("/portal", req.url));
+      response.cookies.set("portal_session", "", { maxAge: 0, path: "/" });
+      return response;
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────────
 
   if (!isLoggedIn && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));

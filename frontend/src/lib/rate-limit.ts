@@ -141,4 +141,7 @@ export const limiters = {
 
   /** 5 trial reminder triggers per super admin per hour. */
   superAdminTrialReminder: (userId: string) => rateLimit(`sa_trial_reminder:${userId}`, 5, 60 * 60 * 1000),
+
+  /** 3 magic link requests per email per 15 minutes — portal do formando. */
+  portalMagicLink: (email: string) => rateLimit(`portal_ml:${email.toLowerCase()}`, 3, 15 * 60 * 1000),
 };

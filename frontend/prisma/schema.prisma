@@ -115,6 +115,7 @@ enum TipoNotificacao {
   grade_atribuida
   grade_atualizada
   dados_formando_pendentes
+  justificativa_formando
 }
 
 // ==========================================================
@@ -610,6 +611,9 @@ model PresencaFormacao {
   nivelFormativo String   // NivelFormativo
   presente       Boolean  @default(false)
   justificativa  String?
+  // Campos do Portal do Formando — fonte de verdade continua sendo o formador
+  confirmacaoFormando   Boolean? // null=sem resposta, true=confirmou presença, false=avisou ausência
+  justificativaFormando String?  // texto enviado pelo próprio formando
   criadoEm      DateTime @default(now())
 
   organizacao    Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
