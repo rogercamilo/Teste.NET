@@ -128,7 +128,11 @@ export function TabLgpd({ lgpd, orgs, onReload }: Props) {
               <div className="space-y-1.5">
                 <Label>Organização afetada</Label>
                 <Select value={incidenteOrgId || "__all__"} onValueChange={(v) => setIncidenteOrgId(!v || v === "__all__" ? "" : v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <span data-slot="select-value" className="flex flex-1 text-left">
+                      {incidenteOrgId ? (orgs.find((o) => o.id === incidenteOrgId)?.nome ?? incidenteOrgId) : "Todas as organizações"}
+                    </span>
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">Todas as organizações</SelectItem>
                     {orgs.map((o) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
