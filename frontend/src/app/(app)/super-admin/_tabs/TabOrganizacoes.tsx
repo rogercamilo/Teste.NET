@@ -196,7 +196,9 @@ export function TabOrganizacoes({
 
           <div className="flex flex-wrap items-center gap-2">
             <Select value={filterStatus || "__all__"} onValueChange={(v) => { setFilterStatus(!v || v === "__all__" ? "" : v); setPageOrgs(1); }}>
-              <SelectTrigger className="h-7 text-xs w-32 gap-1"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="h-7 text-xs w-32 gap-1">
+                <SelectValue>{{ "": "Todos status", ATIVO: "Ativo", TRIAL: "Trial", SUSPENSO: "Suspenso", CANCELADO: "Cancelado" }[filterStatus] ?? "Todos status"}</SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todos status</SelectItem>
                 <SelectItem value="ATIVO">Ativo</SelectItem>
@@ -207,7 +209,9 @@ export function TabOrganizacoes({
             </Select>
 
             <Select value={filterPlano || "__all__"} onValueChange={(v) => { setFilterPlano(!v || v === "__all__" ? "" : v); setPageOrgs(1); }}>
-              <SelectTrigger className="h-7 text-xs w-36 gap-1"><SelectValue placeholder="Plano" /></SelectTrigger>
+              <SelectTrigger className="h-7 text-xs w-36 gap-1">
+                <SelectValue>{{ "": "Todos planos", GRATUITO: "Gratuito", BASICO: "Básico", INTERMEDIARIO: "Intermediário", AVANCADO: "Avançado", PERSONALIZADO: "Personalizado" }[filterPlano] ?? "Todos planos"}</SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todos planos</SelectItem>
                 <SelectItem value="GRATUITO">Gratuito</SelectItem>
@@ -219,7 +223,9 @@ export function TabOrganizacoes({
             </Select>
 
             <Select value={filterTipo || "__all__"} onValueChange={(v) => { setFilterTipo(!v || v === "__all__" ? "" : v); setPageOrgs(1); }}>
-              <SelectTrigger className="h-7 text-xs w-44 gap-1"><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectTrigger className="h-7 text-xs w-44 gap-1">
+                <SelectValue>{TIPO_LABELS[filterTipo] ?? "Todos tipos"}</SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todos tipos</SelectItem>
                 <SelectItem value="nova_comunidade">Nova Comunidade</SelectItem>
