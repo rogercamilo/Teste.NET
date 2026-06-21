@@ -29,62 +29,66 @@ export async function GET(request: Request) {
     }
 
     const nivel = formando.nivelFormativo as NivelFormativo;
-
-    const presencas = await prisma.presencaFormacao.findMany({
-      where: { formandoId, organizacaoId, nivelFormativo: nivel },
-      select: {
-        id: true,
-        agendamentoId: true,
-        data: true,
-        formacaoTema: true,
-        presente: true,
-        justificativa: true,
-        confirmacaoFormando: true,
-        justificativaFormando: true,
-        agendamento: { select: { tipoFormacao: true } },
-      },
-      orderBy: { data: "desc" },
-      take: 100,
-    });
-
-    const total = presencas.length;
-    const presentes = presencas.filter((p) => p.presente).length;
-    const percentual = total > 0 ? Math.round((presentes / total) * 100) : 0;
-
+    // C2 — wherePresenca reutilizado nas três queries de presença
+    const wherePresenca = { formandoId, organizacaoId, nivelFormativo: nivel };
     const agora = new Date();
-    const proximosEncontros = formando.grupoFormacaoId
-      ? await prisma.agendamento.findMany({
-          where: {
-            grupoFormacaoId: formando.grupoFormacaoId,
-            organizacaoId,
-            dataInicio: { gte: agora },
-            status: { not: "cancelada" },
-            deletedAt: null,
-          },
+
+    // C6 — todas as queries independentes rodando em paralelo
+    const [total, presentes, historico, proximosEncontros, progressoEtapa] =
+      await Promise.all([
+        // C2 — COUNT separado: percentual correto independente do limit do histórico
+        prisma.presencaFormacao.count({ where: wherePresenca }),
+        prisma.presencaFormacao.count({ where: { ...wherePresenca, presente: true } }),
+        prisma.presencaFormacao.findMany({
+          where: wherePresenca,
           select: {
             id: true,
+            agendamentoId: true,
+            data: true,
             formacaoTema: true,
-            tipoFormacao: true,
-            dataInicio: true,
-            dataFim: true,
-            local: true,
+            presente: true,
+            justificativa: true,
+            confirmacaoFormando: true,
+            justificativaFormando: true,
+            agendamento: { select: { tipoFormacao: true } },
           },
-          orderBy: { dataInicio: "asc" },
-          take: 5,
-        })
-      : [];
+          orderBy: { data: "desc" },
+          take: 100,
+        }),
+        formando.grupoFormacaoId
+          ? prisma.agendamento.findMany({
+              where: {
+                grupoFormacaoId: formando.grupoFormacaoId,
+                organizacaoId,
+                dataInicio: { gte: agora },
+                status: { not: "cancelada" },
+                deletedAt: null,
+              },
+              select: {
+                id: true,
+                formacaoTema: true,
+                tipoFormacao: true,
+                dataInicio: true,
+                dataFim: true,
+                local: true,
+              },
+              orderBy: { dataInicio: "asc" },
+              take: 5,
+            })
+          : Promise.resolve([]),
+        prisma.progressoEtapa.findUnique({
+          where: {
+            formandoId_nivelFormativo: { formandoId, nivelFormativo: nivel },
+          },
+          select: {
+            formacoesComunitariasRealizadas: true,
+            retirosComunitariosRealizados: true,
+            retirosPessoaisRealizados: true,
+          },
+        }),
+      ]);
 
-    const progressoEtapa = await prisma.progressoEtapa.findUnique({
-      where: {
-        formandoId_nivelFormativo: { formandoId, nivelFormativo: nivel },
-      },
-      select: {
-        formacoesComunitariasRealizadas: true,
-        retirosComunitariosRealizados: true,
-        retirosPessoaisRealizados: true,
-      },
-    });
-
+    const percentual = total > 0 ? Math.round((presentes / total) * 100) : 0;
     const requisitos = REQUISITOS_ETAPAS[nivel] ?? null;
 
     return NextResponse.json({
@@ -100,7 +104,7 @@ export async function GET(request: Request) {
         percentual,
         total,
         presentes,
-        historico: presencas.map((p) => ({
+        historico: historico.map((p) => ({
           id: p.id,
           agendamentoId: p.agendamentoId,
           data: p.data.toISOString(),

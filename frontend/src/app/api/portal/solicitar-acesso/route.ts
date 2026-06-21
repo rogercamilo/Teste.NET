@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { limiters } from "@/lib/rate-limit";
 import { signPortalMagicToken } from "@/lib/portal-auth";
 import { sendPortalMagicLinkEmail } from "@/lib/email";
-import { logError } from "@/lib/audit-log";
+import { logError, getClientIp } from "@/lib/audit-log";
 
 export async function POST(request: Request) {
   try {
@@ -15,15 +15,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "E-mail inválido" }, { status: 400 });
     }
 
-    const rl = await limiters.portalMagicLink(email);
-    if (!rl.allowed) {
+    // C4 — rate limit por IP (impede rotação de e-mails) + por e-mail
+    const ip = getClientIp(request);
+    const [rlIp, rlEmail] = await Promise.all([
+      limiters.portalMagicLinkIp(ip),
+      limiters.portalMagicLink(email),
+    ]);
+    if (!rlIp.allowed || !rlEmail.allowed) {
       return NextResponse.json(
         { error: "Muitas tentativas. Aguarde alguns minutos e tente novamente." },
         { status: 429 }
       );
     }
 
-    const formando = await prisma.formando.findFirst({
+    // C1 — findMany em vez de findFirst: mesmo e-mail em orgs diferentes recebe
+    // um link correto para cada org, evitando autenticação no tenant errado.
+    const formandos = await prisma.formando.findMany({
       where: {
         email: { equals: email, mode: "insensitive" },
         ativo: true,
@@ -32,7 +39,7 @@ export async function POST(request: Request) {
       select: { id: true, nome: true, email: true, organizacaoId: true },
     });
 
-    if (formando) {
+    for (const formando of formandos) {
       try {
         const token = await signPortalMagicToken({
           formandoId: formando.id,

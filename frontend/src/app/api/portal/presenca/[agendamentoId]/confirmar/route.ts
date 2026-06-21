@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { limiters } from "@/lib/rate-limit";
 import { logError } from "@/lib/audit-log";
+import { isValidId } from "@/lib/schemas";
 
 type Params = { params: Promise<{ agendamentoId: string }> };
 
@@ -22,6 +23,11 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const { agendamentoId } = await params;
+
+  // C8 — valida formato do ID antes de usar no banco
+  if (!isValidId(agendamentoId)) {
+    return NextResponse.json({ error: "Agendamento não encontrado" }, { status: 404 });
+  }
 
   try {
     const presenca = await prisma.presencaFormacao.findFirst({

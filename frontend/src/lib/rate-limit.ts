@@ -144,4 +144,7 @@ export const limiters = {
 
   /** 3 magic link requests per email per 15 minutes — portal do formando. */
   portalMagicLink: (email: string) => rateLimit(`portal_ml:${email.toLowerCase()}`, 3, 15 * 60 * 1000),
+
+  /** 10 magic link requests per IP per 15 minutes — second layer for portal, blocks email-rotation attacks. */
+  portalMagicLinkIp: (ip: string) => rateLimit(`portal_ml_ip:${ip}`, 10, 15 * 60 * 1000),
 };
