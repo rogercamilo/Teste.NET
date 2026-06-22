@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useComunidade, useTermos, useEtapaLabels } from "@/lib/data-store";
 import type { GrupoFormacao } from "@/types";
 import { passwordErrorMessage } from "@/lib/password-validation";
@@ -294,6 +295,7 @@ function PerfilTab({
   userEmail: string;
 }) {
   const router = useRouter();
+  const { update } = useSession();
   const { formador } = useTermos();
   const [usuario, setUsuario] = useState<UserPublic | null>(null);
 
@@ -355,6 +357,9 @@ function PerfilTab({
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      // Re-sincroniza o token (passwordChangedAt) para a verificação periódica do JWT não
+      // derrubar a própria sessão que acabou de alterar a senha.
+      await update();
       router.refresh();
     } finally {
       setSavingPassword(false);

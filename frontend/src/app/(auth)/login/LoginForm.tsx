@@ -34,6 +34,8 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
 
   const errorMessages: Record<string, string> = {
     CredentialsSignin: "E-mail ou senha inválidos.",
+    TooManyAttempts:
+      "Muitas tentativas de acesso. Aguarde alguns minutos e tente novamente — ou redefina sua senha em \"Esqueceu a senha?\".",
     OAuthAccountNotLinked: "Este e-mail já está cadastrado com outro método.",
     Default: "Erro ao autenticar. Tente novamente.",
   };
@@ -57,6 +59,8 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
     if (result?.error === "MFARequired") {
       setMfaRequired(true);
       setFormError("Digite o código de 6 dígitos do seu aplicativo autenticador.");
+    } else if (result?.error === "TooManyAttempts") {
+      setFormError(errorMessages.TooManyAttempts);
     } else if (result?.error) {
       if (mfaRequired) {
         setFormError("Código inválido. Verifique o aplicativo autenticador.");

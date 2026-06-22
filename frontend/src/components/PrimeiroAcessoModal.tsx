@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ interface Props {
 
 export default function PrimeiroAcessoModal({ primeiroAcesso }: Props) {
   const router = useRouter();
+  const { update } = useSession();
   const [visible, setVisible] = useState(primeiroAcesso);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -56,6 +58,9 @@ export default function PrimeiroAcessoModal({ primeiroAcesso }: Props) {
 
       setVisible(false);
       toast.success("Senha definida com sucesso! Bem-vindo(a)!");
+      // Re-sincroniza o token (passwordChangedAt + primeiroAcesso=false) ANTES do refresh,
+      // senão a verificação periódica invalida a sessão recém-autenticada e o modal reaparece.
+      await update();
       router.refresh();
     } finally {
       setSaving(false);

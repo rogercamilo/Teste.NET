@@ -110,9 +110,11 @@ describe("rateLimit (in-memory path)", () => {
 });
 
 describe("limiters", () => {
-  it("login blocks after 5 attempts", async () => {
+  it("login blocks after 50 attempts", async () => {
     const ip = k("login-ip");
-    for (let i = 0; i < 5; i++) await limiters.login(ip);
+    // Limite por IP deliberadamente alto: usuários legítimos partilham IP (Wi-Fi comunitário,
+    // CGNAT). A proteção por conta vem de loginPerEmail + bloqueio de conta.
+    for (let i = 0; i < 50; i++) await limiters.login(ip);
     const result = await limiters.login(ip);
     expect(result.allowed).toBe(false);
   });

@@ -12,6 +12,13 @@ class MFARequiredError extends CredentialsSignin {
   code = "MFARequired";
 }
 
+// Sinaliza ao cliente que o acesso foi barrado por rate-limit (IP/e-mail) ou bloqueio
+// temporário da conta — distinto de credenciais inválidas, para a UI dar a orientação certa
+// ("aguarde alguns minutos" em vez de "senha incorreta"). Não revela se a conta existe.
+class TooManyAttemptsError extends CredentialsSignin {
+  code = "TooManyAttempts";
+}
+
 const providers: NextAuthConfig["providers"] = [
   Credentials({
     name: "Credenciais",
@@ -27,23 +34,28 @@ const providers: NextAuthConfig["providers"] = [
       const ip = request ? getClientIp(request as Request) : "unknown";
       const email = (credentials.email as string).toLowerCase().trim();
 
-      const rlIp = await limiters.login(ip);
-      if (!rlIp.allowed) {
-        logAction("login_blocked", undefined, ip, { email, reason: "ip_rate_limit" });
-        return null;
+      // Só aplica o limite por IP quando o IP é conhecido. Atrás de um proxy mal configurado
+      // (sem x-real-ip / TRUST_PROXY) getClientIp devolve "unknown" para todos — aplicar o
+      // limite nesse caso colapsaria a plataforma inteira num único balde de 50/15min.
+      if (ip !== "unknown") {
+        const rlIp = await limiters.login(ip);
+        if (!rlIp.allowed) {
+          logAction("login_blocked", undefined, ip, { email, reason: "ip_rate_limit" });
+          throw new TooManyAttemptsError();
+        }
       }
 
       const rlEmail = await limiters.loginPerEmail(email);
       if (!rlEmail.allowed) {
         logAction("login_blocked", undefined, ip, { email, reason: "email_rate_limit" });
-        return null;
+        throw new TooManyAttemptsError();
       }
 
       // Check account lockout before the expensive password verification
       const candidate = await findByEmailGlobal(email);
       if (candidate?.lockedUntil && candidate.lockedUntil > new Date()) {
         logAction("login_blocked", candidate.id, ip, { email, reason: "account_locked" }, candidate.organizacaoId);
-        return null;
+        throw new TooManyAttemptsError();
       }
 
       const user = await authenticateGlobal(email, credentials.password as string);
@@ -112,7 +124,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         if (account?.provider === "google") {
           if (!user.email) {
@@ -143,6 +155,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.passwordChangedAt =
             (user as { passwordChangedAt?: number | null }).passwordChangedAt ?? null;
         }
+      } else if (trigger === "update" && token.id) {
+        // Atualização explícita da sessão (useSession().update()), disparada logo após o
+        // próprio usuário alterar a senha (modal de primeiro acesso ou Configurações).
+        // Re-sincroniza o token com a BD — incluindo passwordChangedAt — para que a sessão
+        // que efetuou a troca NÃO seja invalidada pela verificação periódica abaixo.
+        const dbUser = await findById(token.id as string, token.organizacaoId as string | undefined);
+        if (!dbUser || !dbUser.ativo) return null;
+        token.primeiroAcesso = dbUser.primeiroAcesso ?? false;
+        token.grupoFormacaoId = dbUser.grupoFormacaoId ?? null;
+        token.role = dbUser.perfil;
+        token.organizacaoId = dbUser.organizacaoId;
+        token.passwordChangedAt = dbUser.passwordChangedAt?.getTime() ?? null;
+        token._lastDbCheck = Date.now();
       } else if (token.id) {
         // Periodically re-validate the token against the DB (throttled to 30s intervals).
         // Checks: primeiroAcesso flag, and whether the password was changed after token issuance.
@@ -152,9 +177,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const dbUser = await findById(token.id as string, token.organizacaoId as string | undefined);
           if (!dbUser || !dbUser.ativo) return null; // User deleted or deactivated — invalidate session
 
-          // Invalidate if password was changed after this token was issued
-          const tokenIssuedAt = (token.iat as number) * 1000;
-          if (dbUser.passwordChangedAt && dbUser.passwordChangedAt.getTime() > tokenIssuedAt) {
+          // Invalida apenas se a senha foi alterada por OUTRA sessão depois de este token ter
+          // sido emitido/sincronizado. Usa o passwordChangedAt guardado no token como linha de
+          // base (atualizado no login e no trigger "update"); cai para token.iat em tokens
+          // antigos que ainda não possuíam o campo, preservando o comportamento anterior.
+          const baseline =
+            (token.passwordChangedAt as number | null | undefined) ?? (token.iat as number) * 1000;
+          if (dbUser.passwordChangedAt && dbUser.passwordChangedAt.getTime() > baseline) {
             return null;
           }
 

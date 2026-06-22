@@ -100,8 +100,13 @@ export async function rateLimit(
 }
 
 export const limiters = {
-  /** 5 attempts per IP per 15 minutes — login endpoint. */
-  login: (ip: string) => rateLimit(`login:${ip}`, 5, 15 * 60 * 1000),
+  /**
+   * 50 attempts per IP per 15 minutes — coarse anti-abuse guard for the login endpoint.
+   * Kept deliberately high because legitimate users frequently share a public IP (parish/
+   * community Wi-Fi, mobile carrier CGNAT). Per-account brute-force protection is provided
+   * by `loginPerEmail` + account lockout, not by this IP limit.
+   */
+  login: (ip: string) => rateLimit(`login:${ip}`, 50, 15 * 60 * 1000),
 
   /** 3 new accounts per IP per hour — registration. */
   register: (ip: string) => rateLimit(`register:${ip}`, 3, 60 * 60 * 1000),
