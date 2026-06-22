@@ -96,6 +96,37 @@ export async function GET() {
         : [];
     const orgNomeMap = Object.fromEntries(orgNames.map((o) => [o.id, o.nome]));
 
+    // Saúde do pool de conexões do PostgreSQL. Isolado num try/catch próprio para que uma
+    // falha aqui (permissão, versão) não derrube todo o painel de infraestrutura.
+    let conexoes:
+      | { total: number; ativas: number; ociosas: number; max: number; percentUso: number }
+      | null = null;
+    try {
+      const rows = await prisma.$queryRaw<
+        { max: number; total: number; ativas: number; ociosas: number }[]
+      >`
+        SELECT
+          current_setting('max_connections')::int AS max,
+          count(*)::int AS total,
+          count(*) FILTER (WHERE state = 'active')::int AS ativas,
+          count(*) FILTER (WHERE state = 'idle')::int AS ociosas
+        FROM pg_stat_activity
+        WHERE backend_type = 'client backend'
+      `;
+      const r = rows[0];
+      if (r) {
+        conexoes = {
+          total: r.total,
+          ativas: r.ativas,
+          ociosas: r.ociosas,
+          max: r.max,
+          percentUso: r.max > 0 ? Math.round((r.total / r.max) * 100) : 0,
+        };
+      }
+    } catch (err) {
+      logError("super-admin/servicos/conexoes", err);
+    }
+
     const totalBytes = storageAggregate._sum.tamanho ?? 0;
     const hasR2 = !!(process.env.R2_BUCKET_NAME && process.env.R2_ACCOUNT_ID);
 
@@ -134,6 +165,7 @@ export async function GET() {
         auditLogs: auditLogsCount,
         arquivos: arquivosCount,
       },
+      conexoes,
       recentUploads: recentUploads.map((a) => ({
         id: a.id,
         nome: a.nome,

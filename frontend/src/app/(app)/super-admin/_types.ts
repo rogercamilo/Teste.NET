@@ -76,6 +76,14 @@ export interface ServicosData {
     auditLogs: number;
     arquivos: number;
   };
+  // Saúde do pool de conexões do PostgreSQL (pg_stat_activity). Null se a query falhar.
+  conexoes?: {
+    total: number;
+    ativas: number;
+    ociosas: number;
+    max: number;
+    percentUso: number;
+  } | null;
   recentUploads: {
     id: string;
     nome: string;

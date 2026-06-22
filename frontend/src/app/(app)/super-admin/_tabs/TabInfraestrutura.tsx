@@ -96,6 +96,36 @@ export function TabInfraestrutura({ servicos }: Props) {
                 </div>
               ))}
             </div>
+
+            {servicos.conexoes && (() => {
+              const { total, ativas, ociosas, max, percentUso } = servicos.conexoes!;
+              const tone = percentUso >= 80 ? "critico" : percentUso >= 60 ? "alerta" : "ok";
+              const corTexto =
+                tone === "critico" ? "text-red-600" : tone === "alerta" ? "text-amber-600" : "text-emerald-600";
+              const corBarra =
+                tone === "critico" ? "bg-red-500" : tone === "alerta" ? "bg-amber-500" : "bg-emerald-500";
+              return (
+                <div className="mt-3 pt-3 border-t space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                      Conexões
+                    </span>
+                    <span className={`text-xs font-semibold tabular-nums ${corTexto}`}>
+                      {total} / {max} ({percentUso}%)
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <div className={`h-full rounded-full ${corBarra}`} style={{ width: `${Math.min(100, percentUso)}%` }} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {ativas} ativas · {ociosas} ociosas
+                    {percentUso >= 80 && (
+                      <span className="text-red-600 font-medium"> — considere um pooler (PgBouncer/Accelerate)</span>
+                    )}
+                  </p>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
