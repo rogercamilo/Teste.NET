@@ -77,9 +77,16 @@ export async function getPortalDashboardData(
   if (!formando) return null;
 
   const nivel = formando.nivelFormativo as NivelFormativo;
-  // wherePresenca reutilizado nas queries de presença da etapa vigente
-  const wherePresenca = { formandoId, organizacaoId, nivelFormativo: nivel };
   const agora = new Date();
+  // Presença e histórico consideram apenas encontros já realizados (data < agora).
+  // Registros de presença de eventos futuros existem para o RSVP, mas não devem
+  // entrar no percentual nem surgir como "ausente" no histórico.
+  const wherePresenca = {
+    formandoId,
+    organizacaoId,
+    nivelFormativo: nivel,
+    data: { lt: agora },
+  };
 
   const [total, presentes, historico, proximosEncontros, progressoEtapa] =
     await Promise.all([
