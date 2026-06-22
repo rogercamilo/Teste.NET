@@ -99,6 +99,7 @@ export default function DashboardClient({
             size="sm"
             onClick={handleLogout}
             disabled={loggingOut}
+            aria-label="Sair"
             className="gap-1.5 text-muted-foreground"
           >
             <LogOut className="h-4 w-4" />
