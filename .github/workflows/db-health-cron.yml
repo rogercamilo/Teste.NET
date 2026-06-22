@@ -13,7 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping endpoint de saúde do banco
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          curl -fsS --max-time 30 \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://www.formattio.com.br/api/cron/db-health"
+          # Diagnóstico sem vazar o segredo: imprime só o comprimento (0 = secret ausente/nome errado).
+          echo "CRON_SECRET recebido pelo workflow: ${#CRON_SECRET} caracteres"
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.formattio.com.br/api/cron/db-health")
+          echo "Resposta do endpoint: HTTP $code"
+          test "$code" = "200"
