@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Cookie, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ async function saveConsent(consent: Omit<ConsentState, "version">) {
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const bannerRef = useRef<HTMLDivElement>(null);
   const [analiticos, setAnaliticos] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [preferencias, setPreferencias] = useState(false);
@@ -64,6 +65,24 @@ export default function CookieBanner() {
       setTimeout(() => setVisible(true), 800);
     }
   }, []);
+
+  // Reserva espaço no rodapé igual à altura real do banner enquanto ele estiver
+  // visível, para não cobrir o botão de ação da página (ex.: "Próximo" no
+  // onboarding, sobretudo no mobile, onde o banner é mais alto). O ResizeObserver
+  // mantém o padding sincronizado ao expandir "Personalizar" ou redimensionar.
+  useEffect(() => {
+    if (!visible) return;
+    const el = bannerRef.current;
+    if (!el) return;
+    const apply = () => { document.body.style.paddingBottom = `${el.offsetHeight}px`; };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.body.style.paddingBottom = "";
+    };
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -84,6 +103,7 @@ export default function CookieBanner() {
 
   return (
     <div
+      ref={bannerRef}
       role="dialog"
       aria-modal="true"
       aria-label="Preferências de cookies"
