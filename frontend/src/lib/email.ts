@@ -529,6 +529,51 @@ export async function sendLimitAlertEmail({
   return send(organizacaoId, email, `Alerta de limite — ${subjectRec} em ${safePct}% (${subjectOrg})`, html);
 }
 
+export async function sendDbPoolAlertEmail({
+  organizacaoId,
+  email,
+  nome,
+  percentUso,
+  total,
+  max,
+  appUrl,
+}: {
+  organizacaoId: string;
+  email: string;
+  nome: string;
+  percentUso: number;
+  total: number;
+  max: number;
+  appUrl: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const safeName = escapeHtml(nome);
+  const safeAppUrl = safeUrl(appUrl);
+  const pct = Number(percentUso).toFixed(0);
+  const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #dc2626;">⚠️ Pool de conexões do banco em ${pct}%</h2>
+      <p>Olá, ${safeName}.</p>
+      <p>O PostgreSQL está usando <strong>${total} de ${max}</strong> conexões disponíveis
+         (<strong>${pct}%</strong>), acima do limite de alerta de 80%.</p>
+      <p>Sob carga sustentada perto do limite, novas conexões podem falhar. Recomenda-se
+         adotar um <strong>connection pooler</strong> (PgBouncer em modo transaction ou
+         Prisma Accelerate) ou revisar o <code>DATABASE_POOL_SIZE</code> por réplica.</p>
+      <p style="text-align: center; margin: 32px 0;">
+        <a href="${safeAppUrl}/super-admin?tab=infraestrutura"
+           style="background: #6d28d9; color: white; text-decoration: none;
+                  padding: 12px 24px; border-radius: 6px; font-weight: bold;">
+          Ver infraestrutura
+        </a>
+      </p>
+      <p style="color: #999; font-size: 12px;">
+        Você está recebendo este alerta porque é administrador da plataforma. Novo alerta só
+        será enviado após algumas horas, mesmo que a condição persista.
+      </p>
+    </div>
+  `;
+  return send(organizacaoId, email, `⚠️ Pool de conexões em ${pct}% — Formattio`, html);
+}
+
 export async function sendPortalMagicLinkEmail({
   organizacaoId,
   nome,

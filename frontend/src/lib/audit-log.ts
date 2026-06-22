@@ -108,7 +108,8 @@ export type AuditAction =
   | "plan_limit_email_enviado"
   | "trial_reminder_sent"
   | "comunicado_sent"
-  | "bulk_action_applied";
+  | "bulk_action_applied"
+  | "db_pool_alert";
 
 export interface AuditEntry {
   timestamp: string;

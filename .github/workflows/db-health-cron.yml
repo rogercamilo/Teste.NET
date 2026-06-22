@@ -1,0 +1,19 @@
+name: DB pool health alert
+
+# Verifica o uso do pool de conexões do PostgreSQL e dispara alerta por e-mail aos
+# super admins quando cruza 80% (lógica e anti-spam ficam no endpoint). Precisa do
+# secret CRON_SECRET no repositório, com o MESMO valor da variável CRON_SECRET no Railway.
+on:
+  schedule:
+    - cron: "*/15 * * * *" # a cada 15 minutos (UTC)
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping endpoint de saúde do banco
+        run: |
+          curl -fsS --max-time 30 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.formattio.com.br/api/cron/db-health"

@@ -95,6 +95,8 @@ export default auth(async function proxy(req) {
     "/api/public/",
     "/api/registro",
     "/api/csp-report",
+    // Cron jobs — autenticam por CRON_SECRET no próprio handler (não via sessão)
+    "/api/cron/",
     // /api/convites/[token] handled separately below — only token paths are public
     "/api/cookies/",
     "/api/stripe/webhook",

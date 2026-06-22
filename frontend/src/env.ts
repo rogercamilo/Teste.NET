@@ -73,6 +73,10 @@ const schema = z
     // Setting this to any other value (e.g. "yes", "1") is treated as false.
     TRUST_PROXY: z.enum(["true", "false"]).optional(),
 
+    // Bearer token que autentica os endpoints de cron (/api/cron/*). Gerar com:
+    // node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    CRON_SECRET: z.string().min(16, "CRON_SECRET deve ter ao menos 16 caracteres").optional(),
+
     // Stripe — optional
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
