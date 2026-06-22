@@ -137,11 +137,24 @@ export function anonymizeIp(ip: string | null | undefined): string {
 }
 
 export function getClientIp(request: Request): string {
-  // Only trust X-Forwarded-For when explicitly behind a known reverse proxy.
-  // Without TRUST_PROXY=true an attacker can spoof this header to bypass rate limits.
+  // Only trust forwarded headers when explicitly behind a known reverse proxy.
+  // Without TRUST_PROXY=true an attacker can spoof these headers to bypass rate limits.
   if (process.env.TRUST_PROXY === "true") {
+    // x-envoy-external-address: o IP do cliente que o próprio Envoy do Railway calcula.
+    // É um valor único e NÃO-spoofável — diferente do primeiro item de X-Forwarded-For,
+    // que o Envoy apenas anexa, deixando qualquer valor forjado pelo cliente à frente.
+    // Fonte canônica do IP real no Railway; crítico num produto multi-tenant para impedir
+    // que um atacante forje o IP de um tenant e esgote o rate-limit dos seus usuários.
+    const envoy = request.headers.get("x-envoy-external-address");
+    if (envoy) return envoy.trim();
+
+    // Fallback (ambientes sem Envoy): usa o ÚLTIMO hop do X-Forwarded-For — o que o proxy
+    // confiável anexou — nunca o primeiro, que é controlado pelo cliente.
     const forwarded = request.headers.get("x-forwarded-for");
-    if (forwarded) return forwarded.split(",")[0].trim();
+    if (forwarded) {
+      const hops = forwarded.split(",").map((h) => h.trim()).filter(Boolean);
+      if (hops.length > 0) return hops[hops.length - 1];
+    }
   }
   return request.headers.get("x-real-ip") ?? "unknown";
 }

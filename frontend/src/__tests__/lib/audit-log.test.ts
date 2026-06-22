@@ -146,17 +146,26 @@ describe("getClientIp", () => {
     beforeEach(() => { process.env.TRUST_PROXY = "true"; });
     afterEach(() => { delete process.env.TRUST_PROXY; });
 
-    it("prefers x-forwarded-for over x-real-ip", () => {
+    it("prefers x-envoy-external-address (non-spoofable) over everything else", () => {
+      const req = makeRequest({
+        "x-envoy-external-address": "9.9.9.9",
+        "x-forwarded-for": "1.2.3.4, 10.0.0.1",
+        "x-real-ip": "5.6.7.8",
+      });
+      expect(getClientIp(req)).toBe("9.9.9.9");
+    });
+
+    it("uses the LAST hop of x-forwarded-for (proxy-appended), not the client-controlled first", () => {
+      const req = makeRequest({ "x-forwarded-for": "1.2.3.4, 10.0.0.1" });
+      expect(getClientIp(req)).toBe("10.0.0.1");
+    });
+
+    it("returns the single x-forwarded-for value over x-real-ip", () => {
       const req = makeRequest({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "5.6.7.8" });
       expect(getClientIp(req)).toBe("1.2.3.4");
     });
 
-    it("uses first IP from x-forwarded-for chain", () => {
-      const req = makeRequest({ "x-forwarded-for": "1.2.3.4, 10.0.0.1" });
-      expect(getClientIp(req)).toBe("1.2.3.4");
-    });
-
-    it("falls back to x-real-ip when x-forwarded-for is absent", () => {
+    it("falls back to x-real-ip when no proxy address headers are present", () => {
       const req = makeRequest({ "x-real-ip": "5.6.7.8" });
       expect(getClientIp(req)).toBe("5.6.7.8");
     });
