@@ -101,7 +101,10 @@ export async function POST(request: Request) {
 
     logAction("user_created", actor.id, getClientIp(request), { targetEmail: email, perfil: perfilSanitizado }, actor.organizacaoId);
 
-    return NextResponse.json({ ...toPublic(user), emailSent }, { status: 201 });
+    // tempPassword só existe quando a senha foi gerada automaticamente. É devolvido
+    // (uma única vez) para que o admin possa repassá-lo ao novo usuário caso o
+    // e-mail de boas-vindas não tenha sido enviado (SMTP ausente).
+    return NextResponse.json({ ...toPublic(user), emailSent, tempPassword }, { status: 201 });
   } catch (err) {
     logError("users POST", err);
     return NextResponse.json({ error: "Falha ao criar usuário" }, { status: 500 });

@@ -883,7 +883,9 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
           nome: form.nome.trim(),
           email: form.email.trim(),
           perfil: form.perfil,
-          grupoFormacaoId: form.perfil === "formador_comunitario" ? form.grupoFormacaoId || undefined : undefined,
+          // Administrador não tem morada: envia null para desatribuir explicitamente
+          // (undefined seria omitido pelo JSON e manteria o vínculo antigo no banco).
+          grupoFormacaoId: form.perfil === "formador_comunitario" ? form.grupoFormacaoId || undefined : null,
           ativo: form.ativo,
         };
         if (form.password) body.password = form.password;
