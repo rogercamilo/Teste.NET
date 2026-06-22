@@ -1,9 +1,12 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig, configDefaults } from "vitest/config";
 
 export default defineConfig({
   resolve: { alias: { "@": "/src" } },
   test: {
     environment: "node",
+    // Os testes e2e (Playwright) usam seu próprio runner — não devem ser
+    // coletados pelo Vitest.
+    exclude: [...configDefaults.exclude, "e2e/**"],
     coverage: {
       provider: "v8",
       reporter: ["text"],

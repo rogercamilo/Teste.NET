@@ -45,3 +45,66 @@ jobs:
 
       - name: Test (with coverage thresholds)
         run: npm run test:coverage
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: formativo
+          POSTGRES_PASSWORD: formativo_dev
+          POSTGRES_DB: formacao_comunitaria
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://formativo:formativo_dev@localhost:5432/formacao_comunitaria
+      # Secret fixo apenas para o ambiente efêmero de CI (não é segredo real).
+      AUTH_SECRET: e2e_ci_secret_0123456789abcdef0123456789abcdef
+      NEXTAUTH_URL: http://localhost:3000
+      AUTH_TRUST_HOST: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PRISMA_SKIP_POSTINSTALL_GENERATE: "true"
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Install Playwright browser (chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
