@@ -63,12 +63,18 @@ export function generateRandomPassword(): string {
   return arr.join("");
 }
 
-// Argon2id — OWASP 2024 recommended parameters
+// Argon2id — parâmetros recomendados pela OWASP 2024 (m=19 MiB, t=2, p=1).
+// Escolha deliberada para um servidor multi-tenant de réplica única com picos de login
+// simultâneos: parallelism=1 evita contenção de threads e memoryCost=19 MiB (~70% menos que
+// os 64 MiB anteriores) reduz o pico de memória transitória — N logins concorrentes consomem
+// N×19 MiB em vez de N×64 MiB, afastando o risco de OOM derrubar a réplica e todos os tenants.
+// Os parâmetros ficam embutidos em cada hash, então hashes antigos (64 MiB/t3/p4) continuam
+// sendo verificados corretamente; apenas novos hashes usam estes valores.
 const ARGON2_OPTIONS = {
   type: argon2.argon2id,
-  memoryCost: 65536, // 64 MiB
-  timeCost: 3,
-  parallelism: 4,
+  memoryCost: 19456, // 19 MiB
+  timeCost: 2,
+  parallelism: 1,
 } as const;
 
 export async function hashPassword(password: string): Promise<string> {
