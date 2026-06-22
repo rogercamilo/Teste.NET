@@ -159,13 +159,16 @@ export const UpdateOrganizacaoSchema = z.object({
     .regex(/^\d{0,4}$/, "Ano inválido")
     .optional()
     .nullable(),
-  termoGrupoFormacao: nonEmptyString(100).optional(),
-  termoFormando: nonEmptyString(100).optional(),
-  termoFormador: nonEmptyString(100).optional(),
-  termoPreDiscipulado: nonEmptyString(100).optional(),
-  termoDiscipulado: nonEmptyString(100).optional(),
-  termoPrimeirasPromessas: nonEmptyString(100).optional(),
-  termoFormacaoPermanente: nonEmptyString(100).optional(),
+  // Aceitam string vazia: o wizard de onboarding envia todos os termos juntos,
+  // e os campos deixados em branco ("") significam "usar o termo padrão".
+  // A rota PUT já coage `"" || undefined`, então vazios são ignorados na escrita.
+  termoGrupoFormacao: optionalString(100),
+  termoFormando: optionalString(100),
+  termoFormador: optionalString(100),
+  termoPreDiscipulado: optionalString(100),
+  termoDiscipulado: optionalString(100),
+  termoPrimeirasPromessas: optionalString(100),
+  termoFormacaoPermanente: optionalString(100),
   nomePlataforma: optionalString(100).nullable(),
   logoUrl: z
     .string()
