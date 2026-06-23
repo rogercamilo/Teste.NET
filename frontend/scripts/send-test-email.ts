@@ -5,7 +5,9 @@
  * Uso:
  *   npx tsx scripts/send-test-email.ts [destino] [quais]
  *     destino : e-mail de destino (padrão: rogercmdb@gmail.com)
- *     quais   : all | welcome | reset | portal (padrão: all)
+ *     quais   : all | welcome | invite | reset | credential | deletion |
+ *               incident | planlimit | pushinvite | trial | limitalert |
+ *               dbpool | comunicado | portal (padrão: all)
  *
  * O badge é enviado ao R2 e referenciado por uma URL assinada (7 dias), para
  * renderizar sem depender de deploy. Envia via Resend (RESEND_API_KEY).
@@ -21,7 +23,11 @@ import {
   button,
   linkFallback,
   callout,
+  banner,
   codeBox,
+  keyValues,
+  featureList,
+  priceBox,
   steps,
   sectionLabel,
 } from "../src/lib/email-layout";
@@ -158,12 +164,227 @@ async function uploadBadgeToR2(): Promise<string | undefined> {
         ].join(""),
       }),
     },
+    invite: {
+      subject: "[TESTE] Convite para Comunidade São José — Formattio",
+      html: renderEmail({
+        titulo: "Convite — Comunidade São José",
+        preheader: "Você foi convidado(a) para a plataforma formativa de Comunidade São José.",
+        logoUrl,
+        notaRodape: "Se você não esperava este convite, pode ignorar este e-mail com segurança.",
+        conteudo: [
+          heading("Olá, Maria!"),
+          paragraph(
+            "Você foi convidado(a) para acessar a plataforma formativa da comunidade <strong>Comunidade São José</strong>."
+          ),
+          paragraph("Clique no botão abaixo para criar sua conta. O link expira em <strong>48 horas</strong>."),
+          button("Aceitar convite", "https://www.formattio.com.br/convite?token=demo"),
+          linkFallback("https://www.formattio.com.br/convite?token=demo"),
+        ].join(""),
+      }),
+    },
+    credential: {
+      subject: "[TESTE] Redefinição de acesso — Comunidade São José",
+      html: renderEmail({
+        titulo: "Redefinição de acesso",
+        eyebrow: "Segurança da Conta",
+        logoUrl,
+        conteudo: [
+          heading("Redefinição de acesso"),
+          paragraph("Olá, <strong>Maria</strong>."),
+          paragraph(
+            "O suporte da plataforma <strong>Formattio</strong> redefiniu as credenciais de acesso da organização <strong>Comunidade São José</strong> a pedido do responsável."
+          ),
+          paragraph(
+            "Utilize a senha temporária abaixo para acessar a plataforma. Você será solicitado(a) a alterá-la imediatamente no primeiro acesso."
+          ),
+          codeBox({
+            label: "Organização",
+            value: "Comunidade São José",
+            sublabel: "Senha temporária",
+            subvalue: "X7K9-2P4M",
+          }),
+          button("Acessar a plataforma", "https://www.formattio.com.br/login"),
+          callout(
+            "danger",
+            '<strong>Atenção:</strong> Se você não solicitou esta redefinição, entre em contato imediatamente com o suporte em <a href="mailto:suporte@formattio.com.br" style="color:inherit;">suporte@formattio.com.br</a>.'
+          ),
+        ].join(""),
+      }),
+    },
+    deletion: {
+      subject: "[TESTE] Sua conta Formattio foi encerrada",
+      html: renderEmail({
+        titulo: "Sua conta Formattio foi encerrada",
+        eyebrow: "Privacidade e Dados",
+        logoUrl,
+        conteudo: [
+          heading("Conta encerrada"),
+          paragraph("Olá, <strong>Maria</strong>."),
+          paragraph("Sua conta na plataforma <strong>Formattio</strong> foi encerrada conforme solicitado."),
+          paragraph(
+            "Seus dados pessoais foram anonimizados imediatamente. Logs de auditoria são mantidos por 12 meses conforme exigência legal."
+          ),
+          callout(
+            "danger",
+            'Se não solicitou esta exclusão, entre em contato imediatamente com <a href="mailto:privacidade@formattio.com.br" style="color:inherit;">privacidade@formattio.com.br</a>.'
+          ),
+        ].join(""),
+      }),
+    },
+    incident: {
+      subject: "[TESTE] Notificação de incidente de segurança — Comunidade São José",
+      html: renderEmail({
+        titulo: "Notificação de incidente de segurança",
+        eyebrow: "Aviso de Segurança",
+        logoUrl,
+        conteudo: [
+          banner("danger", "Notificação de incidente de segurança — LGPD Art. 48"),
+          paragraph("Olá, <strong>Maria</strong>."),
+          paragraph(
+            "A organização <strong>Comunidade São José</strong>, em cumprimento ao Art. 48 da Lei Geral de Proteção de Dados (LGPD), notifica a ocorrência de um incidente de segurança que pode envolver seus dados pessoais."
+          ),
+          keyValues([
+            { label: "Data do incidente", value: "15/06/2026" },
+            { label: "Descrição", value: "Acesso indevido a relatório de presença de um grupo." },
+            { label: "Medidas adotadas", value: "Revogação de tokens, rotação de credenciais e auditoria completa." },
+          ]),
+          paragraph(
+            'Em caso de dúvidas, entre em contato com o responsável pela proteção de dados da sua organização ou com a equipe Formattio pelo e-mail <a href="mailto:privacidade@formattio.com.br" style="color:#B25433;">privacidade@formattio.com.br</a>.'
+          ),
+        ].join(""),
+      }),
+    },
+    planlimit: {
+      subject: "[TESTE] Limite do Plano Avançado atingido — conheça o Plano Personalizado",
+      html: renderEmail({
+        titulo: "Limite do Plano Avançado atingido",
+        preheader: "Conheça o Plano Personalizado Formattio e cresça sem interrupções.",
+        eyebrow: "Seu Plano",
+        logoUrl,
+        notaRodape: "Você recebeu este e-mail porque é administrador da organização Comunidade São José.",
+        conteudo: [
+          banner("warn", "Limite do Plano Avançado atingido — Comunidade São José"),
+          paragraph("Olá!"),
+          paragraph(
+            "Sua organização <strong>Comunidade São José</strong> atingiu o limite de <strong>usuários ativos</strong> do <strong>Plano Avançado</strong>. Para continuar crescendo sem interrupções, convidamos você a conhecer o <strong>Plano Personalizado Formattio</strong>."
+          ),
+          sectionLabel("O que você ganha no Plano Personalizado"),
+          featureList([
+            ["Usuários ilimitados", "Sem teto — cresça sem restrições"],
+            ["Armazenamento sob demanda", "Calculado automaticamente pela quantidade de membros"],
+            ["SLA com garantia de disponibilidade", "Acordo de nível de serviço dedicado"],
+            ["Suporte prioritário", "Atendimento dedicado ao seu time"],
+            ["Onboarding guiado", "O time Formattio configura tudo com você"],
+            ["Contrato personalizado", "Termos adaptados à sua realidade"],
+          ]),
+          priceBox("R$ 889", "/mês", "Mensal ou anual · Calculado pelo número de membros"),
+          button("Simular meu plano agora", "https://www.formattio.com.br/configuracoes?tab=plano"),
+          '<p style="margin:0 0 8px;text-align:center;"><a href="mailto:contato@formattio.com.br" style="font-size:13px;color:#847A6F;text-decoration:underline;">Ou fale diretamente com nosso time</a></p>',
+        ].join(""),
+      }),
+    },
+    pushinvite: {
+      subject: "[TESTE] Ative as notificações da sua comunidade — Formattio",
+      html: renderEmail({
+        titulo: "Ative as notificações da sua comunidade",
+        preheader: "Receba avisos da sua comunidade mesmo com o navegador fechado.",
+        eyebrow: "Notificações",
+        logoUrl,
+        notaRodape:
+          "Sem spam. Apenas avisos da sua comunidade. Você pode cancelar a qualquer momento acessando o mesmo link.",
+        conteudo: [
+          heading("Ative as notificações, Maria!"),
+          paragraph("Você está cadastrado(a) na plataforma de formação comunitária <strong>Formattio</strong>."),
+          paragraph("Grupo de formação: <strong>Grupo Emaús</strong>"),
+          paragraph(
+            "Clique no botão abaixo para ativar as notificações no seu celular ou computador e receber avisos sobre encontros, datas e comunicados — mesmo com o navegador fechado."
+          ),
+          button("Ativar notificações", "https://www.formattio.com.br/ativar-notificacoes/demo"),
+          linkFallback("https://www.formattio.com.br/ativar-notificacoes/demo"),
+        ].join(""),
+      }),
+    },
+    trial: {
+      subject: "[TESTE] Seu período de experiência expira em 3 dias — Formattio",
+      html: renderEmail({
+        titulo: "Seu período de experiência expira em 3 dias",
+        preheader: "Assine um plano antes de 26/06/2026 para não perder o acesso.",
+        eyebrow: "Seu Plano",
+        logoUrl,
+        notaRodape: "Você recebeu este e-mail por ser administrador(a) da organização Comunidade São José.",
+        conteudo: [
+          banner("warn", "Período de experiência expira em 3 dias"),
+          paragraph("Olá, <strong>Maria</strong>!"),
+          paragraph(
+            "O período de experiência da organização <strong>Comunidade São José</strong> na plataforma Formattio expira em <strong>26/06/2026</strong>."
+          ),
+          paragraph(
+            "Para continuar utilizando todos os recursos sem interrupção, assine um dos planos antes da data de expiração."
+          ),
+          button("Escolher um plano", "https://www.formattio.com.br/configuracoes?tab=plano"),
+          linkFallback("https://www.formattio.com.br/configuracoes?tab=plano"),
+        ].join(""),
+      }),
+    },
+    limitalert: {
+      subject: "[TESTE] Alerta de limite — armazenamento em 85% (Comunidade São José)",
+      html: renderEmail({
+        titulo: "Alerta de uso",
+        eyebrow: "Seu Plano",
+        logoUrl,
+        conteudo: [
+          heading("Alerta de uso"),
+          paragraph(
+            "O recurso <strong>armazenamento</strong> da organização <strong>Comunidade São José</strong> está em <strong>85%</strong> do limite do plano atual."
+          ),
+          paragraph("Considere fazer upgrade do plano para evitar interrupções."),
+          button("Gerenciar plano", "https://www.formattio.com.br/configuracoes"),
+        ].join(""),
+      }),
+    },
+    dbpool: {
+      subject: "[TESTE] ⚠️ Pool de conexões em 86% — Formattio",
+      html: renderEmail({
+        titulo: "Pool de conexões em 86%",
+        eyebrow: "Infraestrutura",
+        logoUrl,
+        notaRodape:
+          "Você está recebendo este alerta porque é administrador da plataforma. Novo alerta só será enviado após algumas horas, mesmo que a condição persista.",
+        conteudo: [
+          banner("danger", "⚠️ Pool de conexões do banco em 86%"),
+          paragraph("Olá, Roger."),
+          paragraph(
+            "O PostgreSQL está usando <strong>43 de 50</strong> conexões disponíveis (<strong>86%</strong>), acima do limite de alerta de 80%."
+          ),
+          paragraph(
+            "Sob carga sustentada perto do limite, novas conexões podem falhar. Recomenda-se adotar um <strong>connection pooler</strong> (PgBouncer em modo transaction ou Prisma Accelerate) ou revisar o <code>DATABASE_POOL_SIZE</code> por réplica."
+          ),
+          button("Ver infraestrutura", "https://www.formattio.com.br/super-admin?tab=infraestrutura"),
+        ].join(""),
+      }),
+    },
+    comunicado: {
+      subject: "[TESTE] Novidades da plataforma Formattio",
+      html: renderEmail({
+        titulo: "Novidades da plataforma Formattio",
+        eyebrow: "Comunicado",
+        logoUrl,
+        notaRodape:
+          "Esta mensagem foi enviada para os administradores de <strong>Comunidade São José</strong> pela equipe Formattio.",
+        conteudo: [
+          heading("Olá, Maria!"),
+          paragraph(
+            "Temos novidades por aqui: os e-mails da plataforma agora seguem a identidade visual do Formattio.<br/>Em breve traremos mais melhorias para a sua jornada formativa.<br/>Obrigado por caminhar conosco!"
+          ),
+        ].join(""),
+      }),
+    },
   };
 
   const selecionados =
-    quais === "all" ? ["welcome", "reset", "portal"] : [quais].filter((k) => k in emails);
+    quais === "all" ? Object.keys(emails) : [quais].filter((k) => k in emails);
   if (selecionados.length === 0) {
-    console.error(`Tipo inválido: "${quais}". Use: all | welcome | reset | portal`);
+    console.error(`Tipo inválido: "${quais}". Use: all | ${Object.keys(emails).join(" | ")}`);
     process.exit(1);
   }
 
