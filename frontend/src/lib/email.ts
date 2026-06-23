@@ -17,7 +17,8 @@ import {
   sectionLabel,
   brandLogoUrl,
 } from "./email-layout";
-import { logError } from "./audit-log";
+import { logAction, logError } from "./audit-log";
+import { isEmailSuppressed } from "./email-suppression";
 import { prisma } from "./prisma";
 
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
@@ -120,6 +121,19 @@ async function send(
   html: string,
   opts: SendOptions = {}
 ): Promise<{ sent: boolean; error?: string }> {
+  // Lista de supressão: não enviar a endereços com hard bounce/reclamação —
+  // proteger a reputação do domínio. Falha de forma segura (permite o envio).
+  if (await isEmailSuppressed(to)) {
+    logAction(
+      "email_send_skipped_suppressed",
+      "system",
+      undefined,
+      { subject: subject.slice(0, 120) },
+      organizacaoId
+    );
+    return { sent: false, error: "Endereço na lista de supressão" };
+  }
+
   // Identidade do remetente: por padrão, a comunidade (fromName = nome da org,
   // replyTo = admin). E-mails de plataforma usam o nome "Formattio".
   const brandAsOrg = opts.brandAsOrg ?? true;

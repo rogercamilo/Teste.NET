@@ -860,8 +860,32 @@ model RelatorioEtapa {
 // ==========================================================
 
 model ProcessedWebhookEvent {
-  id          String   @id  // Stripe event ID (evt_xxx) — garante idempotência
+  id          String   @id  // ID do evento (Stripe evt_xxx / Resend svix msg_xxx) — garante idempotência
   processedAt DateTime @default(now())
+}
+
+// ==========================================================
+// EMAIL — lista de supressão (bounces permanentes e reclamações)
+// ==========================================================
+
+enum EmailSuppressionMotivo {
+  BOUNCE     // hard bounce: endereço inexistente/rejeitado permanentemente
+  COMPLAINT  // destinatário marcou como spam
+}
+
+/// Endereços que NÃO devem mais receber e-mails. Escopo global por endereço:
+/// um hard bounce/reclamação vale para qualquer organização. organizacaoId e
+/// emailId são apenas para auditoria/origem.
+model EmailSuppression {
+  id            String                 @id @default(cuid())
+  email         String                 @unique  // sempre normalizado em minúsculas
+  motivo        EmailSuppressionMotivo
+  detalhe       String?                @db.Text  // mensagem do servidor receptor
+  emailId       String?                // Resend email_id que originou o evento
+  organizacaoId String?                // org de origem (auditoria)
+  criadoEm      DateTime               @default(now())
+
+  @@index([organizacaoId])
 }
 
 // ==========================================================

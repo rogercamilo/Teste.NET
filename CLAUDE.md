@@ -144,7 +144,12 @@ APP_ENCRYPTION_KEY=<64-hex-chars>
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
-# Optional — Email
+# Optional — Email (Resend tem prioridade sobre SMTP quando RESEND_API_KEY está setado)
+RESEND_API_KEY=
+RESEND_FROM=contato@formattio.com.br
+RESEND_WEBHOOK_SECRET=  # segredo de assinatura (whsec_…) do endpoint de webhook no painel Resend
+
+# Optional — Email (SMTP por tenant, fallback / enterprise)
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -152,6 +157,11 @@ SMTP_USER=
 SMTP_PASS=
 SMTP_FROM=
 ```
+
+> Webhook de bounce/complaint: aponte o Resend para `POST /api/webhooks/resend`
+> (eventos `email.bounced` e `email.complained`) e copie o *Signing Secret* para
+> `RESEND_WEBHOOK_SECRET`. Hard bounces (`type: Permanent`) e reclamações entram
+> automaticamente na lista de supressão (`EmailSuppression`), bloqueando reenvios.
 
 > `APP_ENCRYPTION_KEY` encrypts sensitive DB fields at rest (e.g. SMTP password).
 > Without it the app runs but credentials are stored in plaintext.
