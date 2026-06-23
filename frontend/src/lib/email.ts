@@ -27,12 +27,12 @@ const LOGO_URL = brandLogoUrl(APP_URL);
 
 // Resend takes priority over SMTP when RESEND_API_KEY is set
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-/** Endereço de envio transacional — subdomínio dedicado, reputação isolada. */
-const RESEND_FROM = process.env.RESEND_FROM ?? "contato@send.formattio.com.br";
+/** Endereço de envio transacional — domínio apex verificado no Resend. */
+const RESEND_FROM = process.env.RESEND_FROM ?? "contato@formattio.com.br";
 /**
- * Endereço de envio de marketing/ciclo de vida — subdomínio separado para não
- * contaminar a reputação dos e-mails transacionais. Cai no transacional quando
- * não configurado (seguro até o subdomínio de marketing ser verificado).
+ * Endereço de envio de marketing/ciclo de vida — subdomínio próprio (domínio
+ * separado no Resend) para não contaminar a reputação dos transacionais. Cai no
+ * transacional quando não configurado (seguro até `news.` ser verificado).
  */
 const RESEND_FROM_MARKETING = process.env.RESEND_FROM_MARKETING ?? RESEND_FROM;
 /** Nome exibido padrão quando o e-mail não é "da comunidade" (e-mails de plataforma). */
