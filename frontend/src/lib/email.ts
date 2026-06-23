@@ -18,6 +18,7 @@ import {
   brandLogoUrl,
 } from "./email-layout";
 import { logError } from "./audit-log";
+import { prisma } from "./prisma";
 
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 /** URL absoluta do badge da marca para o cabeçalho dos e-mails. */
@@ -26,14 +27,72 @@ const LOGO_URL = brandLogoUrl(APP_URL);
 // Resend takes priority over SMTP when RESEND_API_KEY is set
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const RESEND_FROM = process.env.RESEND_FROM ?? "contato@formattio.com.br";
+/** Nome exibido padrão quando o e-mail não é "da comunidade" (e-mails de plataforma). */
+const PLATFORM_FROM_NAME = "Formattio";
+
+interface Sender {
+  /** Nome exibido no campo "De" (ex.: nome da comunidade). */
+  fromName?: string;
+  /** Endereço para onde as respostas devem ir (ex.: e-mail do admin da org). */
+  replyTo?: string;
+}
+
+interface SendOptions extends Sender {
+  /**
+   * Quando `false`, o e-mail sai com a identidade da plataforma ("Formattio")
+   * em vez da comunidade — use em alertas de infraestrutura e comunicados da
+   * equipe Formattio. Padrão: `true`.
+   */
+  brandAsOrg?: boolean;
+}
+
+/** Monta o cabeçalho "De" como `"Nome" <endereço>`, higienizando o nome. */
+function formatFrom(name: string | undefined, address: string): string {
+  const clean = name?.replace(/[\r\n"<>]/g, "").trim();
+  return clean ? `"${clean}" <${address}>` : address;
+}
+
+/**
+ * Resolve a identidade do remetente da organização: nome da comunidade
+ * (`fromName`) e e-mail do administrador (`replyTo`). Falha de forma segura
+ * retornando objeto vazio — o envio cai no padrão da plataforma.
+ */
+async function loadOrgSender(organizacaoId: string): Promise<Sender> {
+  try {
+    const org = await prisma.organizacao.findUnique({
+      where: { id: organizacaoId },
+      select: {
+        nome: true,
+        usuarios: {
+          where: { perfil: "administrador", ativo: true, deletedAt: null },
+          select: { email: true },
+          orderBy: { criadoEm: "asc" },
+          take: 1,
+        },
+      },
+    });
+    return { fromName: org?.nome, replyTo: org?.usuarios[0]?.email };
+  } catch (err) {
+    logError("email/org-sender", err);
+    return {};
+  }
+}
 
 async function sendViaResend(
   to: string,
   subject: string,
-  html: string
+  html: string,
+  fromName: string | undefined,
+  replyTo: string | undefined
 ): Promise<{ sent: boolean; error?: string }> {
   try {
-    const { error } = await resend!.emails.send({ from: RESEND_FROM, to, subject, html });
+    const { error } = await resend!.emails.send({
+      from: formatFrom(fromName, RESEND_FROM),
+      to,
+      subject,
+      html,
+      ...(replyTo ? { replyTo } : {}),
+    });
     if (error) {
       logError("email/resend", error);
       return { sent: false, error: error.message };
@@ -58,19 +117,32 @@ async function send(
   organizacaoId: string,
   to: string,
   subject: string,
-  html: string
+  html: string,
+  opts: SendOptions = {}
 ): Promise<{ sent: boolean; error?: string }> {
-  if (resend) return sendViaResend(to, subject, html);
+  // Identidade do remetente: por padrão, a comunidade (fromName = nome da org,
+  // replyTo = admin). E-mails de plataforma usam o nome "Formattio".
+  const brandAsOrg = opts.brandAsOrg ?? true;
+  let fromName = opts.fromName;
+  let replyTo = opts.replyTo;
+  if (brandAsOrg && (fromName === undefined || replyTo === undefined)) {
+    const orgSender = await loadOrgSender(organizacaoId);
+    fromName = fromName ?? orgSender.fromName;
+    replyTo = replyTo ?? orgSender.replyTo;
+  }
+  fromName = fromName ?? PLATFORM_FROM_NAME;
+
+  if (resend) return sendViaResend(to, subject, html, fromName, replyTo);
 
   const config = await loadSmtpConfig(organizacaoId);
   if (!isSmtpReady(config)) {
     console.warn("[email] Nenhum provedor configurado — e-mail não enviado.");
     return { sent: false, error: "Nenhum provedor de e-mail configurado" };
   }
-  const from = config.from || config.user;
+  const from = formatFrom(fromName, config.from || config.user);
   try {
     const transporter = createTransporter(config);
-    await transporter.sendMail({ from, to, subject, html });
+    await transporter.sendMail({ from, to, subject, html, ...(replyTo ? { replyTo } : {}) });
     return { sent: true };
   } catch (err) {
     logError("email/smtp", err);
@@ -497,7 +569,9 @@ export async function sendDbPoolAlertEmail({
     notaRodape:
       "Você está recebendo este alerta porque é administrador da plataforma. Novo alerta só será enviado após algumas horas, mesmo que a condição persista.",
   });
-  return send(organizacaoId, email, `⚠️ Pool de conexões em ${pct}% — Formattio`, html);
+  return send(organizacaoId, email, `⚠️ Pool de conexões em ${pct}% — Formattio`, html, {
+    brandAsOrg: false,
+  });
 }
 
 export async function sendPortalMagicLinkEmail({
@@ -561,5 +635,8 @@ export async function sendComunicadoEmail({
     logoUrl: LOGO_URL,
     notaRodape: `Esta mensagem foi enviada para os administradores de <strong>${escapeHtml(orgNome)}</strong> pela equipe Formattio.`,
   });
-  return send(organizacaoId, to, assunto, html);
+  return send(organizacaoId, to, assunto, html, {
+    brandAsOrg: false,
+    replyTo: "contato@formattio.com.br",
+  });
 }

@@ -390,13 +390,28 @@ async function uploadBadgeToR2(): Promise<string | undefined> {
 
   const { Resend } = await import("resend");
   const resend = new Resend(process.env.RESEND_API_KEY!);
-  const from = process.env.RESEND_FROM ?? "contato@formattio.com.br";
-  console.log(`\nEnviando de "${from}" para "${destino}":`);
+  const address = process.env.RESEND_FROM ?? "contato@formattio.com.br";
+  // Demonstra a identidade do remetente (mesma lógica de email.ts):
+  // e-mails da comunidade saem com o nome da org + reply-to do admin;
+  // e-mails de plataforma (dbpool, comunicado) saem como "Formattio".
+  const PLATAFORMA = new Set(["dbpool", "comunicado"]);
+  const ORG_NAME = "Comunidade São José";
+  const ORG_REPLY = "secretaria.saojose@exemplo.org";
+  console.log(`\nEnviando para "${destino}":`);
   for (const k of selecionados) {
     const { subject, html } = emails[k];
-    const { error } = await resend.emails.send({ from, to: destino, subject, html });
+    const platform = PLATAFORMA.has(k);
+    const fromName = platform ? "Formattio" : ORG_NAME;
+    const replyTo = platform ? "contato@formattio.com.br" : ORG_REPLY;
+    const { error } = await resend.emails.send({
+      from: `"${fromName}" <${address}>`,
+      to: destino,
+      subject,
+      html,
+      replyTo,
+    });
     if (error) console.error(`  ✗ ${k}: ${error.message}`);
-    else console.log(`  ✓ ${k} enviado`);
+    else console.log(`  ✓ ${k} — de "${fromName}" · reply-to ${replyTo}`);
   }
   console.log("\nConfira a caixa de entrada (e a pasta de spam).");
 })();
