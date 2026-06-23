@@ -221,6 +221,14 @@ export function brandLogoUrl(appUrl: string): string {
   return `${appUrl.replace(/\/+$/, "")}/brand/email/symbol-badge.png`;
 }
 
+/**
+ * URL absoluta da logomarca horizontal colorida (lockup principal, PNG @2x
+ * 512×128) usada no rodapé. Mesmo diretório do badge.
+ */
+export function brandWordmarkUrl(appUrl: string): string {
+  return `${appUrl.replace(/\/+$/, "")}/brand/email/formattio-horizontal-2x.png`;
+}
+
 /** Cabeçalho clay: badge + wordmark (com logo) ou wordmark + trilha CSS (sem logo). */
 function renderHeader(eyebrow: string, logoUrl?: string): string {
   if (logoUrl) {
@@ -260,6 +268,17 @@ export function renderEmail(opts: RenderEmailOptions): string {
     ? `<p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:${BRAND.muted};">${opts.notaRodape}</p>`
     : "";
 
+  // Logomarca horizontal no rodapé (substitui o nome por extenso). Derivada do
+  // badge (mesmo diretório /brand/email/); sem logoUrl, cai no wordmark textual.
+  const wordmarkUrl = opts.logoUrl
+    ? opts.logoUrl.replace(/symbol-badge\.png(\?.*)?$/, "formattio-horizontal-2x.png")
+    : undefined;
+  const marcaRodape =
+    wordmarkUrl && wordmarkUrl !== opts.logoUrl
+      ? `<img src="${safeUrl(wordmarkUrl)}" width="156" height="39" alt="Formattio" style="display:inline-block;width:156px;height:39px;border:0;outline:none;text-decoration:none;margin:2px 0 6px;" />
+          <p style="margin:0;font-size:12px;color:${BRAND.muted};">plataforma de gestão formativa</p>`
+      : `<p style="margin:0;font-size:12px;color:${BRAND.muted};">Formattio — plataforma de gestão formativa</p>`;
+
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -283,8 +302,8 @@ export function renderEmail(opts: RenderEmailOptions): string {
         <!-- Rodapé -->
         <tr><td style="background:${BRAND.surface};border-top:1px solid ${BRAND.border};padding:22px 36px;text-align:center;">
           ${notaRodape}
-          <p style="margin:0 0 4px;font-size:12px;color:${BRAND.muted};">${RODAPE_PADRAO}</p>
-          <p style="margin:0;font-size:12px;color:${BRAND.muted};">Formattio — plataforma de gestão formativa</p>
+          <p style="margin:0 0 10px;font-size:12px;color:${BRAND.muted};">${RODAPE_PADRAO}</p>
+          ${marcaRodape}
         </td></tr>
 
       </table>
