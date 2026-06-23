@@ -27,9 +27,19 @@ const LOGO_URL = brandLogoUrl(APP_URL);
 
 // Resend takes priority over SMTP when RESEND_API_KEY is set
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const RESEND_FROM = process.env.RESEND_FROM ?? "contato@formattio.com.br";
+/** Endereço de envio transacional — subdomínio dedicado, reputação isolada. */
+const RESEND_FROM = process.env.RESEND_FROM ?? "contato@send.formattio.com.br";
+/**
+ * Endereço de envio de marketing/ciclo de vida — subdomínio separado para não
+ * contaminar a reputação dos e-mails transacionais. Cai no transacional quando
+ * não configurado (seguro até o subdomínio de marketing ser verificado).
+ */
+const RESEND_FROM_MARKETING = process.env.RESEND_FROM_MARKETING ?? RESEND_FROM;
 /** Nome exibido padrão quando o e-mail não é "da comunidade" (e-mails de plataforma). */
 const PLATFORM_FROM_NAME = "Formattio";
+
+/** Fluxo de envio — define o subdomínio/reputação usado pelo Resend. */
+type EmailStream = "transactional" | "marketing";
 
 interface Sender {
   /** Nome exibido no campo "De" (ex.: nome da comunidade). */
@@ -45,6 +55,11 @@ interface SendOptions extends Sender {
    * equipe Formattio. Padrão: `true`.
    */
   brandAsOrg?: boolean;
+  /**
+   * Fluxo de envio: `"transactional"` (padrão) usa o subdomínio transacional;
+   * `"marketing"` usa o subdomínio dedicado de marketing para isolar reputação.
+   */
+  stream?: EmailStream;
 }
 
 /** Monta o cabeçalho "De" como `"Nome" <endereço>`, higienizando o nome. */
@@ -84,11 +99,13 @@ async function sendViaResend(
   subject: string,
   html: string,
   fromName: string | undefined,
-  replyTo: string | undefined
+  replyTo: string | undefined,
+  stream: EmailStream
 ): Promise<{ sent: boolean; error?: string }> {
+  const fromAddress = stream === "marketing" ? RESEND_FROM_MARKETING : RESEND_FROM;
   try {
     const { error } = await resend!.emails.send({
-      from: formatFrom(fromName, RESEND_FROM),
+      from: formatFrom(fromName, fromAddress),
       to,
       subject,
       html,
@@ -146,7 +163,7 @@ async function send(
   }
   fromName = fromName ?? PLATFORM_FROM_NAME;
 
-  if (resend) return sendViaResend(to, subject, html, fromName, replyTo);
+  if (resend) return sendViaResend(to, subject, html, fromName, replyTo, opts.stream ?? "transactional");
 
   const config = await loadSmtpConfig(organizacaoId);
   if (!isSmtpReady(config)) {
@@ -421,7 +438,8 @@ export async function sendPlanLimitReachedEmail({
     organizacaoId,
     email,
     `Limite do Plano Avançado atingido — conheça o Plano Personalizado`,
-    html
+    html,
+    { stream: "marketing", brandAsOrg: false, replyTo: "contato@formattio.com.br" }
   );
 }
 
@@ -505,7 +523,8 @@ export async function sendTrialExpiringEmail({
     organizacaoId,
     email,
     `Seu período de experiência expira em ${diaLabel} — Formattio`,
-    html
+    html,
+    { stream: "marketing", brandAsOrg: false, replyTo: "contato@formattio.com.br" }
   );
 }
 
