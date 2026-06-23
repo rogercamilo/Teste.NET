@@ -2,11 +2,26 @@
 import nodemailer from "nodemailer";
 import { loadSmtpConfig, isSmtpReady, type SmtpConfig } from "./smtp-config";
 import { loadEmailTemplate, buildEmailHtml, escapeHtml } from "./email-template";
+import {
+  renderEmail,
+  heading,
+  paragraph,
+  button,
+  linkFallback,
+  callout,
+  banner,
+  codeBox,
+  keyValues,
+  featureList,
+  priceBox,
+  sectionLabel,
+  brandLogoUrl,
+} from "./email-layout";
 import { logError } from "./audit-log";
 
-function safeUrl(url: string): string {
-  return url.startsWith("http://") || url.startsWith("https://") ? escapeHtml(url) : "#";
-}
+const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+/** URL absoluta do badge da marca para o cabeçalho dos e-mails. */
+const LOGO_URL = brandLogoUrl(APP_URL);
 
 // Resend takes priority over SMTP when RESEND_API_KEY is set
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -74,9 +89,14 @@ export async function sendWelcomeEmail({
   email: string;
   tempPassword: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const template = await loadEmailTemplate(organizacaoId);
-  const html = buildEmailHtml(template, { nome, email, senha: tempPassword, url: appUrl });
+  const html = buildEmailHtml(template, {
+    nome,
+    email,
+    senha: tempPassword,
+    url: APP_URL,
+    logoUrl: LOGO_URL,
+  });
   return send(organizacaoId, email, template.assunto, html);
 }
 
@@ -93,31 +113,22 @@ export async function sendInviteEmail({
   inviteUrl: string;
   orgNome: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = escapeHtml(nome);
-  const safeOrg = escapeHtml(orgNome);
-  const safeInviteUrl = safeUrl(inviteUrl);
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <h2 style="color: #1a1a1a;">Olá, ${safeName}!</h2>
-      <p>Você foi convidado(a) para acessar a plataforma formativa da comunidade <strong>${safeOrg}</strong>.</p>
-      <p>Clique no botão abaixo para criar sua conta. O link expira em <strong>48 horas</strong>.</p>
-      <p style="text-align: center; margin: 32px 0;">
-        <a href="${safeInviteUrl}"
-           style="background: #6d28d9; color: white; text-decoration: none;
-                  padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 15px;">
-          Aceitar convite
-        </a>
-      </p>
-      <p style="color: #666; font-size: 13px;">
-        Se não conseguir clicar no botão, copie e cole este link no seu navegador:<br/>
-        <a href="${safeInviteUrl}">${safeInviteUrl}</a>
-      </p>
-      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-      <p style="color: #999; font-size: 12px;">
-        Se você não esperava este convite, pode ignorar este e-mail com segurança.
-      </p>
-    </div>
-  `;
+  const conteudo = [
+    heading(`Olá, ${escapeHtml(nome)}!`),
+    paragraph(
+      `Você foi convidado(a) para acessar a plataforma formativa da comunidade <strong>${escapeHtml(orgNome)}</strong>.`
+    ),
+    paragraph("Clique no botão abaixo para criar sua conta. O link expira em <strong>48 horas</strong>."),
+    button("Aceitar convite", inviteUrl),
+    linkFallback(inviteUrl),
+  ].join("");
+  const html = renderEmail({
+    titulo: `Convite — ${escapeHtml(orgNome)}`,
+    preheader: `Você foi convidado(a) para a plataforma formativa de ${escapeHtml(orgNome)}.`,
+    conteudo,
+    logoUrl: LOGO_URL,
+    notaRodape: "Se você não esperava este convite, pode ignorar este e-mail com segurança.",
+  });
   return send(organizacaoId, email, `Convite para ${orgNome.replace(/[\r\n]/g, "")} — Formattio`, html);
 }
 
@@ -130,18 +141,24 @@ export async function sendAccountDeletionEmail({
   nome: string;
   email: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = escapeHtml(nome);
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">Conta encerrada</h2>
-      <p>Olá, <strong>${safeName}</strong>.</p>
-      <p>Sua conta na plataforma <strong>Formattio</strong> foi encerrada conforme solicitado.</p>
-      <p>Seus dados pessoais foram anonimizados imediatamente. Logs de auditoria são mantidos por 12 meses conforme exigência legal.</p>
-      <p>Se não solicitou esta exclusão, entre em contato imediatamente com <a href="mailto:privacidade@formattio.com.br">privacidade@formattio.com.br</a>.</p>
-      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-      <p style="color: #999; font-size: 12px;">Formattio — plataforma de gestão formativa</p>
-    </div>
-  `;
+  const conteudo = [
+    heading("Conta encerrada"),
+    paragraph(`Olá, <strong>${escapeHtml(nome)}</strong>.`),
+    paragraph("Sua conta na plataforma <strong>Formattio</strong> foi encerrada conforme solicitado."),
+    paragraph(
+      "Seus dados pessoais foram anonimizados imediatamente. Logs de auditoria são mantidos por 12 meses conforme exigência legal."
+    ),
+    callout(
+      "danger",
+      'Se não solicitou esta exclusão, entre em contato imediatamente com <a href="mailto:privacidade@formattio.com.br" style="color:inherit;">privacidade@formattio.com.br</a>.'
+    ),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Sua conta Formattio foi encerrada",
+    eyebrow: "Privacidade e Dados",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
   return send(organizacaoId, email, "Sua conta Formattio foi encerrada", html);
 }
 
@@ -158,37 +175,33 @@ export async function sendCredentialResetEmail({
   tempPassword: string;
   orgNome: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  const safeName = escapeHtml(nome);
-  const safeOrg = escapeHtml(orgNome);
-  const safePassword = escapeHtml(tempPassword);
-  const safeAppUrl = safeUrl(appUrl);
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <h2 style="color: #d97706;">Redefinição de acesso</h2>
-      <p>Olá, <strong>${safeName}</strong>.</p>
-      <p>O suporte da plataforma <strong>Formattio</strong> redefiniu as credenciais de acesso da organização <strong>${safeOrg}</strong> a pedido do responsável.</p>
-      <p>Utilize a senha temporária abaixo para acessar a plataforma. Você será solicitado(a) a alterá-la imediatamente no primeiro acesso.</p>
-      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:16px;margin:24px 0;text-align:center;">
-        <p style="margin:0 0 6px;font-size:12px;color:#92400e;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Senha Temporária</p>
-        <p style="margin:0;font-size:20px;font-weight:bold;font-family:monospace;color:#1a1a1a;letter-spacing:0.1em;">${safePassword}</p>
-      </div>
-      <p style="text-align:center;margin:32px 0;">
-        <a href="${safeAppUrl}/login"
-           style="background:#6d28d9;color:white;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;font-size:15px;">
-          Acessar a plataforma
-        </a>
-      </p>
-      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px 16px;margin:16px 0;">
-        <p style="margin:0;font-size:13px;color:#991b1b;">
-          <strong>Atenção:</strong> Se você não solicitou esta redefinição, entre em contato imediatamente com o suporte em
-          <a href="mailto:suporte@formattio.com.br" style="color:#991b1b;">suporte@formattio.com.br</a>.
-        </p>
-      </div>
-      <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-      <p style="color:#999;font-size:12px;">Formattio — plataforma de gestão formativa</p>
-    </div>
-  `;
+  const conteudo = [
+    heading("Redefinição de acesso"),
+    paragraph(`Olá, <strong>${escapeHtml(nome)}</strong>.`),
+    paragraph(
+      `O suporte da plataforma <strong>Formattio</strong> redefiniu as credenciais de acesso da organização <strong>${escapeHtml(orgNome)}</strong> a pedido do responsável.`
+    ),
+    paragraph(
+      "Utilize a senha temporária abaixo para acessar a plataforma. Você será solicitado(a) a alterá-la imediatamente no primeiro acesso."
+    ),
+    codeBox({
+      label: "Organização",
+      value: escapeHtml(orgNome),
+      sublabel: "Senha temporária",
+      subvalue: escapeHtml(tempPassword),
+    }),
+    button("Acessar a plataforma", `${APP_URL}/login`),
+    callout(
+      "danger",
+      '<strong>Atenção:</strong> Se você não solicitou esta redefinição, entre em contato imediatamente com o suporte em <a href="mailto:suporte@formattio.com.br" style="color:inherit;">suporte@formattio.com.br</a>.'
+    ),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Redefinição de acesso",
+    eyebrow: "Segurança da Conta",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
   return send(organizacaoId, email, `Redefinição de acesso — ${orgNome.replace(/[\r\n]/g, "")}`, html);
 }
 
@@ -203,34 +216,27 @@ export async function sendPasswordResetEmail({
   email: string;
   resetUrl: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = escapeHtml(nome);
-  const safeResetUrl = safeUrl(resetUrl);
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <h2 style="color: #1a1a1a;">Recuperação de senha</h2>
-      <p>Olá, <strong>${safeName}</strong>.</p>
-      <p>Recebemos uma solicitação para redefinir a senha da sua conta na plataforma <strong>Formattio</strong>.</p>
-      <p>Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>2 horas</strong>.</p>
-      <p style="text-align: center; margin: 32px 0;">
-        <a href="${safeResetUrl}"
-           style="background: #6d28d9; color: white; text-decoration: none;
-                  padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 15px;">
-          Redefinir senha
-        </a>
-      </p>
-      <p style="color: #666; font-size: 13px;">
-        Se não conseguir clicar no botão, copie e cole este link no seu navegador:<br/>
-        <a href="${safeResetUrl}">${safeResetUrl}</a>
-      </p>
-      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px 16px; margin: 16px 0;">
-        <p style="margin: 0; font-size: 13px; color: #991b1b;">
-          Se você não solicitou a recuperação de senha, ignore este e-mail. Sua senha permanece inalterada.
-        </p>
-      </div>
-      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-      <p style="color: #999; font-size: 12px;">Formattio — plataforma de gestão formativa</p>
-    </div>
-  `;
+  const conteudo = [
+    heading(`Olá, ${escapeHtml(nome)}.`),
+    paragraph(
+      "Recebemos uma solicitação para redefinir a senha da sua conta na plataforma <strong>Formattio</strong>."
+    ),
+    paragraph(
+      "Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>2 horas</strong>."
+    ),
+    button("Redefinir senha", resetUrl),
+    linkFallback(resetUrl),
+    callout(
+      "danger",
+      "Se você não solicitou a recuperação de senha, ignore este e-mail. Sua senha permanece inalterada."
+    ),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Recuperação de senha",
+    preheader: "Redefina a senha da sua conta Formattio.",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
   return send(organizacaoId, email, "Recuperação de senha — Formattio", html);
 }
 
@@ -251,37 +257,27 @@ export async function sendIncidentNotificationEmail({
   dataIncidente: string;
   medidas: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = escapeHtml(nome);
-  const safeOrg = escapeHtml(orgNome);
-  const safeDesc = escapeHtml(descricao);
-  const safeMedidas = escapeHtml(medidas);
-  const safeData = escapeHtml(dataIncidente);
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; margin-bottom: 24px;">
-        <p style="margin: 0; font-size: 13px; font-weight: bold; color: #dc2626;">
-          NOTIFICAÇÃO DE INCIDENTE DE SEGURANÇA — LGPD Art. 48
-        </p>
-      </div>
-      <p>Olá, <strong>${safeName}</strong>.</p>
-      <p>A organização <strong>${safeOrg}</strong>, em cumprimento ao Art. 48 da Lei Geral de Proteção de Dados (LGPD), notifica a ocorrência de um incidente de segurança que pode envolver seus dados pessoais.</p>
-      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 24px 0;">
-        <p style="margin: 0 0 8px; font-size: 13px; font-weight: bold; color: #374151;">Data do incidente</p>
-        <p style="margin: 0 0 16px; font-size: 14px;">${safeData}</p>
-        <p style="margin: 0 0 8px; font-size: 13px; font-weight: bold; color: #374151;">Descrição</p>
-        <p style="margin: 0 0 16px; font-size: 14px;">${safeDesc}</p>
-        <p style="margin: 0 0 8px; font-size: 13px; font-weight: bold; color: #374151;">Medidas adotadas</p>
-        <p style="margin: 0; font-size: 14px;">${safeMedidas}</p>
-      </div>
-      <p style="font-size: 13px; color: #374151;">
-        Em caso de dúvidas, entre em contato com o responsável pela proteção de dados da sua organização
-        ou com a equipe Formattio pelo e-mail
-        <a href="mailto:privacidade@formattio.com.br">privacidade@formattio.com.br</a>.
-      </p>
-      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-      <p style="color: #999; font-size: 12px;">Formattio — plataforma de gestão formativa</p>
-    </div>
-  `;
+  const conteudo = [
+    banner("danger", "Notificação de incidente de segurança — LGPD Art. 48"),
+    paragraph(`Olá, <strong>${escapeHtml(nome)}</strong>.`),
+    paragraph(
+      `A organização <strong>${escapeHtml(orgNome)}</strong>, em cumprimento ao Art. 48 da Lei Geral de Proteção de Dados (LGPD), notifica a ocorrência de um incidente de segurança que pode envolver seus dados pessoais.`
+    ),
+    keyValues([
+      { label: "Data do incidente", value: escapeHtml(dataIncidente) },
+      { label: "Descrição", value: escapeHtml(descricao) },
+      { label: "Medidas adotadas", value: escapeHtml(medidas) },
+    ]),
+    paragraph(
+      'Em caso de dúvidas, entre em contato com o responsável pela proteção de dados da sua organização ou com a equipe Formattio pelo e-mail <a href="mailto:privacidade@formattio.com.br" style="color:#B25433;">privacidade@formattio.com.br</a>.'
+    ),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Notificação de incidente de segurança",
+    eyebrow: "Aviso de Segurança",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
   return send(organizacaoId, email, `Notificação de incidente de segurança — ${orgNome.replace(/[\r\n]/g, "")}`, html);
 }
 
@@ -296,10 +292,8 @@ export async function sendPlanLimitReachedEmail({
   orgNome: string;
   tipoLimite: "usuarios" | "storage";
 }): Promise<{ sent: boolean; error?: string }> {
-  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const safeOrg = escapeHtml(orgNome);
-  const safeAppUrl = safeUrl(appUrl);
-  const calculadoraUrl = `${safeAppUrl}/configuracoes?tab=plano`;
+  const calculadoraUrl = `${APP_URL}/configuracoes?tab=plano`;
 
   const recursoLabel = tipoLimite === "usuarios" ? "usuários ativos" : "armazenamento";
   const mailtoSubject = encodeURIComponent(`Plano Personalizado — ${orgNome}`);
@@ -308,74 +302,34 @@ export async function sendPlanLimitReachedEmail({
   );
   const mailtoHref = `mailto:contato@formattio.com.br?subject=${mailtoSubject}&body=${mailtoBody}`;
 
-  const html = `
-    <div style="font-family: sans-serif; max-width: 580px; margin: 0 auto; color: #1a1a1a;">
-      <div style="background: #fef3c7; border-left: 4px solid #d97706; padding: 14px 18px; border-radius: 4px; margin-bottom: 24px;">
-        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #92400e;">
-          Limite do Plano Avançado atingido — ${safeOrg}
-        </p>
-      </div>
+  const conteudo = [
+    banner("warn", `Limite do Plano Avançado atingido — ${safeOrg}`),
+    paragraph("Olá!"),
+    paragraph(
+      `Sua organização <strong>${safeOrg}</strong> atingiu o limite de <strong>${recursoLabel}</strong> do <strong>Plano Avançado</strong>. Para continuar crescendo sem interrupções, convidamos você a conhecer o <strong>Plano Personalizado Formattio</strong>.`
+    ),
+    sectionLabel("O que você ganha no Plano Personalizado"),
+    featureList([
+      ["Usuários ilimitados", "Sem teto — cresça sem restrições"],
+      ["Armazenamento sob demanda", "Calculado automaticamente pela quantidade de membros"],
+      ["SLA com garantia de disponibilidade", "Acordo de nível de serviço dedicado"],
+      ["Suporte prioritário", "Atendimento dedicado ao seu time"],
+      ["Onboarding guiado", "O time Formattio configura tudo com você"],
+      ["Contrato personalizado", "Termos adaptados à sua realidade"],
+    ]),
+    priceBox("R$ 889", "/mês", "Mensal ou anual · Calculado pelo número de membros"),
+    button("Simular meu plano agora", calculadoraUrl),
+    `<p style="margin:0 0 8px;text-align:center;"><a href="${mailtoHref}" style="font-size:13px;color:#847A6F;text-decoration:underline;">Ou fale diretamente com nosso time</a></p>`,
+  ].join("");
 
-      <p>Olá!</p>
-      <p>
-        Sua organização <strong>${safeOrg}</strong> atingiu o limite de <strong>${recursoLabel}</strong>
-        do <strong>Plano Avançado</strong>. Para continuar crescendo sem interrupções, convidamos você a
-        conhecer o <strong>Plano Personalizado Formattio</strong>.
-      </p>
-
-      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 24px 0;">
-        <p style="margin: 0 0 12px; font-size: 13px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">
-          O que você ganha no Plano Personalizado
-        </p>
-        <table style="width: 100%; border-collapse: collapse;">
-          ${[
-            ["Usuários ilimitados", "Sem teto — cresça sem restrições"],
-            ["Armazenamento sob demanda", "Calculado automaticamente pela quantidade de membros"],
-            ["SLA com garantia de disponibilidade", "Acordo de nível de serviço dedicado"],
-            ["Suporte prioritário", "Atendimento dedicado ao seu time"],
-            ["Onboarding guiado", "O time Formattio configura tudo com você"],
-            ["Contrato personalizado", "Termos adaptados à sua realidade"],
-          ].map(([feat, desc]) => `
-            <tr>
-              <td style="padding: 6px 0; vertical-align: top; width: 20px;">
-                <span style="color: #d97706; font-size: 16px;">✓</span>
-              </td>
-              <td style="padding: 6px 8px; vertical-align: top;">
-                <strong style="font-size: 13px;">${feat}</strong>
-                <br/><span style="font-size: 12px; color: #6b7280;">${desc}</span>
-              </td>
-            </tr>
-          `).join("")}
-        </table>
-      </div>
-
-      <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
-        <p style="margin: 0 0 4px; font-size: 12px; color: #92400e; font-weight: 600; text-transform: uppercase;">A partir de</p>
-        <p style="margin: 0; font-size: 32px; font-weight: 800; color: #1a1a1a;">R$ 889<span style="font-size: 14px; font-weight: 400; color: #6b7280;">/mês</span></p>
-        <p style="margin: 4px 0 0; font-size: 12px; color: #6b7280;">Mensal ou anual · Calculado pelo número de membros</p>
-      </div>
-
-      <p style="text-align: center; margin: 28px 0 12px;">
-        <a href="${calculadoraUrl}"
-           style="display: inline-block; background: #b25433; color: white; text-decoration: none;
-                  padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 15px;">
-          Simular meu plano agora
-        </a>
-      </p>
-      <p style="text-align: center; margin: 0;">
-        <a href="${mailtoHref}"
-           style="font-size: 13px; color: #6b7280; text-decoration: underline;">
-          Ou fale diretamente com nosso time
-        </a>
-      </p>
-
-      <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-      <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-        Formattio — plataforma de gestão formativa<br/>
-        Você recebeu este e-mail porque é administrador da organização ${safeOrg}.
-      </p>
-    </div>
-  `;
+  const html = renderEmail({
+    titulo: "Limite do Plano Avançado atingido",
+    preheader: "Conheça o Plano Personalizado Formattio e cresça sem interrupções.",
+    eyebrow: "Seu Plano",
+    conteudo,
+    logoUrl: LOGO_URL,
+    notaRodape: `Você recebeu este e-mail porque é administrador da organização ${safeOrg}.`,
+  });
 
   return send(
     organizacaoId,
@@ -398,35 +352,27 @@ export async function sendPushInviteEmail({
   grupoNome: string | null;
   ativarUrl: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = escapeHtml(nome);
-  const safeGrupo = grupoNome ? escapeHtml(grupoNome) : null;
-  const safeUrl = ativarUrl.startsWith("http") ? escapeHtml(ativarUrl) : "#";
-  const grupoLine = safeGrupo
-    ? `<p>Grupo de formação: <strong>${safeGrupo}</strong></p>`
-    : "";
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <h2 style="color: #1a1a1a;">Ative as notificações, ${safeName}!</h2>
-      <p>Você está cadastrado(a) na plataforma de formação comunitária <strong>Formattio</strong>.</p>
-      ${grupoLine}
-      <p>Clique no botão abaixo para ativar as notificações no seu celular ou computador e receber avisos sobre encontros, datas e comunicados — mesmo com o navegador fechado.</p>
-      <p style="text-align: center; margin: 32px 0;">
-        <a href="${safeUrl}"
-           style="background: #b25433; color: white; text-decoration: none;
-                  padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 15px;">
-          Ativar notificações
-        </a>
-      </p>
-      <p style="color: #666; font-size: 13px;">
-        Se não conseguir clicar no botão, copie e cole este link no seu navegador:<br/>
-        <a href="${safeUrl}">${safeUrl}</a>
-      </p>
-      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-      <p style="color: #999; font-size: 12px;">
-        Sem spam. Apenas avisos da sua comunidade. Você pode cancelar a qualquer momento acessando o mesmo link.
-      </p>
-    </div>
-  `;
+  const conteudo = [
+    heading(`Ative as notificações, ${escapeHtml(nome)}!`),
+    paragraph(
+      "Você está cadastrado(a) na plataforma de formação comunitária <strong>Formattio</strong>."
+    ),
+    grupoNome ? paragraph(`Grupo de formação: <strong>${escapeHtml(grupoNome)}</strong>`) : "",
+    paragraph(
+      "Clique no botão abaixo para ativar as notificações no seu celular ou computador e receber avisos sobre encontros, datas e comunicados — mesmo com o navegador fechado."
+    ),
+    button("Ativar notificações", ativarUrl),
+    linkFallback(ativarUrl),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Ative as notificações da sua comunidade",
+    preheader: "Receba avisos da sua comunidade mesmo com o navegador fechado.",
+    eyebrow: "Notificações",
+    conteudo,
+    logoUrl: LOGO_URL,
+    notaRodape:
+      "Sem spam. Apenas avisos da sua comunidade. Você pode cancelar a qualquer momento acessando o mesmo link.",
+  });
   return send(organizacaoId, email, "Ative as notificações da sua comunidade — Formattio", html);
 }
 
@@ -443,50 +389,36 @@ export async function sendTrialExpiringEmail({
   orgNome: string;
   trialExpiresAt: Date;
 }): Promise<{ sent: boolean; error?: string }> {
-  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  const safeName = escapeHtml(nome);
   const safeOrg = escapeHtml(orgNome);
-  const safeAppUrl = safeUrl(appUrl);
   const dataExpiry = trialExpiresAt.toLocaleDateString("pt-BR");
   const daysLeft = Math.max(0, Math.ceil((trialExpiresAt.getTime() - Date.now()) / 86_400_000));
-  const planoUrl = `${safeAppUrl}/configuracoes?tab=plano`;
+  const diaLabel = `${daysLeft} dia${daysLeft !== 1 ? "s" : ""}`;
+  const planoUrl = `${APP_URL}/configuracoes?tab=plano`;
 
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <div style="background: #fef3c7; border-left: 4px solid #d97706; padding: 14px 18px; border-radius: 4px; margin-bottom: 24px;">
-        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #92400e;">
-          Período de experiência expira em ${daysLeft} dia${daysLeft !== 1 ? "s" : ""}
-        </p>
-      </div>
-      <p>Olá, <strong>${safeName}</strong>!</p>
-      <p>
-        O período de experiência da organização <strong>${safeOrg}</strong> na plataforma Formattio
-        expira em <strong>${dataExpiry}</strong>.
-      </p>
-      <p>
-        Para continuar utilizando todos os recursos sem interrupção, assine um dos planos antes da data de expiração.
-      </p>
-      <p style="text-align: center; margin: 32px 0;">
-        <a href="${planoUrl}"
-           style="background: #b25433; color: white; text-decoration: none;
-                  padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 15px;">
-          Escolher um plano
-        </a>
-      </p>
-      <p style="color: #666; font-size: 13px; text-align: center;">
-        Ou acesse diretamente: <a href="${planoUrl}">${planoUrl}</a>
-      </p>
-      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-      <p style="color: #999; font-size: 12px;">
-        Formattio — plataforma de gestão formativa.<br/>
-        Você recebeu este e-mail por ser administrador(a) da organização ${safeOrg}.
-      </p>
-    </div>
-  `;
+  const conteudo = [
+    banner("warn", `Período de experiência expira em ${diaLabel}`),
+    paragraph(`Olá, <strong>${escapeHtml(nome)}</strong>!`),
+    paragraph(
+      `O período de experiência da organização <strong>${safeOrg}</strong> na plataforma Formattio expira em <strong>${dataExpiry}</strong>.`
+    ),
+    paragraph(
+      "Para continuar utilizando todos os recursos sem interrupção, assine um dos planos antes da data de expiração."
+    ),
+    button("Escolher um plano", planoUrl),
+    linkFallback(planoUrl),
+  ].join("");
+  const html = renderEmail({
+    titulo: `Seu período de experiência expira em ${diaLabel}`,
+    preheader: `Assine um plano antes de ${dataExpiry} para não perder o acesso.`,
+    eyebrow: "Seu Plano",
+    conteudo,
+    logoUrl: LOGO_URL,
+    notaRodape: `Você recebeu este e-mail por ser administrador(a) da organização ${safeOrg}.`,
+  });
   return send(
     organizacaoId,
     email,
-    `Seu período de experiência expira em ${daysLeft} dia${daysLeft !== 1 ? "s" : ""} — Formattio`,
+    `Seu período de experiência expira em ${diaLabel} — Formattio`,
     html
   );
 }
@@ -509,21 +441,20 @@ export async function sendLimitAlertEmail({
   const safeRecurso = escapeHtml(recurso);
   const safeOrg = escapeHtml(orgNome);
   const safePct = Number(percentUsed).toFixed(0);
-  const safeAppUrl = safeUrl(appUrl);
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <h2 style="color: #d97706;">Alerta de uso</h2>
-      <p>O recurso <strong>${safeRecurso}</strong> da organização <strong>${safeOrg}</strong> está em <strong>${safePct}%</strong> do limite do plano atual.</p>
-      <p>Considere fazer upgrade do plano para evitar interrupções.</p>
-      <p style="text-align: center; margin: 32px 0;">
-        <a href="${safeAppUrl}/configuracoes"
-           style="background: #6d28d9; color: white; text-decoration: none;
-                  padding: 12px 24px; border-radius: 6px; font-weight: bold;">
-          Gerenciar plano
-        </a>
-      </p>
-    </div>
-  `;
+  const conteudo = [
+    heading("Alerta de uso"),
+    paragraph(
+      `O recurso <strong>${safeRecurso}</strong> da organização <strong>${safeOrg}</strong> está em <strong>${safePct}%</strong> do limite do plano atual.`
+    ),
+    paragraph("Considere fazer upgrade do plano para evitar interrupções."),
+    button("Gerenciar plano", `${appUrl.replace(/\/+$/, "")}/configuracoes`),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Alerta de uso",
+    eyebrow: "Seu Plano",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
   const subjectOrg = orgNome.replace(/[\r\n]/g, "");
   const subjectRec = recurso.replace(/[\r\n]/g, "");
   return send(organizacaoId, email, `Alerta de limite — ${subjectRec} em ${safePct}% (${subjectOrg})`, html);
@@ -546,31 +477,26 @@ export async function sendDbPoolAlertEmail({
   max: number;
   appUrl: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = escapeHtml(nome);
-  const safeAppUrl = safeUrl(appUrl);
   const pct = Number(percentUso).toFixed(0);
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">⚠️ Pool de conexões do banco em ${pct}%</h2>
-      <p>Olá, ${safeName}.</p>
-      <p>O PostgreSQL está usando <strong>${total} de ${max}</strong> conexões disponíveis
-         (<strong>${pct}%</strong>), acima do limite de alerta de 80%.</p>
-      <p>Sob carga sustentada perto do limite, novas conexões podem falhar. Recomenda-se
-         adotar um <strong>connection pooler</strong> (PgBouncer em modo transaction ou
-         Prisma Accelerate) ou revisar o <code>DATABASE_POOL_SIZE</code> por réplica.</p>
-      <p style="text-align: center; margin: 32px 0;">
-        <a href="${safeAppUrl}/super-admin?tab=infraestrutura"
-           style="background: #6d28d9; color: white; text-decoration: none;
-                  padding: 12px 24px; border-radius: 6px; font-weight: bold;">
-          Ver infraestrutura
-        </a>
-      </p>
-      <p style="color: #999; font-size: 12px;">
-        Você está recebendo este alerta porque é administrador da plataforma. Novo alerta só
-        será enviado após algumas horas, mesmo que a condição persista.
-      </p>
-    </div>
-  `;
+  const conteudo = [
+    banner("danger", `⚠️ Pool de conexões do banco em ${pct}%`),
+    paragraph(`Olá, ${escapeHtml(nome)}.`),
+    paragraph(
+      `O PostgreSQL está usando <strong>${total} de ${max}</strong> conexões disponíveis (<strong>${pct}%</strong>), acima do limite de alerta de 80%.`
+    ),
+    paragraph(
+      "Sob carga sustentada perto do limite, novas conexões podem falhar. Recomenda-se adotar um <strong>connection pooler</strong> (PgBouncer em modo transaction ou Prisma Accelerate) ou revisar o <code>DATABASE_POOL_SIZE</code> por réplica."
+    ),
+    button("Ver infraestrutura", `${appUrl.replace(/\/+$/, "")}/super-admin?tab=infraestrutura`),
+  ].join("");
+  const html = renderEmail({
+    titulo: `Pool de conexões em ${pct}%`,
+    eyebrow: "Infraestrutura",
+    conteudo,
+    logoUrl: LOGO_URL,
+    notaRodape:
+      "Você está recebendo este alerta porque é administrador da plataforma. Novo alerta só será enviado após algumas horas, mesmo que a condição persista.",
+  });
   return send(organizacaoId, email, `⚠️ Pool de conexões em ${pct}% — Formattio`, html);
 }
 
@@ -585,39 +511,26 @@ export async function sendPortalMagicLinkEmail({
   email: string;
   magicLinkUrl: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = escapeHtml(nome);
-  const safeMagicLink = safeUrl(magicLinkUrl);
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <div style="background: #B25433; padding: 24px 32px; border-radius: 8px 8px 0 0;">
-        <span style="color: white; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">Formattio</span>
-      </div>
-      <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; background: white;">
-        <h2 style="margin: 0 0 16px; font-size: 20px; color: #1a1a1a;">Olá, ${safeName}!</h2>
-        <p style="margin: 0 0 16px; color: #374151; font-size: 14px; line-height: 1.6;">
-          Recebemos uma solicitação de acesso ao seu portal de formação. Clique no botão abaixo para entrar.
-        </p>
-        <p style="margin: 0 0 24px; color: #6b7280; font-size: 13px;">
-          O link é válido por <strong>15 minutos</strong>.
-        </p>
-        <p style="text-align: center; margin: 32px 0;">
-          <a href="${safeMagicLink}"
-             style="background: #B25433; color: white; text-decoration: none;
-                    padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 15px;">
-            Acessar meu portal
-          </a>
-        </p>
-        <p style="color: #9ca3af; font-size: 12px;">
-          Se não conseguir clicar no botão, copie e cole este link no navegador:<br/>
-          <a href="${safeMagicLink}" style="color: #B25433;">${safeMagicLink}</a>
-        </p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-        <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-          Se não solicitou este acesso, ignore este e-mail. Nenhuma ação é necessária.
-        </p>
-      </div>
-    </div>
-  `;
+  const conteudo = [
+    heading(`Olá, ${escapeHtml(nome)}!`),
+    paragraph(
+      "Recebemos uma solicitação de acesso ao seu portal de formação. Clique no botão abaixo para entrar."
+    ),
+    paragraph("O link é válido por <strong>15 minutos</strong>."),
+    button("Acessar meu portal", magicLinkUrl),
+    linkFallback(magicLinkUrl),
+    callout(
+      "info",
+      "Se não solicitou este acesso, ignore este e-mail. Nenhuma ação é necessária."
+    ),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Seu link de acesso ao portal",
+    preheader: "Acesse seu portal de formação — link válido por 15 minutos.",
+    eyebrow: "Portal do Formando",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
   return send(organizacaoId, email, "Seu link de acesso ao portal — Formattio", html);
 }
 
@@ -636,24 +549,17 @@ export async function sendComunicadoEmail({
   mensagem: string;
   orgNome: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const safeName = escapeHtml(nome);
-  const safeOrg = escapeHtml(orgNome);
   const safeMsg = escapeHtml(mensagem).replace(/\n/g, "<br/>");
-  const html = `
-    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-      <div style="background: #B25433; padding: 24px 32px; border-radius: 8px 8px 0 0;">
-        <span style="color: white; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">Formattio</span>
-      </div>
-      <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; background: white;">
-        <p style="margin: 0 0 16px; font-size: 14px; color: #374151;">Olá, ${safeName}!</p>
-        <p style="margin: 0 0 24px; font-size: 14px; color: #374151; line-height: 1.6;">${safeMsg}</p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;"/>
-        <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-          Esta mensagem foi enviada para os administradores de
-          <strong>${safeOrg}</strong> pela equipe Formattio.
-        </p>
-      </div>
-    </div>
-  `;
+  const conteudo = [
+    heading(`Olá, ${escapeHtml(nome)}!`),
+    paragraph(safeMsg),
+  ].join("");
+  const html = renderEmail({
+    titulo: assunto,
+    eyebrow: "Comunicado",
+    conteudo,
+    logoUrl: LOGO_URL,
+    notaRodape: `Esta mensagem foi enviada para os administradores de <strong>${escapeHtml(orgNome)}</strong> pela equipe Formattio.`,
+  });
   return send(organizacaoId, to, assunto, html);
 }

@@ -1,5 +1,15 @@
 ﻿// NEVER import in client components — uses Prisma (Node.js only).
 import { prisma } from "@/lib/prisma";
+import {
+  renderEmail,
+  heading,
+  paragraph,
+  codeBox,
+  steps,
+  button,
+  callout,
+  sectionLabel,
+} from "@/lib/email-layout";
 
 export interface TemplateStep {
   titulo: string;
@@ -88,6 +98,8 @@ export interface TemplateVars {
   email: string;
   senha: string;
   url: string;
+  /** URL absoluta do badge da marca para o cabeçalho. */
+  logoUrl?: string;
 }
 
 export function escapeHtml(str: string): string {
@@ -116,132 +128,40 @@ function applyVars(text: string, vars: TemplateVars): string {
 export function buildEmailHtml(template: EmailTemplate, vars: TemplateVars): string {
   const t = (text: string) => applyVars(text, vars);
 
-  const stepsHtml = template.passos
-    .map(
-      (step, i) => `
-      <tr>
-        <td style="padding:8px 0;">
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td width="36" valign="top" style="padding-top:2px;">
-                <span style="display:inline-block;width:26px;height:26px;background:#1d4ed8;border-radius:50%;text-align:center;line-height:26px;font-size:12px;font-weight:700;color:#fff;">${i + 1}</span>
-              </td>
-              <td valign="top">
-                <p style="margin:0;font-size:14px;font-weight:600;color:#1f2937;">${t(step.titulo)}</p>
-                <p style="margin:2px 0 0;font-size:13px;color:#6b7280;line-height:1.5;">${t(step.descricao)}</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>`
-    )
-    .join("");
+  const passos = template.passos.map((step) => ({
+    titulo: t(step.titulo),
+    descricao: t(step.descricao),
+  }));
 
-  return `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${t(template.assunto)}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+  const conteudo = [
+    heading(t(template.saudacao)),
+    paragraph(t(template.mensagem1)),
+    paragraph(t(template.mensagem2)),
+    sectionLabel("Credenciais de acesso"),
+    codeBox({
+      label: "E-mail de acesso",
+      value: t("{{email}}"),
+      sublabel: "Senha provisória de primeiro acesso",
+      subvalue: t("{{senha}}"),
+    }),
+    sectionLabel("Como concluir o seu cadastro"),
+    steps(passos),
+    button(t(template.textoBotao), vars.url),
+    callout("warn", t(template.avisoSeguranca)),
+    paragraph(
+      "Caso tenha dificuldades no acesso, entre em contato com o administrador da plataforma."
+    ),
+  ].join("");
 
-          <!-- Header -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);padding:40px 40px 32px;text-align:center;">
-              <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:1px;">Plataforma Formativa</p>
-              <h1 style="margin:0;font-size:26px;font-weight:700;color:#ffffff;line-height:1.2;">Formattio</h1>
-            </td>
-          </tr>
+  const notaRodape =
+    template.rodape && template.rodape !== DEFAULT_EMAIL_TEMPLATE.rodape
+      ? t(template.rodape)
+      : undefined;
 
-          <!-- Body -->
-          <tr>
-            <td style="padding:40px;">
-              <p style="margin:0 0 20px;font-size:16px;color:#1f2937;font-weight:600;">${t(template.saudacao)}</p>
-
-              <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">
-                ${t(template.mensagem1)}
-              </p>
-
-              <p style="margin:0 0 28px;font-size:15px;color:#374151;line-height:1.6;">
-                ${t(template.mensagem2)}
-              </p>
-
-              <!-- Credentials box -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:10px;margin-bottom:28px;">
-                <tr>
-                  <td style="padding:24px;">
-                    <p style="margin:0 0 16px;font-size:13px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.5px;">Credenciais de Acesso</p>
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="padding:8px 0;border-bottom:1px solid #dbeafe;">
-                          <span style="font-size:12px;color:#6b7280;display:block;">E-mail de acesso</span>
-                          <span style="font-size:15px;color:#1f2937;font-weight:600;">${t("{{email}}")}</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding:12px 0 0;">
-                          <span style="font-size:12px;color:#6b7280;display:block;">Senha provisória de primeiro acesso</span>
-                          <span style="font-size:24px;color:#1d4ed8;font-weight:700;font-family:monospace;letter-spacing:4px;">${t("{{senha}}")}</span>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Steps -->
-              <p style="margin:0 0 14px;font-size:14px;font-weight:700;color:#1f2937;">Como concluir o seu cadastro:</p>
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-                ${stepsHtml}
-              </table>
-
-              <!-- CTA Button -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-                <tr>
-                  <td align="center">
-                    <a href="${t("{{url}}")}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;">
-                      ${t(template.textoBotao)}
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Warning -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;margin-bottom:20px;">
-                <tr>
-                  <td style="padding:14px 16px;">
-                    <p style="margin:0;font-size:13px;color:#92400e;">
-                      ${t(template.avisoSeguranca)}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">
-                Caso tenha dificuldades no acesso, entre em contato com o administrador da plataforma.
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="background:#f9fafb;padding:24px 40px;border-top:1px solid #e5e7eb;text-align:center;">
-              <p style="margin:0;font-size:12px;color:#9ca3af;">
-                ${t(template.rodape)}
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`.trim();
+  return renderEmail({
+    titulo: t(template.assunto),
+    conteudo,
+    logoUrl: vars.logoUrl,
+    notaRodape,
+  });
 }
