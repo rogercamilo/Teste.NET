@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!user.organizacaoId) return NextResponse.json({ error: "Configuração disponível apenas para organizações" }, { status: 403 });
-  if (!temPermissao(user.role, "administrador")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!temPermissao(user.role, "formador_geral")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   return NextResponse.json(await loadEmailTemplate(user.organizacaoId));
 }
 
@@ -22,7 +22,7 @@ export async function PUT(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!user.organizacaoId) return NextResponse.json({ error: "Configuração disponível apenas para organizações" }, { status: 403 });
-  if (!temPermissao(user.role, "administrador")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!temPermissao(user.role, "formador_geral")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rlPut = await limiters.mutation(user.id ?? "unknown");
   if (!rlPut.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
@@ -55,7 +55,7 @@ export async function DELETE(request: Request) {
   const user = session?.user as SU | undefined;
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!user.organizacaoId) return NextResponse.json({ error: "Configuração disponível apenas para organizações" }, { status: 403 });
-  if (!temPermissao(user.role, "administrador")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!temPermissao(user.role, "formador_geral")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rlDel = await limiters.mutation(user.id ?? "unknown");
   if (!rlDel.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 

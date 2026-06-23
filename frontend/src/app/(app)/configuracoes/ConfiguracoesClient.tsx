@@ -135,6 +135,8 @@ export default function ConfiguracoesClient({
   initialUsage,
 }: ConfiguracoesClientProps) {
   const isGestao = temPermissao(userRole as PerfilUsuario, "formador_geral");
+  // Admin comercial (e super_admin): controla Plano, Sistema e Privacidade.
+  const isAdmin = temPermissao(userRole as PerfilUsuario, "administrador");
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -190,24 +192,28 @@ export default function ConfiguracoesClient({
               E-mail
             </TabsTrigger>
           )}
-          {isGestao && (
+          {isAdmin && (
             <TabsTrigger value="plano" className="text-xs h-7 gap-1.5">
               <TrendingUp className="h-3.5 w-3.5" />
               Plano
             </TabsTrigger>
           )}
-          <TabsTrigger value="sistema" className="text-xs h-7 gap-1.5">
-            <Server className="h-3.5 w-3.5" />
-            Sistema
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="sistema" className="text-xs h-7 gap-1.5">
+              <Server className="h-3.5 w-3.5" />
+              Sistema
+            </TabsTrigger>
+          )}
           <TabsTrigger value="notificacoes" className="text-xs h-7 gap-1.5">
             <Bell className="h-3.5 w-3.5" />
             Notificações
           </TabsTrigger>
-          <TabsTrigger value="privacidade" className="text-xs h-7 gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Privacidade
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="privacidade" className="text-xs h-7 gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Privacidade
+            </TabsTrigger>
+          )}
         </TabsList>
         </div>
 
@@ -233,7 +239,7 @@ export default function ConfiguracoesClient({
           </TabsContent>
         )}
 
-        {isGestao && (
+        {isAdmin && (
           <TabsContent value="plano" className="mt-4">
             <div className="max-w-3xl space-y-6">
               {/* Uso atual */}
@@ -267,17 +273,21 @@ export default function ConfiguracoesClient({
           </TabsContent>
         )}
 
-        <TabsContent value="sistema" className="mt-4">
-          <SistemaTab />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="sistema" className="mt-4">
+            <SistemaTab />
+          </TabsContent>
+        )}
 
         <TabsContent value="notificacoes" className="mt-4">
           <NotificacoesTab isGestao={isGestao} userRole={userRole} userGrupoFormacaoId={userGrupoFormacaoId} />
         </TabsContent>
 
-        <TabsContent value="privacidade" className="mt-4">
-          <PrivacidadeTab userEmail={userEmail} isAdmin={userRole === "administrador"} isSuperAdmin={userRole === "super_admin"} />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="privacidade" className="mt-4">
+            <PrivacidadeTab userEmail={userEmail} isAdmin={userRole === "administrador"} isSuperAdmin={userRole === "super_admin"} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
@@ -1314,13 +1324,16 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
             )}
             <div className="grid gap-1.5">
               <Label>Perfil de acesso</Label>
-              <Select value={form.perfil} onValueChange={(v) => v && set("perfil")(v)} items={{ administrador: PERFIL_USUARIO_LABELS.administrador, formador_comunitario: PERFIL_USUARIO_LABELS.formador_comunitario }}>
+              <Select value={form.perfil} onValueChange={(v) => v && set("perfil")(v)} items={{ administrador: PERFIL_USUARIO_LABELS.administrador, formador_geral: PERFIL_USUARIO_LABELS.formador_geral, formador_comunitario: PERFIL_USUARIO_LABELS.formador_comunitario }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="administrador">
                     {PERFIL_USUARIO_LABELS["administrador"]}
+                  </SelectItem>
+                  <SelectItem value="formador_geral">
+                    {PERFIL_USUARIO_LABELS["formador_geral"]}
                   </SelectItem>
                   <SelectItem value="formador_comunitario">
                     {PERFIL_USUARIO_LABELS["formador_comunitario"]}
@@ -1605,6 +1618,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="formador_comunitario">Formador Comunitário</SelectItem>
+                  <SelectItem value="formador_geral">Formador Geral</SelectItem>
                   <SelectItem value="administrador">Administrador</SelectItem>
                 </SelectContent>
               </Select>

@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
-  if (!temPermissao(user.role, "administrador")) {
+  if (!temPermissao(user.role, "formador_geral")) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

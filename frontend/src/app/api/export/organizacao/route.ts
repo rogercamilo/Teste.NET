@@ -4,13 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 
-import { isAdminOrAbove, SessionUser } from "@/lib/auth-helpers";
+import { SessionUser } from "@/lib/auth-helpers";
+import { temPermissao } from "@/types";
 
 export async function GET(request: Request) {
   const session = await auth();
   const actor = session?.user as SessionUser | undefined;
   if (!actor?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isAdminOrAbove(actor.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!temPermissao(actor.role, "administrador")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   const orgId = actor.organizacaoId;
   if (!orgId) return NextResponse.json({ error: "Organização não encontrada" }, { status: 400 });
