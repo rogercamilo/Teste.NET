@@ -2123,6 +2123,13 @@ function ComunidadeTab() {
 
 /* ─── TAB: E-MAIL ───────────────────────────────────────────────── */
 
+/**
+ * Envio centralizado via Resend (plataforma). A configuração de SMTP por tenant
+ * fica oculta por padrão — código mantido para clientes enterprise, que podem
+ * reexibir a UI definindo NEXT_PUBLIC_SMTP_UI=1.
+ */
+const SMTP_UI_ENABLED = process.env.NEXT_PUBLIC_SMTP_UI === "1";
+
 const SMTP_PRESETS = [
   { label: "Gmail", host: "smtp.gmail.com", port: 587, secure: false },
   { label: "Outlook / Office 365", host: "smtp.office365.com", port: 587, secure: false },
@@ -2367,6 +2374,8 @@ function EmailTab() {
   return (
     <div className="max-w-2xl space-y-4">
 
+      {SMTP_UI_ENABLED && (
+      <>
       {/* Status */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4">
@@ -2615,6 +2624,8 @@ function EmailTab() {
           </div>
         </CardContent>
       </Card>
+      </>
+      )}
 
       {/* Template editor */}
       <Card className="border-0 shadow-sm">
