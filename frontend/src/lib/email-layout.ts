@@ -226,7 +226,7 @@ export function brandLogoUrl(appUrl: string): string {
  * 512×128) usada no rodapé. Mesmo diretório do badge.
  */
 export function brandWordmarkUrl(appUrl: string): string {
-  return `${appUrl.replace(/\/+$/, "")}/brand/email/formattio-horizontal-2x.png`;
+  return `${appUrl.replace(/\/+$/, "")}/brand/email/formattio-lockup-2x.png`;
 }
 
 /** Cabeçalho clay: badge + wordmark (com logo) ou wordmark + trilha CSS (sem logo). */
@@ -271,7 +271,7 @@ export function renderEmail(opts: RenderEmailOptions): string {
   // Logomarca horizontal no rodapé (substitui o nome por extenso). Derivada do
   // badge (mesmo diretório /brand/email/); sem logoUrl, cai no wordmark textual.
   const wordmarkUrl = opts.logoUrl
-    ? opts.logoUrl.replace(/symbol-badge\.png(\?.*)?$/, "formattio-horizontal-2x.png")
+    ? opts.logoUrl.replace(/symbol-badge\.png(\?.*)?$/, "formattio-lockup-2x.png")
     : undefined;
   const marcaRodape =
     wordmarkUrl && wordmarkUrl !== opts.logoUrl
