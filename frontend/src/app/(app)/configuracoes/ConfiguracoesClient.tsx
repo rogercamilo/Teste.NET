@@ -96,6 +96,7 @@ import StripeUpgrade from "@/components/StripeUpgrade";
 import type { BillingInfo } from "@/lib/billing-data";
 import type { UsageInfo } from "@/lib/plan-limits";
 import PrivacidadeTab from "@/components/PrivacidadeTab";
+import DadosPessoaisCard from "@/components/DadosPessoaisCard";
 import NotificacoesTab from "@/components/NotificacoesTab";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -218,7 +219,7 @@ export default function ConfiguracoesClient({
         </div>
 
         <TabsContent value="perfil" className="mt-4">
-          <PerfilTab userId={userId} userName={userName} userEmail={userEmail} />
+          <PerfilTab userId={userId} userName={userName} userEmail={userEmail} isSuperAdmin={userRole === "super_admin"} />
         </TabsContent>
 
         {isGestao && (
@@ -285,7 +286,7 @@ export default function ConfiguracoesClient({
 
         {isAdmin && (
           <TabsContent value="privacidade" className="mt-4">
-            <PrivacidadeTab userEmail={userEmail} isAdmin={userRole === "administrador"} isSuperAdmin={userRole === "super_admin"} />
+            <PrivacidadeTab isAdmin={userRole === "administrador"} />
           </TabsContent>
         )}
       </Tabs>
@@ -299,10 +300,12 @@ function PerfilTab({
   userId,
   userName,
   userEmail,
+  isSuperAdmin = false,
 }: {
   userId: string;
   userName: string;
   userEmail: string;
+  isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
   const { update } = useSession();
@@ -619,6 +622,9 @@ function PerfilTab({
           )}
         </CardContent>
       </Card>
+
+      {/* Dados pessoais e exclusão de conta (LGPD) — disponíveis a qualquer usuário */}
+      <DadosPessoaisCard userEmail={userEmail} isSuperAdmin={isSuperAdmin} />
 
       {/* MFA Setup Dialog */}
       <Dialog open={mfaSetupOpen} onOpenChange={(v) => { setMfaSetupOpen(v); if (!v) { setMfaSetupStep("scan"); setMfaSetupTotp(""); } }}>
