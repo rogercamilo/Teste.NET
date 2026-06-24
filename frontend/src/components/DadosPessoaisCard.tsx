@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Download, AlertTriangle, Shield, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { downloadJsonExport } from "@/lib/download-export";
 
 interface Props {
   userEmail: string;
@@ -30,16 +31,11 @@ export default function DadosPessoaisCard({ userEmail, isSuperAdmin = false }: P
   async function handleDownloadMeusDados() {
     setDownloadingUser(true);
     try {
-      const res = await fetch("/api/export/meus-dados");
-      if (!res.ok) { toast.error("Erro ao exportar dados"); return; }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Dados exportados com sucesso");
+      const ok = await downloadJsonExport(
+        "/api/export/meus-dados",
+        `meus-dados-${new Date().toISOString().slice(0, 10)}.json`,
+      );
+      toast[ok ? "success" : "error"](ok ? "Dados exportados com sucesso" : "Erro ao exportar dados");
     } catch {
       toast.error("Falha ao exportar dados");
     } finally {

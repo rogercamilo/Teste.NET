@@ -97,6 +97,7 @@ import type { BillingInfo } from "@/lib/billing-data";
 import type { UsageInfo } from "@/lib/plan-limits";
 import PrivacidadeTab from "@/components/PrivacidadeTab";
 import DadosPessoaisCard from "@/components/DadosPessoaisCard";
+import { downloadJsonExport } from "@/lib/download-export";
 import NotificacoesTab from "@/components/NotificacoesTab";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -286,7 +287,7 @@ export default function ConfiguracoesClient({
 
         {isAdmin && (
           <TabsContent value="privacidade" className="mt-4">
-            <PrivacidadeTab isAdmin={userRole === "administrador"} />
+            <PrivacidadeTab />
           </TabsContent>
         )}
       </Tabs>
@@ -2865,17 +2866,11 @@ function EmailTab() {
 function SistemaTab() {
   async function handleExport() {
     try {
-      const res = await fetch("/api/export/organizacao");
-      if (!res.ok) { toast.error("Falha ao exportar dados."); return; }
-      const data = await res.json();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `formattio-backup-${new Date().toISOString().split("T")[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Dados exportados com sucesso!");
+      const ok = await downloadJsonExport(
+        "/api/export/organizacao",
+        `formattio-backup-${new Date().toISOString().split("T")[0]}.json`,
+      );
+      toast[ok ? "success" : "error"](ok ? "Dados exportados com sucesso!" : "Falha ao exportar dados.");
     } catch {
       toast.error("Falha ao exportar dados.");
     }
