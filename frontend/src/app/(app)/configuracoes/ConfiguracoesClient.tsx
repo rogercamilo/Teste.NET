@@ -220,7 +220,7 @@ export default function ConfiguracoesClient({
         </div>
 
         <TabsContent value="perfil" className="mt-4">
-          <PerfilTab userId={userId} userName={userName} userEmail={userEmail} isSuperAdmin={userRole === "super_admin"} />
+          <PerfilTab userId={userId} userName={userName} userEmail={userEmail} userRole={userRole} isSuperAdmin={userRole === "super_admin"} />
         </TabsContent>
 
         {isGestao && (
@@ -301,11 +301,13 @@ function PerfilTab({
   userId,
   userName,
   userEmail,
+  userRole,
   isSuperAdmin = false,
 }: {
   userId: string;
   userName: string;
   userEmail: string;
+  userRole: string;
   isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
@@ -434,9 +436,10 @@ function PerfilTab({
     finally { setMfaSaving(false); }
   }
 
-  const perfilLabel = usuario?.perfil
-    ? PERFIL_USUARIO_LABELS[usuario.perfil] ?? formador
-    : formador;
+  // Rótulo do perfil vem direto da sessão (prop) para evitar flash: antes era
+  // derivado de um fetch em /api/users e exibia o fallback genérico ("Formador
+  // Comunitário") até a resposta chegar — parecendo dados de outro usuário.
+  const perfilLabel = PERFIL_USUARIO_LABELS[userRole as PerfilUsuario] ?? formador;
 
   return (
     <div className="max-w-lg space-y-4">

@@ -58,7 +58,10 @@ export default function DadosPessoaisCard({ userEmail, isSuperAdmin = false }: P
       const data = await res.json() as { error?: string };
       if (!res.ok) { toast.error(data.error ?? "Erro ao excluir conta"); setDeleting(false); return; }
       toast.success("Conta encerrada. Você será desconectado.");
-      setTimeout(() => signOut({ callbackUrl: isSuperAdmin ? "/acesso-plataforma" : "/login" }), 1500);
+      setTimeout(async () => {
+        await signOut({ redirect: false });
+        window.location.href = isSuperAdmin ? "/acesso-plataforma" : "/login";
+      }, 1500);
     } catch {
       toast.error("Falha de conexão");
       setDeleting(false);

@@ -199,7 +199,13 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
             <SidebarMenuButton
               tooltip="Sair"
               size="sm"
-              onClick={() => signOut({ callbackUrl: isSuperAdmin ? "/acesso-plataforma" : "/login" })}
+              onClick={async () => {
+                // redirect:false + navegação relativa: o redirect interno do
+                // next-auth pode absolutizar a URL contra AUTH_URL/NEXTAUTH_URL
+                // (host divergente em dev) e a página de login não carregava.
+                await signOut({ redirect: false });
+                window.location.href = isSuperAdmin ? "/acesso-plataforma" : "/login";
+              }}
             >
               <LogOut className="h-4 w-4" />
               <span>Sair</span>
