@@ -51,7 +51,7 @@ export const navGroupsGestao: NavGroup[] = [
     items: [
       { title: "Moradas", href: "/grupos-formacao", icon: Home },
       { title: "Formandos", href: "/formandos", icon: Users },
-      { title: "Documentos", href: "/documentos", icon: FolderOpen },
+      { title: "Auditoria Documental", href: "/documentos", icon: FolderOpen },
       {
         title: "Jornada Vocacional",
         href: "/jornada-vocacional",

@@ -59,7 +59,7 @@ function buildBreadcrumbs(pathname: string, grupoFormacao: string, formando: str
     formacoes:  { parent: "Pedagógico",        parentHref: "/formacoes", label: "Formações"           },
     formandos:  { parent: "Gestão",            parentHref: "/formandos", label: `${formando}s`        },
     "grupos-formacao": { parent: "Gestão",     parentHref: "/grupos-formacao",   label: `${grupoFormacao}s`          },
-    documentos:          { parent: "Gestão",     parentHref: "/grupos-formacao",   label: "Documentos"          },
+    documentos:          { parent: "Gestão",     parentHref: "/grupos-formacao",   label: "Auditoria Documental" },
     "jornada-vocacional": { parent: "Gestão",   parentHref: "/jornada-vocacional", label: "Jornada Vocacional"  },
     presenca:   { parent: `Minha ${grupoFormacao}`,   parentHref: "/presenca",  label: "Gestão de Presença"  },
     comentarios:{ parent: `Minha ${grupoFormacao}`,   parentHref: "/presenca",  label: "Comentários"         },
