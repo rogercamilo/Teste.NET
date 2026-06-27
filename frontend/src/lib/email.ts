@@ -1,6 +1,6 @@
 ﻿import { Resend } from "resend";
 import nodemailer from "nodemailer";
-import { loadSmtpConfig, isSmtpReady, type SmtpConfig } from "./smtp-config";
+import { resolveSmtpConfig, isSmtpReady, type SmtpConfig } from "./smtp-config";
 import { loadEmailTemplate, buildEmailHtml, escapeHtml } from "./email-template";
 import {
   renderEmail,
@@ -131,6 +131,25 @@ function createTransporter(config: SmtpConfig) {
   });
 }
 
+async function sendViaSmtp(
+  config: SmtpConfig,
+  to: string,
+  subject: string,
+  html: string,
+  fromName: string | undefined,
+  replyTo: string | undefined
+): Promise<{ sent: boolean; error?: string }> {
+  const from = formatFrom(fromName, config.from || config.user);
+  try {
+    const transporter = createTransporter(config);
+    await transporter.sendMail({ from, to, subject, html, ...(replyTo ? { replyTo } : {}) });
+    return { sent: true };
+  } catch (err) {
+    logError("email/smtp", err);
+    return { sent: false, error: err instanceof Error ? err.message : "Falha no envio" };
+  }
+}
+
 async function send(
   organizacaoId: string,
   to: string,
@@ -163,22 +182,41 @@ async function send(
   }
   fromName = fromName ?? PLATFORM_FROM_NAME;
 
-  if (resend) return sendViaResend(to, subject, html, fromName, replyTo, opts.stream ?? "transactional");
+  // Cadeia de provedores com fallback — garante que o tenant consiga enviar
+  // mesmo que o provedor preferencial falhe (ex.: domínio do Resend ainda não
+  // verificado). Ordem de tentativa:
+  //   1. SMTP próprio do tenant (override "enterprise" salvo no banco)
+  //   2. Resend (provedor padrão da plataforma)
+  //   3. SMTP de ambiente (fallback global via SMTP_*)
+  const stream = opts.stream ?? "transactional";
+  const { config: smtpConfig, fromDb: smtpFromDb } = await resolveSmtpConfig(organizacaoId);
+  const smtpReady = isSmtpReady(smtpConfig);
 
-  const config = await loadSmtpConfig(organizacaoId);
-  if (!isSmtpReady(config)) {
+  const attempts: Array<{ provider: string; run: () => Promise<{ sent: boolean; error?: string }> }> = [];
+  if (smtpReady && smtpFromDb) {
+    attempts.push({ provider: "smtp-tenant", run: () => sendViaSmtp(smtpConfig, to, subject, html, fromName, replyTo) });
+  }
+  if (resend) {
+    attempts.push({ provider: "resend", run: () => sendViaResend(to, subject, html, fromName, replyTo, stream) });
+  }
+  if (smtpReady && !smtpFromDb) {
+    attempts.push({ provider: "smtp-env", run: () => sendViaSmtp(smtpConfig, to, subject, html, fromName, replyTo) });
+  }
+
+  if (attempts.length === 0) {
     console.warn("[email] Nenhum provedor configurado — e-mail não enviado.");
     return { sent: false, error: "Nenhum provedor de e-mail configurado" };
   }
-  const from = formatFrom(fromName, config.from || config.user);
-  try {
-    const transporter = createTransporter(config);
-    await transporter.sendMail({ from, to, subject, html, ...(replyTo ? { replyTo } : {}) });
-    return { sent: true };
-  } catch (err) {
-    logError("email/smtp", err);
-    return { sent: false, error: err instanceof Error ? err.message : "Falha no envio" };
+
+  let lastError: string | undefined;
+  for (const { provider, run } of attempts) {
+    const result = await run();
+    if (result.sent) return result;
+    lastError = result.error;
+    // Falha intermediária: registra e tenta o próximo provedor da cadeia.
+    console.warn(`[email] Provedor "${provider}" falhou (${result.error ?? "desconhecido"}); tentando próximo.`);
   }
+  return { sent: false, error: lastError ?? "Falha no envio" };
 }
 
 export async function sendWelcomeEmail({

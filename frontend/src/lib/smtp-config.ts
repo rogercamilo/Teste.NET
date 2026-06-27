@@ -49,17 +49,30 @@ function parseSmtpJson(raw: unknown): SmtpConfig {
   };
 }
 
-export async function loadSmtpConfig(organizacaoId: string): Promise<SmtpConfig> {
+/**
+ * Resolve a configuração SMTP da organização e informa a origem:
+ * `fromDb: true` quando o tenant configurou o próprio SMTP (override
+ * "enterprise"); `false` quando caiu no fallback das variáveis de ambiente.
+ * A origem permite que o envio priorize o SMTP do tenant sobre o provedor
+ * padrão da plataforma (Resend).
+ */
+export async function resolveSmtpConfig(
+  organizacaoId: string
+): Promise<{ config: SmtpConfig; fromDb: boolean }> {
   try {
     const cfg = await prisma.configuracaoOrg.findUnique({
       where: { organizacaoId },
       select: { smtpConfig: true },
     });
-    if (cfg?.smtpConfig) return parseSmtpJson(cfg.smtpConfig);
+    if (cfg?.smtpConfig) return { config: parseSmtpJson(cfg.smtpConfig), fromDb: true };
   } catch (err) {
     logError("smtp-config/load", err);
   }
-  return fromEnv();
+  return { config: fromEnv(), fromDb: false };
+}
+
+export async function loadSmtpConfig(organizacaoId: string): Promise<SmtpConfig> {
+  return (await resolveSmtpConfig(organizacaoId)).config;
 }
 
 export async function saveSmtpConfig(organizacaoId: string, config: SmtpConfig): Promise<void> {
