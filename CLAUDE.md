@@ -79,11 +79,15 @@ Two config files are intentional — required by Next.js Edge Runtime:
 
 **Session shape** (set in JWT/session callbacks in `auth.ts`):
 ```ts
-session.user.id, .perfil, .organizacaoId, .primeiroAcesso
+session.user.id, .role, .organizacaoId, .grupoFormacaoId, .primeiroAcesso
 ```
+> ⚠️ O perfil do usuário fica em `session.user.role` (NÃO `.perfil`). O campo
+> `perfil` só existe em registros do banco (`Usuario.perfil` / `UserAuth`). Ler
+> `session.user.perfil` retorna `undefined` e quebra checagens de permissão
+> silenciosamente. Tipo canônico: `SessionUser` em `lib/auth-helpers.ts`.
 
-**Roles** (`perfil`): `formador_comunitario` < `formador_geral` < `administrador`  
-Helper: `temPermissao(userPerfil, requiredPerfil)` in `types/index.ts`
+**Roles** (`role`): `formador_comunitario` < `formador_geral` < `administrador` (+ `super_admin`, papel de plataforma)  
+Helper: `temPermissao(userRole, requiredPerfil)` in `types/index.ts`
 
 ### Database & Multi-Tenancy (Phase 3 — active)
 

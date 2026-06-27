@@ -12,7 +12,7 @@ export default async function GradeDetalhePage({
   const [{ id }, session] = await Promise.all([params, auth()]);
   if (!session?.user) redirect("/login");
 
-  const user = session.user as { organizacaoId?: string; perfil?: string };
+  const user = session.user as { organizacaoId?: string; role?: string };
   if (!user.organizacaoId) redirect("/login");
   const orgId = user.organizacaoId;
 
@@ -41,7 +41,7 @@ export default async function GradeDetalhePage({
       : Promise.resolve(null),
   ]);
 
-  const canEdit = user.perfil !== "formador_comunitario";
+  const canEdit = user.role !== "formador_comunitario";
 
   return (
     <GradeDetalheClient
