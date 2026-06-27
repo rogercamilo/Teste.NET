@@ -7,8 +7,8 @@ import { isAdminOrAbove, SessionUser } from "@/lib/auth-helpers";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-type AssignablePerfil = "administrador" | "formador_comunitario";
-const VALID_PERFIS: AssignablePerfil[] = ["administrador", "formador_comunitario"];
+type AssignablePerfil = "administrador" | "formador_geral" | "formador_comunitario";
+const VALID_PERFIS: AssignablePerfil[] = ["administrador", "formador_geral", "formador_comunitario"];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

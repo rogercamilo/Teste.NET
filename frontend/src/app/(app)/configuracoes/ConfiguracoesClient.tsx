@@ -106,6 +106,21 @@ import { THEME_PALETTES, applyThemePalette } from "@/lib/themes";
 
 const VALID_TABS = ["perfil", "usuarios", "comunidade", "email", "plano", "sistema", "notificacoes", "privacidade"];
 
+/** Lê a mensagem de erro de uma resposta sem sucesso de forma resiliente.
+ *  Respostas de timeout/gateway (502/504) costumam vir como HTML, não JSON —
+ *  nesse caso `res.json()` lançaria e o usuário ficaria sem retorno. */
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json() as { error?: string };
+    return data.error ?? fallback;
+  } catch {
+    if (res.status === 504 || res.status === 502 || res.status === 503) {
+      return "O servidor demorou a responder. Tente novamente em instantes.";
+    }
+    return fallback;
+  }
+}
+
 interface ConfiguracoesClientProps {
   userId: string;
   userName: string;
@@ -915,8 +930,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
           body: JSON.stringify(body),
         });
         if (!res.ok) {
-          const err = await res.json() as { error?: string };
-          toast.error(err.error ?? "Falha ao atualizar usuário."); return;
+          toast.error(await readApiError(res, "Falha ao atualizar usuário.")); return;
         }
         const updated: UserPublic = await res.json();
         setUsuarios((prev) => prev.map((u) => (u.id === editing.id ? updated : u)));
@@ -941,8 +955,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
           }),
         });
         if (!res.ok) {
-          const err = await res.json() as { error?: string };
-          toast.error(err.error ?? "Falha ao criar usuário."); return;
+          toast.error(await readApiError(res, "Falha ao criar usuário.")); return;
         }
         const created = await res.json() as UserPublic & { tempPassword?: string; emailSent?: boolean };
 
@@ -977,6 +990,11 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
           toast.success("Usuário criado com sucesso!");
         }
       }
+    } catch (err) {
+      // Rede instável, timeout do gateway ou resposta não-JSON (ex.: 502/504 com
+      // página HTML) caem aqui. Sem este catch o usuário ficava sem nenhum retorno.
+      console.error("[handleSave usuário]", err);
+      toast.error("Não foi possível concluir a operação. Verifique a conexão e tente novamente.");
     } finally {
       setSaving(false);
     }

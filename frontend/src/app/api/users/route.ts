@@ -78,16 +78,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });
     }
 
-    if (perfil === "formador_geral") {
-      return NextResponse.json({ error: "Perfil formador_geral não pode ser atribuído diretamente. Use a interface de super-admin." }, { status: 400 });
-    }
     const perfilSanitizado = perfil ?? "formador_comunitario";
 
     const { user, tempPassword } = await createUser({
       nome,
       email,
       password: password || undefined,
-      perfil: perfilSanitizado as "administrador" | "formador_comunitario",
+      perfil: perfilSanitizado as "administrador" | "formador_geral" | "formador_comunitario",
       grupoFormacaoId,
       ativo: ativo ?? true,
       organizacaoId: actor.organizacaoId,
