@@ -254,18 +254,38 @@ export async function createUser(
   const password = data.password ?? tempPassword!;
   const passwordHash = await hashPassword(password);
 
-  const created = await prisma.usuario.create({
-    data: {
+  const commonData = {
+    nome: data.nome,
+    email: data.email,
+    passwordHash,
+    perfil: data.perfil as PerfilUsuario,
+    grupoFormacaoId: data.grupoFormacaoId ?? null,
+    ativo: data.ativo,
+    primeiroAcesso: tempPassword !== undefined ? true : (data.primeiroAcesso ?? false),
+  };
+
+  // Um usuário previamente excluído (soft delete) mantém a linha no banco com o
+  // mesmo e-mail, que continua ocupando o índice @@unique([email, organizacaoId]).
+  // Como a constraint garante no máximo uma linha por (email, org), um INSERT
+  // falharia com P2002. Nesse caso, revive o registro existente com os novos
+  // dados em vez de criar outro.
+  const softDeleted = await prisma.usuario.findFirst({
+    where: {
       organizacaoId: orgId,
-      nome: data.nome,
-      email: data.email,
-      passwordHash,
-      perfil: data.perfil as PerfilUsuario,
-      grupoFormacaoId: data.grupoFormacaoId ?? null,
-      ativo: data.ativo,
-      primeiroAcesso: tempPassword !== undefined ? true : (data.primeiroAcesso ?? false),
+      email: { equals: data.email, mode: "insensitive" },
+      deletedAt: { not: null },
     },
+    select: { id: true },
   });
+
+  const created = softDeleted
+    ? await prisma.usuario.update({
+        where: { id: softDeleted.id },
+        data: { ...commonData, deletedAt: null },
+      })
+    : await prisma.usuario.create({
+        data: { organizacaoId: orgId, ...commonData },
+      });
 
   return { user: toUserAuth(created), tempPassword };
 }
