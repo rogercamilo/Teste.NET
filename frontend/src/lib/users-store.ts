@@ -290,6 +290,14 @@ export async function createUser(
   return { user: toUserAuth(created), tempPassword };
 }
 
+/** E-mail já pertence a outro registro da organização (ativo ou excluído). */
+export class EmailConflictError extends Error {
+  constructor() {
+    super("E-mail já está em uso");
+    this.name = "EmailConflictError";
+  }
+}
+
 export async function updateUser(
   id: string,
   data: Omit<Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">>, "grupoFormacaoId" | "mfaSecretExpiresAt"> & {
@@ -304,6 +312,22 @@ export async function updateUser(
   if (!exists) return null;
 
   const { password, organizacaoId: _organizacaoId, ...rest } = data;
+
+  // Ao trocar o e-mail, rejeita se já houver QUALQUER outro registro com esse
+  // e-mail na org — inclusive um usuário soft-deleted, que ainda ocupa o índice
+  // @@unique([email, organizacaoId]). Nunca reaproveita/herda o registro alheio
+  // numa edição: a atualização é bloqueada e o registro excluído fica intocado.
+  if (rest.email !== undefined && rest.email.toLowerCase() !== exists.email.toLowerCase()) {
+    const conflito = await prisma.usuario.findFirst({
+      where: {
+        organizacaoId: orgId,
+        email: { equals: rest.email, mode: "insensitive" },
+        id: { not: id },
+      },
+      select: { id: true },
+    });
+    if (conflito) throw new EmailConflictError();
+  }
   const newPasswordHash = password ? await hashPassword(password) : undefined;
 
   const updated = await prisma.usuario.update({

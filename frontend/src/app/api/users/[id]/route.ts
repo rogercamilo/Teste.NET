@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { findById, updateUser, deleteUser, toPublic } from "@/lib/users-store";
+import { findById, updateUser, deleteUser, toPublic, EmailConflictError } from "@/lib/users-store";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isAdminOrAbove, SessionUser } from "@/lib/auth-helpers";
@@ -64,6 +64,9 @@ export async function PUT(request: Request, ctx: Ctx) {
     logAction("user_updated", actor.id, getClientIp(request), { targetId: id }, actor.organizacaoId);
     return NextResponse.json(toPublic(updated));
   } catch (err) {
+    if (err instanceof EmailConflictError) {
+      return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });
+    }
     logError("users/[id] PUT", err);
     return NextResponse.json({ error: "Falha ao atualizar usuário" }, { status: 500 });
   }
