@@ -58,7 +58,13 @@ export async function PUT(request: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
-    const updated = await updateUser(id, { nome, email, perfil, grupoFormacaoId, ativo, password, organizacaoId: actor.organizacaoId });
+    // Quando o admin define uma senha explícita pela edição, ela é definitiva:
+    // limpa primeiroAcesso para o usuário não cair no modal de "defina sua senha"
+    // ao logar. Consistente com a criação (senha explícita ⇒ primeiroAcesso=false)
+    // e com a troca self-service (change-password também zera o flag).
+    const primeiroAcesso = password ? false : undefined;
+
+    const updated = await updateUser(id, { nome, email, perfil, grupoFormacaoId, ativo, password, primeiroAcesso, organizacaoId: actor.organizacaoId });
     if (!updated) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
 
     logAction("user_updated", actor.id, getClientIp(request), { targetId: id }, actor.organizacaoId);
