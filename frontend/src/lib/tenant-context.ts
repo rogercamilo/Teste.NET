@@ -15,6 +15,16 @@ import type { SessionUser } from "@/lib/auth-helpers";
  *  autenticado carrega o próprio organizacaoId na sessão JWT. */
 export const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID ?? "org_default";
 
+/** Organização de SISTEMA que hospeda o(s) usuário(s) super_admin da plataforma.
+ *  Não é um tenant cliente — existe apenas porque Usuario.organizacaoId é não-nulável.
+ *  Deve ser excluída de toda listagem/contagem de organizações no cockpit super-admin,
+ *  caso contrário aparece como um tenant-fantasma nas métricas. */
+export const PLATFORM_ORG_ID = process.env.PLATFORM_ORG_ID ?? "org_platform";
+
+/** Filtro Prisma para excluir a org de plataforma de queries sobre tenants reais.
+ *  Espalhe dentro de um `where`: `{ ...excludePlatformOrgWhere, status: "ATIVO" }`. */
+export const excludePlatformOrgWhere = { id: { not: PLATFORM_ORG_ID } } as const;
+
 /** Retorna o organizacaoId da sessão atual, ou lança se não autenticado ou sem organização. */
 export async function getOrganizacaoId(): Promise<string> {
   const session = await auth();

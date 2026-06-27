@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { SessionUser as SU } from "@/lib/auth-helpers";
+import { excludePlatformOrgWhere } from "@/lib/tenant-context";
 
 const ORG_SELECT = {
   id: true,
@@ -73,13 +74,13 @@ export async function GET(request: Request) {
     const orderBy = { criadoEm: "desc" as const };
 
     if (!pagination) {
-      const orgs = await prisma.organizacao.findMany({ orderBy, select: ORG_SELECT });
+      const orgs = await prisma.organizacao.findMany({ where: excludePlatformOrgWhere, orderBy, select: ORG_SELECT });
       return NextResponse.json(await attachActivity(orgs));
     }
 
     const [orgs, total] = await Promise.all([
-      prisma.organizacao.findMany({ orderBy, select: ORG_SELECT, skip: pagination.skip, take: pagination.take }),
-      prisma.organizacao.count(),
+      prisma.organizacao.findMany({ where: excludePlatformOrgWhere, orderBy, select: ORG_SELECT, skip: pagination.skip, take: pagination.take }),
+      prisma.organizacao.count({ where: excludePlatformOrgWhere }),
     ]);
     return NextResponse.json(await attachActivity(orgs), { headers: paginationHeaders(total, pagination) });
   } catch (err) {

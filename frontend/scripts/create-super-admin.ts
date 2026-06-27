@@ -17,7 +17,9 @@ import { randomBytes } from "crypto";
 
 const prisma = new PrismaClient();
 
-const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID ?? "org_default";
+// Org de SISTEMA dedicada ao super_admin — não é um tenant cliente. Mantida separada
+// do DEFAULT_ORG_ID para que o super_admin nunca apareça dentro da org de um cliente real.
+const PLATFORM_ORG_ID = process.env.PLATFORM_ORG_ID ?? "org_platform";
 const SUPER_EMAIL = process.env.SUPER_ADMIN_EMAIL ?? "adm@formattio.com.br";
 const SUPER_PASSWORD = process.env.SUPER_ADMIN_PASSWORD ?? "0602@Formattio#";
 const SUPER_NOME = process.env.SUPER_ADMIN_NOME ?? "Super Admin Formattio";
@@ -33,18 +35,18 @@ async function hashPassword(password: string): Promise<string> {
 
 async function main() {
   console.log("🔐 Criando super admin...");
-  console.log(`   Organização : ${DEFAULT_ORG_ID}`);
+  console.log(`   Organização : ${PLATFORM_ORG_ID} (plataforma)`);
   console.log(`   E-mail      : ${SUPER_EMAIL}`);
   console.log(`   Nome        : ${SUPER_NOME}`);
 
-  // Garante que a organização padrão existe
+  // Garante que a organização de PLATAFORMA existe (host do super_admin, não um tenant cliente)
   await prisma.organizacao.upsert({
-    where: { id: DEFAULT_ORG_ID },
+    where: { id: PLATFORM_ORG_ID },
     update: {},
     create: {
-      id: DEFAULT_ORG_ID,
-      nome: process.env.SEED_ORG_NOME ?? "Formattio",
-      descricao: "Plataforma formativa",
+      id: PLATFORM_ORG_ID,
+      nome: "Formattio Plataforma",
+      descricao: "Organização de sistema — hospeda os super admins da plataforma",
       status: "ATIVO",
       planoAssinatura: "GRATUITO",
     },
@@ -53,7 +55,7 @@ async function main() {
   const passwordHash = await hashPassword(SUPER_PASSWORD);
 
   const existing = await prisma.usuario.findFirst({
-    where: { email: { equals: SUPER_EMAIL, mode: "insensitive" }, organizacaoId: DEFAULT_ORG_ID },
+    where: { email: { equals: SUPER_EMAIL, mode: "insensitive" }, organizacaoId: PLATFORM_ORG_ID },
   });
 
   if (existing) {
@@ -75,7 +77,7 @@ async function main() {
     await prisma.usuario.create({
       data: {
         id,
-        organizacaoId: DEFAULT_ORG_ID,
+        organizacaoId: PLATFORM_ORG_ID,
         nome: SUPER_NOME,
         email: SUPER_EMAIL,
         passwordHash,

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { logError } from "@/lib/audit-log";
 import { MRR_PRICE } from "@/types";
+import { PLATFORM_ORG_ID } from "@/lib/tenant-context";
 
 export async function GET() {
   try {
@@ -14,6 +15,10 @@ export async function GET() {
     const agora = new Date();
     const inicio30d = new Date(agora); inicio30d.setDate(agora.getDate() - 30);
     const inicio60d = new Date(agora); inicio60d.setDate(agora.getDate() - 60);
+
+    // Exclui a org de plataforma (host do super_admin) de toda contagem/agregação:
+    // ela não é um tenant cliente e inflaria totais, breakdown de plano e MRR.
+    const notPlatform = { id: { not: PLATFORM_ORG_ID } };
 
     const [
       totalOrgs,
@@ -33,25 +38,26 @@ export async function GET() {
       orgsSuspensasPagantes,
       orgsForHistory,
     ] = await Promise.all([
-      prisma.organizacao.count(),
-      prisma.organizacao.count({ where: { status: "ATIVO" } }),
-      prisma.organizacao.count({ where: { status: "TRIAL" } }),
-      prisma.organizacao.count({ where: { status: "SUSPENSO" } }),
-      prisma.organizacao.count({ where: { status: "CANCELADO" } }),
-      prisma.organizacao.count({ where: { cortesia: true } }),
+      prisma.organizacao.count({ where: notPlatform }),
+      prisma.organizacao.count({ where: { ...notPlatform, status: "ATIVO" } }),
+      prisma.organizacao.count({ where: { ...notPlatform, status: "TRIAL" } }),
+      prisma.organizacao.count({ where: { ...notPlatform, status: "SUSPENSO" } }),
+      prisma.organizacao.count({ where: { ...notPlatform, status: "CANCELADO" } }),
+      prisma.organizacao.count({ where: { ...notPlatform, cortesia: true } }),
       prisma.formando.count(),
       prisma.grupoFormacao.count(),
-      prisma.usuario.count({ where: { deletedAt: null } }),
-      prisma.organizacao.groupBy({ by: ["planoAssinatura"], _count: { id: true } }),
-      prisma.organizacao.count({ where: { criadoEm: { gte: inicio30d } } }),
-      prisma.organizacao.count({ where: { criadoEm: { gte: inicio60d, lt: inicio30d } } }),
+      prisma.usuario.count({ where: { deletedAt: null, perfil: { not: "super_admin" } } }),
+      prisma.organizacao.groupBy({ by: ["planoAssinatura"], _count: { id: true }, where: notPlatform }),
+      prisma.organizacao.count({ where: { ...notPlatform, criadoEm: { gte: inicio30d } } }),
+      prisma.organizacao.count({ where: { ...notPlatform, criadoEm: { gte: inicio60d, lt: inicio30d } } }),
       prisma.deletionRequest.count({ where: { status: "pendente" } }),
-      prisma.organizacao.count({ where: { canceladoEm: { gte: inicio30d } } }),
+      prisma.organizacao.count({ where: { ...notPlatform, canceladoEm: { gte: inicio30d } } }),
       prisma.organizacao.findMany({
-        where: { status: "SUSPENSO", stripeSubscriptionId: { not: null } },
+        where: { ...notPlatform, status: "SUSPENSO", stripeSubscriptionId: { not: null } },
         select: { id: true, nome: true, planoAssinatura: true },
       }),
       prisma.organizacao.findMany({
+        where: notPlatform,
         select: { criadoEm: true, canceladoEm: true, planoAssinatura: true },
       }),
     ]);

@@ -3,6 +3,7 @@ import { logError } from "@/lib/audit-log";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDbConnectionStats } from "@/lib/db-health";
+import { excludePlatformOrgWhere } from "@/lib/tenant-context";
 
 export async function GET() {
   try {
@@ -40,7 +41,7 @@ export async function GET() {
       }),
       prisma.formando.count(),
       prisma.grupoFormacao.count(),
-      prisma.usuario.count({ where: { deletedAt: null } }),
+      prisma.usuario.count({ where: { deletedAt: null, perfil: { not: "super_admin" } } }),
       prisma.agendamento.count(),
       prisma.presencaFormacao.count(),
       prisma.formacao.count(),
@@ -60,7 +61,7 @@ export async function GET() {
         },
       }),
       prisma.$queryRaw<[{ c: bigint }]>`SELECT COUNT(*) as c FROM "ConfiguracaoOrg" WHERE "smtpConfig" IS NOT NULL`,
-      prisma.organizacao.count(),
+      prisma.organizacao.count({ where: excludePlatformOrgWhere }),
       prisma.pushSubscription.count(),
       prisma.pushSubscription.groupBy({
         by: ["organizacaoId"],

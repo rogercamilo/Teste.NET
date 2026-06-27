@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sendComunicadoEmail } from "@/lib/email";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { PLATFORM_ORG_ID } from "@/lib/tenant-context";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -50,6 +51,9 @@ export async function POST(request: Request) {
       if (filtros.plano?.length) orgWhere.planoAssinatura = { in: filtros.plano };
       if (filtros.tipo?.length) orgWhere.tipoOrganizacao = { in: filtros.tipo };
     }
+
+    // Nunca incluir a org de plataforma (host do super_admin) no público.
+    orgWhere.NOT = { id: PLATFORM_ORG_ID };
 
     const orgs = await prisma.organizacao.findMany({
       where: orgWhere,
@@ -130,6 +134,9 @@ export async function GET(request: Request) {
       if (status.length) orgWhere.status = { in: status };
       if (plano.length) orgWhere.planoAssinatura = { in: plano };
     }
+
+    // Nunca contar a org de plataforma (host do super_admin) no público.
+    orgWhere.NOT = { id: PLATFORM_ORG_ID };
 
     const count = await prisma.usuario.count({
       where: {
