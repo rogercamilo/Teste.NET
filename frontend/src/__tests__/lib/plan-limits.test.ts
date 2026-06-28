@@ -9,7 +9,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { getLimits, canAddUser, canAddGrupoFormacao, canAddFormando, canUpload, getUsage } from "@/lib/plan-limits";
+import { getLimits, canAddUser, canAddGrupoFormacao, canAddFormando, canUpload, getUsage, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 import { prisma } from "@/lib/prisma";
 
 const orgFindUnique = vi.mocked(prisma.organizacao.findUnique);
@@ -308,5 +308,22 @@ describe("getUsage", () => {
     const usage = await getUsage("org1");
     expect(usage.usuarios.percentUsed).toBe(50); // 70/140 * 100
     expect(usage.storage.percentUsed).toBe(50);  // 5GB / 10GB * 100
+  });
+});
+
+describe("canAddGrupoFormacao", () => {
+  it("nunca limita a criação de grupos de formação", async () => {
+    const r = await canAddGrupoFormacao();
+    expect(r.allowed).toBe(true);
+  });
+});
+
+describe("notifyAvancadoLimitIfNeeded", () => {
+  it("não notifica quando a org não é AVANCADO (early-return), sem lançar", async () => {
+    orgFindUnique.mockResolvedValue({ nome: "Org", planoAssinatura: "BASICO" } as never);
+    expect(() => notifyAvancadoLimitIfNeeded("org1", "usuarios")).not.toThrow();
+    // É fire-and-forget: aguarda o microtask do doNotify rodar.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(orgFindUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "org1" } }));
   });
 });

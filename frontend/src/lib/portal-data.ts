@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { REQUISITOS_ETAPAS } from "@/types";
 import type { NivelFormativo, TipoFormacao } from "@/types";
@@ -87,15 +88,29 @@ export async function getPortalDashboardData(
 
   const nivel = formando.nivelFormativo as NivelFormativo;
   const agora = new Date();
+
+  // Participação vocacional em andamento (se houver). Carregada antes do cálculo
+  // de presença porque muda o ESCOPO desse cálculo.
+  const participacaoVocacional = await prisma.participacaoVocacional.findFirst({
+    where: { formandoId, organizacaoId, status: { in: [...STATUS_VOCACIONAL_ATIVOS] } },
+    orderBy: { criadoEm: "desc" },
+    include: {
+      turma: { select: { vocacionalAcompanhamentoAtivo: true } },
+      solicitacoes: { where: { status: "pendente" }, select: { id: true }, take: 1 },
+    },
+  });
+  // Vocacionado ativo = está, agora, vinculado à turma vocacional.
+  const vocacionalAtivo =
+    !!participacaoVocacional && formando.grupoFormacaoId === participacaoVocacional.turmaId;
+
   // Presença e histórico consideram apenas encontros já realizados (data < agora).
   // Registros de presença de eventos futuros existem para o RSVP, mas não devem
   // entrar no percentual nem surgir como "ausente" no histórico.
-  const wherePresenca = {
-    formandoId,
-    organizacaoId,
-    nivelFormativo: nivel,
-    data: { lt: agora },
-  };
+  // Para o vocacionado, a presença é escopada à TURMA vocacional (o "curso" dele),
+  // e não ao nivelFormativo de origem — que continua o mesmo durante o período.
+  const wherePresenca: Prisma.PresencaFormacaoWhereInput = vocacionalAtivo
+    ? { formandoId, organizacaoId, data: { lt: agora }, agendamento: { grupoFormacaoId: formando.grupoFormacaoId } }
+    : { formandoId, organizacaoId, nivelFormativo: nivel, data: { lt: agora } };
 
   const [total, presentes, historico, proximosEncontros, progressoEtapa] =
     await Promise.all([
@@ -165,17 +180,9 @@ export async function getPortalDashboardData(
   );
 
   const percentual = total > 0 ? Math.round((presentes / total) * 100) : 0;
-  const requisitos = REQUISITOS_ETAPAS[nivel] ?? null;
-
-  // Participação vocacional em andamento (se houver).
-  const participacaoVocacional = await prisma.participacaoVocacional.findFirst({
-    where: { formandoId, organizacaoId, status: { in: [...STATUS_VOCACIONAL_ATIVOS] } },
-    orderBy: { criadoEm: "desc" },
-    include: {
-      turma: { select: { vocacionalAcompanhamentoAtivo: true } },
-      solicitacoes: { where: { status: "pendente" }, select: { id: true }, take: 1 },
-    },
-  });
+  // O progresso por etapa não se aplica ao candidato em período vocacional
+  // (ele é pré-formativo): o card "Meu período vocacional" carrega o contexto.
+  const requisitos = vocacionalAtivo ? null : (REQUISITOS_ETAPAS[nivel] ?? null);
 
   return {
     formando: {

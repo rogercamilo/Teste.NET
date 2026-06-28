@@ -6,7 +6,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { anonymizeIp, getClientIp, logAction } from "@/lib/audit-log";
+import { anonymizeIp, getClientIp, logAction, logError } from "@/lib/audit-log";
 
 describe("anonymizeIp", () => {
   it("returns 'unknown' for null", () => {
@@ -169,5 +169,30 @@ describe("getClientIp", () => {
       const req = makeRequest({ "x-real-ip": "5.6.7.8" });
       expect(getClientIp(req)).toBe("5.6.7.8");
     });
+  });
+});
+
+describe("logError", () => {
+  let errSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    errSpy.mockRestore();
+  });
+
+  it("serializa a mensagem de um Error sem lançar", () => {
+    expect(() => logError("tag-x", new Error("boom"))).not.toThrow();
+    expect(errSpy).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(errSpy.mock.calls[0][0] as string);
+    expect(payload.tag).toBe("tag-x");
+    expect(payload.message).toBe("boom");
+    expect(payload.level).toBe("error");
+  });
+
+  it("aceita um valor não-Error (stringify) e contexto opcional", () => {
+    expect(() => logError("tag-y", "falha textual", { extra: 1 })).not.toThrow();
+    const payload = JSON.parse(errSpy.mock.calls[0][0] as string);
+    expect(payload.message).toBe("falha textual");
   });
 });

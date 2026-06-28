@@ -174,4 +174,28 @@ describe("limiters", () => {
     const result = await limiters.passwordChange(uid);
     expect(result.allowed).toBe(false);
   });
+
+  // Cobre todos os presets restantes (mfa, super-admin, portal, etc.): cada um
+  // deve estar cabeado ao rateLimit e liberar a primeira chamada in-memory.
+  const restantes: Array<[keyof typeof limiters, string]> = [
+    ["register", "1.2.3.4"],
+    ["upload", "u1"],
+    ["email", "u1"],
+    ["smtpTest", "u1"],
+    ["mfa", "u1"],
+    ["loginPerEmail", "User@Example.com"],
+    ["superAdminBulk", "u1"],
+    ["superAdminComunicado", "u1"],
+    ["superAdminTrialReminder", "u1"],
+    ["portalMagicLink", "User@Example.com"],
+    ["portalMagicLinkIp", "1.2.3.4"],
+  ];
+
+  for (const [nome, arg] of restantes) {
+    it(`${nome} libera a primeira chamada`, async () => {
+      const res = await limiters[nome](k(arg));
+      expect(res.allowed).toBe(true);
+      expect(res.remaining).toBeGreaterThanOrEqual(0);
+    });
+  }
 });
