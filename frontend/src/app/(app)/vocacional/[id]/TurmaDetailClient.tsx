@@ -239,7 +239,9 @@ export default function TurmaDetailClient(props: Props) {
           participacao={gerir}
           turma={turma}
           gestao={gestao}
-          podeAcompanhar={podeAcompanhar}
+          // O acompanhador designado também acessa o painel, mesmo sem ser
+          // formador da turma nem gestão (espelha o gate da API).
+          podeAcompanhar={podeAcompanhar || gerir.acompanhadorId === userId}
           termoAcompanhamento={termoAcompanhamento}
           onClose={() => setGerir(null)}
           onChanged={() => { setGerir(null); router.refresh(); }}

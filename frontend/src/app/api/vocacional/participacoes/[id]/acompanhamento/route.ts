@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { encryptField, decryptField } from "@/lib/crypto";
+import { limiters } from "@/lib/rate-limit";
 import { CreateAcompanhamentoVocacionalSchema, parseBody } from "@/lib/schemas";
 import { temPermissao } from "@/types";
 import { parseDataLocal } from "@/lib/livro-registro";
@@ -67,6 +68,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if ("error" in guard) return guard.error;
   const { user, organizacaoId } = guard.access;
   const { id } = await params;
+
+  const rl = await limiters.mutation(user.id ?? getClientIp(request));
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
 
   try {
     const participacao = await carregarContexto(id, organizacaoId);

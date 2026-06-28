@@ -35,6 +35,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     });
     if (!participacao) return NextResponse.json({ error: "Participação não encontrada" }, { status: 404 });
 
+    // Imutabilidade do encerramento: uma participação já encerrada não pode ser
+    // re-encerrada (evita lavrar termo de término e abrir processo em duplicidade).
+    if (TERMINAIS.has(participacao.status)) {
+      return NextResponse.json({ error: "Participação já encerrada — não pode ser alterada." }, { status: 409 });
+    }
+
     // Atualização simples de acompanhador (sem transição terminal)
     if (!body.status || !TERMINAIS.has(body.status)) {
       const updated = await prisma.participacaoVocacional.update({
