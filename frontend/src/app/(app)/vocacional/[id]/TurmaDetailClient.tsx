@@ -63,6 +63,7 @@ const STATUS_LABELS: Record<string, string> = {
   concluida_deferida: "Concluída — deferida",
   recusada_arquivada: "Recusada — arquivada",
   indeferida_arquivada: "Indeferida — arquivada",
+  cancelada: "Cancelada",
 };
 
 const STATUS_VARIANT: Record<string, "default" | "outline" | "secondary"> = {
@@ -72,7 +73,10 @@ const STATUS_VARIANT: Record<string, "default" | "outline" | "secondary"> = {
   concluida_deferida: "outline",
   recusada_arquivada: "outline",
   indeferida_arquivada: "outline",
+  cancelada: "outline",
 };
+
+const STATUS_ENCERRADOS = ["concluida_deferida", "recusada_arquivada", "indeferida_arquivada", "cancelada"];
 
 interface NotaAcompanhamento {
   id: string;
@@ -239,6 +243,7 @@ export default function TurmaDetailClient(props: Props) {
           participacao={gerir}
           turma={turma}
           gestao={gestao}
+          isAdmin={userRole === "administrador"}
           // O acompanhador designado também acessa o painel, mesmo sem ser
           // formador da turma nem gestão (espelha o gate da API).
           podeAcompanhar={podeAcompanhar || gerir.acompanhadorId === userId}
@@ -252,11 +257,12 @@ export default function TurmaDetailClient(props: Props) {
 }
 
 function GerirDialog({
-  participacao, turma, gestao, podeAcompanhar, termoAcompanhamento, onClose, onChanged,
+  participacao, turma, gestao, isAdmin, podeAcompanhar, termoAcompanhamento, onClose, onChanged,
 }: {
   participacao: Participacao;
   turma: Turma;
   gestao: boolean;
+  isAdmin: boolean;
   podeAcompanhar: boolean;
   termoAcompanhamento: string;
   onClose: () => void;
@@ -264,7 +270,7 @@ function GerirDialog({
 }) {
   const p = participacao;
   const [busy, setBusy] = useState(false);
-  const encerrada = ["concluida_deferida", "recusada_arquivada", "indeferida_arquivada"].includes(p.status);
+  const encerrada = STATUS_ENCERRADOS.includes(p.status);
 
   // Carta
   const [cartaFile, setCartaFile] = useState<File | null>(null);
@@ -277,7 +283,10 @@ function GerirDialog({
   const [tipoNota, setTipoNota] = useState<"mensal" | "extra">("mensal");
 
   async function concluir(status: string) {
-    if (!confirm(`Confirmar: ${STATUS_LABELS[status]}? Esta ação lavra o termo de término no Livro.`)) return;
+    const acao = status === "cancelada"
+      ? "Cancelar a inscrição? Isto lavra uma retificação no Livro e restaura o vocacionado ao estado anterior."
+      : `Confirmar: ${STATUS_LABELS[status]}? Esta ação lavra o termo de término no Livro.`;
+    if (!confirm(acao)) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/vocacional/participacoes/${p.id}`, {
@@ -286,7 +295,7 @@ function GerirDialog({
         body: JSON.stringify({ status }),
       });
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? "Falha"); }
-      toast.success("Participação encerrada e termo lavrado.");
+      toast.success(status === "cancelada" ? "Inscrição cancelada e retificação lavrada." : "Participação encerrada e termo lavrado.");
       onChanged();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro");
@@ -442,6 +451,17 @@ function GerirDialog({
                 <XCircle className="h-3.5 w-3.5" /> Indeferir
               </Button>
             </div>
+            {isAdmin && (
+              <div className="border-t border-border/60 pt-2">
+                <p className="text-[11px] text-muted-foreground mb-1.5">
+                  Inscrição lavrada por equívoco? O cancelamento lavra uma retificação no Livro e
+                  restaura o vocacionado ao estado anterior.
+                </p>
+                <Button size="sm" variant="ghost" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => concluir("cancelada")} disabled={busy}>
+                  <XCircle className="h-3.5 w-3.5" /> Cancelar inscrição (equívoco)
+                </Button>
+              </div>
+            )}
           </section>
         )}
       </DialogContent>

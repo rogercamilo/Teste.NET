@@ -6,6 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import { CreateParticipacaoVocacionalSchema, parseBody } from "@/lib/schemas";
 import { isGestao } from "@/lib/auth-helpers";
 import { lavrarTermo, parseDataLocal, LivroError } from "@/lib/livro-registro";
+import { validarElegibilidadeVocacional, STATUS_EM_ANDAMENTO } from "@/lib/vocacional-rules";
 import { requireVocacionalAccess } from "../guard";
 
 export async function GET(request: Request) {
@@ -54,6 +55,17 @@ export async function POST(request: Request) {
     if (!turma) return NextResponse.json({ error: "Turma vocacional não encontrada" }, { status: 404 });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 
+    // Elegibilidade: vocacional é para membros NÃO formais e sem participação ativa.
+    const emAndamento = await prisma.participacaoVocacional.findFirst({
+      where: { formandoId: formando.id, organizacaoId, status: { in: [...STATUS_EM_ANDAMENTO] } },
+      select: { id: true },
+    });
+    const elegivel = validarElegibilidadeVocacional({
+      condicaoAtual: formando.condicaoAtual,
+      temParticipacaoEmAndamento: !!emAndamento,
+    });
+    if (!elegivel.ok) return NextResponse.json({ error: elegivel.motivo }, { status: 409 });
+
     const dataIngresso = body.dataIngresso ? parseDataLocal(body.dataIngresso) : new Date();
 
     // Lavra o termo de ingresso no Livro e cria a participação na mesma transação.
@@ -70,6 +82,9 @@ export async function POST(request: Request) {
               status: "ativa",
               dataIngresso,
               acompanhadorId: body.acompanhadorId || turma.formadorId || null,
+              // Captura o pré-estado para reversão não-destrutiva (recusa/cancelamento).
+              grupoOrigemId: formando.grupoFormacaoId,
+              condicaoOrigem: formando.condicaoAtual,
             },
           });
           // Durante o vocacional, o formando passa a ser acompanhado pela turma.
@@ -77,7 +92,7 @@ export async function POST(request: Request) {
             where: { id: formando.id },
             data: { grupoFormacaoId: turma.id, condicaoAtual: "candidato" },
           });
-          await lavrarTermo(tx, {
+          const termo = await lavrarTermo(tx, {
             organizacaoId,
             tipo: "ingresso_vocacional",
             formandoId: formando.id,
@@ -85,6 +100,11 @@ export async function POST(request: Request) {
             contexto: { formandoNome: formando.nome, dataEvento: dataIngresso },
             criadoPorId: user.id,
             lavradoAutomaticamente: true,
+          });
+          // Liga o termo de ingresso à participação (referência da retificação no cancelamento).
+          await tx.participacaoVocacional.update({
+            where: { id: participacao.id },
+            data: { termoIngressoId: termo.id },
           });
           return participacao.id;
         });

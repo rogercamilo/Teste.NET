@@ -4,8 +4,8 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { encryptField, decryptField } from "@/lib/crypto";
 import { limiters } from "@/lib/rate-limit";
 import { CreateAcompanhamentoVocacionalSchema, parseBody } from "@/lib/schemas";
-import { temPermissao } from "@/types";
 import { parseDataLocal } from "@/lib/livro-registro";
+import { podeVerAcompanhamento } from "@/lib/vocacional-rules";
 import { requireVocacionalAccess } from "../../../guard";
 
 /**
@@ -24,10 +24,7 @@ function podeVer(
   user: { id?: string; role?: string },
   participacao: { acompanhadorId: string | null; turma: { formadorId: string | null } },
 ): boolean {
-  if (temPermissao(user.role, "formador_geral")) return true; // FG + admin
-  if (user.id && participacao.acompanhadorId === user.id) return true;
-  if (user.id && participacao.turma.formadorId === user.id) return true;
-  return false;
+  return podeVerAcompanhamento(user, { acompanhadorId: participacao.acompanhadorId, turmaFormadorId: participacao.turma.formadorId });
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {

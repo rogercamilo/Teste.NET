@@ -172,6 +172,7 @@ export const UpdateParticipacaoVocacionalSchema = z.object({
       "concluida_deferida",
       "recusada_arquivada",
       "indeferida_arquivada",
+      "cancelada",
     ])
     .optional(),
   acompanhadorId: z.string().optional().nullable(),

@@ -150,6 +150,7 @@ enum StatusParticipacaoVocacional {
   concluida_deferida
   recusada_arquivada
   indeferida_arquivada
+  cancelada
 }
 
 enum DesfechoCartaVocacional {
@@ -1199,6 +1200,13 @@ model ParticipacaoVocacional {
   cartaRecebidaEm  DateTime?
   processoGeradoId String? // → ProcessoEclesiastico (ref. fraca)
   acompanhadorId   String?
+  // Pré-estado do formando, capturado na inscrição, para reversão não-destrutiva
+  // (encerramento por recusa ou cancelamento administrativo).
+  grupoOrigemId    String?
+  condicaoOrigem   CondicaoMembro?
+  // Termo de ingresso lavrado no Livro (ref. fraca) — referenciado na retificação
+  // quando a inscrição é cancelada por equívoco.
+  termoIngressoId  String?
   criadoEm         DateTime                     @default(now())
   atualizadoEm     DateTime                     @updatedAt
 

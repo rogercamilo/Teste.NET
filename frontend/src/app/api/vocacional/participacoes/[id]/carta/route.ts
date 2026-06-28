@@ -4,12 +4,10 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { uploadFile } from "@/lib/storage";
 import { limiters } from "@/lib/rate-limit";
 import { isGestao } from "@/lib/auth-helpers";
+import { cartaPermitida } from "@/lib/vocacional-rules";
 import { requireVocacionalAccess } from "../../../guard";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
-
-// Estados em que a carta ainda pode ser registrada/corrigida (antes do desfecho final).
-const STATUS_CARTA_PERMITIDOS = ["ativa", "aguardando_carta", "em_discernimento"];
 
 const EXT_BY_MIME: Record<string, string> = {
   "application/pdf": ".pdf",
@@ -45,7 +43,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Não permite carta em participação já encerrada (evita reverter o desfecho).
-    if (!STATUS_CARTA_PERMITIDOS.includes(participacao.status)) {
+    if (!cartaPermitida(participacao.status)) {
       return NextResponse.json({ error: "Participação já encerrada — carta não pode ser registrada." }, { status: 409 });
     }
 
