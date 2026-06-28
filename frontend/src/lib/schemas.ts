@@ -141,6 +141,55 @@ export const CreateGrupoFormacaoSchema = z.object({
 
 export const UpdateGrupoFormacaoSchema = CreateGrupoFormacaoSchema.partial();
 
+// ── Período Vocacional ────────────────────────────────────────────────────────
+
+export const CreateTurmaVocacionalSchema = z.object({
+  nome: nonEmptyString(255),
+  localReuniao: optionalString(500),
+  formadorId: z.string().optional().nullable(),
+  planoId: z.string().optional().nullable(),
+  gradeId: z.string().optional().nullable(),
+  vigenciaInicio: isoDate.optional().nullable(),
+  vocacionalDuracaoMeses: z.number().int().min(1).max(24).optional().nullable(),
+  vocacionalTotalRetiros: z.number().int().min(0).max(50).optional().nullable(),
+  vocacionalAcompanhamentoAtivo: z.boolean().optional(),
+});
+
+export const UpdateTurmaVocacionalSchema = CreateTurmaVocacionalSchema.partial();
+
+export const CreateParticipacaoVocacionalSchema = z.object({
+  formandoId: z.string().min(1, "Formando obrigatório"),
+  dataIngresso: isoDate.optional().nullable(),
+  acompanhadorId: z.string().optional().nullable(),
+});
+
+export const UpdateParticipacaoVocacionalSchema = z.object({
+  status: z
+    .enum([
+      "ativa",
+      "aguardando_carta",
+      "em_discernimento",
+      "concluida_deferida",
+      "recusada_arquivada",
+      "indeferida_arquivada",
+    ])
+    .optional(),
+  acompanhadorId: z.string().optional().nullable(),
+  dataConclusao: isoDate.optional().nullable(),
+});
+
+export const RegistrarCartaVocacionalSchema = z.object({
+  desfecho: z.enum(["pedido", "recusa"]),
+  cartaRecebidaEm: isoDate.optional().nullable(),
+});
+
+export const CreateAcompanhamentoVocacionalSchema = z.object({
+  data: isoDate.optional().nullable(),
+  tipo: z.enum(["mensal", "extra"]).optional(),
+  solicitadoPeloVocacionado: z.boolean().optional(),
+  anotacaoEvolucao: nonEmptyString(10000),
+});
+
 // ── Organização ───────────────────────────────────────────────────────────────
 
 export const PlanoAssinaturaEnum = z.enum(["GRATUITO", "BASICO", "INTERMEDIARIO", "AVANCADO", "PERSONALIZADO"]);
@@ -169,6 +218,10 @@ export const UpdateOrganizacaoSchema = z.object({
   termoDiscipulado: optionalString(100),
   termoPrimeirasPromessas: optionalString(100),
   termoFormacaoPermanente: optionalString(100),
+  vocacionalHabilitado: z.boolean().optional(),
+  termoVocacional: optionalString(100),
+  termoAcompanhamentoVocacional: optionalString(100),
+  vocacionalDuracaoPadraoMeses: z.number().int().min(1).max(24).optional(),
   nomePlataforma: optionalString(100).nullable(),
   logoUrl: z
     .string()

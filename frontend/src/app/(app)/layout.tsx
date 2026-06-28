@@ -49,6 +49,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         termoDiscipulado: org.termoDiscipulado ?? undefined,
         termoPrimeirasPromessas: org.termoPrimeirasPromessas ?? undefined,
         termoFormacaoPermanente: org.termoFormacaoPermanente ?? undefined,
+        vocacionalHabilitado: org.vocacionalHabilitado ?? false,
+        termoVocacional: org.termoVocacional ?? undefined,
+        termoAcompanhamentoVocacional: org.termoAcompanhamentoVocacional ?? undefined,
+        vocacionalDuracaoPadraoMeses: org.vocacionalDuracaoPadraoMeses ?? undefined,
         nomePlataforma: org.nomePlataforma ?? undefined,
         temaCor: org.temaCor ?? undefined,
       };

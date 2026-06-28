@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { navGroupsGestao, navGroupsFormador, navGroupsSuperAdmin, type NavGroup } from "./nav-items";
 import { useComunidade, useTermos } from "@/lib/data-store";
+import { hasVocacionalAccess } from "@/types";
 
 export interface AppSidebarUser {
   name: string;
@@ -75,13 +76,15 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
       });
 
   const tipoOrg = comunidade.tipoOrganizacao;
+  const vocacionalOk = hasVocacionalAccess(tipoOrg, comunidade.vocacionalHabilitado);
 
-  // Apply custom terminology and org-type guard
+  // Apply custom terminology and org-type/capability guards
   const navGroups: NavGroup[] = baseGroups.map((g) => ({
     ...g,
     label: g.label === "Minha Morada" ? `Minha ${grupoFormacao}` : g.label,
     items: g.items
       .filter((item) => !item.requiredTipoOrg || (tipoOrg != null && item.requiredTipoOrg.includes(tipoOrg)))
+      .filter((item) => item.requiredCapability !== "vocacional" || vocacionalOk)
       .map((item) => ({
         ...item,
         title:

@@ -23,6 +23,10 @@ const brandingSelect = {
   termoDiscipulado: true,
   termoPrimeirasPromessas: true,
   termoFormacaoPermanente: true,
+  vocacionalHabilitado: true,
+  termoVocacional: true,
+  termoAcompanhamentoVocacional: true,
+  vocacionalDuracaoPadraoMeses: true,
 } as const;
 
 // React.cache deduplicates calls within the same render (request-level memoization).

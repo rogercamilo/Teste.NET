@@ -59,8 +59,23 @@ export default function DashboardClient({
   branding: PublicBranding;
 }) {
   const router = useRouter();
-  const { formando, presenca, proximosEncontros, progresso } = data;
+  const { formando, presenca, proximosEncontros, progresso, vocacional } = data;
   const [loggingOut, setLoggingOut] = useState(false);
+  const [solicitando, setSolicitando] = useState(false);
+  const [solicitado, setSolicitado] = useState(vocacional?.solicitacaoPendente ?? false);
+
+  async function solicitarAcompanhamento() {
+    setSolicitando(true);
+    try {
+      const res = await fetch("/api/portal/vocacional/solicitar-acompanhamento", { method: "POST" });
+      if (!res.ok) throw new Error();
+      setSolicitado(true);
+    } catch {
+      // silencioso — botão volta a ficar disponível
+    } finally {
+      setSolicitando(false);
+    }
+  }
 
   const communityName = branding.nomePlataforma ?? branding.nome;
   const primeiroNome = formando.nome.split(" ")[0];
@@ -142,6 +157,38 @@ export default function DashboardClient({
             <ProgressoBar value={presenca.presentes} max={presenca.total} />
           </CardContent>
         </Card>
+
+        {/* Período Vocacional */}
+        {vocacional && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                Meu período vocacional
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {vocacional.status === "aguardando_carta"
+                  ? "É hora de entregar sua carta de discernimento ao formador."
+                  : vocacional.status === "em_discernimento"
+                  ? "Sua carta está em discernimento pelas autoridades da comunidade."
+                  : "Você está em período vocacional. Acompanhe sua agenda de encontros e retiros."}
+              </p>
+              {vocacional.acompanhamentoOferecido && (
+                solicitado ? (
+                  <p className="text-sm text-primary inline-flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
+                  </p>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={solicitarAcompanhamento} disabled={solicitando}>
+                    {solicitando ? "Enviando…" : "Solicitar encontro de acompanhamento"}
+                  </Button>
+                )
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Próximos encontros */}
         <Card>

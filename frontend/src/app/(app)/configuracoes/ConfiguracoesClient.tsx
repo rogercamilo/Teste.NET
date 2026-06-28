@@ -80,6 +80,7 @@ import {
   Server,
   ShieldCheck,
   Shuffle,
+  Sprout,
   TrendingUp,
   Trash2,
   Type,
@@ -2014,6 +2015,100 @@ function ComunidadeTab() {
 
         </CardContent>
       </Card>
+
+      {/* Período Vocacional */}
+      {(() => {
+        const isCanonical =
+          comunidade.tipoOrganizacao === "nova_comunidade" ||
+          comunidade.tipoOrganizacao === "instituto_religioso";
+        const habilitado = isCanonical || form.vocacionalHabilitado === true;
+        return (
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Sprout className="h-4 w-4 text-muted-foreground" />
+                Período Vocacional
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Período formativo prévio e opcional, ofertado a membros não formais para discernimento.
+                Habilitá-lo também libera o Livro de Registro.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pb-6">
+              {isCanonical ? (
+                <p className="text-xs text-muted-foreground rounded-lg border border-border bg-muted/30 p-3">
+                  Sua organização já tem o módulo disponível por padrão.
+                </p>
+              ) : (
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.vocacionalHabilitado === true}
+                    onChange={(e) => {
+                      setForm((prev) => ({ ...prev, vocacionalHabilitado: e.target.checked }));
+                      setDirty(true);
+                    }}
+                    className="mt-0.5 h-4 w-4 rounded border-border"
+                  />
+                  <span className="text-sm text-foreground">
+                    Habilitar o módulo Período Vocacional nesta organização
+                    <span className="block text-xs text-muted-foreground">
+                      Adiciona o item “Período Vocacional” e o Livro de Registro ao menu.
+                    </span>
+                  </span>
+                </label>
+              )}
+
+              {habilitado && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-1.5">
+                    <Label>
+                      Nome do período{" "}
+                      <span className="font-normal text-muted-foreground text-xs">(padrão: "Período Vocacional")</span>
+                    </Label>
+                    <Input
+                      value={form.termoVocacional ?? ""}
+                      onChange={(e) => handleChange("termoVocacional", e.target.value)}
+                      placeholder="Período Vocacional"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>
+                      Nome do acompanhamento individual{" "}
+                      <span className="font-normal text-muted-foreground text-xs">(padrão: "Acompanhamento Vocacional")</span>
+                    </Label>
+                    <Input
+                      value={form.termoAcompanhamentoVocacional ?? ""}
+                      onChange={(e) => handleChange("termoAcompanhamentoVocacional", e.target.value)}
+                      placeholder="Acompanhamento Vocacional"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>
+                      Duração padrão (meses){" "}
+                      <span className="font-normal text-muted-foreground text-xs">(canônico: até 12)</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={24}
+                      value={form.vocacionalDuracaoPadraoMeses ?? 12}
+                      onChange={(e) => {
+                        const n = parseInt(e.target.value, 10);
+                        setForm((prev) => ({ ...prev, vocacionalDuracaoPadraoMeses: Number.isNaN(n) ? undefined : n }));
+                        setDirty(true);
+                      }}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <div className="flex gap-2 justify-end">
         {dirty && (

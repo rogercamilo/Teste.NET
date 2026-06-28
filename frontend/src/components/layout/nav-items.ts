@@ -10,6 +10,7 @@
   ScrollText,
   Settings,
   ShieldAlert,
+  Sprout,
   type LucideIcon,
   Users,
 } from "lucide-react";
@@ -23,6 +24,11 @@ export interface NavItem {
   exact?: boolean;
   /** Restringe o item a um ou mais tipos de organização. Omitir = visível para todos. */
   requiredTipoOrg?: TipoOrganizacao[];
+  /**
+   * Restringe o item a uma capability da org. "vocacional" = orgs canônicas OU
+   * com `vocacionalHabilitado`. Avaliado em AppSidebar via hasVocacionalAccess.
+   */
+  requiredCapability?: "vocacional";
 }
 
 export interface NavGroup {
@@ -60,10 +66,16 @@ export const navGroupsGestao: NavGroup[] = [
         requiredTipoOrg: ["nova_comunidade", "instituto_religioso"],
       },
       {
+        title: "Período Vocacional",
+        href: "/vocacional",
+        icon: Sprout,
+        requiredCapability: "vocacional",
+      },
+      {
         title: "Livro de Registro",
         href: "/livro-registro",
         icon: BookMarked,
-        requiredTipoOrg: ["nova_comunidade", "instituto_religioso"],
+        requiredCapability: "vocacional",
       },
     ],
   },

@@ -89,6 +89,9 @@ const CONDICAO_POR_TIPO_TERMO: Partial<Record<TipoTermoRegistro, CondicaoMembro>
   promessas_definitivas: "membro_definitivas",
   desligamento: "desligado",
   falecimento: "falecido",
+  // Ingresso no Vocacional fixa a condição de Candidato. O término NÃO altera a
+  // condição: o desfecho (admissão à 1ª etapa ou recusa) é resolvido à parte.
+  ingresso_vocacional: "candidato",
 };
 
 export function condicaoPorTipoTermo(tipo: TipoTermoRegistro): CondicaoMembro | undefined {
@@ -230,6 +233,12 @@ export function montarCorpoTermo(tipo: TipoTermoRegistro, ctx: ContextoFormula):
 
     case "retificacao":
       return `Retifica-se o Termo nº ${ctx.retificaTermoNumero ? formatNumeroTermo(ctx.retificaTermoNumero) : "____"}${ctx.retificaDescricao ? `, ${ctx.retificaDescricao}` : ""}. A retificação não altera nem suprime o termo original, que permanece íntegro; este termo a ele se reporta para todos os efeitos.`;
+
+    case "ingresso_vocacional":
+      return `${data}, é admitido(a) ${nome} ao Período Vocacional desta organização, dando início ao tempo de discernimento e formação que o(a) precede ao ingresso na jornada formativa.${fraseCondicao(ctx.condicaoResultante)}`;
+
+    case "termino_vocacional":
+      return `${data}, encerra-se a participação de ${nome} no Período Vocacional${ctx.motivo ? `, ${ctx.motivo}` : ""}.`;
 
     default:
       return "";

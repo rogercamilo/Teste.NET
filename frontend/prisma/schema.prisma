@@ -45,6 +45,7 @@ enum TipoOrganizacao {
 enum TipoGrupoFormacao {
   estruturado
   livre
+  vocacional
 }
 
 enum TipoProcessoEclesiastico {
@@ -137,6 +138,34 @@ enum TipoTermoRegistro {
   dispensa
   falecimento
   retificacao
+  ingresso_vocacional
+  termino_vocacional
+}
+
+// ── Período Vocacional ─────────────────────────────────────────────────────
+enum StatusParticipacaoVocacional {
+  ativa
+  aguardando_carta
+  em_discernimento
+  concluida_deferida
+  recusada_arquivada
+  indeferida_arquivada
+}
+
+enum DesfechoCartaVocacional {
+  pedido
+  recusa
+}
+
+enum TipoEncontroAcompanhamento {
+  mensal
+  extra
+}
+
+enum StatusSolicitacaoAcompanhamento {
+  pendente
+  agendada
+  recusada
 }
 
 enum TipoNotificacao {
@@ -157,60 +186,67 @@ enum TipoNotificacao {
 // ==========================================================
 
 model Organizacao {
-  id                   String            @id @default(cuid())
-  tipoOrganizacao      TipoOrganizacao   @default(nova_comunidade)
-  nome                 String
-  descricao            String?
-  endereco             String?
-  missao               String?
-  anoFundacao          String?
-  termoGrupoFormacao        String            @default("Grupo de Formação") @map("termo_morada")
-  termoFormando             String            @default("Formando")
-  termoFormador             String            @default("Formador Comunitário")
-  termoPreDiscipulado       String            @default("Pré-Discipulado")
-  termoDiscipulado          String            @default("Discipulado")
-  termoPrimeirasPromessas   String            @default("Primeiras Promessas")
-  termoFormacaoPermanente   String            @default("Formação Permanente")
-  termoPromessa             String            @default("Promessa")
-  planoAssinatura      PlanoAssinatura   @default(GRATUITO)
-  status               StatusOrganizacao @default(TRIAL)
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  trialExpiresAt       DateTime?
-  canceladoEm          DateTime?
-  cortesia             Boolean           @default(false)
-  cortesiaExpiresAt    DateTime?
-  cortesiaMotivo       String?
-  nomePlataforma       String?
-  logoUrl              String?           @db.Text
-  temaCor              String            @default("formatio")
-  privacyVersion       String            @default("1.0")
-  onboardingConcluido  Boolean           @default(false)
-  criadoEm             DateTime          @default(now())
-  atualizadoEm         DateTime          @updatedAt
+  id                            String            @id @default(cuid())
+  tipoOrganizacao               TipoOrganizacao   @default(nova_comunidade)
+  nome                          String
+  descricao                     String?
+  endereco                      String?
+  missao                        String?
+  anoFundacao                   String?
+  termoGrupoFormacao            String            @default("Grupo de Formação") @map("termo_morada")
+  termoFormando                 String            @default("Formando")
+  termoFormador                 String            @default("Formador Comunitário")
+  termoPreDiscipulado           String            @default("Pré-Discipulado")
+  termoDiscipulado              String            @default("Discipulado")
+  termoPrimeirasPromessas       String            @default("Primeiras Promessas")
+  termoFormacaoPermanente       String            @default("Formação Permanente")
+  termoPromessa                 String            @default("Promessa")
+  // Período Vocacional (módulo opcional, desacoplado do tipoOrganizacao)
+  vocacionalHabilitado          Boolean           @default(false)
+  termoVocacional               String            @default("Período Vocacional")
+  termoAcompanhamentoVocacional String            @default("Acompanhamento Vocacional")
+  vocacionalDuracaoPadraoMeses  Int               @default(12)
+  planoAssinatura               PlanoAssinatura   @default(GRATUITO)
+  status                        StatusOrganizacao @default(TRIAL)
+  stripeCustomerId              String?
+  stripeSubscriptionId          String?
+  trialExpiresAt                DateTime?
+  canceladoEm                   DateTime?
+  cortesia                      Boolean           @default(false)
+  cortesiaExpiresAt             DateTime?
+  cortesiaMotivo                String?
+  nomePlataforma                String?
+  logoUrl                       String?           @db.Text
+  temaCor                       String            @default("formatio")
+  privacyVersion                String            @default("1.0")
+  onboardingConcluido           Boolean           @default(false)
+  criadoEm                      DateTime          @default(now())
+  atualizadoEm                  DateTime          @updatedAt
 
-  usuarios             Usuario[]
-  gruposFormacao       GrupoFormacao[]
-  formandos            Formando[]
-  planosFormativos     PlanoFormativo[]
-  gradesFormativas     GradeFormativa[]
-  formacoes            Formacao[]
-  agendamentos         Agendamento[]
-  presencas            PresencaFormacao[]
-  comentarios          ComentarioFormando[]
-  eventos              EventoFormando[]
-  compromissos         Compromisso[]
-  auditLogs            AuditLog[]
-  arquivos             Arquivo[]
-  convites             ConviteUsuario[]
-  configuracao         ConfiguracaoOrg?
-  pushSubscriptions        PushSubscription[]
-  relatorios               RelatorioEtapa[]
-  processosEclesiasticos   ProcessoEclesiastico[]
-  registrosPromessa        RegistroPromessa[]
-  notificacoes             Notificacao[]
-  livrosRegistroTomo       LivroRegistroTomo[]
-  termosRegistro           TermoRegistro[]
+  usuarios                  Usuario[]
+  gruposFormacao            GrupoFormacao[]
+  formandos                 Formando[]
+  planosFormativos          PlanoFormativo[]
+  gradesFormativas          GradeFormativa[]
+  formacoes                 Formacao[]
+  agendamentos              Agendamento[]
+  presencas                 PresencaFormacao[]
+  comentarios               ComentarioFormando[]
+  eventos                   EventoFormando[]
+  compromissos              Compromisso[]
+  auditLogs                 AuditLog[]
+  arquivos                  Arquivo[]
+  convites                  ConviteUsuario[]
+  configuracao              ConfiguracaoOrg?
+  pushSubscriptions         PushSubscription[]
+  relatorios                RelatorioEtapa[]
+  processosEclesiasticos    ProcessoEclesiastico[]
+  registrosPromessa         RegistroPromessa[]
+  notificacoes              Notificacao[]
+  livrosRegistroTomo        LivroRegistroTomo[]
+  termosRegistro            TermoRegistro[]
+  participacoesVocacional   ParticipacaoVocacional[]
+  acompanhamentosVocacional AcompanhamentoVocacional[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -228,7 +264,7 @@ model ConfiguracaoOrg {
   criadoEm      DateTime @default(now())
   atualizadoEm  DateTime @updatedAt
 
-  organizacao   Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
 }
 
 // ==========================================================
@@ -236,44 +272,46 @@ model ConfiguracaoOrg {
 // ==========================================================
 
 model Usuario {
-  id             String        @id @default(cuid())
-  organizacaoId  String
-  nome           String
-  email          String
-  passwordHash   String?
-  perfil         PerfilUsuario
-  grupoFormacaoId  String?       @map("morada_id")
-  ativo             Boolean       @default(true)
-  primeiroAcesso    Boolean       @default(false)
-  mfaSecret            String?   @db.Text
-  mfaEnabled           Boolean   @default(false)
-  mfaSecretExpiresAt   DateTime?
-  loginFailures        Int       @default(0)
-  lockedUntil          DateTime?
-  passwordChangedAt    DateTime?
-  deletedAt            DateTime?
-  criadoEm         DateTime      @default(now())
-  atualizadoEm     DateTime      @updatedAt
+  id                 String        @id @default(cuid())
+  organizacaoId      String
+  nome               String
+  email              String
+  passwordHash       String?
+  perfil             PerfilUsuario
+  grupoFormacaoId    String?       @map("morada_id")
+  ativo              Boolean       @default(true)
+  primeiroAcesso     Boolean       @default(false)
+  mfaSecret          String?       @db.Text
+  mfaEnabled         Boolean       @default(false)
+  mfaSecretExpiresAt DateTime?
+  loginFailures      Int           @default(0)
+  lockedUntil        DateTime?
+  passwordChangedAt  DateTime?
+  deletedAt          DateTime?
+  criadoEm           DateTime      @default(now())
+  atualizadoEm       DateTime      @updatedAt
 
-  organizacao    Organizacao   @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  organizacao                    Organizacao                @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   // GrupoFormacao ao qual este usuário está vinculado (formador_comunitario)
-  grupoFormacao   GrupoFormacao?  @relation("UsuarioGrupoFormacao", fields: [grupoFormacaoId], references: [id])
+  grupoFormacao                  GrupoFormacao?             @relation("UsuarioGrupoFormacao", fields: [grupoFormacaoId], references: [id])
   // GruposFormacao dos quais este usuário é formador responsável
-  gruposFormados  GrupoFormacao[] @relation("GrupoFormacaoFormador")
-  auditLogs      AuditLog[]
-  comentarios    ComentarioFormando[]
-  eventos        EventoFormando[]
-  compromissos   Compromisso[]
+  gruposFormados                 GrupoFormacao[]            @relation("GrupoFormacaoFormador")
+  auditLogs                      AuditLog[]
+  comentarios                    ComentarioFormando[]
+  eventos                        EventoFormando[]
+  compromissos                   Compromisso[]
   formacoesCriadas               Formacao[]
   agendamentos                   Agendamento[]
   privacyAcceptances             PrivacyAcceptance[]
   convitesEnviados               ConviteUsuario[]
   relatoriosRedigidos            RelatorioEtapa[]
-  processosEclesiasticosCriados  ProcessoEclesiastico[]  @relation("ProcessoCriador")
-  documentosEclesiasticosGerados DocumentoEclesiastico[] @relation("DocumentoGerador")
+  processosEclesiasticosCriados  ProcessoEclesiastico[]     @relation("ProcessoCriador")
+  documentosEclesiasticosGerados DocumentoEclesiastico[]    @relation("DocumentoGerador")
   passwordResetTokens            PasswordResetToken[]
   notificacoes                   Notificacao[]
   pushSubscriptions              PushSubscription[]
+  participacoesAcompanhadas      ParticipacaoVocacional[]   @relation("AcompanhadorParticipacao")
+  acompanhamentosRegistrados     AcompanhamentoVocacional[] @relation("AcompanhadorRegistro")
 
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
@@ -292,7 +330,7 @@ model PasswordResetToken {
   usedAt    DateTime?
   criadoEm  DateTime  @default(now())
 
-  usuario   Usuario   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -303,35 +341,40 @@ model PasswordResetToken {
 // ==========================================================
 
 model GrupoFormacao {
-  id             String    @id @default(cuid())
-  organizacaoId  String
-  nome           String
-  localReuniao   String?
+  id                            String            @id @default(cuid())
+  organizacaoId                 String
+  nome                          String
+  localReuniao                  String?
   // NivelFormativo: obrigatório para grupos estruturados, null para grupos livres
-  nivelFormativo String?
-  tipo           TipoGrupoFormacao @default(estruturado)
-  formadorId     String?
-  planoId        String?
-  gradeId        String?
-  vigenciaInicio DateTime?
-  vigenciaFim    DateTime?
-  imagemUrl      String?   @db.Text
-  ativo          Boolean   @default(true)
-  criadoEm      DateTime  @default(now())
-  atualizadoEm  DateTime  @updatedAt
+  nivelFormativo                String?
+  tipo                          TipoGrupoFormacao @default(estruturado)
+  formadorId                    String?
+  planoId                       String?
+  gradeId                       String?
+  vigenciaInicio                DateTime?
+  vigenciaFim                   DateTime?
+  imagemUrl                     String?           @db.Text
+  ativo                         Boolean           @default(true)
+  // Campos usados apenas quando tipo = vocacional (turma do Período Vocacional)
+  vocacionalAcompanhamentoAtivo Boolean           @default(false)
+  vocacionalTotalRetiros        Int?
+  vocacionalDuracaoMeses        Int?
+  criadoEm                      DateTime          @default(now())
+  atualizadoEm                  DateTime          @updatedAt
 
-  organizacao    Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formador       Usuario?        @relation("GrupoFormacaoFormador", fields: [formadorId], references: [id])
-  plano          PlanoFormativo? @relation(fields: [planoId], references: [id])
-  grade          GradeFormativa? @relation(fields: [gradeId], references: [id])
-  formandos      Formando[]
-  agendamentos   Agendamento[]
+  organizacao             Organizacao              @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formador                Usuario?                 @relation("GrupoFormacaoFormador", fields: [formadorId], references: [id])
+  plano                   PlanoFormativo?          @relation(fields: [planoId], references: [id])
+  grade                   GradeFormativa?          @relation(fields: [gradeId], references: [id])
+  formandos               Formando[]
+  agendamentos            Agendamento[]
+  participacoesVocacional ParticipacaoVocacional[]
   // Usuários vinculados a este grupo de formação (formadores_comunitarios)
-  usuarios       Usuario[]       @relation("UsuarioGrupoFormacao")
+  usuarios                Usuario[]                @relation("UsuarioGrupoFormacao")
 
-  @@map("morada")
   @@index([organizacaoId])
   @@index([formadorId])
+  @@map("morada")
 }
 
 // ==========================================================
@@ -339,48 +382,49 @@ model GrupoFormacao {
 // ==========================================================
 
 model Formando {
-  id                  String    @id @default(cuid())
+  id                  String          @id @default(cuid())
   organizacaoId       String
   nome                String
   dataNascimento      DateTime
-  estadoCivil         String    // solteiro | casado | divorciado | viuvo
-  modalidade          String    // presencial | online | hibrida
-  nivelFormativo      String    // NivelFormativo
+  estadoCivil         String // solteiro | casado | divorciado | viuvo
+  modalidade          String // presencial | online | hibrida
+  nivelFormativo      String // NivelFormativo
   dataIngresso        DateTime
   telefone            String
   email               String
-  ativo               Boolean   @default(true)
+  ativo               Boolean         @default(true)
   motivoInatividade   String?
   foto                String?
-  nomeSocial            String?
-  nacionalidade         String?
-  rg                    String?
-  orgaoEmissor          String?
-  cep                   String?
-  paroquiaReferencia    String?
-  numFilhos             Int?
-  condicaoAtual         CondicaoMembro?
-  turmaId               String?
-  grupoFormacaoId       String?   @map("morada_id")
-  tokenAssinatura       String?   @unique
-  totalFormacoes        Int       @default(0)
-  formacoesRealizadas Int       @default(0)
+  nomeSocial          String?
+  nacionalidade       String?
+  rg                  String?
+  orgaoEmissor        String?
+  cep                 String?
+  paroquiaReferencia  String?
+  numFilhos           Int?
+  condicaoAtual       CondicaoMembro?
+  turmaId             String?
+  grupoFormacaoId     String?         @map("morada_id")
+  tokenAssinatura     String?         @unique
+  totalFormacoes      Int             @default(0)
+  formacoesRealizadas Int             @default(0)
   deletedAt           DateTime?
-  criadoEm           DateTime  @default(now())
-  atualizadoEm       DateTime  @updatedAt
+  criadoEm            DateTime        @default(now())
+  atualizadoEm        DateTime        @updatedAt
 
-  organizacao         Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  grupoFormacao       GrupoFormacao?  @relation(fields: [grupoFormacaoId], references: [id])
-  progressoEtapas        ProgressoEtapa[]
-  presencas              PresencaFormacao[]
-  comentarios            ComentarioFormando[]
-  eventos                EventoFormando[]
-  compromissos           Compromisso[]
-  relatorios             RelatorioEtapa[]
-  processosEclesiasticos ProcessoEclesiastico[]
-  registrosPromessa      RegistroPromessa[]
-  pushSubscriptions      PushSubscription[]
-  termosRegistro         TermoRegistro[]
+  organizacao             Organizacao              @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  grupoFormacao           GrupoFormacao?           @relation(fields: [grupoFormacaoId], references: [id])
+  progressoEtapas         ProgressoEtapa[]
+  presencas               PresencaFormacao[]
+  comentarios             ComentarioFormando[]
+  eventos                 EventoFormando[]
+  compromissos            Compromisso[]
+  relatorios              RelatorioEtapa[]
+  processosEclesiasticos  ProcessoEclesiastico[]
+  registrosPromessa       RegistroPromessa[]
+  pushSubscriptions       PushSubscription[]
+  termosRegistro          TermoRegistro[]
+  participacoesVocacional ParticipacaoVocacional[]
 
   @@index([organizacaoId])
   @@index([grupoFormacaoId])
@@ -393,17 +437,17 @@ model Formando {
 // ==========================================================
 
 model ProgressoEtapa {
-  id                              String   @id @default(cuid())
+  id                              String    @id @default(cuid())
   formandoId                      String
-  nivelFormativo                  String   // NivelFormativo
-  formacoesComunitariasRealizadas Int      @default(0)
-  retirosComunitariosRealizados   Int      @default(0)
-  retirosPessoaisRealizados       Int      @default(0)
+  nivelFormativo                  String // NivelFormativo
+  formacoesComunitariasRealizadas Int       @default(0)
+  retirosComunitariosRealizados   Int       @default(0)
+  retirosPessoaisRealizados       Int       @default(0)
   iniciouEm                       DateTime?
   concluiuEm                      DateTime?
   dataMissaCompromisso            DateTime?
 
-  formando                        Formando @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  formando Formando @relation(fields: [formandoId], references: [id], onDelete: Cascade)
 
   @@unique([formandoId, nivelFormativo])
 }
@@ -414,22 +458,22 @@ model ProgressoEtapa {
 // ==========================================================
 
 model PlanoFormativo {
-  id               String    @id @default(cuid())
+  id               String   @id @default(cuid())
   organizacaoId    String?
-  isGlobal         Boolean   @default(false)
+  isGlobal         Boolean  @default(false)
   nome             String
   objetivos        String
   fundamentacao    String
-  nivelFormativo   String    // NivelFormativo
+  nivelFormativo   String // NivelFormativo
   vigenciaInicio   DateTime
   vigenciaFim      DateTime
-  status           String    @default("rascunho") // StatusPlano
+  status           String   @default("rascunho") // StatusPlano
   documentoAnexo   String?
   documentoAnexoId String?
-  criadoEm        DateTime  @default(now())
-  atualizadoEm    DateTime  @updatedAt
+  criadoEm         DateTime @default(now())
+  atualizadoEm     DateTime @updatedAt
 
-  organizacao      Organizacao?    @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  organizacao      Organizacao?     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   eixos            EixoPlano[]
   gradesFormativas GradeFormativa[]
   gruposFormacao   GrupoFormacao[]
@@ -444,7 +488,7 @@ model PlanoFormativo {
 // ==========================================================
 
 model RetiroPlano {
-  id             String @id @default(cuid())
+  id             String  @id @default(cuid())
   planoId        String
   tipo           String
   numero         Int
@@ -452,9 +496,9 @@ model RetiroPlano {
   trechoBiblico  String?
   objetivo       String
   quandoRealizar String
-  cargaHoraria   Int    @default(0)
+  cargaHoraria   Int     @default(0)
 
-  plano          PlanoFormativo @relation(fields: [planoId], references: [id], onDelete: Cascade)
+  plano PlanoFormativo @relation(fields: [planoId], references: [id], onDelete: Cascade)
 
   @@index([planoId])
 }
@@ -464,7 +508,7 @@ model RetiroPlano {
 // ==========================================================
 
 model EixoPlano {
-  id                 String @id @default(cuid())
+  id                 String  @id @default(cuid())
   planoId            String
   nome               String
   nomeEtapa          String?
@@ -472,10 +516,10 @@ model EixoPlano {
   intervaloEncontros String
   cargaHoraria       Int
   areaFormacao       String
-  ordem              Int    @default(0)
+  ordem              Int     @default(0)
 
-  plano              PlanoFormativo @relation(fields: [planoId], references: [id], onDelete: Cascade)
-  eixosGrade         Eixo[]
+  plano      PlanoFormativo @relation(fields: [planoId], references: [id], onDelete: Cascade)
+  eixosGrade Eixo[]
 
   @@index([planoId])
 }
@@ -486,29 +530,29 @@ model EixoPlano {
 // ==========================================================
 
 model GradeFormativa {
-  id               String    @id @default(cuid())
+  id               String   @id @default(cuid())
   organizacaoId    String?
-  isGlobal         Boolean   @default(false)
-  nome             String    @default("")
+  isGlobal         Boolean  @default(false)
+  nome             String   @default("")
   planoId          String
   planoNome        String
-  nivelFormativo   String    // NivelFormativo
+  nivelFormativo   String // NivelFormativo
   vigenciaInicio   DateTime
   vigenciaFim      DateTime
-  versao           String    @default("1.0")
-  totalFormacoes   Int       @default(0)
+  versao           String   @default("1.0")
+  totalFormacoes   Int      @default(0)
   objetivos        String?
   fundamentacao    String?
   documentoAnexo   String?
   documentoAnexoId String?
-  ativo            Boolean   @default(true)
-  criadoEm        DateTime  @default(now())
-  atualizadoEm    DateTime  @updatedAt
+  ativo            Boolean  @default(true)
+  criadoEm         DateTime @default(now())
+  atualizadoEm     DateTime @updatedAt
 
-  organizacao      Organizacao?   @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  plano            PlanoFormativo @relation(fields: [planoId], references: [id])
-  eixos            Eixo[]
-  gruposFormacao   GrupoFormacao[]
+  organizacao    Organizacao?    @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  plano          PlanoFormativo  @relation(fields: [planoId], references: [id])
+  eixos          Eixo[]
+  gruposFormacao GrupoFormacao[]
 
   @@index([organizacaoId])
   @@index([planoId])
@@ -527,9 +571,9 @@ model Eixo {
   cor         String?
   eixoPlanoId String?
 
-  grade       GradeFormativa @relation(fields: [gradeId], references: [id], onDelete: Cascade)
-  eixoPlano   EixoPlano?     @relation(fields: [eixoPlanoId], references: [id], onDelete: SetNull)
-  etapas      Etapa[]
+  grade     GradeFormativa @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  eixoPlano EixoPlano?     @relation(fields: [eixoPlanoId], references: [id], onDelete: SetNull)
+  etapas    Etapa[]
 
   @@index([gradeId])
   @@index([eixoPlanoId])
@@ -547,7 +591,7 @@ model Etapa {
   ordem        Int    @default(0)
   cargaHoraria Int
 
-  eixo         Eixo   @relation(fields: [eixoId], references: [id], onDelete: Cascade)
+  eixo Eixo @relation(fields: [eixoId], references: [id], onDelete: Cascade)
 
   @@index([eixoId])
 }
@@ -558,37 +602,37 @@ model Etapa {
 // ==========================================================
 
 model Formacao {
-  id               String    @id @default(cuid())
-  organizacaoId    String?
-  isGlobal         Boolean   @default(false)
-  tema             String
-  objetivo         String
-  descricao        String
-  nivelFormativo   String    // NivelFormativo
-  tipoFormacao     String    // TipoFormacao
-  eixoId           String?
-  eixoNome         String?
-  etapaId          String?
-  etapaNome        String?
-  formadorId       String?
-  formadorNome     String
-  cargaHoraria     Int
-  modalidade       String    // Modalidade
-  materialApoio    String?
-  documentoAnexo   String?
-  documentoAnexoId String?
-  gradeId          String?
-  gradeNome        String?
-  numero           Int?
+  id                  String    @id @default(cuid())
+  organizacaoId       String?
+  isGlobal            Boolean   @default(false)
+  tema                String
+  objetivo            String
+  descricao           String
+  nivelFormativo      String // NivelFormativo
+  tipoFormacao        String // TipoFormacao
+  eixoId              String?
+  eixoNome            String?
+  etapaId             String?
+  etapaNome           String?
+  formadorId          String?
+  formadorNome        String
+  cargaHoraria        Int
+  modalidade          String // Modalidade
+  materialApoio       String?
+  documentoAnexo      String?
+  documentoAnexoId    String?
+  gradeId             String?
+  gradeNome           String?
+  numero              Int?
   observacoesFormador String?
-  vezesUtilizada   Int       @default(0)
-  deletedAt        DateTime?
-  criadoEm        DateTime  @default(now())
-  atualizadoEm    DateTime  @updatedAt
+  vezesUtilizada      Int       @default(0)
+  deletedAt           DateTime?
+  criadoEm            DateTime  @default(now())
+  atualizadoEm        DateTime  @updatedAt
 
-  organizacao      Organizacao? @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formador         Usuario?     @relation(fields: [formadorId], references: [id])
-  agendamentos     Agendamento[]
+  organizacao  Organizacao?  @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formador     Usuario?      @relation(fields: [formadorId], references: [id])
+  agendamentos Agendamento[]
 
   @@index([organizacaoId])
   @@index([deletedAt])
@@ -603,8 +647,8 @@ model Agendamento {
   organizacaoId         String
   formacaoId            String
   formacaoTema          String
-  nivelFormativo        String    // NivelFormativo
-  tipoFormacao          String    // TipoFormacao
+  nivelFormativo        String // NivelFormativo
+  tipoFormacao          String // TipoFormacao
   formadorId            String
   formadorNome          String
   grupoFormacaoId       String?   @map("morada_id")
@@ -617,14 +661,14 @@ model Agendamento {
   observacoes           String?
   googleCalendarEventId String?
   deletedAt             DateTime?
-  criadoEm             DateTime  @default(now())
-  atualizadoEm         DateTime  @updatedAt
+  criadoEm              DateTime  @default(now())
+  atualizadoEm          DateTime  @updatedAt
 
-  organizacao           Organizacao  @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formacao              Formacao     @relation(fields: [formacaoId], references: [id])
-  formador              Usuario        @relation(fields: [formadorId], references: [id])
-  grupoFormacao         GrupoFormacao? @relation(fields: [grupoFormacaoId], references: [id], onDelete: SetNull)
-  presencas             PresencaFormacao[]
+  organizacao   Organizacao        @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formacao      Formacao           @relation(fields: [formacaoId], references: [id])
+  formador      Usuario            @relation(fields: [formadorId], references: [id])
+  grupoFormacao GrupoFormacao?     @relation(fields: [grupoFormacaoId], references: [id], onDelete: SetNull)
+  presencas     PresencaFormacao[]
 
   @@index([organizacaoId])
   @@index([dataInicio])
@@ -639,24 +683,24 @@ model Agendamento {
 // ==========================================================
 
 model PresencaFormacao {
-  id             String   @id @default(cuid())
-  organizacaoId  String
-  agendamentoId  String
-  formacaoTema   String
-  data           DateTime
-  formandoId     String
-  formandoNome   String
-  nivelFormativo String   // NivelFormativo
-  presente       Boolean  @default(false)
-  justificativa  String?
+  id                    String   @id @default(cuid())
+  organizacaoId         String
+  agendamentoId         String
+  formacaoTema          String
+  data                  DateTime
+  formandoId            String
+  formandoNome          String
+  nivelFormativo        String // NivelFormativo
+  presente              Boolean  @default(false)
+  justificativa         String?
   // Campos do Portal do Formando — fonte de verdade continua sendo o formador
   confirmacaoFormando   Boolean? // null=sem resposta, true=confirmou presença, false=avisou ausência
-  justificativaFormando String?  // texto enviado pelo próprio formando
-  criadoEm      DateTime @default(now())
+  justificativaFormando String? // texto enviado pelo próprio formando
+  criadoEm              DateTime @default(now())
 
-  organizacao    Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  agendamento    Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
-  formando       Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  agendamento Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  formando    Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
 
   @@unique([agendamentoId, formandoId])
   @@index([organizacaoId, formandoId])
@@ -675,12 +719,12 @@ model ComentarioFormando {
   formadorId    String
   formadorNome  String?
   texto         String
-  tipo          String   // TipoComentario
-  criadoEm     DateTime @default(now())
+  tipo          String // TipoComentario
+  criadoEm      DateTime @default(now())
 
-  organizacao   Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formando      Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
-  formador      Usuario     @relation(fields: [formadorId], references: [id])
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando    Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  formador    Usuario     @relation(fields: [formadorId], references: [id])
 
   @@index([organizacaoId, formandoId])
   @@index([formandoId])
@@ -695,14 +739,14 @@ model EventoFormando {
   organizacaoId                 String
   formandoId                    String
   formadorId                    String
-  tipo                          String    // TipoEventoFormando
+  tipo                          String // TipoEventoFormando
   periodoInicio                 DateTime?
   periodoFim                    DateTime?
-  notaAdesao                    String?   // NotaAdesao
-  perspectiva                   String?   // PerspectivFormativa: humana | espiritual | comunitaria
+  notaAdesao                    String? // NotaAdesao
+  perspectiva                   String? // PerspectivFormativa: humana | espiritual | comunitaria
   textoAvaliacao                String?
   motivo                        String?
-  tipoDesligamento              String?   // TipoDesligamento
+  tipoDesligamento              String? // TipoDesligamento
   dataEfetiva                   DateTime?
   checklistDevolveuEstatuto     Boolean?
   checklistDevolveuSacramental  Boolean?
@@ -710,12 +754,12 @@ model EventoFormando {
   checklistAcompanhadoModerador Boolean?
   dataInicioLicenca             DateTime?
   dataFimLicenca                DateTime?
-  criadoEm                     DateTime  @default(now())
+  criadoEm                      DateTime  @default(now())
 
-  organizacao                   Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formando                      Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
-  formador                      Usuario     @relation(fields: [formadorId], references: [id])
-  documentos                    Arquivo[]
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando    Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  formador    Usuario     @relation(fields: [formadorId], references: [id])
+  documentos  Arquivo[]
 
   @@index([organizacaoId, formandoId])
   @@index([formandoId])
@@ -735,16 +779,16 @@ model Compromisso {
   dataFim               DateTime
   local                 String?
   linkOnline            String?
-  tipo                  String   // TipoCompromisso
+  tipo                  String // TipoCompromisso
   formandoId            String?
   formandoNome          String?
   googleCalendarEventId String?
-  criadoEm             DateTime @default(now())
-  atualizadoEm         DateTime @updatedAt
+  criadoEm              DateTime @default(now())
+  atualizadoEm          DateTime @updatedAt
 
-  organizacao           Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formador              Usuario     @relation(fields: [formadorId], references: [id])
-  formando              Formando?   @relation(fields: [formandoId], references: [id])
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formador    Usuario     @relation(fields: [formadorId], references: [id])
+  formando    Formando?   @relation(fields: [formandoId], references: [id])
 
   @@index([organizacaoId])
   @@index([formadorId])
@@ -761,9 +805,9 @@ model Arquivo {
   organizacaoId   String
   nome            String
   tamanho         Int
-  tipo            String   // MIME type
+  tipo            String // MIME type
   extensao        String   @default(".pdf") // .pdf | .docx | .doc
-  storageKey      String   // path relativo no disco ou key no R2
+  storageKey      String // path relativo no disco ou key no R2
   uploadedById    String?
   uploadedByNome  String?
   // Associação genérica: plano | grade | formacao
@@ -773,12 +817,12 @@ model Arquivo {
   eventoId        String?
   formandoId      String?
   formandoNome    String?
-  tipoEvento        String?
-  grupoFormacaoId   String?   @map("morada_id")
-  criadoEm         DateTime  @default(now())
+  tipoEvento      String?
+  grupoFormacaoId String?  @map("morada_id")
+  criadoEm        DateTime @default(now())
 
-  organizacao             Organizacao            @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  evento                  EventoFormando?        @relation(fields: [eventoId], references: [id], onDelete: SetNull)
+  organizacao             Organizacao             @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  evento                  EventoFormando?         @relation(fields: [eventoId], references: [id], onDelete: SetNull)
   documentosEclesiasticos DocumentoEclesiastico[]
   registrosPromessa       RegistroPromessa[]
 
@@ -793,20 +837,20 @@ model Arquivo {
 // ==========================================================
 
 model ConviteUsuario {
-  id            String        @id @default(cuid())
-  organizacaoId String
-  email         String
-  nome              String
-  perfil            PerfilUsuario
-  grupoFormacaoId   String?   @map("morada_id")
-  token             String    @unique
-  expiresAt     DateTime
-  aceitoEm      DateTime?
-  criadoPorId   String
-  criadoEm      DateTime      @default(now())
+  id              String        @id @default(cuid())
+  organizacaoId   String
+  email           String
+  nome            String
+  perfil          PerfilUsuario
+  grupoFormacaoId String?       @map("morada_id")
+  token           String        @unique
+  expiresAt       DateTime
+  aceitoEm        DateTime?
+  criadoPorId     String
+  criadoEm        DateTime      @default(now())
 
-  organizacao   Organizacao   @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  criadoPor     Usuario       @relation(fields: [criadoPorId], references: [id])
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  criadoPor   Usuario     @relation(fields: [criadoPorId], references: [id])
 
   @@index([organizacaoId])
   @@index([email])
@@ -821,12 +865,12 @@ model PrivacyAcceptance {
   id            String   @id @default(cuid())
   usuarioId     String
   organizacaoId String?
-  tipo          String   // "privacidade" | "termos"
+  tipo          String // "privacidade" | "termos"
   versao        String
-  ip            String?  // IP anonimizado no momento do aceite (art. 7º Marco Civil)
-  criadoEm     DateTime @default(now())
+  ip            String? // IP anonimizado no momento do aceite (art. 7º Marco Civil)
+  criadoEm      DateTime @default(now())
 
-  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId])
   @@index([tipo])
@@ -842,9 +886,9 @@ model CookieConsent {
   marketing     Boolean  @default(false)
   preferencias  Boolean  @default(false)
   versao        String   @default("1")
-  ip            String?  // IP anonimizado no momento do consentimento (5 anos — LGPD)
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
+  ip            String? // IP anonimizado no momento do consentimento (5 anos — LGPD)
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
 
   @@index([userId])
 }
@@ -853,10 +897,10 @@ model DeletionRequest {
   id            String    @id @default(cuid())
   usuarioId     String?
   organizacaoId String?
-  tipo          String    // "usuario" | "organizacao"
+  tipo          String // "usuario" | "organizacao"
   status        String    @default("pendente") // pendente | processando | concluido
-  solicitadoEm DateTime  @default(now())
-  processadoEm DateTime?
+  solicitadoEm  DateTime  @default(now())
+  processadoEm  DateTime?
 
   @@index([usuarioId])
   @@index([organizacaoId])
@@ -868,26 +912,26 @@ model DeletionRequest {
 // ==========================================================
 
 model RelatorioEtapa {
-  id                   String    @id @default(cuid())
+  id                   String   @id @default(cuid())
   organizacaoId        String
   formandoId           String
   formadorId           String
-  nivelFormativo       String    // NivelFormativo
-  avaliacaoHumana      String?   // NotaAdesao
-  avaliacaoEspiritual  String?   // NotaAdesao
-  avaliacaoComunitaria String?   // NotaAdesao
-  textoNarrativo       String?   @db.Text
-  pontosForteza        String?   @db.Text
-  desafios             String?   @db.Text
-  recomendacao         String?   // RecomendacaoEtapa
-  textoRecomendacao    String?   @db.Text
-  status               String    @default("rascunho") // StatusRelatorio
-  criadoEm             DateTime  @default(now())
-  atualizadoEm         DateTime  @updatedAt
+  nivelFormativo       String // NivelFormativo
+  avaliacaoHumana      String? // NotaAdesao
+  avaliacaoEspiritual  String? // NotaAdesao
+  avaliacaoComunitaria String? // NotaAdesao
+  textoNarrativo       String?  @db.Text
+  pontosForteza        String?  @db.Text
+  desafios             String?  @db.Text
+  recomendacao         String? // RecomendacaoEtapa
+  textoRecomendacao    String?  @db.Text
+  status               String   @default("rascunho") // StatusRelatorio
+  criadoEm             DateTime @default(now())
+  atualizadoEm         DateTime @updatedAt
 
-  organizacao          Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formando             Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
-  formador             Usuario     @relation(fields: [formadorId], references: [id])
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando    Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  formador    Usuario     @relation(fields: [formadorId], references: [id])
 
   @@unique([formandoId, nivelFormativo])
   @@index([organizacaoId])
@@ -898,7 +942,7 @@ model RelatorioEtapa {
 // ==========================================================
 
 model ProcessedWebhookEvent {
-  id          String   @id  // ID do evento (Stripe evt_xxx / Resend svix msg_xxx) — garante idempotência
+  id          String   @id // ID do evento (Stripe evt_xxx / Resend svix msg_xxx) — garante idempotência
   processedAt DateTime @default(now())
 }
 
@@ -907,8 +951,8 @@ model ProcessedWebhookEvent {
 // ==========================================================
 
 enum EmailSuppressionMotivo {
-  BOUNCE     // hard bounce: endereço inexistente/rejeitado permanentemente
-  COMPLAINT  // destinatário marcou como spam
+  BOUNCE // hard bounce: endereço inexistente/rejeitado permanentemente
+  COMPLAINT // destinatário marcou como spam
 }
 
 /// Endereços que NÃO devem mais receber e-mails. Escopo global por endereço:
@@ -916,11 +960,11 @@ enum EmailSuppressionMotivo {
 /// emailId são apenas para auditoria/origem.
 model EmailSuppression {
   id            String                 @id @default(cuid())
-  email         String                 @unique  // sempre normalizado em minúsculas
+  email         String                 @unique // sempre normalizado em minúsculas
   motivo        EmailSuppressionMotivo
-  detalhe       String?                @db.Text  // mensagem do servidor receptor
-  emailId       String?                // Resend email_id que originou o evento
-  organizacaoId String?                // org de origem (auditoria)
+  detalhe       String?                @db.Text // mensagem do servidor receptor
+  emailId       String? // Resend email_id que originou o evento
+  organizacaoId String? // org de origem (auditoria)
   criadoEm      DateTime               @default(now())
 
   @@index([organizacaoId])
@@ -941,9 +985,9 @@ model PushSubscription {
   auth            String   @db.Text
   criadoEm        DateTime @default(now())
 
-  organizacao   Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  usuario       Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
-  formando      Formando?   @relation(fields: [formandoId], references: [id], onDelete: SetNull)
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  usuario     Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  formando    Formando?   @relation(fields: [formandoId], references: [id], onDelete: SetNull)
 
   @@unique([organizacaoId, endpoint])
   @@index([usuarioId])
@@ -982,10 +1026,10 @@ model AuditLog {
   acao          String
   ip            String?
   detalhes      Json?
-  criadoEm     DateTime @default(now())
+  criadoEm      DateTime @default(now())
 
-  organizacao   Organizacao? @relation(fields: [organizacaoId], references: [id])
-  usuario       Usuario?     @relation(fields: [usuarioId], references: [id])
+  organizacao Organizacao? @relation(fields: [organizacaoId], references: [id])
+  usuario     Usuario?     @relation(fields: [usuarioId], references: [id])
 
   @@index([organizacaoId])
   @@index([criadoEm])
@@ -1011,11 +1055,11 @@ model ProcessoEclesiastico {
   criadoEm           DateTime                   @default(now())
   atualizadoEm       DateTime                   @updatedAt
 
-  organizacao        Organizacao              @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formando           Formando                 @relation(fields: [formandoId], references: [id], onDelete: Cascade)
-  criadoPor          Usuario                  @relation("ProcessoCriador", fields: [criadoPorId], references: [id])
-  documentos         DocumentoEclesiastico[]
-  promessa           RegistroPromessa?
+  organizacao Organizacao             @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando    Formando                @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  criadoPor   Usuario                 @relation("ProcessoCriador", fields: [criadoPorId], references: [id])
+  documentos  DocumentoEclesiastico[]
+  promessa    RegistroPromessa?
 
   @@index([formandoId])
   @@index([status])
@@ -1036,9 +1080,9 @@ model DocumentoEclesiastico {
   observacoes          String?
   criadoEm             DateTime                    @default(now())
 
-  processo             ProcessoEclesiastico @relation(fields: [processoId], references: [id], onDelete: Cascade)
-  arquivo              Arquivo?             @relation(fields: [arquivoId], references: [id])
-  geradoPor            Usuario?             @relation("DocumentoGerador", fields: [geradoPorId], references: [id])
+  processo  ProcessoEclesiastico @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  arquivo   Arquivo?             @relation(fields: [arquivoId], references: [id])
+  geradoPor Usuario?             @relation("DocumentoGerador", fields: [geradoPorId], references: [id])
 
   @@index([processoId])
   @@index([arquivoId])
@@ -1066,12 +1110,12 @@ model RegistroPromessa {
   dataDispensa           DateTime?
   autoridadeDispensa     String?
   arquivoTermoId         String?
-  criadoEm              DateTime             @default(now())
+  criadoEm               DateTime             @default(now())
 
-  organizacao            Organizacao          @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formando               Formando             @relation(fields: [formandoId], references: [id], onDelete: Cascade)
-  processo               ProcessoEclesiastico @relation(fields: [processoId], references: [id], onDelete: Cascade)
-  arquivoTermo           Arquivo?             @relation(fields: [arquivoTermoId], references: [id])
+  organizacao  Organizacao          @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando     Formando             @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  processo     ProcessoEclesiastico @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  arquivoTermo Arquivo?             @relation(fields: [arquivoTermoId], references: [id])
 
   @@index([organizacaoId])
   @@index([formandoId])
@@ -1083,24 +1127,24 @@ model RegistroPromessa {
 // ==========================================================
 
 model LivroRegistroTomo {
-  id                    String          @id @default(cuid())
+  id                    String     @id @default(cuid())
   organizacaoId         String
-  numero                Int             // 1, 2, 3... (exibido em romano)
-  totalFolhas           Int             @default(200)
-  status                StatusTomo      @default(aberto)
+  numero                Int // 1, 2, 3... (exibido em romano)
+  totalFolhas           Int        @default(200)
+  status                StatusTomo @default(aberto)
   aberturaData          DateTime
   aberturaModerador     String
   aberturaSecretario    String
-  aberturaTexto         String          @db.Text
-  aberturaArquivoId     String?         // PDF assinado/digitalizado
+  aberturaTexto         String     @db.Text
+  aberturaArquivoId     String? // PDF assinado/digitalizado
   encerramentoData      DateTime?
-  encerramentoTexto     String?         @db.Text
+  encerramentoTexto     String?    @db.Text
   encerramentoArquivoId String?
-  criadoEm              DateTime        @default(now())
-  atualizadoEm          DateTime        @updatedAt
+  criadoEm              DateTime   @default(now())
+  atualizadoEm          DateTime   @updatedAt
 
-  organizacao           Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  termos                TermoRegistro[]
+  organizacao Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  termos      TermoRegistro[]
 
   @@unique([organizacaoId, numero])
   @@index([organizacaoId, status])
@@ -1110,28 +1154,100 @@ model TermoRegistro {
   id                     String            @id @default(cuid())
   organizacaoId          String
   tomoId                 String
-  numero                 Int               // sequencial contínuo por tomo (imutável)
+  numero                 Int // sequencial contínuo por tomo (imutável)
   tipo                   TipoTermoRegistro
   formandoId             String?
   dataEvento             DateTime
   dataLavratura          DateTime          @default(now())
-  corpoTexto             String            @db.Text   // fórmula renderizada — congelada
+  corpoTexto             String            @db.Text // fórmula renderizada — congelada
   condicaoResultante     CondicaoMembro?
   // Referências fracas (sem FK rígida p/ preservar imutabilidade do assento)
   processoId             String?
   registroPromessaId     String?
   arquivoRefId           String?
-  retificaTermoId        String?           // aponta o termo original (retificação)
+  retificaTermoId        String? // aponta o termo original (retificação)
   lavradoAutomaticamente Boolean           @default(true)
   criadoPorId            String?
   criadoEm               DateTime          @default(now())
 
-  organizacao            Organizacao       @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  tomo                   LivroRegistroTomo @relation(fields: [tomoId], references: [id], onDelete: Cascade)
-  formando               Formando?         @relation(fields: [formandoId], references: [id], onDelete: SetNull)
+  organizacao Organizacao       @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  tomo        LivroRegistroTomo @relation(fields: [tomoId], references: [id], onDelete: Cascade)
+  formando    Formando?         @relation(fields: [formandoId], references: [id], onDelete: SetNull)
 
   @@unique([tomoId, numero])
   @@index([organizacaoId])
   @@index([formandoId])
   @@index([tomoId])
+}
+
+// ==========================================================
+// PERÍODO VOCACIONAL
+// Turma = GrupoFormacao (tipo=vocacional). A participação é durável e
+// sobrevive ao fim da turma — um formando pode passar por várias turmas.
+// ==========================================================
+
+model ParticipacaoVocacional {
+  id               String                       @id @default(cuid())
+  organizacaoId    String
+  formandoId       String
+  turmaId          String // → GrupoFormacao (tipo=vocacional)
+  status           StatusParticipacaoVocacional @default(ativa)
+  dataIngresso     DateTime
+  dataConclusao    DateTime?
+  desfechoCarta    DesfechoCartaVocacional?
+  cartaArquivoId   String? // → Arquivo (ref. fraca, sem FK)
+  cartaRecebidaEm  DateTime?
+  processoGeradoId String? // → ProcessoEclesiastico (ref. fraca)
+  acompanhadorId   String?
+  criadoEm         DateTime                     @default(now())
+  atualizadoEm     DateTime                     @updatedAt
+
+  organizacao     Organizacao                 @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando        Formando                    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  turma           GrupoFormacao               @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  acompanhador    Usuario?                    @relation("AcompanhadorParticipacao", fields: [acompanhadorId], references: [id])
+  acompanhamentos AcompanhamentoVocacional[]
+  solicitacoes    SolicitacaoAcompanhamento[]
+
+  @@unique([formandoId, turmaId])
+  @@index([organizacaoId])
+  @@index([turmaId])
+  @@index([organizacaoId, status])
+}
+
+// Anotações de evolução do acompanhamento individual — FORO ÍNTIMO.
+// anotacaoEvolucao é cifrada em repouso (lib/crypto.ts). Visível só ao
+// acompanhador + formador responsável pela turma + formador geral/admin.
+model AcompanhamentoVocacional {
+  id                        String                     @id @default(cuid())
+  organizacaoId             String
+  participacaoId            String
+  acompanhadorId            String
+  data                      DateTime
+  tipo                      TipoEncontroAcompanhamento @default(mensal)
+  solicitadoPeloVocacionado Boolean                    @default(false)
+  anotacaoEvolucao          String                     @db.Text
+  criadoEm                  DateTime                   @default(now())
+  atualizadoEm              DateTime                   @updatedAt
+
+  organizacao  Organizacao            @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  participacao ParticipacaoVocacional @relation(fields: [participacaoId], references: [id], onDelete: Cascade)
+  acompanhador Usuario                @relation("AcompanhadorRegistro", fields: [acompanhadorId], references: [id])
+
+  @@index([organizacaoId])
+  @@index([participacaoId])
+}
+
+// Pedido do vocacionado por um encontro extra de acompanhamento (via Portal).
+model SolicitacaoAcompanhamento {
+  id             String                          @id @default(cuid())
+  participacaoId String
+  solicitadoEm   DateTime                        @default(now())
+  mensagem       String?
+  status         StatusSolicitacaoAcompanhamento @default(pendente)
+
+  participacao ParticipacaoVocacional @relation(fields: [participacaoId], references: [id], onDelete: Cascade)
+
+  @@index([participacaoId])
+  @@index([status])
 }

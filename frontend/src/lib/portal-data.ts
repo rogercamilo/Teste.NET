@@ -52,7 +52,16 @@ export interface PortalDashboardData {
       retirosPessoais: number;
     };
   } | null;
+  // Presente quando o formando tem uma participação vocacional em andamento.
+  vocacional: {
+    participacaoId: string;
+    status: string;
+    acompanhamentoOferecido: boolean;
+    solicitacaoPendente: boolean;
+  } | null;
 }
+
+const STATUS_VOCACIONAL_ATIVOS = ["ativa", "aguardando_carta", "em_discernimento"] as const;
 
 /**
  * Carrega todos os dados do dashboard do portal do formando.
@@ -158,6 +167,16 @@ export async function getPortalDashboardData(
   const percentual = total > 0 ? Math.round((presentes / total) * 100) : 0;
   const requisitos = REQUISITOS_ETAPAS[nivel] ?? null;
 
+  // Participação vocacional em andamento (se houver).
+  const participacaoVocacional = await prisma.participacaoVocacional.findFirst({
+    where: { formandoId, organizacaoId, status: { in: [...STATUS_VOCACIONAL_ATIVOS] } },
+    orderBy: { criadoEm: "desc" },
+    include: {
+      turma: { select: { vocacionalAcompanhamentoAtivo: true } },
+      solicitacoes: { where: { status: "pendente" }, select: { id: true }, take: 1 },
+    },
+  });
+
   return {
     formando: {
       id: formando.id,
@@ -206,6 +225,14 @@ export async function getPortalDashboardData(
             retirosComunitarios: requisitos.retirosComunitarios,
             retirosPessoais: requisitos.retirosPessoais,
           },
+        }
+      : null,
+    vocacional: participacaoVocacional
+      ? {
+          participacaoId: participacaoVocacional.id,
+          status: participacaoVocacional.status,
+          acompanhamentoOferecido: participacaoVocacional.turma.vocacionalAcompanhamentoAtivo,
+          solicitacaoPendente: participacaoVocacional.solicitacoes.length > 0,
         }
       : null,
   };

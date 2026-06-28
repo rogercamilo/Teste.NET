@@ -447,6 +447,18 @@ export function hasCanonicalAccess(tipoOrganizacao: TipoOrganizacao | null | und
   return tipoOrganizacao === "nova_comunidade" || tipoOrganizacao === "instituto_religioso";
 }
 
+/**
+ * Retorna true se a org pode usar o módulo Período Vocacional (e, por extensão,
+ * o Livro de Registro): tipos canônicos têm acesso nativo; qualquer outra org
+ * (ex.: grupo de oração que amadurece) precisa do flag `vocacionalHabilitado`.
+ */
+export function hasVocacionalAccess(
+  tipoOrganizacao: TipoOrganizacao | null | undefined,
+  vocacionalHabilitado: boolean | null | undefined,
+): boolean {
+  return hasCanonicalAccess(tipoOrganizacao) || vocacionalHabilitado === true;
+}
+
 export const STATUS_ORGANIZACAO_LABELS: Record<StatusOrganizacao, string> = {
   TRIAL: "Trial",
   ATIVO: "Ativo",
@@ -838,7 +850,9 @@ export type TipoTermoRegistro =
   | "desligamento"
   | "dispensa"
   | "falecimento"
-  | "retificacao";
+  | "retificacao"
+  | "ingresso_vocacional"
+  | "termino_vocacional";
 
 export const CONDICAO_MEMBRO_LABELS: Record<CondicaoMembro, string> = {
   candidato:                  "Candidato",
@@ -866,6 +880,8 @@ export const TIPO_TERMO_LABELS: Record<TipoTermoRegistro, string> = {
   dispensa:              "Dispensa de Promessas",
   falecimento:           "Falecimento",
   retificacao:           "Retificação",
+  ingresso_vocacional:   "Ingresso no Período Vocacional",
+  termino_vocacional:    "Término do Período Vocacional",
 };
 
 /** Etiqueta curta exibida ao lado do título do termo (espelha o mock-up). */
@@ -884,6 +900,8 @@ export const TIPO_TERMO_TAGS: Record<TipoTermoRegistro, string> = {
   dispensa:              "DISPENSA",
   falecimento:           "FALECIMENTO",
   retificacao:           "RETIFICAÇÃO",
+  ingresso_vocacional:   "VOCACIONAL · INGRESSO",
+  termino_vocacional:    "VOCACIONAL · TÉRMINO",
 };
 
 /** Tipos de termo que o administrador lavra manualmente (sem processo de origem). */
@@ -947,6 +965,11 @@ export interface ComunidadeConfig {
   termoDiscipulado?: string;
   termoPrimeirasPromessas?: string;
   termoFormacaoPermanente?: string;
+  /** Período Vocacional — módulo opcional, desacoplado do tipoOrganizacao */
+  vocacionalHabilitado?: boolean;
+  termoVocacional?: string;
+  termoAcompanhamentoVocacional?: string;
+  vocacionalDuracaoPadraoMeses?: number;
   /** Nome da instância da plataforma nesta organização (ex.: "Portal Formativo da Diocese") */
   nomePlataforma?: string;
   /** Logo da organização em base64 ou URL */

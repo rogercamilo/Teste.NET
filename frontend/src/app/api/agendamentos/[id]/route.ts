@@ -7,6 +7,7 @@ import type { Agendamento } from "@/types";
 import { UpdateAgendamentoSchema, parseBody, isValidId } from "@/lib/schemas";
 import { sendPushToOrg } from "@/lib/push";
 import { formatDataBr } from "@/lib/utils";
+import { verificarUltimoRetiroVocacional } from "@/lib/vocacional-triggers";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
@@ -51,6 +52,11 @@ export async function PUT(request: Request, { params }: Params) {
       data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, grupoFormacaoId: body.grupoFormacaoId !== undefined ? (body.grupoFormacaoId ?? null) : undefined, dataInicio: body.dataInicio ? new Date(body.dataInicio) : undefined, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null },
     });
     logAction("agendamento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
+
+    // Gatilho do último retiro do Período Vocacional — best-effort
+    if (body.status === "realizada" && existing.status !== "realizada" && updated.grupoFormacaoId) {
+      verificarUltimoRetiroVocacional(updated.grupoFormacaoId).catch(() => {});
+    }
 
     // Notificação push para mudanças de status relevantes — fire-and-forget
     if (body.status && body.status !== existing.status) {
