@@ -11,6 +11,7 @@ import {
   eraMenorDeIdade,
 } from "@/lib/jornada-vocacional";
 import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
+import { lavrarTermo, mapProcessoParaTermo, LivroError, parseDataLocal } from "@/lib/livro-registro";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -110,8 +111,10 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
     const processo = await prisma.processoEclesiastico.findFirst({
       where: { id, organizacaoId: user.organizacaoId },
       include: {
-        formando: { select: { nome: true, dataNascimento: true, grupoFormacaoId: true } },
+        formando: { select: { id: true, nome: true, dataNascimento: true, grupoFormacaoId: true } },
         documentos: { select: { id: true } },
+        organizacao: { select: { termoPreDiscipulado: true, termoDiscipulado: true } },
+        promessa: { select: { id: true, tomo: true, folha: true, numeroRegistro: true } },
       },
     });
     if (!processo) return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
@@ -179,6 +182,68 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
             }
           }
         });
+      } else if (transicaoValida.para === "concluido") {
+        // Ao concluir, lavra automaticamente o termo correspondente no Livro de
+        // Registro. Se o tipo de processo não gera termo, apenas muda o status.
+        const mapeamento = mapProcessoParaTermo(processo.tipo);
+        const dados = (processo.dadosFormulario as Record<string, unknown>) ?? {};
+        const str = (k: string) => (typeof dados[k] === "string" ? (dados[k] as string) : undefined);
+        const num = (k: string) => (typeof dados[k] === "number" ? (dados[k] as number) : undefined);
+        const promessaRef = processo.promessa
+          ? `Livro de Promessas, Tomo ${processo.promessa.tomo}, Folha ${String(processo.promessa.folha).padStart(3, "0")}, Registro nº ${processo.promessa.numeroRegistro}`
+          : undefined;
+
+        try {
+          await prisma.$transaction(async (tx) => {
+            const result = await tx.processoEclesiastico.updateMany({
+              where: { id, status: processo.status, organizacaoId },
+              data: { status: body.status },
+            });
+            if (result.count === 0) throw new Error("CONCURRENT_MODIFICATION");
+
+            if (mapeamento) {
+              const etapaNome = mapeamento.etapaCampo
+                ? processo.organizacao[mapeamento.etapaCampo]
+                : undefined;
+              await lavrarTermo(tx, {
+                organizacaoId,
+                tipo: mapeamento.tipoTermo,
+                formandoId: processo.formandoId,
+                dataEvento: new Date(),
+                condicaoResultante: mapeamento.condicaoResultante,
+                processoId: processo.id,
+                registroPromessaId: processo.promessa?.id ?? null,
+                criadoPorId: user.id,
+                contexto: {
+                  formandoNome: processo.formando.nome,
+                  dataEvento: new Date(),
+                  etapaNome,
+                  processoCodigo: processo.id.slice(-6).toUpperCase(),
+                  promessaRef,
+                  numeroRenovacao: processo.numeroRenovacao ?? undefined,
+                  vigenciaFim: str("dataFimVigencia") ? parseDataLocal(str("dataFimVigencia")!) : undefined,
+                  ministerioNome: str("ministerio") ?? str("cargoFuncao"),
+                  destino: str("destino") ?? str("nucleoDestino"),
+                  motivo: str("motivo"),
+                  prazoMeses: num("prazoMeses"),
+                },
+              });
+            }
+          });
+        } catch (err) {
+          if (err instanceof LivroError) {
+            return NextResponse.json({ error: err.message }, { status: 409 });
+          }
+          if (err instanceof Error && err.message === "CONCURRENT_MODIFICATION") {
+            return NextResponse.json(
+              { error: "Status alterado por outra operação. Recarregue e tente novamente." },
+              { status: 409 }
+            );
+          }
+          throw err;
+        }
+
+        logAction("processo_eclesiastico_concluido", user.id, getClientIp(req), { id }, user.organizacaoId);
       } else {
         const result = await prisma.processoEclesiastico.updateMany({
           where: { id, status: processo.status, organizacaoId },

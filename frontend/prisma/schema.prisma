@@ -105,6 +105,40 @@ enum TipoRegistroPromessa {
   dispensa
 }
 
+// ── Livro de Registro Geral da Jornada Vocacional ──────────────────────────
+enum StatusTomo {
+  aberto
+  encerrado
+}
+
+enum CondicaoMembro {
+  candidato
+  membro_em_experiencia
+  membro_em_formacao
+  membro_primeiras_promessas
+  membro_consagrado
+  membro_definitivas
+  desligado
+  falecido
+}
+
+enum TipoTermoRegistro {
+  admissao_etapa
+  conclusao_etapa
+  primeiras_promessas
+  renovacao_promessas
+  promessas_definitivas
+  ministerio
+  missao
+  transferencia
+  licenca_inicio
+  licenca_termino
+  desligamento
+  dispensa
+  falecimento
+  retificacao
+}
+
 enum TipoNotificacao {
   nova_formacao
   novo_formando
@@ -175,6 +209,8 @@ model Organizacao {
   processosEclesiasticos   ProcessoEclesiastico[]
   registrosPromessa        RegistroPromessa[]
   notificacoes             Notificacao[]
+  livrosRegistroTomo       LivroRegistroTomo[]
+  termosRegistro           TermoRegistro[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -323,6 +359,7 @@ model Formando {
   cep                   String?
   paroquiaReferencia    String?
   numFilhos             Int?
+  condicaoAtual         CondicaoMembro?
   turmaId               String?
   grupoFormacaoId       String?   @map("morada_id")
   tokenAssinatura       String?   @unique
@@ -343,6 +380,7 @@ model Formando {
   processosEclesiasticos ProcessoEclesiastico[]
   registrosPromessa      RegistroPromessa[]
   pushSubscriptions      PushSubscription[]
+  termosRegistro         TermoRegistro[]
 
   @@index([organizacaoId])
   @@index([grupoFormacaoId])
@@ -1037,4 +1075,63 @@ model RegistroPromessa {
 
   @@index([organizacaoId])
   @@index([formandoId])
+}
+
+// ==========================================================
+// LIVRO DE REGISTRO GERAL DA JORNADA VOCACIONAL
+// Livro cartorial append-only/imutável: cada marco da jornada vira um termo.
+// ==========================================================
+
+model LivroRegistroTomo {
+  id                    String          @id @default(cuid())
+  organizacaoId         String
+  numero                Int             // 1, 2, 3... (exibido em romano)
+  totalFolhas           Int             @default(200)
+  status                StatusTomo      @default(aberto)
+  aberturaData          DateTime
+  aberturaModerador     String
+  aberturaSecretario    String
+  aberturaTexto         String          @db.Text
+  aberturaArquivoId     String?         // PDF assinado/digitalizado
+  encerramentoData      DateTime?
+  encerramentoTexto     String?         @db.Text
+  encerramentoArquivoId String?
+  criadoEm              DateTime        @default(now())
+  atualizadoEm          DateTime        @updatedAt
+
+  organizacao           Organizacao     @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  termos                TermoRegistro[]
+
+  @@unique([organizacaoId, numero])
+  @@index([organizacaoId, status])
+}
+
+model TermoRegistro {
+  id                     String            @id @default(cuid())
+  organizacaoId          String
+  tomoId                 String
+  numero                 Int               // sequencial contínuo por tomo (imutável)
+  tipo                   TipoTermoRegistro
+  formandoId             String?
+  dataEvento             DateTime
+  dataLavratura          DateTime          @default(now())
+  corpoTexto             String            @db.Text   // fórmula renderizada — congelada
+  condicaoResultante     CondicaoMembro?
+  // Referências fracas (sem FK rígida p/ preservar imutabilidade do assento)
+  processoId             String?
+  registroPromessaId     String?
+  arquivoRefId           String?
+  retificaTermoId        String?           // aponta o termo original (retificação)
+  lavradoAutomaticamente Boolean           @default(true)
+  criadoPorId            String?
+  criadoEm               DateTime          @default(now())
+
+  organizacao            Organizacao       @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  tomo                   LivroRegistroTomo @relation(fields: [tomoId], references: [id], onDelete: Cascade)
+  formando               Formando?         @relation(fields: [formandoId], references: [id], onDelete: SetNull)
+
+  @@unique([tomoId, numero])
+  @@index([organizacaoId])
+  @@index([formandoId])
+  @@index([tomoId])
 }

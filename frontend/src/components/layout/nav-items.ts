@@ -1,4 +1,5 @@
 ﻿import {
+  BookMarked,
   BookOpen,
   Calendar,
   ClipboardList,
@@ -56,6 +57,12 @@ export const navGroupsGestao: NavGroup[] = [
         title: "Jornada Vocacional",
         href: "/jornada-vocacional",
         icon: ScrollText,
+        requiredTipoOrg: ["nova_comunidade", "instituto_religioso"],
+      },
+      {
+        title: "Livro de Registro",
+        href: "/livro-registro",
+        icon: BookMarked,
         requiredTipoOrg: ["nova_comunidade", "instituto_religioso"],
       },
     ],

@@ -216,6 +216,7 @@ export default auth(async function proxy(req) {
     "/dashboard", "/formandos", "/grupos-formacao", "/formacoes",
     "/planos", "/grades", "/presenca", "/agenda",
     "/documentos", "/comentarios", "/viewer", "/jornada-vocacional",
+    "/livro-registro",
   ];
   if (role === "super_admin" && superAdminBlocked.some((p) => pathname.startsWith(p))) {
     return NextResponse.redirect(new URL("/super-admin/dashboard", req.url));

@@ -810,6 +810,125 @@ export interface DocumentoEclesiastico {
   criadoEm: string;
 }
 
+// ── Livro de Registro Geral da Jornada Vocacional ──────────────────────────
+
+export type StatusTomo = "aberto" | "encerrado";
+
+export type CondicaoMembro =
+  | "candidato"
+  | "membro_em_experiencia"
+  | "membro_em_formacao"
+  | "membro_primeiras_promessas"
+  | "membro_consagrado"
+  | "membro_definitivas"
+  | "desligado"
+  | "falecido";
+
+export type TipoTermoRegistro =
+  | "admissao_etapa"
+  | "conclusao_etapa"
+  | "primeiras_promessas"
+  | "renovacao_promessas"
+  | "promessas_definitivas"
+  | "ministerio"
+  | "missao"
+  | "transferencia"
+  | "licenca_inicio"
+  | "licenca_termino"
+  | "desligamento"
+  | "dispensa"
+  | "falecimento"
+  | "retificacao";
+
+export const CONDICAO_MEMBRO_LABELS: Record<CondicaoMembro, string> = {
+  candidato:                  "Candidato",
+  membro_em_experiencia:      "Membro em Experiência",
+  membro_em_formacao:         "Membro em Formação",
+  membro_primeiras_promessas: "Membro de Primeiras Promessas",
+  membro_consagrado:          "Membro Consagrado",
+  membro_definitivas:         "Membro de Promessas Definitivas",
+  desligado:                  "Desligado",
+  falecido:                   "Falecido",
+};
+
+export const TIPO_TERMO_LABELS: Record<TipoTermoRegistro, string> = {
+  admissao_etapa:        "Admissão a Etapa",
+  conclusao_etapa:       "Conclusão de Etapa",
+  primeiras_promessas:   "Primeiras Promessas",
+  renovacao_promessas:   "Renovação de Promessas",
+  promessas_definitivas: "Promessas Definitivas",
+  ministerio:            "Conferição de Ministério",
+  missao:                "Envio em Missão",
+  transferencia:         "Transferência de Núcleo",
+  licenca_inicio:        "Início de Licença",
+  licenca_termino:       "Término de Licença",
+  desligamento:          "Desligamento",
+  dispensa:              "Dispensa de Promessas",
+  falecimento:           "Falecimento",
+  retificacao:           "Retificação",
+};
+
+/** Etiqueta curta exibida ao lado do título do termo (espelha o mock-up). */
+export const TIPO_TERMO_TAGS: Record<TipoTermoRegistro, string> = {
+  admissao_etapa:        "ETAPA · INGRESSO",
+  conclusao_etapa:       "ETAPA · CONCLUSÃO",
+  primeiras_promessas:   "PROMESSAS · INICIAIS",
+  renovacao_promessas:   "PROMESSAS · RENOVAÇÃO",
+  promessas_definitivas: "PROMESSAS · DEFINITIVAS",
+  ministerio:            "MINISTÉRIO",
+  missao:                "MISSÃO",
+  transferencia:         "TRANSFERÊNCIA",
+  licenca_inicio:        "LICENÇA · INÍCIO",
+  licenca_termino:       "LICENÇA · TÉRMINO",
+  desligamento:          "DESLIGAMENTO",
+  dispensa:              "DISPENSA",
+  falecimento:           "FALECIMENTO",
+  retificacao:           "RETIFICAÇÃO",
+};
+
+/** Tipos de termo que o administrador lavra manualmente (sem processo de origem). */
+export const TIPOS_TERMO_MANUAIS: TipoTermoRegistro[] = [
+  "conclusao_etapa",
+  "licenca_termino",
+  "dispensa",
+  "falecimento",
+  "retificacao",
+];
+
+export interface TermoRegistro {
+  id: string;
+  tomoId: string;
+  numero: number;
+  tipo: TipoTermoRegistro;
+  formandoId?: string | null;
+  formandoNome?: string | null;
+  dataEvento: string;
+  dataLavratura: string;
+  corpoTexto: string;
+  condicaoResultante?: CondicaoMembro | null;
+  processoId?: string | null;
+  registroPromessaId?: string | null;
+  arquivoRefId?: string | null;
+  retificaTermoId?: string | null;
+  lavradoAutomaticamente: boolean;
+  criadoPorId?: string | null;
+}
+
+export interface LivroRegistroTomo {
+  id: string;
+  numero: number;
+  totalFolhas: number;
+  status: StatusTomo;
+  aberturaData: string;
+  aberturaModerador: string;
+  aberturaSecretario: string;
+  aberturaTexto: string;
+  aberturaArquivoId?: string | null;
+  encerramentoData?: string | null;
+  encerramentoTexto?: string | null;
+  encerramentoArquivoId?: string | null;
+}
+
 export interface ComunidadeConfig {
   nome: string;
   tipoOrganizacao?: TipoOrganizacao;
