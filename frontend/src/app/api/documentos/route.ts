@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadFile, deleteFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
+import { matchesDeclaredType, sanitizeFilename } from "@/lib/file-validation";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
 
   if (!user.organizacaoId) return Response.json({ error: "Sessão inválida" }, { status: 401 });
 
-  const nome = file.name.trim();
+  const nome = sanitizeFilename(file.name);
   if (!nome || nome.length > 255) {
     return Response.json({ error: "Nome de arquivo inválido." }, { status: 422 });
   }
@@ -70,21 +71,22 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   // Valida assinatura real do arquivo (magic bytes) — impede spoofing de MIME type
-  const isPdf = buffer[0] === 0x25 && buffer[1] === 0x50; // %P
-  const isDocx = buffer[0] === 0x50 && buffer[1] === 0x4b; // PK (ZIP — DOCX)
-  if (!isPdf && !isDocx) {
+  if (!matchesDeclaredType(buffer, file.type)) {
     return Response.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 422 });
   }
 
   const orgId = user.organizacaoId;
 
-  // Validate that formando and agendamento belong to this org (tenant isolation)
-  const [formando, agendamento] = await Promise.all([
+  // Valida que formando e evento pertencem a esta org (isolamento de tenant).
+  // `eventoId` é o id de um EventoFormando — a mesma tabela referenciada pela FK
+  // `Arquivo.eventoId`. Validar contra `agendamento` (tabela errada) rejeitava
+  // todo upload legítimo (404) ou violava a FK no insert (500).
+  const [formando, evento] = await Promise.all([
     prisma.formando.findFirst({ where: { id: formandoId, organizacaoId: orgId, deletedAt: null } }),
-    prisma.agendamento.findFirst({ where: { id: eventoId, organizacaoId: orgId } }),
+    prisma.eventoFormando.findFirst({ where: { id: eventoId, organizacaoId: orgId } }),
   ]);
   if (!formando) return Response.json({ error: "Formando não encontrado" }, { status: 404 });
-  if (!agendamento) return Response.json({ error: "Evento não encontrado" }, { status: 404 });
+  if (!evento) return Response.json({ error: "Evento não encontrado" }, { status: 404 });
 
   let storageKey: string;
   try {

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { uploadFile } from "@/lib/storage";
 import { limiters } from "@/lib/rate-limit";
 import { logError } from "@/lib/audit-log";
+import { matchesDeclaredType } from "@/lib/file-validation";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -39,6 +40,13 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Valida a assinatura real do arquivo (magic bytes) — impede spoofing de MIME
+    // type: o `file.type` é controlado pelo cliente e sozinho não garante nada.
+    if (!matchesDeclaredType(buffer, file.type)) {
+      return NextResponse.json({ error: "Conteúdo do arquivo não corresponde a uma imagem válida." }, { status: 400 });
+    }
+
     const ext = EXT_MAP[file.type] ?? ".jpg";
     const key = await uploadFile(user.organizacaoId, "imagens", buffer, ext, file.type);
 

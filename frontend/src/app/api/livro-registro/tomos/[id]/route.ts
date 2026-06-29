@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { matchesDeclaredType } from "@/lib/file-validation";
+import { canUpload } from "@/lib/plan-limits";
 import { montarTextoEncerramento } from "@/lib/livro-registro";
 import { requireLivroAccess } from "../../guard";
 
 type RouteCtx = { params: Promise<{ id: string }> };
+
+const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10 MB — alinhado com /api/arquivos e /api/documentos
 
 export async function PATCH(req: NextRequest, { params }: RouteCtx) {
   const gate = await requireLivroAccess({ minPapel: "administrador" });
@@ -35,8 +39,23 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       if (arquivo.type !== "application/pdf") {
         return NextResponse.json({ error: "Apenas PDF é aceito" }, { status: 400 });
       }
+      if (arquivo.size > MAX_PDF_SIZE) {
+        return NextResponse.json({ error: "Arquivo excede o limite de 10 MB." }, { status: 422 });
+      }
 
       const buffer = Buffer.from(await arquivo.arrayBuffer());
+
+      // Valida a assinatura real (magic bytes) — o type do multipart é do cliente.
+      if (!matchesDeclaredType(buffer, "application/pdf")) {
+        return NextResponse.json({ error: "Conteúdo do arquivo não corresponde a um PDF." }, { status: 422 });
+      }
+
+      // Respeita a quota de armazenamento do plano (igual aos demais uploads).
+      const uploadCheck = await canUpload(organizacaoId, buffer.length);
+      if (!uploadCheck.allowed) {
+        return NextResponse.json({ error: uploadCheck.reason }, { status: 403 });
+      }
+
       const storageKey = await uploadFile(organizacaoId, "livro-registro", buffer, ".pdf", "application/pdf");
       const arq = await prisma.arquivo.create({
         data: {

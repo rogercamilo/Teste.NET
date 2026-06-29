@@ -4,6 +4,7 @@ import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { canUpload, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
+import { matchesDeclaredType, sanitizeFilename } from "@/lib/file-validation";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
   }
 
-  const nome = file.name.trim();
+  const nome = sanitizeFilename(file.name);
   if (!nome || nome.length > 255) {
     return Response.json({ error: "Nome de arquivo inválido." }, { status: 422 });
   }
@@ -140,10 +141,7 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   // Valida assinatura real do arquivo (magic bytes) — impede spoofing de MIME type
-  const isPdf = buffer[0] === 0x25 && buffer[1] === 0x50; // %P
-  const isOffice = buffer[0] === 0x50 && buffer[1] === 0x4b; // PK (ZIP — DOCX/DOC)
-  const isDoc = buffer[0] === 0xd0 && buffer[1] === 0xcf; // OLE2 — DOC legado
-  if (!isPdf && !isOffice && !isDoc) {
+  if (!matchesDeclaredType(buffer, file.type)) {
     return Response.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 422 });
   }
 
