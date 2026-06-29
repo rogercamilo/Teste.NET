@@ -113,9 +113,14 @@ em orgs grandes.
   disponível e acompanhador (hoje renderizados no server component, arrays completos) em **typeahead**
   via `command.tsx`. Não capado para não esconder registros (regressão funcional). Tarefa de UI focada.
 
-### P2.3 · Extrair o retry P2002 + lavratura para helper único — **0,5 dd**
+### P2.3 · Extrair o retry P2002 + lavratura para helper único — **0,5 dd** — ✅
 O loop de retry está duplicado (POST/PATCH do vocacional + espelha o de processos eclesiásticos).
 - **Aceite:** helper `lavrarComRetry(txFn)` reutilizado; comportamento idêntico coberto por teste.
+- **Entregue:** `lib/livro-retry.ts` (`lavrarComRetry` + `isP2002`/`p2002Target`), mantendo
+  `livro-registro.ts` puro. Substitui os **3 loops** do vocacional (inscrição POST + cancelamento +
+  encerramento no PATCH). A opção `naoRetentar` preserva o caso permanente (`formandoId` → 409 "já
+  participa", sem retry). Nota: processos-eclesiásticos faz `$transaction` simples **sem** retry
+  (não havia loop a unificar lá). 6 testes em `livro-retry.test.ts`.
 
 ### P2.4 · `e2e-vocacional.ts`: reduzir risco de *drift* — **0,5–1,0 dd**
 O script replica a lógica das rotas; pode divergir do handler real ao longo do tempo.
