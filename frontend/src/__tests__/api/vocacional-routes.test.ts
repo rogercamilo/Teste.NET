@@ -13,7 +13,7 @@ vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     organizacao: { findUnique: vi.fn() },
-    participacaoVocacional: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
+    participacaoVocacional: { findFirst: vi.fn(), findMany: vi.fn(), count: vi.fn(), create: vi.fn(), update: vi.fn() },
     acompanhamentoVocacional: { findMany: vi.fn(), create: vi.fn() },
     grupoFormacao: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn() },
     formando: { findFirst: vi.fn(), update: vi.fn() },
@@ -41,7 +41,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit-log";
 
 import { GET as turmasGET, POST as turmasPOST } from "@/app/api/vocacional/turmas/route";
-import { POST as participacoesPOST } from "@/app/api/vocacional/participacoes/route";
+import { GET as participacoesGET, POST as participacoesPOST } from "@/app/api/vocacional/participacoes/route";
 import { PATCH as participacaoPATCH } from "@/app/api/vocacional/participacoes/[id]/route";
 import { POST as cartaPOST } from "@/app/api/vocacional/participacoes/[id]/carta/route";
 import {
@@ -245,5 +245,41 @@ describe("P0.2 — auditoria de leitura do acompanhamento", () => {
       { participacaoId: "p1", papel: "formador_geral" },
       ORG,
     );
+  });
+});
+
+// ── P2.2: paginação + busca server-side em GET /participacoes ────────────────
+
+describe("P2.2 — GET /participacoes paginação e busca", () => {
+  beforeEach(() => mockAuth.mockResolvedValue(session("administrador")));
+
+  it("sem page/pageSize retorna tudo (sem count, sem headers de paginação)", async () => {
+    vi.mocked(prisma.participacaoVocacional.findMany).mockResolvedValue([] as never);
+    const res = await participacoesGET(new Request("http://test/api/vocacional/participacoes?turmaId=t1"));
+    expect(res.status).toBe(200);
+    expect(prisma.participacaoVocacional.count).not.toHaveBeenCalled();
+    expect(res.headers.get("X-Total-Count")).toBeNull();
+  });
+
+  it("com page/pageSize aplica skip/take e expõe headers de paginação", async () => {
+    vi.mocked(prisma.participacaoVocacional.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.participacaoVocacional.count).mockResolvedValue(42 as never);
+    const res = await participacoesGET(new Request("http://test/api/vocacional/participacoes?page=2&pageSize=10"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Total-Count")).toBe("42");
+
+    const arg = vi.mocked(prisma.participacaoVocacional.findMany).mock.calls[0][0] as { skip: number; take: number };
+    expect(arg.skip).toBe(10);
+    expect(arg.take).toBe(10);
+  });
+
+  it("com q filtra por nome do formando (escopado ao tenant)", async () => {
+    vi.mocked(prisma.participacaoVocacional.findMany).mockResolvedValue([] as never);
+    await participacoesGET(new Request("http://test/api/vocacional/participacoes?q=ana"));
+    const arg = vi.mocked(prisma.participacaoVocacional.findMany).mock.calls[0][0] as {
+      where: { organizacaoId: string; formando?: { is: { nome: { contains: string } } } };
+    };
+    expect(arg.where.organizacaoId).toBe(ORG);
+    expect(arg.where.formando?.is.nome.contains).toBe("ana");
   });
 });

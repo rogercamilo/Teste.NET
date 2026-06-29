@@ -95,14 +95,23 @@ A turma usa `nivelFormativo=null`; o seletor de nível em `/planos` e `/grades` 
 
 ## P2 — Hardening / escala (quando houver tração)
 
-### P2.1 · Validação de conteúdo do upload da carta (anti-spoof / AV) — **1,0–1,5 dd**
+### P2.1 · Validação de conteúdo do upload da carta (anti-spoof / AV) — **1,0–1,5 dd** — ✅
 `arquivo.type` é MIME declarado pelo browser (spoofável); o arquivo é armazenado e re-servido.
 - **Aceite:** validação por *magic bytes* (assinatura real) e/ou scan antivírus antes do `uploadFile`.
+- **Entregue:** helper puro `assinaturaConfere()` (`lib/file-signature.ts`, PDF/JPEG/PNG/WebP/HEIC)
+  ligado às duas rotas de carta (vocacional + carta de etapa); mismatch → 400. Testes:
+  `file-signature.test.ts` + caso anti-spoof na rota. (Scan AV fica para quando houver um serviço.)
 
-### P2.2 · Paginação / typeahead nas listas não paginadas — **1,0–1,5 dd**
+### P2.2 · Paginação / typeahead nas listas não paginadas — **1,0–1,5 dd** — ✅ (parcial)
 `participacoes` da turma, formandos disponíveis e acompanhadores carregam tudo. OK hoje; degrada
 em orgs grandes.
 - **Aceite:** paginação/busca server-side seguindo o padrão `parsePagination`.
+- **Entregue:** `GET /api/vocacional/participacoes` ganhou `parsePagination` + `paginationHeaders` +
+  busca `q` por nome do formando (escopada ao tenant), backward-compatible (sem params → retorna
+  tudo). 3 testes em `vocacional-routes.test.ts`.
+- **Adiado (sub-parte de baixo valor agora — 1 org em prod):** converter os *selects* de formando
+  disponível e acompanhador (hoje renderizados no server component, arrays completos) em **typeahead**
+  via `command.tsx`. Não capado para não esconder registros (regressão funcional). Tarefa de UI focada.
 
 ### P2.3 · Extrair o retry P2002 + lavratura para helper único — **0,5 dd**
 O loop de retry está duplicado (POST/PATCH do vocacional + espelha o de processos eclesiásticos).

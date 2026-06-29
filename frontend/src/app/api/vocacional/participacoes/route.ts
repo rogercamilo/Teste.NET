@@ -7,6 +7,7 @@ import { CreateParticipacaoVocacionalSchema, parseBody } from "@/lib/schemas";
 import { isGestao } from "@/lib/auth-helpers";
 import { lavrarTermo, parseDataLocal, LivroError } from "@/lib/livro-registro";
 import { validarElegibilidadeVocacional, STATUS_EM_ANDAMENTO } from "@/lib/vocacional-rules";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { requireVocacionalAccess } from "../guard";
 
 export async function GET(request: Request) {
@@ -14,17 +15,34 @@ export async function GET(request: Request) {
   if ("error" in guard) return guard.error;
   const { organizacaoId } = guard.access;
 
-  const turmaId = new URL(request.url).searchParams.get("turmaId");
+  const searchParams = new URL(request.url).searchParams;
+  const turmaId = searchParams.get("turmaId");
+  const q = searchParams.get("q")?.trim();
   try {
-    const participacoes = await prisma.participacaoVocacional.findMany({
-      where: { organizacaoId, ...(turmaId ? { turmaId } : {}) },
-      orderBy: { criadoEm: "desc" },
-      include: {
-        formando: { select: { id: true, nome: true, condicaoAtual: true } },
-        acompanhador: { select: { id: true, nome: true } },
-      },
-    });
-    return NextResponse.json(participacoes);
+    const where = {
+      organizacaoId,
+      ...(turmaId ? { turmaId } : {}),
+      // Busca server-side por nome do formando (typeahead em orgs grandes).
+      ...(q ? { formando: { is: { nome: { contains: q, mode: "insensitive" as const } } } } : {}),
+    };
+    const include = {
+      formando: { select: { id: true, nome: true, condicaoAtual: true } },
+      acompanhador: { select: { id: true, nome: true } },
+    };
+    const orderBy = { criadoEm: "desc" as const };
+
+    // Sem page/pageSize → mantém o comportamento "retorna tudo" dos callers atuais.
+    const pagination = parsePagination(searchParams);
+    if (!pagination) {
+      const participacoes = await prisma.participacaoVocacional.findMany({ where, orderBy, include });
+      return NextResponse.json(participacoes);
+    }
+
+    const [participacoes, total] = await Promise.all([
+      prisma.participacaoVocacional.findMany({ where, orderBy, include, skip: pagination.skip, take: pagination.take }),
+      prisma.participacaoVocacional.count({ where }),
+    ]);
+    return NextResponse.json(participacoes, { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     logError("vocacional participacoes GET", err);
     return NextResponse.json({ error: "Falha ao carregar participações" }, { status: 500 });
