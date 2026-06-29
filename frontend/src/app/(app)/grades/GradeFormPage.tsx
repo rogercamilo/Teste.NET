@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEtapaLabels } from "@/lib/data-store";
 import {
   MODALIDADE_LABELS,
+  NIVEIS_FORMATIVOS_SELECIONAVEIS,
   isGestao,
   type NivelFormativo,
   type GradeFormativa,
@@ -517,14 +518,7 @@ export default function GradeFormPage({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(
-                  [
-                    "pre-discipulado",
-                    "discipulado",
-                    "primeiras-promessas",
-                    "formacao-permanente",
-                  ] as NivelFormativo[]
-                ).map((n) => (
+                {NIVEIS_FORMATIVOS_SELECIONAVEIS.map((n) => (
                   <SelectItem key={n} value={n}>
                     {etapaLabels[n]}
                   </SelectItem>

@@ -41,6 +41,7 @@ export function useEtapaLabels(): Record<NivelFormativo, string> {
     "discipulado": comunidade.termoDiscipulado?.trim() || "Discipulado",
     "primeiras-promessas": comunidade.termoPrimeirasPromessas?.trim() || "Primeiras Promessas",
     "formacao-permanente": comunidade.termoFormacaoPermanente?.trim() || "Formação Permanente",
+    vocacional: "Período Vocacional",
   };
 }
 

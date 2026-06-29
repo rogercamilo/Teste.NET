@@ -49,6 +49,7 @@ const NIVEL_CHART_COLORS: Record<NivelFormativo, string> = {
   discipulado: "#3B82F6",
   "primeiras-promessas": "#10B981",
   "formacao-permanente": "#F59E0B",
+  vocacional: "#F43F5E",
 };
 
 const NIVEL_PROGRESS_COLORS: Record<NivelFormativo, string> = {
@@ -56,6 +57,7 @@ const NIVEL_PROGRESS_COLORS: Record<NivelFormativo, string> = {
   discipulado: "bg-blue-500",
   "primeiras-promessas": "bg-emerald-500",
   "formacao-permanente": "bg-amber-500",
+  vocacional: "bg-rose-500",
 };
 
 // ── Semáforo ────────────────────────────────────────────────────────────────

@@ -2,7 +2,11 @@
   | "pre-discipulado"
   | "discipulado"
   | "primeiras-promessas"
-  | "formacao-permanente";
+  | "formacao-permanente"
+  // Pré-formativo: o Período Vocacional é um nível selecionável em planos/grades,
+  // mas NÃO faz parte de SEQUENCIA_ETAPAS (a escada de promoção automática) — seu
+  // ciclo é governado por ParticipacaoVocacional + processo de admissão.
+  | "vocacional";
 
 export type TipoOrganizacao =
   | "nova_comunidade"
@@ -395,6 +399,7 @@ export const NIVEL_FORMATIVO_LABELS: Record<NivelFormativo, string> = {
   discipulado: "Discipulado",
   "primeiras-promessas": "Primeiras Promessas",
   "formacao-permanente": "Formação Permanente",
+  vocacional: "Período Vocacional",
 };
 
 export const STATUS_PLANO_LABELS: Record<StatusPlano, string> = {
@@ -493,6 +498,7 @@ export const NIVEL_FORMATIVO_ICONS: Record<NivelFormativo, string> = {
   discipulado: "📖",
   "primeiras-promessas": "🌟",
   "formacao-permanente": "🔥",
+  vocacional: "🧭",
 };
 
 export const STATUS_PLANO_STYLES: Record<StatusPlano, string> = {
@@ -550,6 +556,7 @@ export const NIVEL_CORES: Record<NivelFormativo, string> = {
   discipulado: "bg-blue-100 text-blue-700",
   "primeiras-promessas": "bg-emerald-100 text-emerald-700",
   "formacao-permanente": "bg-amber-100 text-amber-700",
+  vocacional: "bg-rose-100 text-rose-700",
 };
 
 export const TIPO_FORMACAO_LABELS: Record<TipoFormacao, string> = {
@@ -586,6 +593,16 @@ export const REQUISITOS_ETAPAS: Record<NivelFormativo, RequisitosEtapa> = {
     formacoesComunitarias: 52,
     retirosComunitarios: 1,
     retirosPessoais: 4,
+    duracaoAnos: 1,
+  },
+  // Pré-formativo: não há requisitos de etapa no sentido da formação comunitária
+  // (o discernimento é acompanhado via ParticipacaoVocacional). Mantido neutro
+  // por exaustividade do Record — fora da escada de promoção.
+  vocacional: {
+    nivel: "vocacional",
+    formacoesComunitarias: 0,
+    retirosComunitarios: 0,
+    retirosPessoais: 0,
     duracaoAnos: 1,
   },
 };
@@ -646,6 +663,17 @@ export const SEQUENCIA_ETAPAS: NivelFormativo[] = [
   "formacao-permanente",
 ];
 
+/**
+ * Níveis oferecidos nos seletores de plano/grade. Inclui o `vocacional`, que é
+ * selecionável mas vive FORA de SEQUENCIA_ETAPAS (não há promoção automática a
+ * partir dele). Use este conjunto para popular dropdowns; use SEQUENCIA_ETAPAS
+ * apenas para a progressão formal entre etapas.
+ */
+export const NIVEIS_FORMATIVOS_SELECIONAVEIS: NivelFormativo[] = [
+  ...SEQUENCIA_ETAPAS,
+  "vocacional",
+];
+
 export function totalRequerido(nivel: NivelFormativo): number {
   const req = REQUISITOS_ETAPAS[nivel];
   return req.formacoesComunitarias + req.retirosComunitarios + req.retirosPessoais;
@@ -653,6 +681,8 @@ export function totalRequerido(nivel: NivelFormativo): number {
 
 export function getProximaEtapa(nivel: NivelFormativo): NivelFormativo | null {
   const idx = SEQUENCIA_ETAPAS.indexOf(nivel);
+  // Níveis fora da escada formal (ex.: vocacional) não têm "próxima etapa".
+  if (idx === -1) return null;
   return idx < SEQUENCIA_ETAPAS.length - 1 ? SEQUENCIA_ETAPAS[idx + 1] : null;
 }
 

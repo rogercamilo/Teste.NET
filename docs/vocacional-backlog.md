@@ -65,13 +65,21 @@ funções sem teste e checar dívida correlata.
 - **Backfill:** 4 testes cobrindo o caminho completo do `doNotify` (cooldown / sem admins / envio +
   auditoria). `plan-limits.ts` 85% → **100%** stmts; gate global 88,1% → **93,1%**.
 
-### P1.4 · Decisão definitiva sobre `nivelFormativo` do vocacional — **1,0–2,0 dd** *(pendente decisão de produto)*
+### P1.4 · Decisão definitiva sobre `nivelFormativo` do vocacional — **1,0–2,0 dd** — ✅
 A turma usa `nivelFormativo=null`; o seletor de nível em `/planos` e `/grades` não oferece
 "vocacional", então plano/grade próprios do vocacional dependem de grade emprestada de outro nível.
 - **Aceite:** (a) introduzir nível `vocacional` tratando os ~9 mapas `Record<NivelFormativo>`
   (ver memória `feedback-niveis-union-exaustivo`), **ou** (b) decisão explícita de que o vocacional
   usa grade sem nível próprio, documentada.
 - **Bloqueia:** P1.1.
+- **Decisão do CTO:** opção **(a)** — `vocacional` vira nível nativo (sobrepõe a memória
+  `feedback-niveis-union-exaustivo`, atualizada).
+- **Entregue:** `'vocacional'` na union `NivelFormativo` + `NivelFormativoEnum` (zod) + 9 mapas
+  exaustivos (labels/ícone/cores/requisitos/avatar/charts/etapaLabels). **Sem migração** (Prisma
+  guarda `nivelFormativo` como `String`). Decisão de design: `vocacional` é **selecionável**
+  (`NIVEIS_FORMATIVOS_SELECIONAVEIS`, usado em `/planos` e `/grades`) mas fica **FORA de
+  `SEQUENCIA_ETAPAS`** (escada de promoção) — `getProximaEtapa` corrigido p/ retornar `null` em
+  níveis fora da sequência. Invariante travada em `niveis-formativos.test.ts`.
 
 **Subtotal P1: ~4,5–6,5 dd.**
 

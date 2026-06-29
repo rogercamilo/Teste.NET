@@ -6,6 +6,7 @@ import { useEtapaLabels } from "@/lib/data-store";
 import type { PlanoFormativo } from "@/types";
 import {
   STATUS_PLANO_LABELS,
+  NIVEIS_FORMATIVOS_SELECIONAVEIS,
   type StatusPlano,
   type NivelFormativo,
   type EixoPlano,
@@ -49,12 +50,7 @@ const EMPTY_FORM: FormState = {
   documentoId: "",
 };
 
-const NIVEIS: NivelFormativo[] = [
-  "pre-discipulado",
-  "discipulado",
-  "primeiras-promessas",
-  "formacao-permanente",
-];
+const NIVEIS: NivelFormativo[] = NIVEIS_FORMATIVOS_SELECIONAVEIS;
 
 function makeEixo(ordem: number): EixoPlano {
   return {
