@@ -513,7 +513,10 @@ export const PushUnsubscribeSchema = z.object({
 export const PushSendSchema = z.object({
   titulo: nonEmptyString(100),
   corpo: nonEmptyString(300),
-  url: z.string().url("URL inválida").max(2048).optional(),
+  // Apenas caminho relativo same-origin (ex.: "/agenda"). Bloqueia URLs absolutas
+  // ("https://evil.com") e protocol-relative ("//evil.com") — o service worker abre
+  // essa URL no clique da notificação, então uma URL externa seria open-redirect/phishing.
+  url: z.string().max(2048).regex(/^\/(?!\/)/, "URL deve ser um caminho relativo iniciando com /").optional(),
   grupoFormacaoId: z.string().optional(),
 });
 

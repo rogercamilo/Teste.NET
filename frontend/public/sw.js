@@ -24,7 +24,16 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const path = event.notification.data?.url ?? "/";
-  const targetUrl = new URL(path, self.location.origin).href;
+  // Defesa contra open-redirect: só navega para a própria origem. URL absoluta
+  // externa (ex.: vinda de um payload malicioso) cai na raiz da aplicação.
+  let resolved;
+  try {
+    resolved = new URL(path, self.location.origin);
+  } catch {
+    resolved = new URL("/", self.location.origin);
+  }
+  const targetUrl =
+    resolved.origin === self.location.origin ? resolved.href : new URL("/", self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {

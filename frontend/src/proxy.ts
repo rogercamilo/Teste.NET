@@ -233,6 +233,10 @@ export default auth(async function proxy(req) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public|brand).*)",
+    // `sw.js` precisa ser servido como asset estático puro (sem o gate de auth do
+    // proxy): o fluxo público /ativar-notificacoes (formando deslogado) registra
+    // o service worker, e um redirect 307 → /login quebra o registro. Mesma razão
+    // para o manifesto PWA.
+    "/((?!_next/static|_next/image|favicon.ico|public|brand|sw.js|site.webmanifest).*)",
   ],
 };
