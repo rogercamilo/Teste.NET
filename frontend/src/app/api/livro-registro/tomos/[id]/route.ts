@@ -27,7 +27,14 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
 
     // ── Anexar PDF assinado/digitalizado (multipart) ──────────────────────────
     if (contentType.includes("multipart/form-data")) {
-      const form = await req.formData();
+      // Next lança ao parsear um corpo acima do limite — devolve 413 limpo em vez
+      // de 500 (o check explícito de 10 MB abaixo cobre corpos dentro do limite).
+      let form: FormData;
+      try {
+        form = await req.formData();
+      } catch {
+        return NextResponse.json({ error: "Arquivo excede o limite de 10 MB." }, { status: 413 });
+      }
       const alvo = String(form.get("alvo") ?? "");
       const arquivo = form.get("arquivo");
       if (alvo !== "abertura" && alvo !== "encerramento") {
