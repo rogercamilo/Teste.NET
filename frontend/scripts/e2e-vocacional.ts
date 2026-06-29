@@ -1,9 +1,17 @@
 /**
- * Validação end-to-end do módulo Período Vocacional contra o banco de dev.
- * Exercita o motor real (lavrarTermo, crypto) e a máquina de estados, replicando
- * a lógica das rotas em transações, e afirma as invariantes — incluindo as
- * garantias de reversão não-destrutiva e cancelamento por retificação.
- * Limpa tudo ao final.
+ * SMOKE DE DADOS do módulo Período Vocacional contra o banco de dev (NÃO é um
+ * teste de rota HTTP). Exercita o motor real (lavrarTermo, crypto), a máquina de
+ * estados e as invariantes de negócio — reversão não-destrutiva, cancelamento por
+ * retificação, foro íntimo cifrado, presença escopada à turma. Limpa tudo ao final.
+ *
+ * ⚠️ Escopo e drift: este script **replica** a lógica das transações das rotas
+ * (inscrição/encerramento/cancelamento) para validar a camada de DADOS + Livro
+ * contra um Postgres real — ele NÃO sobe o servidor nem exerce os *handlers*
+ * (auth/guards, isolamento de tenant, parsing, 409). Essa cobertura de handler
+ * vive nos testes de rota mockados em `src/__tests__/api/vocacional-routes.test.ts`
+ * (authz/tenant/409) — a fonte de verdade do comportamento HTTP. Ao mudar a lógica
+ * de uma rota, atualize o handler + seu teste mockado primeiro; este smoke pode
+ * divergir e serve apenas como verificação de integração de dados ponta a ponta.
  *
  * Run: npx tsx scripts/e2e-vocacional.ts
  */

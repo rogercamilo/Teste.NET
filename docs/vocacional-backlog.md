@@ -122,29 +122,35 @@ O loop de retry está duplicado (POST/PATCH do vocacional + espelha o de process
   participa", sem retry). Nota: processos-eclesiásticos faz `$transaction` simples **sem** retry
   (não havia loop a unificar lá). 6 testes em `livro-retry.test.ts`.
 
-### P2.4 · `e2e-vocacional.ts`: reduzir risco de *drift* — **0,5–1,0 dd**
+### P2.4 · `e2e-vocacional.ts`: reduzir risco de *drift* — **0,5–1,0 dd** — ✅
 O script replica a lógica das rotas; pode divergir do handler real ao longo do tempo.
 - **Aceite:** converter as checagens para chamar as rotas reais (com sessão), **ou** marcar
   explicitamente como "smoke de dados" e cobrir o handler via P0.1.
+- **Entregue (opção b):** cabeçalho do script reescrito — agora declara-se **SMOKE DE DADOS** (valida
+  a camada de dados + Livro contra Postgres real, NÃO os handlers HTTP) e aponta
+  `__tests__/api/vocacional-routes.test.ts` (P0.1) como a **fonte de verdade** do comportamento de
+  handler (authz/tenant/409). Drift aceito e documentado; regra: ao mudar uma rota, atualizar o
+  handler + teste mockado primeiro.
 
-**Subtotal P2: ~3,0–4,5 dd.**
+**Subtotal P2: ~3,0–4,5 dd. ✅ entregue.**
 
 ---
 
-## Resumo
+## Resumo — TODO O BACKLOG CONCLUÍDO (2026-06-28)
 
-| Tier | Itens | Esforço |
+| Tier | Itens | Estado |
 |---|---|---|
-| **P0** (GA) | P0.1, P0.2 | **~2,5–3,0 dd** |
-| **P1** | P1.1–P1.4 | **~4,5–6,5 dd** (P1.4 pendente de decisão) |
-| **P2** | P2.1–P2.4 | **~3,0–4,5 dd** |
-| | **Total** | **~10–14 dd** |
+| **P0** (GA) | P0.1, P0.2 | ✅ |
+| **P1** | P1.1–P1.4 | ✅ (P1.2 typeahead dos selects adiado) |
+| **P2** | P2.1–P2.4 | ✅ (P2.1 scan AV adiado; sem serviço) |
 
-### Sequenciamento recomendado
-1. **P0.1 + P0.2** (~3 dd) → habilita liberação a clientes (caminho crítico do GA).
-2. **P1.2 + P1.3** em paralelo (baratos, saúde de pipeline) → evitam novas regressões silenciosas.
-3. **P1.4** (decisão de produto) **antes** de **P1.1** (modelagem da carta/grade depende do nível).
-4. **P2** conforme tração/escala.
+Commits: `cb0d7e4` (P0.1/P0.2) · `85ef003` (P1.2/P1.3) · `9886ee2` (P1.4) · `76ceaa4` (P1.1) ·
+`4f3419e` (P2.1) · `7b70bc1` (P2.2) · `423e2ad` (P2.3) · P2.4 neste commit. Todos em `master`,
+verdes (suíte + typecheck + lint).
+
+### Pendências menores adiadas (baixo valor com 1 org em prod)
+- **P2.2** — converter os *selects* de formando/acompanhador em typeahead (UI focada).
+- **P2.1** — scan antivírus no upload (depende de um serviço de AV).
 
 ---
 
