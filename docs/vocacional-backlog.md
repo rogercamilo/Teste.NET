@@ -10,22 +10,28 @@
 
 ---
 
-## P0 — Gateiam o GA (sair do piloto → liberar a clientes)
+## P0 — Gateiam o GA (sair do piloto → liberar a clientes) — ✅ CONCLUÍDO
 
-### P0.1 · Testes de rota HTTP do vocacional (authz / tenant / 409) — **2,0–2,5 dd**
+### P0.1 · Testes de rota HTTP do vocacional (authz / tenant / 409) — **2,0–2,5 dd** — ✅
 As decisões críticas têm testes puros (`lib/vocacional-rules.ts`) + e2e de integração, mas os
 *handlers* (guards, parsing, 409, isolamento de tenant) não são exercitados diretamente.
 - **Aceite:** testes mockando `auth()` + `prisma` cobrindo, por rota:
   401 sem sessão · 403 papel insuficiente · 403 cross-tenant · 409 re-encerramento e carta em
   participação terminal · 403 acompanhamento por FC alheio · 403 cancelamento por não-admin.
 - **Risco se não feito:** regressão de segurança/authz não é pega pelo CI.
+- **Entregue:** `frontend/src/__tests__/api/vocacional-routes.test.ts` (15 casos, verdes).
+  Inaugura a infra de teste de *handler* (mock `auth`+`prisma`+I/O; regras/schemas/livro reais).
+  Nota: cross-tenant retorna **404 por escopo** (`findFirst` filtrado por `organizacaoId`) — o
+  teste assenta sobre esse comportamento real e verifica o `where.organizacaoId`.
 
-### P0.2 · Trilha de auditoria de LEITURA das notas de foro íntimo — **0,5 dd**
+### P0.2 · Trilha de auditoria de LEITURA das notas de foro íntimo — **0,5 dd** — ✅
 Hoje logamos escrita, não leitura. Direção espiritual (LGPD + canônico) exige rastrear "quem leu".
 - **Aceite:** `logAction("vocacional_acompanhamento_lido", …)` no GET de `acompanhamento`
   (com `participacaoId` + papel), verificável no `AuditLog`.
+- **Entregue:** log no GET de `acompanhamento/route.ts` + nova `AuditAction`
+  `vocacional_acompanhamento_lido`; coberto pelo teste P0.1.
 
-**Subtotal P0: ~2,5–3,0 dd — caminho crítico para o GA.**
+**Subtotal P0: ~2,5–3,0 dd — caminho crítico para o GA. ✅ entregue.**
 
 ---
 
