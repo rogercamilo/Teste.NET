@@ -42,10 +42,13 @@ function session(role: string, opts: { id?: string; org?: string; grupo?: string
   } as never;
 }
 
+// Cabeçalho PDF válido (12+ bytes, "%PDF-1.4…") — passa na validação de magic-bytes.
+const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a, 0x25, 0xe2, 0xe3]);
+
 function multipartReq(fields: { nivel?: string; withFile?: boolean }) {
   const fd = new FormData();
   if (fields.nivel !== undefined) fd.append("nivelFormativo", fields.nivel);
-  if (fields.withFile) fd.append("arquivo", new File([new Uint8Array([1, 2, 3])], "carta.pdf", { type: "application/pdf" }));
+  if (fields.withFile) fd.append("arquivo", new File([PDF_BYTES], "carta.pdf", { type: "application/pdf" }));
   return new Request("http://test/api", { method: "POST", body: fd });
 }
 
@@ -80,6 +83,17 @@ describe("POST /api/formandos/[id]/cartas", () => {
     mockAuth.mockResolvedValue(session("administrador"));
     vi.mocked(prisma.formando.findFirst).mockResolvedValue({ id: "f1", nome: "Fulano" } as never);
     const res = await POST(multipartReq({ nivel: "vocacional", withFile: false }), ctx("f1"));
+    expect(res.status).toBe(400);
+  });
+
+  it("400 quando o conteúdo não corresponde ao MIME declarado (anti-spoof P2.1)", async () => {
+    mockAuth.mockResolvedValue(session("administrador"));
+    vi.mocked(prisma.formando.findFirst).mockResolvedValue({ id: "f1", nome: "Fulano" } as never);
+    const fd = new FormData();
+    fd.append("nivelFormativo", "vocacional");
+    // Declara PDF mas envia bytes que não são PDF.
+    fd.append("arquivo", new File([new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])], "fake.pdf", { type: "application/pdf" }));
+    const res = await POST(new Request("http://test/api", { method: "POST", body: fd }), ctx("f1"));
     expect(res.status).toBe(400);
   });
 

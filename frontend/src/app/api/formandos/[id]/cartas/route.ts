@@ -6,6 +6,7 @@ import { uploadFile } from "@/lib/storage";
 import { limiters } from "@/lib/rate-limit";
 import { canUpload, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 import { NivelFormativoEnum } from "@/lib/schemas";
+import { assinaturaConfere } from "@/lib/file-signature";
 import type { SessionUser } from "@/lib/auth-helpers";
 import { NIVEL_FORMATIVO_LABELS } from "@/types";
 
@@ -65,6 +66,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const buffer = Buffer.from(await arquivo.arrayBuffer());
+    // Anti-spoof: confere a assinatura real contra o MIME declarado (P2.1).
+    if (!assinaturaConfere(buffer, arquivo.type)) {
+      return NextResponse.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 400 });
+    }
     const storageKey = await uploadFile(organizacaoId, "cartas-etapa", buffer, ext, arquivo.type);
 
     const arq = await prisma.arquivo.create({
