@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "MFA não está ativo nesta conta" }, { status: 400 });
   }
 
-  const body = await request.json() as { totp?: string; currentPassword?: string };
+  const body = await request.json().catch(() => ({})) as { totp?: string; currentPassword?: string };
 
   if (!body.currentPassword || !user.passwordHash) {
     return NextResponse.json({ error: "Senha atual é obrigatória" }, { status: 400 });

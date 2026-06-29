@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { encryptField, decryptField } from "@/lib/crypto";
 import { limiters } from "@/lib/rate-limit";
-import { CreateAcompanhamentoVocacionalSchema, parseBody } from "@/lib/schemas";
+import { CreateAcompanhamentoVocacionalSchema, parseJson } from "@/lib/schemas";
 import { parseDataLocal } from "@/lib/livro-registro";
 import { podeVerAcompanhamento } from "@/lib/vocacional-rules";
 import { requireVocacionalAccess } from "../../../guard";
@@ -78,7 +78,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!participacao) return NextResponse.json({ error: "Participação não encontrada" }, { status: 404 });
     if (!podeVer(user, participacao)) return NextResponse.json({ error: "Acesso restrito" }, { status: 403 });
 
-    const parsed = parseBody(CreateAcompanhamentoVocacionalSchema, await request.json());
+    const parsed = await parseJson(request, CreateAcompanhamentoVocacionalSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

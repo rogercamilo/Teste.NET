@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
-import { CreateGrupoFormacaoSchema, parseBody } from "@/lib/schemas";
+import { CreateGrupoFormacaoSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { GrupoFormacao } from "@/types";
 
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(CreateGrupoFormacaoSchema, await request.json());
+    const parsed = await parseJson(request, CreateGrupoFormacaoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

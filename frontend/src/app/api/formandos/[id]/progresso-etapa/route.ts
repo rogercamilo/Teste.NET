@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
-import { isValidId, UpdateProgressoEtapaSchema, parseBody } from "@/lib/schemas";
+import { isValidId, UpdateProgressoEtapaSchema, parseJson } from "@/lib/schemas";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -23,7 +23,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!isValidId(id)) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
   try {
-    const parsed = parseBody(UpdateProgressoEtapaSchema, await request.json());
+    const parsed = await parseJson(request, UpdateProgressoEtapaSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

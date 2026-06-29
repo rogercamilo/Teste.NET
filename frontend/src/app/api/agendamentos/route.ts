@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
-import { CreateAgendamentoSchema, parseBody } from "@/lib/schemas";
+import { CreateAgendamentoSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
 import { sendPushToOrg } from "@/lib/push";
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(CreateAgendamentoSchema, await request.json());
+    const parsed = await parseJson(request, CreateAgendamentoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { isValidId, parseBody, UpdateEventoSchema } from "@/lib/schemas";
+import { isValidId, UpdateEventoSchema, parseJson } from "@/lib/schemas";
 import type { EventoFormando } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
@@ -38,7 +38,7 @@ export async function PUT(request: Request, { params }: Params) {
     if (user.role === "formador_comunitario" && existing.formadorId !== user.id) {
       return NextResponse.json({ error: "Sem permissão para editar eventos de outros formadores" }, { status: 403 });
     }
-    const parsedBody = parseBody(UpdateEventoSchema, await request.json());
+    const parsedBody = await parseJson(request, UpdateEventoSchema);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const body = parsedBody.data;
     const updated = await prisma.eventoFormando.update({

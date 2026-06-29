@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import type { GrupoFormacao } from "@/types";
-import { UpdateGrupoFormacaoSchema, parseBody, isValidId } from "@/lib/schemas";
+import { UpdateGrupoFormacaoSchema, isValidId, parseJson } from "@/lib/schemas";
 
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 import { criarNotificacao } from "@/lib/notificacoes";
@@ -42,7 +42,7 @@ export async function PUT(request: Request, { params }: Params) {
       if ((user as { grupoFormacaoId?: string | null }).grupoFormacaoId !== id) {
         return NextResponse.json({ error: "Sem permissão para editar este grupo de formação" }, { status: 403 });
       }
-      const parsed = parseBody(UpdateGrupoFormacaoSchema, await request.json());
+      const parsed = await parseJson(request, UpdateGrupoFormacaoSchema);
       if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
       const body = parsed.data;
       const updated = await prisma.grupoFormacao.update({
@@ -57,7 +57,7 @@ export async function PUT(request: Request, { params }: Params) {
       return NextResponse.json(toGrupoFormacao(updated));
     }
 
-    const parsed = parseBody(UpdateGrupoFormacaoSchema, await request.json());
+    const parsed = await parseJson(request, UpdateGrupoFormacaoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

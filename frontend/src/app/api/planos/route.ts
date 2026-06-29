@@ -9,7 +9,7 @@ import type { PlanoFormativo, EixoPlano } from "@/types";
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toPlano } from "@/lib/converters";
-import { parseBody, CreatePlanoSchema } from "@/lib/schemas";
+import { CreatePlanoSchema, parseJson } from "@/lib/schemas";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const parsedBody = parseBody(CreatePlanoSchema, await request.json());
+    const parsedBody = await parseJson(request, CreatePlanoSchema);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const body = parsedBody.data;
 

@@ -86,7 +86,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
     }
 
     // ── Encerrar tomo (JSON) ──────────────────────────────────────────────────
-    const body = (await req.json()) as { action?: string };
+    const body = (await req.json().catch(() => ({}))) as { action?: string };
     if (body.action !== "encerrar") {
       return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
     }

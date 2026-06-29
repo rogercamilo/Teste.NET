@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { isValidId, parseBody, UpdatePresencaSchema } from "@/lib/schemas";
+import { isValidId, UpdatePresencaSchema, parseJson } from "@/lib/schemas";
 import type { PresencaFormacao } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
@@ -44,7 +44,7 @@ export async function PUT(request: Request, { params }: Params) {
         return NextResponse.json({ error: "Sem permissão para editar esta presença" }, { status: 403 });
       }
     }
-    const parsedBody = parseBody(UpdatePresencaSchema, await request.json());
+    const parsedBody = await parseJson(request, UpdatePresencaSchema);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const updated = await prisma.presencaFormacao.update({
       where: { id, organizacaoId: user.organizacaoId },

@@ -56,7 +56,7 @@ export async function POST(request: Request, { params }: Params) {
   if (!TOKEN_RE.test(token)) return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
 
   try {
-    const body = await request.json() as { senha?: string; nome?: string };
+    const body = await request.json().catch(() => ({})) as { senha?: string; nome?: string };
     const { senha, nome } = body;
 
     if (!senha) return NextResponse.json({ error: "Senha é obrigatória" }, { status: 400 });

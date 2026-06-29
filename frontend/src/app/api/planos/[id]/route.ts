@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { UpdatePlanoSchema, parseBody, isValidId } from "@/lib/schemas";
+import { UpdatePlanoSchema, isValidId, parseJson } from "@/lib/schemas";
 import type { PlanoFormativo, EixoPlano } from "@/types";
 
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
@@ -40,7 +40,7 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.planoFormativo.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    const parsed = parseBody(UpdatePlanoSchema, await request.json());
+    const parsed = await parseJson(request, UpdatePlanoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

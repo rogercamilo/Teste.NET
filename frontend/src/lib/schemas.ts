@@ -535,3 +535,33 @@ export function parseBody<T>(
   }
   return { ok: true, data: result.data };
 }
+
+/**
+ * Lê e faz parse do corpo JSON da requisição de forma segura. Corpo ausente,
+ * vazio ou malformado → `{ ok: false }` (o chamador deve responder 400) em vez
+ * de deixar `request.json()` lançar e virar 500.
+ */
+export async function readJson(
+  request: Request
+): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+  try {
+    return { ok: true, data: await request.json() };
+  } catch {
+    return { ok: false, error: "JSON inválido" };
+  }
+}
+
+/**
+ * Lê o corpo JSON com segurança e valida contra o schema em um passo só.
+ * Malformado → 400 ("JSON inválido"); inválido pelo schema → 400 (mensagem do campo).
+ * Substitui o idiom `parseBody(Schema, await request.json())`, que estourava 500
+ * quando o corpo não era JSON válido.
+ */
+export async function parseJson<T>(
+  request: Request,
+  schema: z.ZodSchema<T>
+): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
+  const read = await readJson(request);
+  if (!read.ok) return read;
+  return parseBody(schema, read.data);
+}

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return new Response(null, { status: 204 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     console.log(
       JSON.stringify({
         timestamp: new Date().toISOString(),

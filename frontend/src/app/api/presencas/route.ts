@@ -9,7 +9,7 @@ import type { PresencaFormacao } from "@/types";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toPresenca } from "@/lib/converters";
-import { parseBody, CreatePresencaSchema } from "@/lib/schemas";
+import { CreatePresencaSchema, parseJson } from "@/lib/schemas";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsedBody = parseBody(CreatePresencaSchema, await request.json());
+    const parsedBody = await parseJson(request, CreatePresencaSchema);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const body = parsedBody.data;
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
-import { PushSendSchema, parseBody } from "@/lib/schemas";
+import { PushSendSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import { sendPushToOrg, sendPushToGroup } from "@/lib/push";
 import { isGestao } from "@/lib/auth-helpers";
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(PushSendSchema, await request.json());
+    const parsed = await parseJson(request, PushSendSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { titulo, corpo, url, grupoFormacaoId } = parsed.data;
 

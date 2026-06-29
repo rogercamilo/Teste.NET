@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { limiters } from "@/lib/rate-limit";
-import { CreateEventoSchema, parseBody } from "@/lib/schemas";
+import { CreateEventoSchema, parseJson } from "@/lib/schemas";
 import type { EventoFormando } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(CreateEventoSchema, await request.json());
+    const parsed = await parseJson(request, CreateEventoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

@@ -4,7 +4,7 @@ import { listUsers, countUsers, createUser, findByEmail, toPublic } from "@/lib/
 import { sendWelcomeEmail } from "@/lib/email";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
-import { CreateUserSchema, parseBody } from "@/lib/schemas";
+import { CreateUserSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import { canAddUser, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(CreateUserSchema, await request.json());
+    const parsed = await parseJson(request, CreateUserSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { nome, email, password, perfil, grupoFormacaoId, ativo } = parsed.data;
 

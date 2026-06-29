@@ -5,7 +5,7 @@ import { validatePassword } from "@/lib/password-validation";
 import { logAction, getClientIp, anonymizeIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal-versions";
-import { RegistroSchema, parseBody } from "@/lib/schemas";
+import { RegistroSchema, parseJson } from "@/lib/schemas";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(RegistroSchema, await request.json());
+    const parsed = await parseJson(request, RegistroSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { orgNome, adminEmail, adminNome, senha, aceitouPrivacidade } = parsed.data;
 

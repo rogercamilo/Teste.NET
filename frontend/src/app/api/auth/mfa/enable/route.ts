@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json() as { totp?: string };
+  const body = await request.json().catch(() => ({})) as { totp?: string };
   if (!body.totp || typeof body.totp !== "string") {
     return NextResponse.json({ error: "Código TOTP é obrigatório" }, { status: 400 });
   }

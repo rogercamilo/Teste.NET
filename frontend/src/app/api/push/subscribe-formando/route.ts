@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
-import { parseBody } from "@/lib/schemas";
+import { parseJson } from "@/lib/schemas";
 
 const SubscribeFormandoSchema = z.object({
   token: z.string().min(1),
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(SubscribeFormandoSchema, await request.json());
+    const parsed = await parseJson(request, SubscribeFormandoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { token, endpoint, p256dh, auth } = parsed.data;
 
@@ -72,7 +72,7 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const parsed = parseBody(UnsubscribeFormandoSchema, await request.json());
+    const parsed = await parseJson(request, UnsubscribeFormandoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { token, endpoint } = parsed.data;
 

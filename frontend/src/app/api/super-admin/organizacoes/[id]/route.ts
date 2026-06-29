@@ -24,7 +24,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
   try {
-    const body = await request.json() as {
+    const body = await request.json().catch(() => ({})) as {
       acao?: string;
       plano?: string;
       cortesiaExpiresAt?: string | null;

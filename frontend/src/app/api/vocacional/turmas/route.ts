@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { CreateTurmaVocacionalSchema, parseBody } from "@/lib/schemas";
+import { CreateTurmaVocacionalSchema, parseJson } from "@/lib/schemas";
 import { isGestao } from "@/lib/auth-helpers";
 import { requireVocacionalAccess } from "../guard";
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
 
   try {
-    const parsed = parseBody(CreateTurmaVocacionalSchema, await request.json());
+    const parsed = await parseJson(request, CreateTurmaVocacionalSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

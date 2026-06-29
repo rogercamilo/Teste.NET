@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const body = await request.json() as {
+    const body = await request.json().catch(() => ({})) as {
       orgIds?: unknown;
       acao?: unknown;
       diasTrial?: unknown;

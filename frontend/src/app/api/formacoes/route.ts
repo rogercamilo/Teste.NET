@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
-import { CreateFormacaoSchema, parseBody } from "@/lib/schemas";
+import { CreateFormacaoSchema, parseJson } from "@/lib/schemas";
 import type { Formacao } from "@/types";
 
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const parsed = parseBody(CreateFormacaoSchema, await request.json());
+    const parsed = await parseJson(request, CreateFormacaoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

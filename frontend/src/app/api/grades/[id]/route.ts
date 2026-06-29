@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { isValidId, parseBody, UpdateGradeSchema } from "@/lib/schemas";
+import { isValidId, UpdateGradeSchema, parseJson } from "@/lib/schemas";
 import type { GradeFormativa, Eixo, Etapa } from "@/types";
 
 const MAX_EIXOS = 50;
@@ -43,7 +43,7 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.gradeFormativa.findFirst({ where: { id, organizacaoId: user.organizacaoId } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    const parsedBody = parseBody(UpdateGradeSchema, await request.json());
+    const parsedBody = await parseJson(request, UpdateGradeSchema);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const body = parsedBody.data;
 

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { token, novaSenha } = (await request.json()) as {
+    const { token, novaSenha } = (await request.json().catch(() => ({}))) as {
       token?: string;
       novaSenha?: string;
     };

@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const { user, organizacaoId } = gate.access;
 
   try {
-    const body = (await req.json()) as {
+    const body = (await req.json().catch(() => ({}))) as {
       tipo: TipoTermoRegistro;
       formandoId?: string;
       dataEvento?: string;

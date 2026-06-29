@@ -119,7 +119,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
     });
     if (!processo) return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
 
-    const body = await req.json() as {
+    const body = await req.json().catch(() => ({})) as {
       dadosFormulario?: Record<string, unknown>;
       status?: StatusProcessoEclesiastico;
       favoravelRenovacao?: boolean;

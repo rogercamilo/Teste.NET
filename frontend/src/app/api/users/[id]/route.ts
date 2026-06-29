@@ -27,7 +27,7 @@ export async function PUT(request: Request, ctx: Ctx) {
 
   try {
     const { id } = await ctx.params;
-    const body = await request.json() as Record<string, unknown>;
+    const body = await request.json().catch(() => ({})) as Record<string, unknown>;
 
     // Allowlist explícita — rejeita campos não autorizados
     const nome = typeof body.nome === "string" ? body.nome.trim() : undefined;

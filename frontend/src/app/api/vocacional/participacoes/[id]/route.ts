@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
-import { UpdateParticipacaoVocacionalSchema, parseBody } from "@/lib/schemas";
+import { UpdateParticipacaoVocacionalSchema, parseJson } from "@/lib/schemas";
 import { isGestao } from "@/lib/auth-helpers";
 import { hasCanonicalAccess } from "@/types";
 import { lavrarTermo, parseDataLocal, LivroError } from "@/lib/livro-registro";
@@ -20,7 +20,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id } = await params;
 
   try {
-    const parsed = parseBody(UpdateParticipacaoVocacionalSchema, await request.json());
+    const parsed = await parseJson(request, UpdateParticipacaoVocacionalSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

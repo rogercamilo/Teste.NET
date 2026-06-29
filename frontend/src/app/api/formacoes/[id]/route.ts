@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import type { Formacao } from "@/types";
-import { UpdateFormacaoSchema, parseBody, isValidId } from "@/lib/schemas";
+import { UpdateFormacaoSchema, isValidId, parseJson } from "@/lib/schemas";
 
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
@@ -38,7 +38,7 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const existing = await prisma.formacao.findFirst({ where: { id, organizacaoId: user.organizacaoId, deletedAt: null } });
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    const parsed = parseBody(UpdateFormacaoSchema, await request.json());
+    const parsed = await parseJson(request, UpdateFormacaoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
     const updated = await prisma.formacao.update({ where: { id }, data: { tema: body.tema, objetivo: body.objetivo, descricao: body.descricao, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, eixoId: body.eixoId ?? null, eixoNome: body.eixoNome ?? null, etapaId: body.etapaId ?? null, etapaNome: body.etapaNome ?? null, formadorNome: body.formadorNome, cargaHoraria: body.cargaHoraria, modalidade: body.modalidade, materialApoio: body.materialApoio ?? null, documentoAnexo: body.documentoAnexo ?? null, documentoAnexoId: body.documentoAnexoId ?? null, gradeId: body.gradeId ?? null, gradeNome: body.gradeNome ?? null, numero: body.numero !== undefined ? (body.numero ?? null) : undefined, observacoesFormador: body.observacoesFormador !== undefined ? (body.observacoesFormador || null) : undefined, vezesUtilizada: body.vezesUtilizada } });

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { canAddFormando, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
-import { CreateFormandoSchema, parseBody } from "@/lib/schemas";
+import { CreateFormandoSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import type { Formando, ProgressoEtapa } from "@/types";
 
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(CreateFormandoSchema, await request.json());
+    const parsed = await parseJson(request, CreateFormandoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

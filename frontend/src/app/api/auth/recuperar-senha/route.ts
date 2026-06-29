@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { email } = (await request.json()) as { email?: string };
+    const { email } = (await request.json().catch(() => ({}))) as { email?: string };
     if (!email || typeof email !== "string") {
       return NextResponse.json({ error: "E-mail inválido" }, { status: 400 });
     }

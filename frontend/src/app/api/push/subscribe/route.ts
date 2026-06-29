@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
-import { PushSubscribeSchema, PushUnsubscribeSchema, parseBody } from "@/lib/schemas";
+import { PushSubscribeSchema, PushUnsubscribeSchema, parseJson } from "@/lib/schemas";
 import { rateLimit } from "@/lib/rate-limit";
 import type { SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(PushSubscribeSchema, await request.json());
+    const parsed = await parseJson(request, PushSubscribeSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { endpoint, p256dh, auth: authKey } = parsed.data;
 
@@ -52,7 +52,7 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const parsed = parseBody(PushUnsubscribeSchema, await request.json());
+    const parsed = await parseJson(request, PushUnsubscribeSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { endpoint } = parsed.data;
 

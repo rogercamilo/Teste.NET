@@ -35,7 +35,7 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Sem permissão para editar este grupo de formação" }, { status: 403 });
     }
 
-    const body = await request.json() as {
+    const body = await request.json().catch(() => ({})) as {
       dataMissaCompromisso?: string | null;
       iniciouEm?: string | null;
     };

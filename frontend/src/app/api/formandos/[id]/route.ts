@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { UpdateFormandoSchema, parseBody, isValidId } from "@/lib/schemas";
+import { UpdateFormandoSchema, isValidId, parseJson } from "@/lib/schemas";
 import type { Formando, ProgressoEtapa } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
@@ -71,7 +71,7 @@ export async function PUT(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Sem permissão para editar formandos de outra morada" }, { status: 403 });
     }
 
-    const parsed = parseBody(UpdateFormandoSchema, await request.json());
+    const parsed = await parseJson(request, UpdateFormandoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { UpdateOrganizacaoSchema, parseBody } from "@/lib/schemas";
+import { UpdateOrganizacaoSchema, parseJson } from "@/lib/schemas";
 import type { ComunidadeConfig } from "@/types";
 import { orgBrandingTag } from "@/lib/org-cache";
 
@@ -60,7 +60,7 @@ export async function PUT(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const parsed = parseBody(UpdateOrganizacaoSchema, await request.json());
+    const parsed = await parseJson(request, UpdateOrganizacaoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 

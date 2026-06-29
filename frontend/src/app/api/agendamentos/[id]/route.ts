@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import type { Agendamento } from "@/types";
-import { UpdateAgendamentoSchema, parseBody, isValidId } from "@/lib/schemas";
+import { UpdateAgendamentoSchema, isValidId, parseJson } from "@/lib/schemas";
 import { sendPushToOrg } from "@/lib/push";
 import { formatDataBr } from "@/lib/utils";
 import { verificarUltimoRetiroVocacional } from "@/lib/vocacional-triggers";
@@ -44,7 +44,7 @@ export async function PUT(request: Request, { params }: Params) {
     if (user.role === "formador_comunitario" && existing.grupoFormacaoId !== (user.grupoFormacaoId ?? null)) {
       return NextResponse.json({ error: "Sem permissão para modificar este agendamento" }, { status: 403 });
     }
-    const parsed = parseBody(UpdateAgendamentoSchema, await request.json());
+    const parsed = await parseJson(request, UpdateAgendamentoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
     const updated = await prisma.agendamento.update({

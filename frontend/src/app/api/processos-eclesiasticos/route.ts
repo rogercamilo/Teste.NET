@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   const { id: userId, organizacaoId } = user;
 
   try {
-    const body = await req.json() as {
+    const body = await req.json().catch(() => ({})) as {
       formandoId: string;
       tipo: TipoProcessoEclesiastico;
       nivelFormativo: string;

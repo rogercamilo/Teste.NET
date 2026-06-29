@@ -41,7 +41,7 @@ export async function PUT(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const body = await request.json() as {
+    const body = await request.json().catch(() => ({})) as {
       host?: string; port?: number; secure?: boolean;
       user?: string; pass?: string; from?: string;
     };

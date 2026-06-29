@@ -6,7 +6,7 @@ import { sendInviteEmail } from "@/lib/email";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
-import { CreateConviteSchema, parseBody } from "@/lib/schemas";
+import { CreateConviteSchema, parseJson } from "@/lib/schemas";
 import type { PerfilUsuario } from "@prisma/client";
 
 import { isAdminOrAbove, SessionUser as SU } from "@/lib/auth-helpers";
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = parseBody(CreateConviteSchema, await request.json());
+    const parsed = await parseJson(request, CreateConviteSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { email, nome, grupoFormacaoId, perfil } = parsed.data;
     if (perfil === "formador_geral") {

@@ -9,7 +9,7 @@ import type { ComentarioFormando } from "@/types";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toComentario } from "@/lib/converters";
-import { parseBody, CreateComentarioSchema } from "@/lib/schemas";
+import { CreateComentarioSchema, parseJson } from "@/lib/schemas";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsedBody = parseBody(CreateComentarioSchema, await request.json());
+    const parsedBody = await parseJson(request, CreateComentarioSchema);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const { formandoId, texto, tipo, formadorNome } = parsedBody.data;
 

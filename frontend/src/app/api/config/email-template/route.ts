@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { loadEmailTemplate, saveEmailTemplate, DEFAULT_EMAIL_TEMPLATE } from "@/lib/email-template";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { EmailTemplateSchema, parseBody } from "@/lib/schemas";
+import { EmailTemplateSchema, parseJson } from "@/lib/schemas";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 import { temPermissao } from "@/types";
@@ -27,7 +27,7 @@ export async function PUT(request: Request) {
   if (!rlPut.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
 
   try {
-    const parsed = parseBody(EmailTemplateSchema, await request.json());
+    const parsed = await parseJson(request, EmailTemplateSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
     const current = await loadEmailTemplate(user.organizacaoId);

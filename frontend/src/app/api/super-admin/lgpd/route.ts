@@ -72,7 +72,7 @@ export async function PATCH(request: Request) {
 
   let body: { id?: string; status?: string };
   try {
-    body = await request.json() as { id?: string; status?: string };
+    body = await request.json().catch(() => ({})) as { id?: string; status?: string };
   } catch {
     return NextResponse.json({ error: "Corpo da requisição inválido" }, { status: 400 });
   }

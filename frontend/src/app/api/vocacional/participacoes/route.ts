@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });
 
   try {
-    const raw = (await request.json()) as Record<string, unknown>;
+    const raw = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const turmaId = typeof raw.turmaId === "string" ? raw.turmaId : "";
     const parsed = parseBody(CreateParticipacaoVocacionalSchema, raw);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });

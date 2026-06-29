@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { testEmail } = await request.json() as { testEmail?: string };
+    const { testEmail } = await request.json().catch(() => ({})) as { testEmail?: string };
     const config = await loadSmtpConfig(user.organizacaoId ?? "");
 
     if (!isSmtpReady(config)) {
