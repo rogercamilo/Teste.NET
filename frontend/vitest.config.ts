@@ -9,7 +9,8 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "e2e/**"],
     coverage: {
       provider: "v8",
-      reporter: ["text"],
+      // json-summary alimenta o gate de regressão de cobertura no CI (coverage-diff).
+      reporter: ["text", "json-summary"],
       include: [
         "src/lib/pagination.ts",
         "src/lib/password-validation.ts",

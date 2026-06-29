@@ -45,15 +45,25 @@ Requisito de produto já levantado ("ao fim de cada etapa há retiro e carta"); 
   `tipoEvento="carta_vocacional"` + `formandoId`).
 - **Depende de:** P1.4 (a decisão de nível afeta a modelagem).
 
-### P1.2 · Alerta de *regressão* de coverage no PR (não só threshold absoluto) — **0,5–1,0 dd**
+### P1.2 · Alerta de *regressão* de coverage no PR (não só threshold absoluto) — **0,5–1,0 dd** — ✅
 O gate caiu 12 pp (84,6% → 72,3%) sem detecção. Threshold absoluto não pega erosão gradual.
 - **Aceite:** CI compara cobertura do PR vs. base e falha/comenta se cair > X pp (ou bot de cobertura).
 - **Tipo:** saúde de pipeline, não produto. **Puxar para já — barato e preventivo.**
+- **Entregue:** job `coverage-diff` (PR-only) em `.github/workflows/ci.yml` mede statements do
+  head vs. base (`git worktree`), faz upsert de comentário no PR e **reprova se a queda > 1,0 pp**
+  (`MAX_COVERAGE_DROP_PP`). Reporter `json-summary` habilitado no `vitest.config.ts`. Resiliente:
+  se a base ainda não tem baseline, comenta e não bloqueia.
 
-### P1.3 · Investigar a regressão histórica do coverage — **0,5 dd**
+### P1.3 · Investigar a regressão histórica do coverage — **0,5 dd** — ✅
 `git bisect`/`log` nos 6 arquivos do gate entre 19/06 e 28/06 para achar o commit que adicionou
 funções sem teste e checar dívida correlata.
 - **Aceite:** commit identificado + documentado; backfill de testes se houver buraco.
+- **Achado:** o buraco era `doNotify` em `lib/plan-limits.ts` (linhas 201-227) — caminho de
+  notificação por e-mail (prisma + email) introduzido em **`bae5719`** (`feat(billing): plano
+  Personalizado…`), sem teste; somado às branches de proxy de `getClientIp` (`d1ea846`) e ao path
+  Upstash do rate-limit (já documentado como intestável sem credenciais).
+- **Backfill:** 4 testes cobrindo o caminho completo do `doNotify` (cooldown / sem admins / envio +
+  auditoria). `plan-limits.ts` 85% → **100%** stmts; gate global 88,1% → **93,1%**.
 
 ### P1.4 · Decisão definitiva sobre `nivelFormativo` do vocacional — **1,0–2,0 dd** *(pendente decisão de produto)*
 A turma usa `nivelFormativo=null`; o seletor de nível em `/planos` e `/grades` não oferece

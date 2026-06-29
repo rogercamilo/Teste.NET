@@ -46,6 +46,106 @@ jobs:
       - name: Test (with coverage thresholds)
         run: npm run test:coverage
 
+  coverage-diff:
+    name: Coverage regression (PR vs base)
+    # Só roda em PR: compara a cobertura do head com a da base para pegar erosão
+    # gradual que o threshold absoluto do job `ci` não detecta.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      # Reprova se a cobertura de statements cair mais que este Δ (pontos percentuais).
+      MAX_COVERAGE_DROP_PP: "1.0"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (PR head)
+        run: npm ci
+        env:
+          PRISMA_SKIP_POSTINSTALL_GENERATE: "true"
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Coverage — PR head
+        run: npm run test:coverage
+
+      - name: Capture head coverage
+        id: head
+        run: echo "pct=$(node -p "require('./coverage/coverage-summary.json').total.statements.pct")" >> "$GITHUB_OUTPUT"
+
+      - name: Coverage — base branch
+        id: base
+        # Nunca bloqueia o PR por estado da base (ex.: baseline ainda sem json-summary).
+        continue-on-error: true
+        run: |
+          git worktree add ../base "${{ github.event.pull_request.base.sha }}"
+          cd ../base/frontend
+          npm ci
+          npx prisma generate
+          npm run test:coverage
+          PCT=$(node -e "try{process.stdout.write(String(require('./coverage/coverage-summary.json').total.statements.pct))}catch(e){process.stdout.write('na')}")
+          echo "pct=$PCT" >> "$GITHUB_OUTPUT"
+        env:
+          PRISMA_SKIP_POSTINSTALL_GENERATE: "true"
+
+      - name: Compare and comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const head = Number("${{ steps.head.outputs.pct }}");
+            const baseRaw = "${{ steps.base.outputs.pct }}";
+            const base = Number(baseRaw);
+            const maxDrop = Number(process.env.MAX_COVERAGE_DROP_PP);
+            const marker = "<!-- coverage-diff -->";
+
+            let body, regressed = false;
+            if (!baseRaw || baseRaw === "na" || Number.isNaN(base)) {
+              body = `### ⚪ Cobertura (statements)\n\nBaseline da base indisponível — gate de regressão pulado. PR em **${head.toFixed(2)}%**.`;
+            } else {
+              const drop = +(base - head).toFixed(2);
+              regressed = drop > maxDrop;
+              const emoji = regressed ? "🔴" : (drop > 0 ? "🟡" : "🟢");
+              const sign = drop > 0 ? "-" : "+";
+              body = [
+                `### ${emoji} Cobertura (statements)`,
+                ``,
+                `| Base | PR | Δ |`,
+                `|---|---|---|`,
+                `| ${base.toFixed(2)}% | ${head.toFixed(2)}% | ${sign}${Math.abs(drop).toFixed(2)} pp |`,
+                ``,
+                regressed
+                  ? `Queda de **${drop.toFixed(2)} pp** excede o limite de ${maxDrop.toFixed(2)} pp. Adicione testes ou justifique a regressão.`
+                  : `Sem regressão relevante (limite ${maxDrop.toFixed(2)} pp).`,
+              ].join("\n");
+            }
+
+            const fullBody = `${marker}\n${body}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body: fullBody });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body: fullBody });
+            }
+            if (regressed) core.setFailed(`Cobertura caiu ${(base - head).toFixed(2)} pp (> ${maxDrop} pp).`);
+
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
