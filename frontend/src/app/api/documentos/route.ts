@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadFile, deleteFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { matchesDeclaredType, sanitizeFilename } from "@/lib/file-validation";
+import { assinaturaConfere, sanitizeFilename } from "@/lib/file-signature";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   // Valida assinatura real do arquivo (magic bytes) — impede spoofing de MIME type
-  if (!matchesDeclaredType(buffer, file.type)) {
+  if (!assinaturaConfere(buffer, file.type)) {
     return Response.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 422 });
   }
 

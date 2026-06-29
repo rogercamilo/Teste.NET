@@ -514,9 +514,10 @@ export const PushSendSchema = z.object({
   titulo: nonEmptyString(100),
   corpo: nonEmptyString(300),
   // Apenas caminho relativo same-origin (ex.: "/agenda"). Bloqueia URLs absolutas
-  // ("https://evil.com") e protocol-relative ("//evil.com") — o service worker abre
-  // essa URL no clique da notificação, então uma URL externa seria open-redirect/phishing.
-  url: z.string().max(2048).regex(/^\/(?!\/)/, "URL deve ser um caminho relativo iniciando com /").optional(),
+  // ("https://evil.com"), protocol-relative ("//evil.com") e backslash ("/\evil.com",
+  // que o parser WHATWG normaliza para "//evil.com") — o service worker abre essa
+  // URL no clique da notificação, então uma URL externa seria open-redirect/phishing.
+  url: z.string().max(2048).regex(/^\/(?![/\\])/, "URL deve ser um caminho relativo iniciando com /").optional(),
   grupoFormacaoId: z.string().optional(),
 });
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
-import { matchesDeclaredType } from "@/lib/file-validation";
+import { assinaturaConfere } from "@/lib/file-signature";
 import { canUpload } from "@/lib/plan-limits";
 import { montarTextoEncerramento } from "@/lib/livro-registro";
 import { requireLivroAccess } from "../../guard";
@@ -46,7 +46,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       const buffer = Buffer.from(await arquivo.arrayBuffer());
 
       // Valida a assinatura real (magic bytes) — o type do multipart é do cliente.
-      if (!matchesDeclaredType(buffer, "application/pdf")) {
+      if (!assinaturaConfere(buffer, "application/pdf")) {
         return NextResponse.json({ error: "Conteúdo do arquivo não corresponde a um PDF." }, { status: 422 });
       }
 
