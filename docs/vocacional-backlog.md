@@ -37,13 +37,21 @@ Hoje logamos escrita, não leitura. Direção espiritual (LGPD + canônico) exig
 
 ## P1 — Importantes (próximas 1–2 sprints)
 
-### P1.1 · Carta recorrente por etapa + surfacing na aba Documentos do formando — **2,5–3,0 dd**
+### P1.1 · Carta recorrente por etapa + surfacing na aba Documentos do formando — **2,5–3,0 dd** — ✅
 Requisito de produto já levantado ("ao fim de cada etapa há retiro e carta"); hoje só existe
 `cartaArquivoId` na participação vocacional.
 - **Aceite:** modelo genérico de "carta de etapa" (recorrente) · upload reaproveitando o fluxo
   atual · exibição na aba Documentos de `/formandos/[id]` (o `Arquivo` já grava
   `tipoEvento="carta_vocacional"` + `formandoId`).
-- **Depende de:** P1.4 (a decisão de nível afeta a modelagem).
+- **Depende de:** P1.4 (a decisão de nível afeta a modelagem). ✅ resolvido.
+- **Decisão do CTO:** **reusar `Arquivo`, sem tabela nova** (sem migração).
+- **Entregue:** a etapa é codificada em `tipoEvento="carta_etapa:{nivel}"`. Nova rota
+  `POST /api/formandos/[id]/cartas` (espelha o upload da carta vocacional — MIME-based; magic-bytes
+  fica para P2.1) + nova `AuditAction carta_etapa_registrada`. O server component busca as cartas
+  (`tipoEvento startsWith "carta_"`, inclui as vocacionais legadas) e passa por props. UI: card
+  "Cartas de etapa" na aba Documentos de `/formandos/[id]` com dialog de upload (etapa +
+  PDF/imagem), download e exclusão; a aba passou a aparecer também p/ orgs `vocacionalHabilitado`
+  (Processos seguem canônico-only). Testes: `formando-cartas-route.test.ts` (5 casos).
 
 ### P1.2 · Alerta de *regressão* de coverage no PR (não só threshold absoluto) — **0,5–1,0 dd** — ✅
 O gate caiu 12 pp (84,6% → 72,3%) sem detecção. Threshold absoluto não pega erosão gradual.
