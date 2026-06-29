@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { CreateParticipacaoVocacionalSchema, parseBody } from "@/lib/schemas";
 import { isGestao } from "@/lib/auth-helpers";
 import { lavrarTermo, parseDataLocal, LivroError } from "@/lib/livro-registro";
+import { lavrarComRetry, isP2002, p2002Target } from "@/lib/livro-retry";
 import { validarElegibilidadeVocacional, STATUS_EM_ANDAMENTO } from "@/lib/vocacional-rules";
+import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { requireVocacionalAccess } from "../guard";
 
 export async function GET(request: Request) {
@@ -14,17 +15,34 @@ export async function GET(request: Request) {
   if ("error" in guard) return guard.error;
   const { organizacaoId } = guard.access;
 
-  const turmaId = new URL(request.url).searchParams.get("turmaId");
+  const searchParams = new URL(request.url).searchParams;
+  const turmaId = searchParams.get("turmaId");
+  const q = searchParams.get("q")?.trim();
   try {
-    const participacoes = await prisma.participacaoVocacional.findMany({
-      where: { organizacaoId, ...(turmaId ? { turmaId } : {}) },
-      orderBy: { criadoEm: "desc" },
-      include: {
-        formando: { select: { id: true, nome: true, condicaoAtual: true } },
-        acompanhador: { select: { id: true, nome: true } },
-      },
-    });
-    return NextResponse.json(participacoes);
+    const where = {
+      organizacaoId,
+      ...(turmaId ? { turmaId } : {}),
+      // Busca server-side por nome do formando (typeahead em orgs grandes).
+      ...(q ? { formando: { is: { nome: { contains: q, mode: "insensitive" as const } } } } : {}),
+    };
+    const include = {
+      formando: { select: { id: true, nome: true, condicaoAtual: true } },
+      acompanhador: { select: { id: true, nome: true } },
+    };
+    const orderBy = { criadoEm: "desc" as const };
+
+    // Sem page/pageSize → mantém o comportamento "retorna tudo" dos callers atuais.
+    const pagination = parsePagination(searchParams);
+    if (!pagination) {
+      const participacoes = await prisma.participacaoVocacional.findMany({ where, orderBy, include });
+      return NextResponse.json(participacoes);
+    }
+
+    const [participacoes, total] = await Promise.all([
+      prisma.participacaoVocacional.findMany({ where, orderBy, include, skip: pagination.skip, take: pagination.take }),
+      prisma.participacaoVocacional.count({ where }),
+    ]);
+    return NextResponse.json(participacoes, { headers: paginationHeaders(total, pagination) });
   } catch (err) {
     logError("vocacional participacoes GET", err);
     return NextResponse.json({ error: "Falha ao carregar participações" }, { status: 500 });
@@ -69,11 +87,12 @@ export async function POST(request: Request) {
     const dataIngresso = body.dataIngresso ? parseDataLocal(body.dataIngresso) : new Date();
 
     // Lavra o termo de ingresso no Livro e cria a participação na mesma transação.
-    // Retry em P2002 cobre a corrida de numeração do termo.
-    let participacaoId = "";
-    for (let attempt = 0; attempt < 4; attempt++) {
-      try {
-        participacaoId = await prisma.$transaction(async (tx) => {
+    // O retry em P2002 (colisão de numeração do termo) fica no helper; a colisão
+    // de `formandoId` é permanente (não retenta) → propaga e vira 409 específico.
+    let participacaoId: string;
+    try {
+      participacaoId = await lavrarComRetry(
+        async (tx) => {
           const participacao = await tx.participacaoVocacional.create({
             data: {
               organizacaoId,
@@ -107,27 +126,20 @@ export async function POST(request: Request) {
             data: { termoIngressoId: termo.id },
           });
           return participacao.id;
-        });
-        break;
-      } catch (e) {
-        if (e instanceof LivroError) {
-          return NextResponse.json(
-            { error: "Abra um tomo do Livro de Registro antes de inscrever vocacionados." },
-            { status: 409 },
-          );
-        }
-        if (e instanceof Prisma.PrismaClientKnownRequestError) {
-          if (e.code === "P2002" && Array.isArray(e.meta?.target) && (e.meta.target as string[]).includes("formandoId")) {
-            return NextResponse.json({ error: "Este formando já participa desta turma." }, { status: 409 });
-          }
-          if (e.code === "P2002" && attempt < 3) continue; // colisão de numeração do termo
-        }
-        throw e;
+        },
+        { naoRetentar: (e) => p2002Target(e).includes("formandoId") },
+      );
+    } catch (e) {
+      if (e instanceof LivroError) {
+        return NextResponse.json(
+          { error: "Abra um tomo do Livro de Registro antes de inscrever vocacionados." },
+          { status: 409 },
+        );
       }
-    }
-
-    if (!participacaoId) {
-      return NextResponse.json({ error: "Falha ao lavrar o termo de ingresso. Tente novamente." }, { status: 409 });
+      if (isP2002(e) && p2002Target(e).includes("formandoId")) {
+        return NextResponse.json({ error: "Este formando já participa desta turma." }, { status: 409 });
+      }
+      throw e;
     }
 
     logAction("vocacional_participacao_criada", user.id, getClientIp(request), { participacaoId, turmaId, formandoId: formando.id }, organizacaoId);

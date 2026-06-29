@@ -86,6 +86,7 @@ const NIVEL_AVATAR_BG: Record<NivelFormativo, string> = {
   discipulado: "bg-blue-100 text-blue-700",
   "primeiras-promessas": "bg-emerald-100 text-emerald-700",
   "formacao-permanente": "bg-amber-100 text-amber-700",
+  vocacional: "bg-rose-100 text-rose-700",
 };
 
 const ESTADO_CIVIL_LABELS = {

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { UpdateParticipacaoVocacionalSchema, parseBody } from "@/lib/schemas";
 import { isGestao } from "@/lib/auth-helpers";
 import { hasCanonicalAccess } from "@/types";
 import { lavrarTermo, parseDataLocal, LivroError } from "@/lib/livro-registro";
+import { lavrarComRetry } from "@/lib/livro-retry";
 import { participacaoEncerrada, motivoTermino } from "@/lib/vocacional-rules";
 import { requireVocacionalAccess } from "../../guard";
 
@@ -63,39 +63,35 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ? await prisma.termoRegistro.findUnique({ where: { id: participacao.termoIngressoId }, select: { numero: true } })
         : null;
 
-      for (let attempt = 0; attempt < 4; attempt++) {
-        try {
-          await prisma.$transaction(async (tx) => {
-            await lavrarTermo(tx, {
-              organizacaoId,
-              tipo: "retificacao",
-              formandoId: participacao.formandoId,
+      try {
+        await lavrarComRetry(async (tx) => {
+          await lavrarTermo(tx, {
+            organizacaoId,
+            tipo: "retificacao",
+            formandoId: participacao.formandoId,
+            dataEvento: dataConclusao,
+            contexto: {
+              formandoNome: participacao.formando.nome,
               dataEvento: dataConclusao,
-              contexto: {
-                formandoNome: participacao.formando.nome,
-                dataEvento: dataConclusao,
-                retificaTermoNumero: termoIngresso?.numero,
-                retificaDescricao: "para cancelar o assento de ingresso no Período Vocacional, lavrado por equívoco administrativo",
-              },
-              retificaTermoId: participacao.termoIngressoId,
-              criadoPorId: user.id,
-              lavradoAutomaticamente: false,
-            });
-            await tx.participacaoVocacional.update({ where: { id }, data: { status: "cancelada", dataConclusao } });
-            // Reverte o pré-estado capturado na inscrição.
-            await tx.formando.update({
-              where: { id: participacao.formandoId },
-              data: { grupoFormacaoId: participacao.grupoOrigemId, condicaoAtual: participacao.condicaoOrigem },
-            });
+              retificaTermoNumero: termoIngresso?.numero,
+              retificaDescricao: "para cancelar o assento de ingresso no Período Vocacional, lavrado por equívoco administrativo",
+            },
+            retificaTermoId: participacao.termoIngressoId,
+            criadoPorId: user.id,
+            lavradoAutomaticamente: false,
           });
-          break;
-        } catch (e) {
-          if (e instanceof LivroError) {
-            return NextResponse.json({ error: "Abra um tomo do Livro de Registro antes de cancelar a inscrição." }, { status: 409 });
-          }
-          if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002" && attempt < 3) continue;
-          throw e;
+          await tx.participacaoVocacional.update({ where: { id }, data: { status: "cancelada", dataConclusao } });
+          // Reverte o pré-estado capturado na inscrição.
+          await tx.formando.update({
+            where: { id: participacao.formandoId },
+            data: { grupoFormacaoId: participacao.grupoOrigemId, condicaoAtual: participacao.condicaoOrigem },
+          });
+        });
+      } catch (e) {
+        if (e instanceof LivroError) {
+          return NextResponse.json({ error: "Abra um tomo do Livro de Registro antes de cancelar a inscrição." }, { status: 409 });
         }
+        throw e;
       }
       logAction("vocacional_participacao_arquivada", user.id, getClientIp(request), { participacaoId: id, status: "cancelada" }, organizacaoId);
       return NextResponse.json({ ok: true });
@@ -113,49 +109,45 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ? { grupoFormacaoId: participacao.grupoOrigemId }
       : { grupoFormacaoId: participacao.grupoOrigemId, condicaoAtual: participacao.condicaoOrigem };
 
-    for (let attempt = 0; attempt < 4; attempt++) {
-      try {
-        await prisma.$transaction(async (tx) => {
-          await lavrarTermo(tx, {
-            organizacaoId,
-            tipo: "termino_vocacional",
-            formandoId: participacao.formandoId,
-            dataEvento: dataConclusao,
-            contexto: { formandoNome: participacao.formando.nome, dataEvento: dataConclusao, motivo: motivoTermino(status) },
-            criadoPorId: user.id,
-            lavradoAutomaticamente: true,
-          });
-
-          let processoGeradoId: string | null = null;
-          if (podeAbrirProcesso) {
-            const processo = await tx.processoEclesiastico.create({
-              data: {
-                organizacaoId,
-                formandoId: participacao.formandoId,
-                tipo: "admissao_etapa1",
-                nivelFormativo: "pre-discipulado",
-                status: "rascunho",
-                dadosFormulario: {},
-                criadoPorId: user.id!,
-              },
-            });
-            processoGeradoId = processo.id;
-          }
-
-          await tx.participacaoVocacional.update({
-            where: { id },
-            data: { status, dataConclusao, ...(processoGeradoId ? { processoGeradoId } : {}) },
-          });
-          await tx.formando.update({ where: { id: participacao.formandoId }, data: formandoRestore });
+    try {
+      await lavrarComRetry(async (tx) => {
+        await lavrarTermo(tx, {
+          organizacaoId,
+          tipo: "termino_vocacional",
+          formandoId: participacao.formandoId,
+          dataEvento: dataConclusao,
+          contexto: { formandoNome: participacao.formando.nome, dataEvento: dataConclusao, motivo: motivoTermino(status) },
+          criadoPorId: user.id,
+          lavradoAutomaticamente: true,
         });
-        break;
-      } catch (e) {
-        if (e instanceof LivroError) {
-          return NextResponse.json({ error: "Abra um tomo do Livro de Registro antes de encerrar a participação." }, { status: 409 });
+
+        let processoGeradoId: string | null = null;
+        if (podeAbrirProcesso) {
+          const processo = await tx.processoEclesiastico.create({
+            data: {
+              organizacaoId,
+              formandoId: participacao.formandoId,
+              tipo: "admissao_etapa1",
+              nivelFormativo: "pre-discipulado",
+              status: "rascunho",
+              dadosFormulario: {},
+              criadoPorId: user.id!,
+            },
+          });
+          processoGeradoId = processo.id;
         }
-        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002" && attempt < 3) continue;
-        throw e;
+
+        await tx.participacaoVocacional.update({
+          where: { id },
+          data: { status, dataConclusao, ...(processoGeradoId ? { processoGeradoId } : {}) },
+        });
+        await tx.formando.update({ where: { id: participacao.formandoId }, data: formandoRestore });
+      });
+    } catch (e) {
+      if (e instanceof LivroError) {
+        return NextResponse.json({ error: "Abra um tomo do Livro de Registro antes de encerrar a participação." }, { status: 409 });
       }
+      throw e;
     }
 
     logAction(

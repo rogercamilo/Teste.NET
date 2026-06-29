@@ -5,6 +5,7 @@ import { uploadFile } from "@/lib/storage";
 import { limiters } from "@/lib/rate-limit";
 import { isGestao } from "@/lib/auth-helpers";
 import { cartaPermitida } from "@/lib/vocacional-rules";
+import { assinaturaConfere } from "@/lib/file-signature";
 import { requireVocacionalAccess } from "../../../guard";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -58,6 +59,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (arquivo.size > MAX_BYTES) return NextResponse.json({ error: "Arquivo muito grande (máx. 15 MB)" }, { status: 400 });
 
     const buffer = Buffer.from(await arquivo.arrayBuffer());
+    // Anti-spoof: confere a assinatura real contra o MIME declarado (P2.1).
+    if (!assinaturaConfere(buffer, arquivo.type)) {
+      return NextResponse.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 400 });
+    }
     const storageKey = await uploadFile(organizacaoId, "vocacional-cartas", buffer, ext, arquivo.type);
 
     const cartaRecebidaEm = new Date();

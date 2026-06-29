@@ -4,18 +4,30 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     organizacao: { findUnique: vi.fn() },
     formando: { count: vi.fn() },
-    usuario: { count: vi.fn() },
+    usuario: { count: vi.fn(), findMany: vi.fn() },
     arquivo: { aggregate: vi.fn() },
+    auditLog: { findFirst: vi.fn() },
   },
 }));
+vi.mock("@/lib/email", () => ({ sendPlanLimitReachedEmail: vi.fn(async () => {}) }));
+vi.mock("@/lib/audit-log", () => ({ logAction: vi.fn() }));
 
 import { getLimits, canAddUser, canAddGrupoFormacao, canAddFormando, canUpload, getUsage, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 import { prisma } from "@/lib/prisma";
+import { sendPlanLimitReachedEmail } from "@/lib/email";
+import { logAction } from "@/lib/audit-log";
 
 const orgFindUnique = vi.mocked(prisma.organizacao.findUnique);
 const formandoCount = vi.mocked(prisma.formando.count);
 const usuarioCount = vi.mocked(prisma.usuario.count);
+const usuarioFindMany = vi.mocked(prisma.usuario.findMany);
 const arquivoAggregate = vi.mocked(prisma.arquivo.aggregate);
+const auditLogFindFirst = vi.mocked(prisma.auditLog.findFirst);
+const mockSendEmail = vi.mocked(sendPlanLimitReachedEmail);
+const mockLogAction = vi.mocked(logAction);
+
+/** Aguarda o microtask do fire-and-forget `doNotify` drenar. */
+const flush = () => new Promise((r) => setTimeout(r, 0));
 
 type Plano = "GRATUITO" | "BASICO" | "INTERMEDIARIO" | "AVANCADO" | "PERSONALIZADO";
 
@@ -322,8 +334,55 @@ describe("notifyAvancadoLimitIfNeeded", () => {
   it("não notifica quando a org não é AVANCADO (early-return), sem lançar", async () => {
     orgFindUnique.mockResolvedValue({ nome: "Org", planoAssinatura: "BASICO" } as never);
     expect(() => notifyAvancadoLimitIfNeeded("org1", "usuarios")).not.toThrow();
-    // É fire-and-forget: aguarda o microtask do doNotify rodar.
-    await new Promise((r) => setTimeout(r, 0));
+    await flush();
     expect(orgFindUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "org1" } }));
+    expect(mockSendEmail).not.toHaveBeenCalled();
+  });
+
+  it("notifica os admins e audita quando AVANCADO sem envio recente", async () => {
+    orgFindUnique.mockResolvedValue({ nome: "Comunidade X", planoAssinatura: "AVANCADO" } as never);
+    auditLogFindFirst.mockResolvedValue(null as never);
+    usuarioFindMany.mockResolvedValue([
+      { id: "a1", email: "a1@x.org" },
+      { id: "a2", email: "a2@x.org" },
+    ] as never);
+
+    notifyAvancadoLimitIfNeeded("org1", "storage");
+    await flush();
+
+    expect(mockSendEmail).toHaveBeenCalledTimes(2);
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ organizacaoId: "org1", orgNome: "Comunidade X", tipoLimite: "storage", email: "a1@x.org" }),
+    );
+    expect(mockLogAction).toHaveBeenCalledWith(
+      "plan_limit_email_enviado",
+      "system",
+      undefined,
+      { tipoLimite: "storage" },
+      "org1",
+    );
+  });
+
+  it("respeita o cooldown: não reenvia quando há notificação recente", async () => {
+    orgFindUnique.mockResolvedValue({ nome: "Org", planoAssinatura: "AVANCADO" } as never);
+    auditLogFindFirst.mockResolvedValue({ id: "log_recent" } as never);
+
+    notifyAvancadoLimitIfNeeded("org1", "usuarios");
+    await flush();
+
+    expect(usuarioFindMany).not.toHaveBeenCalled();
+    expect(mockSendEmail).not.toHaveBeenCalled();
+  });
+
+  it("não envia quando a org AVANCADO não tem administradores ativos", async () => {
+    orgFindUnique.mockResolvedValue({ nome: "Org", planoAssinatura: "AVANCADO" } as never);
+    auditLogFindFirst.mockResolvedValue(null as never);
+    usuarioFindMany.mockResolvedValue([] as never);
+
+    notifyAvancadoLimitIfNeeded("org1", "usuarios");
+    await flush();
+
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockLogAction).not.toHaveBeenCalled();
   });
 });

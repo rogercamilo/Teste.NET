@@ -7,6 +7,7 @@ export const NivelFormativoEnum = z.enum([
   "discipulado",
   "primeiras-promessas",
   "formacao-permanente",
+  "vocacional",
 ]);
 
 export const TipoOrganizacaoEnum = z.enum([

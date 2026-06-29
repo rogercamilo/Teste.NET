@@ -27,7 +27,7 @@ function podeVer(
   return podeVerAcompanhamento(user, { acompanhadorId: participacao.acompanhadorId, turmaFormadorId: participacao.turma.formadorId });
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireVocacionalAccess({ minPapel: "formador_comunitario" });
   if ("error" in guard) return guard.error;
   const { user, organizacaoId } = guard.access;
@@ -37,6 +37,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const participacao = await carregarContexto(id, organizacaoId);
     if (!participacao) return NextResponse.json({ error: "Participação não encontrada" }, { status: 404 });
     if (!podeVer(user, participacao)) return NextResponse.json({ error: "Acesso restrito" }, { status: 403 });
+
+    // Foro íntimo: a leitura das anotações de direção espiritual é rastreada
+    // (LGPD + canônico) — registramos "quem leu", além de quem escreve (POST).
+    logAction("vocacional_acompanhamento_lido", user.id, getClientIp(request), { participacaoId: id, papel: user.role }, organizacaoId);
 
     const notas = await prisma.acompanhamentoVocacional.findMany({
       where: { participacaoId: id, organizacaoId },

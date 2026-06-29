@@ -85,6 +85,30 @@ export default async function FormandoDetailPage({
     gradeTotal = grade?.totalFormacoes ?? null;
   }
 
+  // Cartas de etapa (recorrentes) — reaproveitam Arquivo; a etapa é codificada
+  // no tipoEvento (`carta_etapa:{nivel}`); cartas vocacionais legadas entram como
+  // nível "vocacional". O flag habilita a aba Documentos em orgs não-canônicas.
+  const [cartasRows, orgVocacional] = await Promise.all([
+    prisma.arquivo.findMany({
+      where: { formandoId: id, organizacaoId: user.organizacaoId, tipoEvento: { startsWith: "carta_" } },
+      orderBy: { criadoEm: "desc" },
+      select: { id: true, nome: true, tipoEvento: true, extensao: true, tamanho: true, criadoEm: true },
+    }),
+    prisma.organizacao.findUnique({ where: { id: user.organizacaoId }, select: { vocacionalHabilitado: true } }),
+  ]);
+
+  const parseNivelCarta = (t: string | null): NivelFormativo =>
+    t?.startsWith("carta_etapa:") ? (t.slice("carta_etapa:".length) as NivelFormativo) : "vocacional";
+
+  const cartasEtapa = cartasRows.map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    nivel: parseNivelCarta(c.tipoEvento),
+    extensao: c.extensao,
+    tamanho: c.tamanho,
+    criadoEm: c.criadoEm.toISOString(),
+  }));
+
   return (
     <FormandoDetailClient
       id={id}
@@ -116,6 +140,8 @@ export default async function FormandoDetailPage({
       termoFormando={org?.termoFormando?.trim() || "Formando"}
       termoFormador={org?.termoFormador?.trim() || "Formador Comunitário"}
       tipoOrganizacao={org?.tipoOrganizacao ?? null}
+      vocacionalHabilitado={orgVocacional?.vocacionalHabilitado ?? false}
+      cartasEtapa={cartasEtapa}
       processosEclesiasticos={processosEclesiasticosRows.map((p) => ({
         id: p.id,
         organizacaoId: p.organizacaoId,

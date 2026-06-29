@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
+  NIVEIS_FORMATIVOS_SELECIONAVEIS,
   MODALIDADE_LABELS,
   TIPO_COMENTARIO_LABELS,
   TIPO_COMENTARIO_CORES,
@@ -158,6 +159,17 @@ interface Props {
   termoFormador: string;
   tipoOrganizacao: string | null;
   processosEclesiasticos: ProcessoEclesiastico[];
+  vocacionalHabilitado: boolean;
+  cartasEtapa: CartaEtapa[];
+}
+
+export interface CartaEtapa {
+  id: string;
+  nome: string;
+  nivel: NivelFormativo;
+  extensao: string;
+  tamanho: number;
+  criadoEm: string;
 }
 
 export default function FormandoDetailClient({
@@ -176,6 +188,8 @@ export default function FormandoDetailClient({
   termoFormador,
   tipoOrganizacao,
   processosEclesiasticos,
+  vocacionalHabilitado,
+  cartasEtapa,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -183,6 +197,14 @@ export default function FormandoDetailClient({
   const [registroOpen, setRegistroOpen] = useState(false);
   const [selectedAg, setSelectedAg] = useState<Agendamento | null>(null);
   const [registroForm, setRegistroForm] = useState({ presente: "true", observacao: "" });
+
+  // Cartas de etapa (P1.1)
+  const [cartaOpen, setCartaOpen] = useState(false);
+  const [cartaNivel, setCartaNivel] = useState<NivelFormativo>("vocacional");
+  const [cartaFile, setCartaFile] = useState<File | null>(null);
+  const [cartaSubmitting, setCartaSubmitting] = useState(false);
+  const mostraDocumentos =
+    hasCanonicalAccess(tipoOrganizacao as TipoOrganizacao | null) || vocacionalHabilitado;
 
   const [comentarioOpen, setComentarioOpen] = useState(false);
   const [comentarioForm, setComentarioForm] = useState<{ tipo: TipoComentario; texto: string }>({
@@ -297,6 +319,46 @@ export default function FormandoDetailClient({
     setter: React.Dispatch<React.SetStateAction<File[]>>
   ) {
     setter((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleUploadCarta() {
+    if (!cartaFile) {
+      toast.error("Selecione o arquivo da carta.");
+      return;
+    }
+    setCartaSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append("arquivo", cartaFile);
+      fd.append("nivelFormativo", cartaNivel);
+      const res = await fetch(`/api/formandos/${id}/cartas`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Falha ao registrar carta." }));
+        throw new Error(data.error ?? "Falha ao registrar carta.");
+      }
+      toast.success("Carta de etapa registrada.");
+      setCartaOpen(false);
+      setCartaFile(null);
+      startTransition(() => router.refresh());
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao registrar carta.");
+    } finally {
+      setCartaSubmitting(false);
+    }
+  }
+
+  async function handleDeleteCarta(arquivoId: string) {
+    try {
+      const res = await fetch(`/api/arquivos/${arquivoId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Falha ao excluir." }));
+        throw new Error(data.error ?? "Falha ao excluir.");
+      }
+      toast.success("Carta removida.");
+      startTransition(() => router.refresh());
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir.");
+    }
   }
 
   async function uploadDocumentosParaServidor(
@@ -956,7 +1018,7 @@ export default function FormandoDetailClient({
           <TabsTrigger value="jornada" className="text-xs h-7">
             Jornada Formativa
           </TabsTrigger>
-          {hasCanonicalAccess(tipoOrganizacao as TipoOrganizacao | null) && (
+          {mostraDocumentos && (
             <TabsTrigger value="documentos" className="text-xs h-7">
               Documentos
             </TabsTrigger>
@@ -1178,9 +1240,82 @@ export default function FormandoDetailClient({
           </Card>
         </TabsContent>
 
-        {/* Processos Eclesiásticos — visível apenas para orgs com acesso canônico */}
-        {hasCanonicalAccess(tipoOrganizacao as TipoOrganizacao | null) && (
-          <TabsContent value="documentos" className="mt-4">
+        {mostraDocumentos && (
+          <TabsContent value="documentos" className="mt-4 space-y-4">
+            {/* Cartas de etapa (P1.1) — recorrentes, reaproveitam o modelo Arquivo */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3 flex flex-row items-start justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold">Cartas de etapa</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Carta de discernimento ao fim de cada etapa formativa
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => setCartaOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Adicionar carta
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {cartasEtapa.length === 0 ? (
+                  <div className="flex flex-col items-center py-10 text-center">
+                    <Mail className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                    <p className="font-medium text-foreground text-sm">Nenhuma carta registrada</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Anexe a carta recebida ao fim de uma etapa.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {cartasEtapa.map((carta) => (
+                      <div
+                        key={carta.id}
+                        className="flex items-center justify-between rounded-lg border border-border/50 bg-card p-3"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-8 w-8 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
+                            <Mail className="h-4 w-4 text-rose-700" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className={`text-xs ${NIVEL_CORES[carta.nivel]}`}>
+                                {NIVEL_FORMATIVO_LABELS[carta.nivel]}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(parseISO(carta.criadoEm), "d 'de' MMM 'de' yyyy", { locale: ptBR })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                          <a
+                            href={`/api/arquivos/${carta.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-8 px-2")}
+                            title="Abrir carta"
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteCarta(carta.id)}
+                            title="Excluir carta"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Processos Eclesiásticos — visível apenas para orgs com acesso canônico */}
+            {hasCanonicalAccess(tipoOrganizacao as TipoOrganizacao | null) && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-3 flex flex-row items-start justify-between">
                 <div>
@@ -1249,6 +1384,7 @@ export default function FormandoDetailClient({
                 )}
               </CardContent>
             </Card>
+            )}
           </TabsContent>
         )}
 
@@ -2351,6 +2487,55 @@ export default function FormandoDetailClient({
       </Tabs>
 
       {/* Dialog: Registrar Participação */}
+      {/* Adicionar carta de etapa (P1.1) */}
+      <Dialog open={cartaOpen} onOpenChange={setCartaOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar carta de etapa</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-1.5">
+              <Label>Etapa formativa</Label>
+              <Select
+                value={cartaNivel}
+                onValueChange={(v) => v && setCartaNivel(v as NivelFormativo)}
+              >
+                <SelectTrigger>
+                  <SelectValue>{NIVEL_FORMATIVO_LABELS[cartaNivel]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {NIVEIS_FORMATIVOS_SELECIONAVEIS.map((n) => (
+                    <SelectItem key={n} value={n}>
+                      {NIVEL_FORMATIVO_LABELS[n]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>
+                Arquivo da carta <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+                onChange={(e) => setCartaFile(e.target.files?.[0] ?? null)}
+              />
+              <p className="text-xs text-muted-foreground">PDF ou imagem, até 15 MB.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCartaOpen(false)} disabled={cartaSubmitting}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUploadCarta} disabled={cartaSubmitting || !cartaFile}>
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
+              {cartaSubmitting ? "Enviando…" : "Registrar carta"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={registroOpen} onOpenChange={setRegistroOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

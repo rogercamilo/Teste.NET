@@ -112,6 +112,8 @@ export type AuditAction =
   | "vocacional_participacao_criada"
   | "vocacional_carta_recebida"
   | "vocacional_acompanhamento_registrado"
+  | "vocacional_acompanhamento_lido"
+  | "carta_etapa_registrada"
   | "vocacional_participacao_concluida"
   | "vocacional_participacao_arquivada"
   | "password_reset_requested"
