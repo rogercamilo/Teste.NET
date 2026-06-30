@@ -24,4 +24,11 @@ export interface DadosTemplate {
 
   formulario: Record<string, unknown>;
   geradoEm: string;
+
+  /**
+   * Texto de marca d'água sobreposto em todas as páginas (ex.: "MODELO — SEM
+   * VALIDADE"). Usado SÓ no modo preview (Vitrine de documentos); ausente na
+   * geração real. Renderizado pelo Footer (que já é `fixed`, repete por página).
+   */
+  marcaDagua?: string | null;
 }

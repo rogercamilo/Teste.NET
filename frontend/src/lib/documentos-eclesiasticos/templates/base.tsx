@@ -195,18 +195,58 @@ export function DataLocal() {
   );
 }
 
+/**
+ * Marca d'água diagonal sobreposta à página inteira. `fixed` → repete em todas
+ * as páginas. Usada só no preview da Vitrine; semi-transparente para não
+ * atrapalhar a leitura do modelo.
+ */
+export function MarcaDagua({ texto }: { texto: string }) {
+  return (
+    <View
+      fixed
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 52,
+          fontFamily: "Helvetica-Bold",
+          color: "#1e3a5f",
+          opacity: 0.1,
+          transform: "rotate(-45deg)",
+          textAlign: "center",
+        }}
+      >
+        {texto}
+      </Text>
+    </View>
+  );
+}
+
 export function Footer({
   orgNome,
   geradoEm,
+  marcaDagua,
 }: {
   orgNome: string;
   geradoEm: string;
+  marcaDagua?: string | null;
 }) {
   return (
-    <View style={s.footer} fixed>
-      <Text style={s.footerText}>{orgNome}</Text>
-      <Text style={s.footerText}>Gerado em {geradoEm}</Text>
-    </View>
+    <>
+      {marcaDagua ? <MarcaDagua texto={marcaDagua} /> : null}
+      <View style={s.footer} fixed>
+        <Text style={s.footerText}>{orgNome}</Text>
+        <Text style={s.footerText}>Gerado em {geradoEm}</Text>
+      </View>
+    </>
   );
 }
 

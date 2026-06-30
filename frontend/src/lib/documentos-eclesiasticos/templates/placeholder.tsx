@@ -13,7 +13,7 @@ export default function PlaceholderPDF({ dados }: { dados: DadosTemplate }) {
             {"Este documento está em elaboração e será disponibilizado em breve."}
           </Text>
         </View>
-        <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
+        <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} marcaDagua={dados.marcaDagua} />
       </Page>
     </Document>
   );

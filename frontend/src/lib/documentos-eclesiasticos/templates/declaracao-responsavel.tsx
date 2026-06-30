@@ -43,7 +43,7 @@ export default function DeclaracaoResponsavelPDF({ dados }: { dados: DadosTempla
 
         <DataLocal />
         <Assinaturas items={["Responsável legal", "Responsável canônico"]} />
-        <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
+        <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} marcaDagua={dados.marcaDagua} />
       </Page>
     </Document>
   );

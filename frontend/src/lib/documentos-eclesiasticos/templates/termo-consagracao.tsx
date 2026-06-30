@@ -61,7 +61,7 @@ export default function TermoConsagracaoPDF({ dados }: { dados: DadosTemplate })
             "Secretário(a)",
           ]}
         />
-        <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
+        <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} marcaDagua={dados.marcaDagua} />
       </Page>
     </Document>
   );

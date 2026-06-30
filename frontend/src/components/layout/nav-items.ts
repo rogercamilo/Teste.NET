@@ -77,6 +77,12 @@ export const navGroupsGestao: NavGroup[] = [
         icon: BookMarked,
         requiredCapability: "vocacional",
       },
+      {
+        title: "Vitrine de Documentos",
+        href: "/vitrine",
+        icon: Library,
+        requiredCapability: "vocacional",
+      },
     ],
   },
   {

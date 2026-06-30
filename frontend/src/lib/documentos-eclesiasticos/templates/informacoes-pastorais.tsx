@@ -44,7 +44,7 @@ export default function InformacoesPastoraisPDF({ dados }: { dados: DadosTemplat
 
         <DataLocal />
         <Assinaturas items={["Formador Comunitário", "Responsável canônico"]} />
-        <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} />
+        <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} marcaDagua={dados.marcaDagua} />
       </Page>
     </Document>
   );
