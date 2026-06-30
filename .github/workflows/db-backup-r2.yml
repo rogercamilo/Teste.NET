@@ -1,0 +1,118 @@
+name: Backup Postgres -> R2
+
+# Backup lógico diário do Postgres de produção (pg_dump custom-format) enviado para
+# o Cloudflare R2, sob o prefixo db-backups/. Interim enquanto o backup nativo do
+# Railway estiver bloqueado pelo plano (ver docs/db-backup-restore.md).
+#
+# Secrets necessários no repositório (Settings > Secrets and variables > Actions):
+#   BACKUP_DATABASE_URL   -> DATABASE_PUBLIC_URL do Postgres + "?sslmode=require"
+#   R2_ACCOUNT_ID         -> mesmo valor usado pela app no Railway
+#   R2_ACCESS_KEY_ID
+#   R2_SECRET_ACCESS_KEY
+#   R2_BUCKET_NAME        -> ex.: formatio-uploads (ou um bucket dedicado de backups)
+#
+# Restore validado e documentado em docs/db-backup-restore.md.
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC diário (~03:00 BRT)
+  workflow_dispatch: {}
+
+# Evita dois backups simultâneos (ex.: agendado + manual).
+concurrency:
+  group: db-backup-r2
+  cancel-in-progress: false
+
+env:
+  AWS_DEFAULT_REGION: auto
+  RETENTION_DAYS: "30"
+  R2_PREFIX: db-backups
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar secrets
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          missing=0
+          for v in BACKUP_DATABASE_URL R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET_NAME; do
+            if [ -z "${!v}" ]; then echo "::error::Secret ausente: $v"; missing=1; fi
+          done
+          test "$missing" = "0"
+
+      - name: Dump do banco (pg_dump via postgres:18)
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          FILE="formacao-${TS}.dump"
+          echo "FILE=$FILE" >> "$GITHUB_ENV"
+          # Versão do client casada com o servidor (postgres-ssl:18) para evitar
+          # incompatibilidade de formato. -Fc = custom format (restaura com pg_restore).
+          docker run --rm -e PGCONNECT_TIMEOUT=30 postgres:18 \
+            pg_dump "$BACKUP_DATABASE_URL" -Fc --no-owner --no-acl > "$FILE"
+          # Sanidade: dumps custom-format começam com a assinatura "PGDMP".
+          if ! head -c 5 "$FILE" | grep -q "PGDMP"; then
+            echo "::error::Dump inválido (assinatura PGDMP ausente)"; exit 1
+          fi
+          SIZE=$(stat -c %s "$FILE")
+          echo "Dump OK: $FILE (${SIZE} bytes)"
+          test "$SIZE" -gt 1000
+
+      - name: Enviar para o R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 cp "$FILE" "s3://${R2_BUCKET_NAME}/${R2_PREFIX}/${FILE}" \
+            --endpoint-url "$ENDPOINT" --only-show-errors
+          echo "Enviado: s3://${R2_BUCKET_NAME}/${R2_PREFIX}/${FILE}"
+
+      - name: Aplicar retenção (remove backups com mais de RETENTION_DAYS)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          # Comparação lexicográfica de datas ISO (formato fixo) via JMESPath — sem jq/date math.
+          CUTOFF=$(date -u -d "-${RETENTION_DAYS} days" +%Y-%m-%dT%H:%M:%S)
+          echo "Removendo backups anteriores a ${CUTOFF}Z (prefixo ${R2_PREFIX}/)"
+          KEYS=$(aws s3api list-objects-v2 \
+            --bucket "$R2_BUCKET_NAME" --prefix "${R2_PREFIX}/" \
+            --endpoint-url "$ENDPOINT" \
+            --query "Contents[?LastModified<'${CUTOFF}'].Key" --output text)
+          if [ -z "$KEYS" ] || [ "$KEYS" = "None" ]; then
+            echo "Nada a remover."
+          else
+            for key in $KEYS; do
+              # trava de segurança: só remove dentro do prefixo de backups
+              case "$key" in
+                ${R2_PREFIX}/*)
+                  aws s3 rm "s3://${R2_BUCKET_NAME}/${key}" --endpoint-url "$ENDPOINT" --only-show-errors
+                  echo "removido (retenção): $key" ;;
+                *) echo "ignorado (fora do prefixo): $key" ;;
+              esac
+            done
+          fi
+
+      - name: Resumo
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          COUNT=$(aws s3 ls "s3://${R2_BUCKET_NAME}/${R2_PREFIX}/" --endpoint-url "$ENDPOINT" | wc -l)
+          echo "Backups retidos no R2: ${COUNT}"
