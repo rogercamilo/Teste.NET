@@ -784,6 +784,35 @@ export type StatusDocumentoEclesiastico = "pendente" | "gerado" | "assinado" | "
 
 export type TipoRegistroPromessa = "iniciais_temporarias" | "renovacao" | "definitivas" | "dispensa";
 
+export const TIPO_REGISTRO_PROMESSA_LABELS: Record<TipoRegistroPromessa, string> = {
+  iniciais_temporarias: "Primeiras Promessas",
+  renovacao:            "Renovação de Promessas",
+  definitivas:          "Promessas Definitivas",
+  dispensa:             "Dispensa de Promessas",
+};
+
+/** Resumo do assento no Livro de Promessas (uso em componentes client). */
+export interface RegistroPromessaResumo {
+  id: string;
+  tipo: TipoRegistroPromessa;
+  tomo: string;
+  folha: number;
+  numero: number;
+  numeroRegistro: string;
+  dataVigenciaInicio: string;
+  dataVigenciaFim: string | null;
+  celebrante: string;
+  localCelebracao: string;
+  moderadorGeral: string;
+  formadorGeralLocal: string | null;
+  assistenteEclesiastico: string | null;
+  secretario: string;
+  formulaTexto: string;
+  formandoId?: string;
+  formandoNome?: string | null;
+  criadoEm?: string;
+}
+
 export const TIPO_PROCESSO_LABELS: Record<TipoProcessoEclesiastico, string> = {
   admissao_etapa1:       "Admissão — Etapa 1",
   admissao_etapa2:       "Admissão — Etapa 2",

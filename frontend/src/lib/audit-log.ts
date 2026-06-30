@@ -107,6 +107,7 @@ export type AuditAction =
   | "livro_termo_lavrado"
   | "livro_termo_retificado"
   | "livro_doc_assinado_anexado"
+  | "promessa_registrada"
   | "vocacional_turma_criada"
   | "vocacional_turma_atualizada"
   | "vocacional_participacao_criada"

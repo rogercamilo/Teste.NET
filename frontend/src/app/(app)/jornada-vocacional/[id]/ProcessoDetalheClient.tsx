@@ -23,13 +23,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   type ProcessoEclesiastico,
   type DocumentoEclesiastico,
   type TipoProcessoEclesiastico,
+  type TipoRegistroPromessa,
   type StatusProcessoEclesiastico,
   type StatusDocumentoEclesiastico,
+  type RegistroPromessaResumo,
   STATUS_PROCESSO_LABELS,
   STATUS_PROCESSO_COLORS,
+  TIPO_REGISTRO_PROMESSA_LABELS,
   temPermissao,
 } from "@/types";
 import {
@@ -60,12 +71,17 @@ interface FormandoDetalhe {
 interface ProcessoCompleto extends Omit<ProcessoEclesiastico, "documentos"> {
   formando: FormandoDetalhe;
   documentos: (DocumentoEclesiastico & { observacoes?: string | null; geradoPorId?: string | null })[];
+  promessa?: RegistroPromessaResumo | null;
 }
 
 interface Props {
   processo: ProcessoCompleto;
   userRole: string;
   termos: TermosProcesso;
+  /** Tipo de promessa quando o processo culmina num assento do Livro de Promessas. */
+  promessaTipo?: TipoRegistroPromessa | null;
+  /** Fórmula de consagração default (pré-preenche o textarea da lavratura). */
+  promessaFormulaDefault?: string | null;
 }
 
 const STATUS_DOC_COLORS: Record<StatusDocumentoEclesiastico, string> = {
@@ -94,7 +110,7 @@ const STATUS_ICONS: Partial<Record<StatusProcessoEclesiastico, React.ElementType
   cancelado:   XCircle,
 };
 
-export default function ProcessoDetalheClient({ processo: initial, userRole, termos }: Props) {
+export default function ProcessoDetalheClient({ processo: initial, userRole, termos, promessaTipo, promessaFormulaDefault }: Props) {
   const router = useRouter();
   const [processo, setProcesso] = useState<ProcessoCompleto>(initial);
   const [isPending, startTransition] = useTransition();
@@ -104,6 +120,10 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   const [formDirty, setFormDirty] = useState(false);
   const [gerandoId, setGerandoId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [promessaDialogOpen, setPromessaDialogOpen] = useState(false);
+
+  // Processo de promessa ainda sem assento lavrado → conclusão passa pelo modal.
+  const exigePromessa = !!promessaTipo && !processo.promessa;
 
   const canEdit = podeEditarFormulario(processo.status, userRole);
   const transicoes = getTransicoesDisponiveis(processo.status, userRole);
@@ -162,22 +182,35 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
     }
   }
 
-  async function handleTransicao(novoStatus: StatusProcessoEclesiastico) {
+  function onTransicaoClick(novoStatus: StatusProcessoEclesiastico) {
+    // Conclusão de promessa exige os dados da celebração (Livro de Promessas).
+    if (novoStatus === "concluido" && exigePromessa) {
+      setPromessaDialogOpen(true);
+      return;
+    }
+    handleTransicao(novoStatus);
+  }
+
+  async function handleTransicao(
+    novoStatus: StatusProcessoEclesiastico,
+    promessa?: PromessaPayload
+  ): Promise<boolean> {
     setIsSaving(true);
     try {
       const res = await fetch(`/api/processos-eclesiasticos/${processo.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: novoStatus }),
+        body: JSON.stringify({ status: novoStatus, ...(promessa ? { promessa } : {}) }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error ?? "Erro ao atualizar status.");
-        return;
+        return false;
       }
       toast.success(`Status atualizado: ${STATUS_PROCESSO_LABELS[novoStatus]}`);
       startTransition(() => router.refresh());
       setProcesso((prev) => ({ ...prev, status: novoStatus }));
+      return true;
     } finally {
       setIsSaving(false);
     }
@@ -223,7 +256,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
                 size="sm"
                 variant={t.para === "rejeitado" || t.para === "cancelado" ? "destructive" : "default"}
                 disabled={isPending || isSaving}
-                onClick={() => handleTransicao(t.para)}
+                onClick={() => onTransicaoClick(t.para)}
               >
                 {(isPending || isSaving) && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
                 {t.label}
@@ -369,8 +402,51 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
               />
             </CardContent>
           </Card>
+
+          {processo.promessa && (
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-base">Livro de Promessas</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <InfoRow label="Tipo" value={TIPO_REGISTRO_PROMESSA_LABELS[processo.promessa.tipo]} />
+                <InfoRow
+                  label="Assento"
+                  value={`Tomo ${processo.promessa.tomo}, Folha ${String(processo.promessa.folha).padStart(3, "0")}, Registro nº ${processo.promessa.numeroRegistro}`}
+                />
+                <InfoRow label="Celebrante" value={processo.promessa.celebrante} />
+                <InfoRow label="Local da celebração" value={processo.promessa.localCelebracao} />
+                <InfoRow label="Moderador(a) Geral" value={processo.promessa.moderadorGeral} />
+                <InfoRow
+                  label="Vigência"
+                  value={
+                    processo.promessa.dataVigenciaFim
+                      ? `${format(parseISO(processo.promessa.dataVigenciaInicio), "dd/MM/yyyy")} a ${format(parseISO(processo.promessa.dataVigenciaFim), "dd/MM/yyyy")}`
+                      : `${format(parseISO(processo.promessa.dataVigenciaInicio), "dd/MM/yyyy")} — perpétua`
+                  }
+                />
+                <Link href="/livro-promessas" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                  Ver no Livro de Promessas
+                </Link>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
+
+      {promessaTipo && (
+        <LavrarPromessaDialog
+          open={promessaDialogOpen}
+          onOpenChange={setPromessaDialogOpen}
+          tipo={promessaTipo}
+          formulaDefault={promessaFormulaDefault ?? ""}
+          busy={isSaving}
+          onConfirm={async (payload) => {
+            const ok = await handleTransicao("concluido", payload);
+            if (ok) setPromessaDialogOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -568,5 +644,129 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <span className="text-muted-foreground min-w-32">{label}</span>
       <span className="font-medium">{value}</span>
     </div>
+  );
+}
+
+// ─── Diálogo: lavrar registro no Livro de Promessas ───────────────────────────
+
+interface PromessaPayload {
+  dataCelebracao: string;
+  localCelebracao: string;
+  celebrante: string;
+  moderadorGeral: string;
+  formadorGeralLocal?: string;
+  assistenteEclesiastico?: string;
+  secretario: string;
+  formulaTexto?: string;
+  dataVigenciaInicio?: string;
+  dataVigenciaFim?: string;
+}
+
+const hojeISO = () => new Date().toISOString().slice(0, 10);
+
+function LavrarPromessaDialog({
+  open, onOpenChange, tipo, formulaDefault, busy, onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  tipo: TipoRegistroPromessa;
+  formulaDefault: string;
+  busy: boolean;
+  onConfirm: (payload: PromessaPayload) => void;
+}) {
+  const isDefinitivas = tipo === "definitivas";
+  const [dataCelebracao, setDataCelebracao] = useState(hojeISO);
+  const [localCelebracao, setLocalCelebracao] = useState("");
+  const [celebrante, setCelebrante] = useState("");
+  const [moderadorGeral, setModeradorGeral] = useState("");
+  const [formadorGeralLocal, setFormadorGeralLocal] = useState("");
+  const [assistenteEclesiastico, setAssistenteEclesiastico] = useState("");
+  const [secretario, setSecretario] = useState("");
+  const [dataVigenciaFim, setDataVigenciaFim] = useState("");
+  const [formulaTexto, setFormulaTexto] = useState(formulaDefault);
+
+  function submit() {
+    if (!localCelebracao.trim() || !celebrante.trim() || !moderadorGeral.trim() || !secretario.trim()) {
+      toast.error("Preencha local, celebrante, moderador(a) geral e secretário(a).");
+      return;
+    }
+    onConfirm({
+      dataCelebracao,
+      localCelebracao: localCelebracao.trim(),
+      celebrante: celebrante.trim(),
+      moderadorGeral: moderadorGeral.trim(),
+      formadorGeralLocal: formadorGeralLocal.trim() || undefined,
+      assistenteEclesiastico: assistenteEclesiastico.trim() || undefined,
+      secretario: secretario.trim(),
+      formulaTexto: formulaTexto.trim() || undefined,
+      dataVigenciaInicio: dataCelebracao,
+      dataVigenciaFim: isDefinitivas ? undefined : (dataVigenciaFim || undefined),
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Lavrar no Livro de Promessas</DialogTitle>
+          <DialogDescription>
+            Ao concluir, o assento é lavrado no Livro de Promessas ({TIPO_REGISTRO_PROMESSA_LABELS[tipo]}) e
+            o termo referencial entra no Livro de Registro Geral. Tomo, folha e número são atribuídos
+            automaticamente.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Data da celebração</Label>
+              <Input type="date" value={dataCelebracao} onChange={(e) => setDataCelebracao(e.target.value)} />
+            </div>
+            {!isDefinitivas && (
+              <div className="space-y-1.5">
+                <Label>Vigência até</Label>
+                <Input type="date" value={dataVigenciaFim} onChange={(e) => setDataVigenciaFim(e.target.value)} />
+              </div>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label>Local da celebração</Label>
+            <Input value={localCelebracao} onChange={(e) => setLocalCelebracao(e.target.value)} placeholder="Ex.: Capela da Casa de Formação" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Celebrante</Label>
+              <Input value={celebrante} onChange={(e) => setCelebrante(e.target.value)} placeholder="Nome completo" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Moderador(a) Geral</Label>
+              <Input value={moderadorGeral} onChange={(e) => setModeradorGeral(e.target.value)} placeholder="Nome completo" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Formador(a) Geral local</Label>
+              <Input value={formadorGeralLocal} onChange={(e) => setFormadorGeralLocal(e.target.value)} placeholder="Opcional" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Assistente eclesiástico</Label>
+              <Input value={assistenteEclesiastico} onChange={(e) => setAssistenteEclesiastico(e.target.value)} placeholder="Opcional" />
+            </div>
+            <div className="space-y-1.5 col-span-2">
+              <Label>Secretário(a)</Label>
+              <Input value={secretario} onChange={(e) => setSecretario(e.target.value)} placeholder="Nome completo" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Fórmula de consagração</Label>
+            <Textarea rows={4} value={formulaTexto} onChange={(e) => setFormulaTexto(e.target.value)} className="resize-none text-sm" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancelar</Button>
+          <Button onClick={submit} disabled={busy}>
+            {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Lavrar e concluir
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

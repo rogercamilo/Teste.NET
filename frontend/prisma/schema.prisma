@@ -1111,6 +1111,7 @@ model RegistroPromessa {
   dataDispensa           DateTime?
   autoridadeDispensa     String?
   arquivoTermoId         String?
+  criadoPorId            String?
   criadoEm               DateTime             @default(now())
 
   organizacao  Organizacao          @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
@@ -1118,6 +1119,8 @@ model RegistroPromessa {
   processo     ProcessoEclesiastico @relation(fields: [processoId], references: [id], onDelete: Cascade)
   arquivoTermo Arquivo?             @relation(fields: [arquivoTermoId], references: [id])
 
+  // Numeração cartorial sequencial por org+tomo (concorrência-segura via retry P2002).
+  @@unique([organizacaoId, tomo, numero])
   @@index([organizacaoId])
   @@index([formandoId])
 }

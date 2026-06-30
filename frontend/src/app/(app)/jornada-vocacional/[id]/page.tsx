@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth-helpers";
 import { hasCanonicalAccess, type NivelFormativo } from "@/types";
+import { mapProcessoParaTipoPromessa, montarFormulaPromessa } from "@/lib/livro-promessas";
 import ProcessoDetalheClient from "./ProcessoDetalheClient";
 
 export default async function ProcessoDetalhePage({
@@ -39,11 +40,13 @@ export default async function ProcessoDetalhePage({
         },
         criadoPor: { select: { id: true, nome: true } },
         documentos: { orderBy: { criadoEm: "asc" } },
+        promessa: true,
       },
     }),
     prisma.organizacao.findUnique({
       where: { id: user.organizacaoId },
       select: {
+        nome: true,
         tipoOrganizacao: true,
         termoPreDiscipulado: true,
         termoDiscipulado: true,
@@ -56,6 +59,16 @@ export default async function ProcessoDetalhePage({
 
   if (!processo) redirect("/jornada-vocacional");
   if (!hasCanonicalAccess(org?.tipoOrganizacao)) redirect("/dashboard");
+
+  const tipoPromessa = mapProcessoParaTipoPromessa(processo.tipo);
+  const promessaFormulaDefault =
+    tipoPromessa && !processo.promessa
+      ? montarFormulaPromessa({
+          formandoNome: processo.formando.nome,
+          orgNome: org?.nome ?? "",
+          tipo: tipoPromessa,
+        })
+      : null;
 
   return (
     <ProcessoDetalheClient
@@ -100,7 +113,28 @@ export default async function ProcessoDetalhePage({
           observacoes: d.observacoes ?? null,
           criadoEm: d.criadoEm.toISOString(),
         })),
+        promessa: processo.promessa
+          ? {
+              id: processo.promessa.id,
+              tipo: processo.promessa.tipo,
+              tomo: processo.promessa.tomo,
+              folha: processo.promessa.folha,
+              numero: processo.promessa.numero,
+              numeroRegistro: processo.promessa.numeroRegistro,
+              dataVigenciaInicio: processo.promessa.dataVigenciaInicio.toISOString(),
+              dataVigenciaFim: processo.promessa.dataVigenciaFim?.toISOString() ?? null,
+              celebrante: processo.promessa.celebrante,
+              localCelebracao: processo.promessa.localCelebracao,
+              moderadorGeral: processo.promessa.moderadorGeral,
+              formadorGeralLocal: processo.promessa.formadorGeralLocal,
+              assistenteEclesiastico: processo.promessa.assistenteEclesiastico,
+              secretario: processo.promessa.secretario,
+              formulaTexto: processo.promessa.formulaTexto,
+            }
+          : null,
       }}
+      promessaTipo={tipoPromessa}
+      promessaFormulaDefault={promessaFormulaDefault}
       userRole={user.role ?? "formador_comunitario"}
       termos={{
         etapa1: org?.termoPreDiscipulado ?? "Pré-Discipulado",

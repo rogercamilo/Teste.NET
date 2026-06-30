@@ -57,6 +57,7 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
             termoPromessa: true,
           },
         },
+        promessa: true,
       },
     });
 
@@ -85,6 +86,25 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
     const agora = new Date();
     const geradoEm = format(agora, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
 
+    // Para processos de promessa já lavrados, o Livro de Promessas é a fonte
+    // canônica dos dados de celebração/registro — sobrepõe o que veio do formulário.
+    const formularioBase = (processo.dadosFormulario as Record<string, unknown>) ?? {};
+    const promessa = processo.promessa;
+    const formulario: Record<string, unknown> = promessa
+      ? {
+          ...formularioBase,
+          data_celebracao: format(promessa.dataVigenciaInicio, "dd/MM/yyyy"),
+          local_celebracao: promessa.localCelebracao,
+          celebrante: promessa.celebrante,
+          moderador_geral: promessa.moderadorGeral,
+          assistente_eclesiastico: promessa.assistenteEclesiastico ?? undefined,
+          formula_texto: promessa.formulaTexto,
+          tomo: promessa.tomo,
+          folha: String(promessa.folha).padStart(3, "0"),
+          numero: promessa.numeroRegistro,
+        }
+      : formularioBase;
+
     const dados: DadosTemplate = {
       orgNome: org.nome,
       termoPreDiscipulado: org.termoPreDiscipulado,
@@ -109,7 +129,7 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
       formandoParoquiaReferencia: f.paroquiaReferencia,
       formandoNumFilhos: f.numFilhos,
 
-      formulario: (processo.dadosFormulario as Record<string, unknown>) ?? {},
+      formulario,
       geradoEm,
     };
 

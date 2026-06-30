@@ -12,6 +12,14 @@ import {
 } from "@/lib/jornada-vocacional";
 import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
 import { lavrarTermo, mapProcessoParaTermo, LivroError, parseDataLocal } from "@/lib/livro-registro";
+import {
+  mapProcessoParaTipoPromessa,
+  montarFormulaPromessa,
+  montarRefPromessa,
+  lavrarRegistroPromessa,
+  type LavrarRegistroPromessaParams,
+} from "@/lib/livro-promessas";
+import { lavrarComRetry } from "@/lib/livro-retry";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -46,6 +54,7 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
         documentos: {
           orderBy: { criadoEm: "asc" },
         },
+        promessa: true,
       },
     });
 
@@ -92,6 +101,25 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
         observacoes: d.observacoes,
         criadoEm: d.criadoEm.toISOString(),
       })),
+      promessa: processo.promessa
+        ? {
+            id: processo.promessa.id,
+            tipo: processo.promessa.tipo,
+            tomo: processo.promessa.tomo,
+            folha: processo.promessa.folha,
+            numero: processo.promessa.numero,
+            numeroRegistro: processo.promessa.numeroRegistro,
+            dataVigenciaInicio: processo.promessa.dataVigenciaInicio.toISOString(),
+            dataVigenciaFim: processo.promessa.dataVigenciaFim?.toISOString() ?? null,
+            celebrante: processo.promessa.celebrante,
+            localCelebracao: processo.promessa.localCelebracao,
+            moderadorGeral: processo.promessa.moderadorGeral,
+            formadorGeralLocal: processo.promessa.formadorGeralLocal,
+            assistenteEclesiastico: processo.promessa.assistenteEclesiastico,
+            secretario: processo.promessa.secretario,
+            formulaTexto: processo.promessa.formulaTexto,
+          }
+        : null,
     });
   } catch (err) {
     logError("processos-eclesiasticos", err);
@@ -113,7 +141,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       include: {
         formando: { select: { id: true, nome: true, dataNascimento: true, grupoFormacaoId: true } },
         documentos: { select: { id: true } },
-        organizacao: { select: { termoPreDiscipulado: true, termoDiscipulado: true } },
+        organizacao: { select: { nome: true, termoPreDiscipulado: true, termoDiscipulado: true } },
         promessa: { select: { id: true, tomo: true, folha: true, numeroRegistro: true } },
       },
     });
@@ -123,6 +151,19 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       dadosFormulario?: Record<string, unknown>;
       status?: StatusProcessoEclesiastico;
       favoravelRenovacao?: boolean;
+      promessa?: {
+        dataCelebracao?: string;
+        localCelebracao?: string;
+        celebrante?: string;
+        moderadorGeral?: string;
+        formadorGeralLocal?: string;
+        assistenteEclesiastico?: string;
+        secretario?: string;
+        formulaTexto?: string;
+        periodoVigencia?: string;
+        dataVigenciaInicio?: string;
+        dataVigenciaFim?: string;
+      };
     };
 
     // Atualização de formulário
@@ -189,17 +230,78 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
         const dados = (processo.dadosFormulario as Record<string, unknown>) ?? {};
         const str = (k: string) => (typeof dados[k] === "string" ? (dados[k] as string) : undefined);
         const num = (k: string) => (typeof dados[k] === "number" ? (dados[k] as number) : undefined);
-        const promessaRef = processo.promessa
-          ? `Livro de Promessas, Tomo ${processo.promessa.tomo}, Folha ${String(processo.promessa.folha).padStart(3, "0")}, Registro nº ${processo.promessa.numeroRegistro}`
-          : undefined;
 
+        // Processos de promessa lavram, na mesma conclusão, o assento no Livro de
+        // Promessas (rito separado). O termo do Livro Geral apenas o referencia.
+        const tipoPromessa = mapProcessoParaTipoPromessa(processo.tipo);
+        let dadosPromessa: LavrarRegistroPromessaParams | null = null;
+        if (tipoPromessa && !processo.promessa) {
+          const p = body.promessa;
+          const faltando =
+            !p?.celebrante?.trim() ||
+            !p?.localCelebracao?.trim() ||
+            !p?.moderadorGeral?.trim() ||
+            !p?.secretario?.trim();
+          if (!p || faltando) {
+            return NextResponse.json(
+              { error: "Dados da celebração são obrigatórios para lavrar o registro no Livro de Promessas." },
+              { status: 400 }
+            );
+          }
+          const dataCelebracao = p.dataCelebracao ? parseDataLocal(p.dataCelebracao) : new Date();
+          const dataVigInicio = p.dataVigenciaInicio ? parseDataLocal(p.dataVigenciaInicio) : dataCelebracao;
+          const dataVigFim =
+            tipoPromessa === "definitivas"
+              ? null
+              : p.dataVigenciaFim
+                ? parseDataLocal(p.dataVigenciaFim)
+                : null;
+          const formulaTexto =
+            p.formulaTexto?.trim() ||
+            montarFormulaPromessa({
+              formandoNome: processo.formando.nome,
+              orgNome: processo.organizacao.nome,
+              tipo: tipoPromessa,
+              periodoVigencia: p.periodoVigencia,
+            });
+          dadosPromessa = {
+            organizacaoId,
+            formandoId: processo.formandoId,
+            processoId: processo.id,
+            tipo: tipoPromessa,
+            dataVigenciaInicio: dataVigInicio,
+            dataVigenciaFim: dataVigFim,
+            formulaTexto,
+            celebrante: p.celebrante!.trim(),
+            localCelebracao: p.localCelebracao!.trim(),
+            moderadorGeral: p.moderadorGeral!.trim(),
+            formadorGeralLocal: p.formadorGeralLocal?.trim() || null,
+            assistenteEclesiastico: p.assistenteEclesiastico?.trim() || null,
+            secretario: p.secretario!.trim(),
+            criadoPorId: user.id,
+          };
+        }
+
+        let promessaLavrada = false;
         try {
-          await prisma.$transaction(async (tx) => {
+          await lavrarComRetry(async (tx) => {
             const result = await tx.processoEclesiastico.updateMany({
               where: { id, status: processo.status, organizacaoId },
               data: { status: body.status },
             });
             if (result.count === 0) throw new Error("CONCURRENT_MODIFICATION");
+
+            // Lavra o assento no Livro de Promessas antes do termo referencial.
+            let promessaRef: string | undefined;
+            let registroPromessaId: string | null = processo.promessa?.id ?? null;
+            if (dadosPromessa) {
+              const reg = await lavrarRegistroPromessa(tx, dadosPromessa);
+              promessaRef = montarRefPromessa(reg);
+              registroPromessaId = reg.id;
+              promessaLavrada = true;
+            } else if (processo.promessa) {
+              promessaRef = montarRefPromessa(processo.promessa);
+            }
 
             if (mapeamento) {
               const etapaNome = mapeamento.etapaCampo
@@ -212,7 +314,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
                 dataEvento: new Date(),
                 condicaoResultante: mapeamento.condicaoResultante,
                 processoId: processo.id,
-                registroPromessaId: processo.promessa?.id ?? null,
+                registroPromessaId,
                 criadoPorId: user.id,
                 contexto: {
                   formandoNome: processo.formando.nome,
@@ -221,7 +323,8 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
                   processoCodigo: processo.id.slice(-6).toUpperCase(),
                   promessaRef,
                   numeroRenovacao: processo.numeroRenovacao ?? undefined,
-                  vigenciaFim: str("dataFimVigencia") ? parseDataLocal(str("dataFimVigencia")!) : undefined,
+                  vigenciaFim: dadosPromessa?.dataVigenciaFim
+                    ?? (str("dataFimVigencia") ? parseDataLocal(str("dataFimVigencia")!) : undefined),
                   ministerioNome: str("ministerio") ?? str("cargoFuncao"),
                   destino: str("destino") ?? str("nucleoDestino"),
                   motivo: str("motivo"),
@@ -244,6 +347,9 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
         }
 
         logAction("processo_eclesiastico_concluido", user.id, getClientIp(req), { id }, user.organizacaoId);
+        if (promessaLavrada) {
+          logAction("promessa_registrada", user.id, getClientIp(req), { id, tipo: tipoPromessa }, user.organizacaoId);
+        }
       } else {
         const result = await prisma.processoEclesiastico.updateMany({
           where: { id, status: processo.status, organizacaoId },

@@ -1,4 +1,5 @@
 ﻿import {
+  BookHeart,
   BookMarked,
   BookOpen,
   Calendar,
@@ -75,6 +76,12 @@ export const navGroupsGestao: NavGroup[] = [
         title: "Livro de Registro",
         href: "/livro-registro",
         icon: BookMarked,
+        requiredCapability: "vocacional",
+      },
+      {
+        title: "Livro de Promessas",
+        href: "/livro-promessas",
+        icon: BookHeart,
         requiredCapability: "vocacional",
       },
       {
