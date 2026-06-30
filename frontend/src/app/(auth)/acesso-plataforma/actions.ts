@@ -19,7 +19,7 @@ export async function superAdminLogin(
       password,
       loginSource: "super_admin",
       ...(totp ? { totp } : {}),
-      redirectTo: "/super-admin/dashboard",
+      redirectTo: "/super-admin",
     });
   } catch (err) {
     // signIn lança NEXT_REDIRECT em caso de sucesso — re-lançar para o Next.js redirecionar

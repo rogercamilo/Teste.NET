@@ -195,14 +195,14 @@ export default auth(async function proxy(req) {
 
   if (isLoggedIn && pathname === "/login") {
     return NextResponse.redirect(
-      new URL(role === "super_admin" ? "/super-admin/dashboard" : "/dashboard", req.url)
+      new URL(role === "super_admin" ? "/super-admin" : "/dashboard", req.url)
     );
   }
 
   // Redireciona usuários autenticados que acessam a página exclusiva de acesso
   if (isLoggedIn && pathname.startsWith("/acesso-plataforma")) {
     return NextResponse.redirect(
-      new URL(role === "super_admin" ? "/super-admin/dashboard" : "/dashboard", req.url)
+      new URL(role === "super_admin" ? "/super-admin" : "/dashboard", req.url)
     );
   }
 
@@ -219,7 +219,7 @@ export default auth(async function proxy(req) {
     "/livro-registro", "/livro-promessas", "/vocacional", "/vitrine",
   ];
   if (role === "super_admin" && superAdminBlocked.some((p) => pathname.startsWith(p))) {
-    return NextResponse.redirect(new URL("/super-admin/dashboard", req.url));
+    return NextResponse.redirect(new URL("/super-admin", req.url));
   }
 
   const response = NextResponse.next({
