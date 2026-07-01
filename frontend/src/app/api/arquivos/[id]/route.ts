@@ -12,6 +12,42 @@ function canDelete(arquivo: { uploadedById: string | null }, user: SessionUser):
   return arquivo.uploadedById === user.id;
 }
 
+/**
+ * Controle de leitura alinhado ao padrão de `documentos/[id]` (menor privilégio),
+ * mas ciente da entidade anexada — arquivos não guardam `grupoFormacaoId` próprio:
+ *  - Gestão (admin/formador_geral): tudo na org.
+ *  - Autor: o que subiu.
+ *  - FC: recursos de currículo da org (formacao/grade/plano) são compartilhados;
+ *    entidades de grupo (morada/formando) só do PRÓPRIO grupo.
+ */
+async function canRead(
+  arquivo: { uploadedById: string | null; entityType: string | null; entityId: string | null },
+  user: SessionUser
+): Promise<boolean> {
+  if (user.role === "administrador" || user.role === "formador_geral") return true;
+  if (arquivo.uploadedById === user.id) return true;
+  // Sem entidade associada (ex.: linha do tipo `documentos`): FC não tem grant por entidade.
+  if (!arquivo.entityType || !arquivo.entityId) return false;
+
+  switch (arquivo.entityType) {
+    case "formacao":
+    case "grade":
+    case "plano":
+      return true; // currículo compartilhado na org
+    case "morada": // entityId é o id do GrupoFormacao (nome legado)
+      return arquivo.entityId === user.grupoFormacaoId;
+    case "formando": {
+      const f = await prisma.formando.findFirst({
+        where: { id: arquivo.entityId, organizacaoId: user.organizacaoId },
+        select: { grupoFormacaoId: true },
+      });
+      return !!f && f.grupoFormacaoId === user.grupoFormacaoId;
+    }
+    default:
+      return false;
+  }
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -29,6 +65,7 @@ export async function GET(
     });
 
     if (!arquivo) return new Response("Arquivo não encontrado", { status: 404 });
+    if (!(await canRead(arquivo, user))) return new Response("Acesso negado", { status: 403 });
 
     // R2: redireciona para pre-signed URL gerada em tempo real
     if (
