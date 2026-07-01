@@ -7,6 +7,7 @@ import { limiters } from "@/lib/rate-limit";
 import { canUpload, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 import { NivelFormativoEnum } from "@/lib/schemas";
 import { assinaturaConfere } from "@/lib/file-signature";
+import { scanUpload } from "@/lib/av-scan";
 import type { SessionUser } from "@/lib/auth-helpers";
 import { NIVEL_FORMATIVO_LABELS } from "@/types";
 
@@ -69,6 +70,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Anti-spoof: confere a assinatura real contra o MIME declarado (P2.1).
     if (!assinaturaConfere(buffer, arquivo.type)) {
       return NextResponse.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 400 });
+    }
+    // Filtro heurístico de malware (macros/PDF ativo/EICAR) antes de persistir.
+    const scan = await scanUpload(buffer, arquivo.type);
+    if (!scan.clean) {
+      logAction("upload_rejected_malware", user.id, getClientIp(request), { formandoId: formando.id, motivo: scan.reason }, organizacaoId);
+      return NextResponse.json({ error: "Arquivo rejeitado por suspeita de conteúdo malicioso." }, { status: 400 });
     }
     const storageKey = await uploadFile(organizacaoId, "cartas-etapa", buffer, ext, arquivo.type);
 

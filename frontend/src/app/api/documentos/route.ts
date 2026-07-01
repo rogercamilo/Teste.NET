@@ -4,6 +4,7 @@ import { uploadFile, deleteFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { assinaturaConfere, sanitizeFilename } from "@/lib/file-signature";
+import { scanUpload } from "@/lib/av-scan";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
@@ -73,6 +74,13 @@ export async function POST(request: NextRequest) {
   // Valida assinatura real do arquivo (magic bytes) — impede spoofing de MIME type
   if (!assinaturaConfere(buffer, file.type)) {
     return Response.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 422 });
+  }
+
+  // Filtro heurístico de malware (macros/PDF ativo/EICAR) antes de persistir.
+  const scan = await scanUpload(buffer, file.type);
+  if (!scan.clean) {
+    logAction("upload_rejected_malware", user.id, getClientIp(request), { nome, motivo: scan.reason }, user.organizacaoId);
+    return Response.json({ error: "Arquivo rejeitado por suspeita de conteúdo malicioso." }, { status: 422 });
   }
 
   const orgId = user.organizacaoId;

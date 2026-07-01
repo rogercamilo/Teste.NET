@@ -1,7 +1,13 @@
 import { defineConfig, configDefaults } from "vitest/config";
 
 export default defineConfig({
-  resolve: { alias: { "@": "/src" } },
+  resolve: {
+    alias: {
+      "@": "/src",
+      // `server-only` não é resolível no ambiente node do Vitest — stub vazio.
+      "server-only": "/src/__tests__/stubs/server-only.ts",
+    },
+  },
   test: {
     environment: "node",
     // Os testes e2e (Playwright) usam seu próprio runner — não devem ser

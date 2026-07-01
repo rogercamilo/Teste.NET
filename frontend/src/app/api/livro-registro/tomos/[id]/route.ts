@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { assinaturaConfere } from "@/lib/file-signature";
+import { scanUpload } from "@/lib/av-scan";
 import { canUpload } from "@/lib/plan-limits";
 import { montarTextoEncerramento } from "@/lib/livro-registro";
 import { requireLivroAccess } from "../../guard";
@@ -55,6 +56,13 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       // Valida a assinatura real (magic bytes) — o type do multipart é do cliente.
       if (!assinaturaConfere(buffer, "application/pdf")) {
         return NextResponse.json({ error: "Conteúdo do arquivo não corresponde a um PDF." }, { status: 422 });
+      }
+
+      // Filtro heurístico de malware (PDF ativo/EICAR) antes de persistir.
+      const scan = await scanUpload(buffer, "application/pdf");
+      if (!scan.clean) {
+        logAction("upload_rejected_malware", user.id, getClientIp(req), { tomoId: id, alvo, motivo: scan.reason }, organizacaoId);
+        return NextResponse.json({ error: "Arquivo rejeitado por suspeita de conteúdo malicioso." }, { status: 422 });
       }
 
       // Respeita a quota de armazenamento do plano (igual aos demais uploads).

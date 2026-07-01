@@ -6,6 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import { isGestao } from "@/lib/auth-helpers";
 import { cartaPermitida } from "@/lib/vocacional-rules";
 import { assinaturaConfere } from "@/lib/file-signature";
+import { scanUpload } from "@/lib/av-scan";
 import { requireVocacionalAccess } from "../../../guard";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -62,6 +63,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Anti-spoof: confere a assinatura real contra o MIME declarado (P2.1).
     if (!assinaturaConfere(buffer, arquivo.type)) {
       return NextResponse.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 400 });
+    }
+    // Filtro heurístico de malware (macros/PDF ativo/EICAR) antes de persistir.
+    const scan = await scanUpload(buffer, arquivo.type);
+    if (!scan.clean) {
+      logAction("upload_rejected_malware", user.id, getClientIp(request), { participacaoId: id, motivo: scan.reason }, organizacaoId);
+      return NextResponse.json({ error: "Arquivo rejeitado por suspeita de conteúdo malicioso." }, { status: 400 });
     }
     const storageKey = await uploadFile(organizacaoId, "vocacional-cartas", buffer, ext, arquivo.type);
 

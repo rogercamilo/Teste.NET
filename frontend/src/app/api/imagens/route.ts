@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { uploadFile } from "@/lib/storage";
 import { limiters } from "@/lib/rate-limit";
-import { logError } from "@/lib/audit-log";
+import { logError, logAction, getClientIp } from "@/lib/audit-log";
 import { assinaturaConfere } from "@/lib/file-signature";
+import { scanUpload } from "@/lib/av-scan";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -45,6 +46,13 @@ export async function POST(request: Request) {
     // type: o `file.type` é controlado pelo cliente e sozinho não garante nada.
     if (!assinaturaConfere(buffer, file.type)) {
       return NextResponse.json({ error: "Conteúdo do arquivo não corresponde a uma imagem válida." }, { status: 400 });
+    }
+
+    // Filtro heurístico de malware (EICAR) antes de persistir.
+    const scan = await scanUpload(buffer, file.type);
+    if (!scan.clean) {
+      logAction("upload_rejected_malware", user.id, getClientIp(request), { motivo: scan.reason }, user.organizacaoId);
+      return NextResponse.json({ error: "Arquivo rejeitado por suspeita de conteúdo malicioso." }, { status: 400 });
     }
 
     const ext = EXT_MAP[file.type] ?? ".jpg";
