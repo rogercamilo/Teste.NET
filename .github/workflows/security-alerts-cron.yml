@@ -1,0 +1,30 @@
+name: Security events alert
+
+# Verifica picos de eventos de segurança (falhas/bloqueios de login, uploads
+# maliciosos rejeitados) na janela recente e dispara alerta por e-mail aos super
+# admins quando cruza o limiar (lógica e anti-spam ficam no endpoint). Precisa do
+# secret CRON_SECRET no repositório, com o MESMO valor da variável no Railway.
+on:
+  schedule:
+    - cron: "*/15 * * * *" # a cada 15 minutos (UTC)
+  workflow_dispatch: {}
+
+# Só faz um curl externo — não precisa de acesso ao repositório.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping endpoint de alerta de segurança
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          # Diagnóstico sem vazar o segredo: imprime só o comprimento (0 = secret ausente/nome errado).
+          echo "CRON_SECRET recebido pelo workflow: ${#CRON_SECRET} caracteres"
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.formattio.com.br/api/cron/security-alerts")
+          echo "Resposta do endpoint: HTTP $code"
+          test "$code" = "200"

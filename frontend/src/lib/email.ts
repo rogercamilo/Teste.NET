@@ -645,6 +645,52 @@ export async function sendDbPoolAlertEmail({
   });
 }
 
+export async function sendSecurityAlertEmail({
+  organizacaoId,
+  email,
+  nome,
+  signals,
+  windowMinutes,
+  appUrl,
+}: {
+  organizacaoId: string;
+  email: string;
+  nome: string;
+  signals: { label: string; count: number; threshold: number }[];
+  windowMinutes: number;
+  appUrl: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const linhas = signals
+    .map(
+      (s) =>
+        `<li><strong>${escapeHtml(s.label)}</strong>: ${s.count} nos últimos ${windowMinutes} min (limiar ${s.threshold})</li>`
+    )
+    .join("");
+  const conteudo = [
+    banner("danger", "⚠️ Pico de eventos de segurança detectado"),
+    paragraph(`Olá, ${escapeHtml(nome)}.`),
+    paragraph(
+      `Nos últimos <strong>${windowMinutes} minutos</strong> um ou mais indicadores de possível ataque cruzaram o limiar de alerta:`
+    ),
+    `<ul style="margin:0 0 16px;padding-left:20px;line-height:1.7">${linhas}</ul>`,
+    paragraph(
+      "Isso pode indicar tentativa de força bruta, credential stuffing ou sondagem de upload malicioso. Verifique a trilha de auditoria e, se confirmado, considere bloquear a origem."
+    ),
+    button("Ver segurança", `${appUrl.replace(/\/+$/, "")}/super-admin?tab=seguranca`),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Pico de eventos de segurança",
+    eyebrow: "Segurança",
+    conteudo,
+    logoUrl: LOGO_URL,
+    notaRodape:
+      "Você está recebendo este alerta porque é administrador da plataforma. Novo alerta só será enviado após algumas horas, mesmo que a condição persista.",
+  });
+  return send(organizacaoId, email, "⚠️ Pico de eventos de segurança — Formattio", html, {
+    brandAsOrg: false,
+  });
+}
+
 export async function sendPortalMagicLinkEmail({
   organizacaoId,
   nome,

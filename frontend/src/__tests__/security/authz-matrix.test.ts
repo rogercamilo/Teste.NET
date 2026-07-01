@@ -69,6 +69,7 @@ const LIST_RE = /\.findMany\(/;
 // (Todo o prefixo `super-admin/` é cross-org por design e já é role-gated — ver teste dedicado.)
 const LIST_SCOPING_EXEMPT = new Set<string>([
   "cron/db-health/route.ts", // lista super_admins do sistema para alerta de pool (cron secret)
+  "cron/security-alerts/route.ts", // lista super_admins do sistema para alerta de segurança (cron secret)
   "notificacoes/route.ts", // listarNaoLidas(userId) → where destinatarioId (escopo por usuário)
 ]);
 

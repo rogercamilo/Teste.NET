@@ -18,6 +18,7 @@ export type AuditAction =
   | "document_uploaded"
   | "document_deleted"
   | "upload_rejected_malware"
+  | "security_alert_sent"
   | "file_uploaded"
   | "file_deleted"
   | "smtp_config_changed"
