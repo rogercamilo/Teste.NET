@@ -62,6 +62,16 @@ const PUBLIC = new Set<string>([
 // Detecta escrita no banco.
 const WRITE_RE = /(?:prisma|tx)\.\w+\.(?:create|createMany|update|updateMany|delete|deleteMany|upsert)\b/;
 
+// Detecta consulta de LISTAGEM (vetor de sobre-exposição cross-tenant).
+const LIST_RE = /\.findMany\(/;
+
+// Rotas com findMany que legitimamente NÃO escopam por organizacaoId — cada uma justificada.
+// (Todo o prefixo `super-admin/` é cross-org por design e já é role-gated — ver teste dedicado.)
+const LIST_SCOPING_EXEMPT = new Set<string>([
+  "cron/db-health/route.ts", // lista super_admins do sistema para alerta de pool (cron secret)
+  "notificacoes/route.ts", // listarNaoLidas(userId) → where destinatarioId (escopo por usuário)
+]);
+
 // Rotas que escrevem mas NÃO escopam por organizacaoId — cada uma justificada.
 const ORG_SCOPING_EXEMPT = new Set<string>([
   // Super-admin: opera cross-org por design (checagem super_admin cobre o acesso).
@@ -113,6 +123,13 @@ describe("matriz de autorização — contrato por rota", () => {
       .filter((r) => WRITE_RE.test(r.src) && !ORG_SCOPING_EXEMPT.has(r.rel) && !/organizacaoId/.test(r.src))
       .map((r) => r.rel);
     expect(faltando, `Rotas de escrita sem organizacaoId (escope por tenant ou justifique em ORG_SCOPING_EXEMPT): ${faltando.join(", ")}`).toEqual([]);
+  });
+
+  it("toda rota de listagem (findMany) escopa por organizacaoId", () => {
+    const faltando = routes
+      .filter((r) => LIST_RE.test(r.src) && !r.rel.startsWith("super-admin/") && !LIST_SCOPING_EXEMPT.has(r.rel) && !/organizacaoId/.test(r.src))
+      .map((r) => r.rel);
+    expect(faltando, `Rotas com findMany sem organizacaoId (escope a listagem por tenant ou justifique em LIST_SCOPING_EXEMPT): ${faltando.join(", ")}`).toEqual([]);
   });
 
   it("toda rota super-admin checa o papel super_admin", () => {
