@@ -20,6 +20,7 @@ import {
 import { logAction, logError } from "./audit-log";
 import { isEmailSuppressed } from "./email-suppression";
 import { prisma } from "./prisma";
+import { assertPublicHost } from "./ssrf";
 
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 /** URL absoluta do badge da marca para o cabeçalho dos e-mails. */
@@ -141,6 +142,8 @@ async function sendViaSmtp(
 ): Promise<{ sent: boolean; error?: string }> {
   const from = formatFrom(fromName, config.from || config.user);
   try {
+    // Anti-SSRF: nunca conecta a um host SMTP interno/privado (config vem do tenant).
+    await assertPublicHost(config.host);
     const transporter = createTransporter(config);
     await transporter.sendMail({ from, to, subject, html, ...(replyTo ? { replyTo } : {}) });
     return { sent: true };

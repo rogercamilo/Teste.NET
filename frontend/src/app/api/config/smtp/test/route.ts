@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { loadSmtpConfig, isSmtpReady } from "@/lib/smtp-config";
+import { assertPublicHost } from "@/lib/ssrf";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import nodemailer from "nodemailer";
@@ -38,6 +39,13 @@ export async function POST(request: Request) {
         { error: "SMTP não configurado. Preencha e salve as configurações primeiro." },
         { status: 400 }
       );
+    }
+
+    // Anti-SSRF: impede conectar a um host interno/privado (varredura da rede via SMTP).
+    try {
+      await assertPublicHost(config.host);
+    } catch {
+      return NextResponse.json({ error: "Host SMTP não permitido." }, { status: 400 });
     }
 
     const trimmed = testEmail?.trim();

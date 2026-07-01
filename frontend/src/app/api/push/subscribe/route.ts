@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { PushSubscribeSchema, PushUnsubscribeSchema, parseJson } from "@/lib/schemas";
+import { isAllowedPushEndpoint } from "@/lib/ssrf";
 import { rateLimit } from "@/lib/rate-limit";
 import type { SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -23,6 +24,12 @@ export async function POST(request: Request) {
     const parsed = await parseJson(request, PushSubscribeSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { endpoint, p256dh, auth: authKey } = parsed.data;
+
+    // Anti-SSRF: só endpoints de provedores de push conhecidos (o servidor faz POST
+    // nesse endpoint ao despachar notificações).
+    if (!isAllowedPushEndpoint(endpoint)) {
+      return NextResponse.json({ error: "Endpoint de push não permitido." }, { status: 400 });
+    }
 
     await prisma.pushSubscription.upsert({
       where: { organizacaoId_endpoint: { organizacaoId: user.organizacaoId, endpoint } },

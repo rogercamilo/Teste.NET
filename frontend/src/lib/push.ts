@@ -1,6 +1,7 @@
 import webpush, { type PushSubscription as WebPushSubscription } from "web-push";
 import { prisma } from "@/lib/prisma";
 import { logError } from "@/lib/audit-log";
+import { isAllowedPushEndpoint } from "@/lib/ssrf";
 
 // Initialized lazily so missing env vars don't crash unrelated routes at import time.
 let vapidInitialized = false;
@@ -35,6 +36,14 @@ interface StoredSubscription {
 }
 
 async function sendToOne(sub: StoredSubscription, payload: PushPayload): Promise<SendResult> {
+  // Defesa em profundidade anti-SSRF: nunca faz POST para um endpoint fora dos
+  // provedores conhecidos, mesmo que uma linha antiga tenha sido gravada assim.
+  if (!isAllowedPushEndpoint(sub.endpoint)) {
+    logError("push:sendToOne blocked non-provider endpoint", new Error("endpoint bloqueado"), {
+      endpoint: sub.endpoint.slice(0, 60),
+    });
+    return "error";
+  }
   const pushSub: WebPushSubscription = {
     endpoint: sub.endpoint,
     keys: { p256dh: sub.p256dh, auth: sub.auth },

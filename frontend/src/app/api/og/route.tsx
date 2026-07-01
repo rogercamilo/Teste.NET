@@ -8,17 +8,20 @@ const CREAM = "#FBF8F4";
 const DARK = "#2A1E16";
 const MUTED = "#8C6F5E";
 
+// Origem fixa da marca — NÃO usar o host do request (Host header é forjável e
+// levaria o Satori a buscar de um host arbitrário → SSRF cego).
+const BRAND_ORIGIN = "https://www.formattio.com.br";
+
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const { searchParams } = url;
+  const { searchParams } = new URL(req.url);
   const title = searchParams.get("title");
   const subtitle = searchParams.get("subtitle");
 
   const heading = title ?? "Formattio";
   const isHome = !title;
 
-  // Use absolute URL so Satori can fetch the PNG (SVG not supported in <img>)
-  const logoUrl = `${url.protocol}//${url.host}/brand/icon-512.png`;
+  // URL absoluta fixa para o Satori buscar o PNG (SVG não é suportado em <img>).
+  const logoUrl = `${BRAND_ORIGIN}/brand/icon-512.png`;
 
   return new ImageResponse(
     (

@@ -4,6 +4,7 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { parseJson } from "@/lib/schemas";
+import { isAllowedPushEndpoint } from "@/lib/ssrf";
 
 const SubscribeFormandoSchema = z.object({
   token: z.string().min(1),
@@ -28,6 +29,11 @@ export async function POST(request: Request) {
     const parsed = await parseJson(request, SubscribeFormandoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { token, endpoint, p256dh, auth } = parsed.data;
+
+    // Anti-SSRF: só endpoints de provedores de push conhecidos.
+    if (!isAllowedPushEndpoint(endpoint)) {
+      return NextResponse.json({ error: "Endpoint de push não permitido." }, { status: 400 });
+    }
 
     const formando = await prisma.formando.findUnique({
       where: { tokenAssinatura: token },
