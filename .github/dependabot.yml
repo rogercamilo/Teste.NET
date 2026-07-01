@@ -1,0 +1,52 @@
+# Dependabot — atualização contínua de dependências (fecha o gap de "0 CVEs é só
+# um retrato" apontado na avaliação de segurança). PRs abrem contra `master` e
+# passam pelo CI + gate "Wait for CI" do Railway antes de qualquer deploy.
+#
+# Alertas/atualizações DE SEGURANÇA (para deps vulneráveis) dependem de o repo ter
+# "Dependabot alerts" e "Dependabot security updates" LIGADOS em
+# Settings → Code security and analysis. Este arquivo cobre as version updates.
+version: 2
+updates:
+  # ── App Next.js (frontend/) ────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    labels:
+      - "dependencies"
+    groups:
+      # Agrupa minor/patch num único PR por tipo — reduz ruído para dev solo.
+      # Majors ficam FORA dos grupos (um PR individual cada, por serem breaking).
+      producao-minor-patch:
+        applies-to: version-updates
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      desenvolvimento-minor-patch:
+        applies-to: version-updates
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+
+  # ── GitHub Actions (workflows) ─────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      actions-all:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
