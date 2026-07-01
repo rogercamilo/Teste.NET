@@ -18,6 +18,10 @@ on:
     - cron: "0 6 * * *" # 06:00 UTC diário (~03:00 BRT)
   workflow_dispatch: {}
 
+# Só usa Docker/AWS CLI com secrets — não faz checkout do repositório.
+permissions:
+  contents: read
+
 # Evita dois backups simultâneos (ex.: agendado + manual).
 concurrency:
   group: db-backup-r2

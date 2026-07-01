@@ -8,7 +8,7 @@
 import { PrismaClient } from "@prisma/client";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
+import { scryptSync, randomBytes, randomInt, timingSafeEqual } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -32,11 +32,13 @@ function generateRandomPassword(): string {
   const digits = "23456789";
   const special = "@#$!%*?&";
   const all = lower + upper + digits + special;
-  const pick = (cs: string) => cs[randomBytes(1)[0] % cs.length];
+  // randomInt faz rejection sampling → sem viés de módulo (evita que alguns
+  // caracteres sejam mais prováveis que outros, ao contrário de `byte % n`).
+  const pick = (cs: string) => cs[randomInt(cs.length)];
   const arr = [pick(lower), pick(upper), pick(digits), pick(special),
-    ...Array.from(randomBytes(8), (b) => all[b % all.length])];
+    ...Array.from({ length: 8 }, () => all[randomInt(all.length)])];
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = randomBytes(1)[0] % (i + 1);
+    const j = randomInt(i + 1);
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr.join("");

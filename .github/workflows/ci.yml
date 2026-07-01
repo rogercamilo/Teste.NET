@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [master, main]
 
+# Menor privilégio por padrão; o job coverage-diff eleva para pull-requests: write.
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: Lint, Type Check & Test
