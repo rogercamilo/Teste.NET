@@ -11,6 +11,7 @@ import {
   TIPO_COMENTARIO_CORES,
   TIPO_COMENTARIO_LABELS,
   totalRequerido,
+  podeAvancarEtapa,
   type GrupoFormacao,
   type Formando,
   type EstadoCivil,
@@ -37,6 +38,16 @@ import {
   RECOMENDACAO_CORES,
 } from "@/types";
 import { RelatorioDialog } from "./RelatorioDialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import {
+  progressoNaEtapa,
+  funilPorEtapa,
+  taxaPresenca90d,
+  mesesEntre,
+  pctEsperadoNoRitmo,
+  estaAtrasadoNoRitmo,
+  duracaoAnosEtapa,
+} from "@/lib/jornada-progresso";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -74,10 +85,12 @@ import {
   Camera,
   CheckCircle2,
   ClipboardList,
+  AlertTriangle,
   ChevronDown,
   ChevronUp,
   FileText,
   Flag,
+  GitBranch,
   Home,
   Mail,
   MapPin,
@@ -119,6 +132,15 @@ const NIVEL_SEQUENCE: NivelFormativo[] = [
   "primeiras-promessas",
   "formacao-permanente",
 ];
+
+// Cores sólidas por etapa para as barras do funil da Jornada (item 3.1).
+const NIVEL_BAR_COLORS: Record<NivelFormativo, string> = {
+  "pre-discipulado": "bg-violet-500",
+  discipulado: "bg-blue-500",
+  "primeiras-promessas": "bg-emerald-500",
+  "formacao-permanente": "bg-amber-500",
+  vocacional: "bg-rose-500",
+};
 
 type FormandoFormState = {
   nome: string;
@@ -246,6 +268,36 @@ export default function GrupoFormacaoDetail({
   );
 
   const agendamento = agendamentosDaMorada.find((a) => a.id === agendamentoId);
+
+  // ── Painel "Jornada" (item 3.1): funil, progresso e "quem parou" ──
+  // Sem useMemo manual: o React Compiler memoiza automaticamente.
+  const jornadaAtivos = formandosDaMorada.filter((f) => f.ativo);
+  const jornadaMembros = jornadaAtivos.map((f) => {
+    const { done, total, pct } = progressoNaEtapa(f.nivelFormativo, f.progressoEtapas);
+    const podeAvancar = podeAvancarEtapa(f);
+    // Motivos de atenção (ritmo atrasado e/ou presença baixa)
+    const prog = (f.progressoEtapas ?? []).find((p) => p.nivel === f.nivelFormativo);
+    const meses = mesesEntre(prog?.iniciouEm);
+    const motivos: string[] = [];
+    if (!podeAvancar && meses !== null) {
+      const esperado = pctEsperadoNoRitmo(meses, duracaoAnosEtapa(f.nivelFormativo));
+      if (estaAtrasadoNoRitmo(pct, esperado, meses)) {
+        motivos.push(`${pct}% em ${Math.round(meses)} ${Math.round(meses) === 1 ? "mês" : "meses"} de etapa`);
+      }
+    }
+    const presenca = taxaPresenca90d(presencas, f.id);
+    if (presenca !== null && presenca < 50) motivos.push(`presença ${presenca}%`);
+    return { id: f.id, nome: f.nome, nivelFormativo: f.nivelFormativo, done, total, pct, podeAvancar, motivos };
+  });
+  const jornada = {
+    totalAtivos: jornadaAtivos.length,
+    funil: funilPorEtapa(jornadaAtivos),
+    membros: [...jornadaMembros].sort((a, b) => b.pct - a.pct),
+    progressoMedio: jornadaMembros.length
+      ? Math.round(jornadaMembros.reduce((s, m) => s + m.pct, 0) / jornadaMembros.length)
+      : 0,
+    atencao: jornadaMembros.filter((m) => m.motivos.length > 0).sort((a, b) => a.pct - b.pct),
+  };
 
   const filteredFormandos = formandosDaMorada.filter((f) => {
     const matchSearch =
@@ -703,6 +755,10 @@ export default function GrupoFormacaoDetail({
             <ClipboardList className="h-3.5 w-3.5" />
             Presença
           </TabsTrigger>
+          <TabsTrigger value="jornada" className="text-xs h-7 gap-1.5">
+            <GitBranch className="h-3.5 w-3.5" />
+            Jornada
+          </TabsTrigger>
           <TabsTrigger value="comentarios" className="text-xs h-7 gap-1.5">
             <MessageSquare className="h-3.5 w-3.5" />
             Comentários
@@ -1114,6 +1170,119 @@ export default function GrupoFormacaoDetail({
                 </p>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        {/* TAB JORNADA (item 3.1) */}
+        <TabsContent value="jornada" className="mt-4 space-y-4">
+          {jornada.totalAtivos === 0 ? (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-0">
+                <EmptyState
+                  icon={GitBranch}
+                  title={`Sem ${termoFormando.toLowerCase()}s ativos`}
+                  description={`Cadastre ou ative ${termoFormando.toLowerCase()}s nesta ${termoGrupoFormacao.toLowerCase()} para acompanhar a jornada formativa.`}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Funil de etapas */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-primary" /> Distribuição por etapa
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {jornada.funil.map((f) => {
+                    const atual = grupoFormacao.nivelFormativo === f.nivel;
+                    return (
+                      <div key={f.nivel} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={cn("font-medium", atual ? "text-primary" : "text-foreground")}>
+                            {etapaLabels[f.nivel]}{atual ? " · atual" : ""}
+                          </span>
+                          <span className="text-muted-foreground">{f.quantidade} · {f.percentual}%</span>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div className={cn("h-full rounded-full transition-all duration-500", NIVEL_BAR_COLORS[f.nivel])} style={{ width: `${f.percentual}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              {/* Progresso na etapa */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-primary" /> Progresso na etapa
+                    </CardTitle>
+                    <span className="text-xs text-muted-foreground">média {jornada.progressoMedio}%</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2.5">
+                  <Progress value={jornada.progressoMedio} className="h-1.5" />
+                  <div className="space-y-1 pt-1">
+                    {jornada.membros.map((m) => (
+                      <Link
+                        key={m.id}
+                        href={`/formandos/${m.id}`}
+                        className="flex items-center gap-3 rounded-lg p-1.5 -mx-1.5 transition-colors hover:bg-muted/60"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{m.nome}</span>
+                        {m.podeAvancar && (
+                          <Badge variant="outline" className="shrink-0 border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">
+                            pode avançar
+                          </Badge>
+                        )}
+                        <div className="h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full bg-primary/70" style={{ width: `${m.pct}%` }} />
+                        </div>
+                        <span className="w-14 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{m.done}/{m.total}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Precisam de atenção ("quem parou") */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" /> Precisam de atenção
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5">
+                  {jornada.atencao.length === 0 ? (
+                    <p className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Ninguém em risco no momento.
+                    </p>
+                  ) : (
+                    jornada.atencao.map((m) => (
+                      <Link
+                        key={m.id}
+                        href={`/formandos/${m.id}`}
+                        className="flex items-center gap-2.5 rounded-lg p-2 -mx-2 transition-colors hover:bg-muted/60"
+                      >
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{m.nome}</span>
+                        <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                          {m.motivos.map((mot, i) => (
+                            <Badge key={i} variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[10px]">
+                              {mot}
+                            </Badge>
+                          ))}
+                        </span>
+                      </Link>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </>
           )}
         </TabsContent>
 
