@@ -14,6 +14,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -139,10 +140,23 @@ export default function GradesClient({ role, grupoFormacaoId, initialGrades, ini
       {/* List */}
       <div className="space-y-4">
         {visibleGrades.length === 0 && (
-          <div className="flex flex-col items-center py-16 text-center">
-            <Layers className="h-12 w-12 text-muted-foreground/30 mb-3" />
-            <p className="font-medium text-foreground">Nenhuma grade encontrada</p>
-          </div>
+          <EmptyState
+            icon={Layers}
+            title="Nenhuma grade formativa"
+            description={
+              canEdit
+                ? "Crie a primeira grade — o detalhamento operacional que dá vida aos planos com formações e eixos."
+                : "Ainda não há grades formativas disponíveis para o seu nível."
+            }
+            action={
+              canEdit ? (
+                <Button size="sm" onClick={() => router.push("/grades/novo")}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Criar grade
+                </Button>
+              ) : undefined
+            }
+          />
         )}
         {visibleGrades.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((grade) => (
           <Card key={grade.id} className="border-0 shadow-sm hover:shadow-md transition-all duration-200 group">

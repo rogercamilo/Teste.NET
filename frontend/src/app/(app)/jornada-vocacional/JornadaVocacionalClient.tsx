@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Filter, FolderOpen, RefreshCw, ScrollText, Search } from "lucide-react";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -135,14 +138,38 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-              <FolderOpen className="h-10 w-10 opacity-30" />
-              <p className="text-sm">
-                {initialProcessos.length === 0
-                  ? "Nenhum processo eclesiástico registrado."
-                  : "Nenhum processo encontrado com os filtros aplicados."}
-              </p>
-            </div>
+            initialProcessos.length === 0 ? (
+              <EmptyState
+                icon={FolderOpen}
+                title="Nenhum processo eclesiástico"
+                description="Os processos são iniciados na ficha de cada membro. Abra um membro para registrar o primeiro processo da jornada."
+                action={
+                  <Link href="/formandos" className={buttonVariants({ size: "sm" })}>
+                    Ir para membros
+                  </Link>
+                }
+              />
+            ) : (
+              <EmptyState
+                icon={Search}
+                title="Nenhum resultado"
+                description="Nenhum processo corresponde à busca ou aos filtros aplicados."
+                secondaryAction={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSearch("");
+                      setTipoFiltro("todos");
+                      setStatusFiltro("todos");
+                      setPage(1);
+                    }}
+                  >
+                    Limpar filtros
+                  </Button>
+                }
+              />
+            )
           ) : (
             <Table>
               <TableHeader>

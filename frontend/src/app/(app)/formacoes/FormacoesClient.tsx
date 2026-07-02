@@ -16,6 +16,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -236,10 +237,44 @@ export default function FormacoesClient({
       </div>
 
       {niveisComFormacoes.length === 0 && (
-        <div className="flex flex-col items-center py-16 text-center">
-          <BookOpen className="h-12 w-12 text-muted-foreground/30 mb-3" />
-          <p className="font-medium text-foreground">Nenhuma formação encontrada</p>
-        </div>
+        baseFormacoes.length === 0 ? (
+          <EmptyState
+            icon={BookOpen}
+            title="Nenhuma formação cadastrada"
+            description={
+              canEdit
+                ? "Cadastre a primeira formação — o conteúdo que compõe as grades e é agendado na agenda."
+                : "Ainda não há formações cadastradas para o seu nível."
+            }
+            action={
+              canEdit ? (
+                <Button size="sm" onClick={() => router.push("/formacoes/novo")}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Cadastrar formação
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={Search}
+            title="Nenhum resultado"
+            description="Nenhuma formação corresponde à busca ou aos filtros atuais."
+            secondaryAction={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setNivelFilter("todos");
+                  setGradeFilter("todas");
+                }}
+              >
+                Limpar filtros
+              </Button>
+            }
+          />
+        )
       )}
 
       {niveisComFormacoes.length > 0 && (

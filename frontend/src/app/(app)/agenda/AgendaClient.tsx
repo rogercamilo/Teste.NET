@@ -15,6 +15,7 @@ import {
 } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +45,7 @@ import {
   Loader2,
   MapPin,
   Plus,
+  Search,
   Users,
 } from "lucide-react";
 import {
@@ -290,13 +292,30 @@ export default function AgendaClient({
           </p>
         )}
         {filteredSorted.length === 0 ? (
-          <div className="flex flex-col items-center py-16 text-center">
-            <Calendar className="h-10 w-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm font-medium text-foreground">Nenhuma formação encontrada</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {statusFilter !== "todos" ? "Tente outro filtro de status." : "Clique em Agendar Formação para adicionar."}
-            </p>
-          </div>
+          meus.length === 0 ? (
+            <EmptyState
+              icon={Calendar}
+              title="Nenhuma formação agendada"
+              description="Agende a primeira formação — os participantes recebem lembretes automáticos e podem adicioná-la ao calendário pessoal."
+              action={
+                <Button size="sm" onClick={() => setNovoOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Agendar formação
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={Search}
+              title="Nenhum resultado"
+              description="Nenhuma formação corresponde ao filtro de status atual."
+              secondaryAction={
+                <Button size="sm" variant="outline" onClick={() => setStatusFilter("todos")}>
+                  Limpar filtro
+                </Button>
+              }
+            />
+          )
         ) : (
           <>
             {filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((ag) => (

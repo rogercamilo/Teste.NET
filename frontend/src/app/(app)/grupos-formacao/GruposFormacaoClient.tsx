@@ -16,6 +16,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -234,10 +235,30 @@ export default function GruposFormacaoClient({
       </div>
 
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center py-16 text-center">
-          <Home className="h-12 w-12 text-muted-foreground/30 mb-3" />
-          <p className="font-medium text-foreground">Nenhuma {termoGrupoFormacao.toLowerCase()} encontrada</p>
-        </div>
+        initialGruposFormacao.length === 0 ? (
+          <EmptyState
+            icon={Home}
+            title={`Nenhuma ${termoGrupoFormacao.toLowerCase()} criada`}
+            description={`Crie a primeira ${termoGrupoFormacao.toLowerCase()} para organizar seus ${termoGrupoFormacao.toLowerCase() === "morada" ? "membros" : "formandos"} e vincular plano e grade.`}
+            action={
+              <Link href="/grupos-formacao/nova" className={buttonVariants({ size: "sm" })}>
+                <Plus className="h-4 w-4 mr-1.5" />
+                Criar {termoGrupoFormacao.toLowerCase()}
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={Search}
+            title="Nenhum resultado"
+            description="Nenhum registro corresponde à busca atual."
+            secondaryAction={
+              <Button size="sm" variant="outline" onClick={() => setSearch("")}>
+                Limpar busca
+              </Button>
+            }
+          />
+        )
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

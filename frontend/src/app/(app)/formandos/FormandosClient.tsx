@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import {
@@ -368,11 +369,37 @@ export default function FormandosClient({
       )}
 
       {filtered.length === 0 && !isPending && (
-        <div className="flex flex-col items-center py-16 text-center">
-          <Users className="h-12 w-12 text-muted-foreground/30 mb-3" />
-          <p className="font-medium text-foreground">Nenhum {termoFormando.toLowerCase()} encontrado</p>
-          <p className="text-sm text-muted-foreground mt-1">Tente ajustar os filtros de busca</p>
-        </div>
+        initialFormandos.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title={`Nenhum ${termoFormando.toLowerCase()} cadastrado`}
+            description={`Comece cadastrando o primeiro ${termoFormando.toLowerCase()} para acompanhar sua jornada formativa.`}
+            action={
+              <Button size="sm" onClick={openCreate}>
+                <Plus className="h-4 w-4 mr-1.5" />
+                Cadastrar {termoFormando.toLowerCase()}
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={Search}
+            title="Nenhum resultado"
+            description="Nenhum registro corresponde à busca ou aos filtros atuais."
+            secondaryAction={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setNivelFilter("todos");
+                }}
+              >
+                Limpar filtros
+              </Button>
+            }
+          />
+        )
       )}
 
       {view === "grid" && filtered.length > 0 && (

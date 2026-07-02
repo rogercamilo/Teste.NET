@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Sprout, Users, HeartHandshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -117,9 +118,23 @@ export default function VocacionalClient({ userRole, termoVocacional, formadores
 
       {turmas.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Nenhuma turma vocacional ainda.
-            {gestao && " Crie a primeira turma para começar o acompanhamento."}
+          <CardContent className="p-0">
+            <EmptyState
+              icon={Sprout}
+              title="Nenhuma turma vocacional"
+              description={
+                gestao
+                  ? "Crie a primeira turma para começar o acompanhamento vocacional dos participantes."
+                  : "Ainda não há turmas vocacionais para acompanhar."
+              }
+              action={
+                gestao ? (
+                  <Button size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
+                    <Plus className="h-4 w-4" /> Nova turma
+                  </Button>
+                ) : undefined
+              }
+            />
           </CardContent>
         </Card>
       ) : (
