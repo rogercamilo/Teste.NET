@@ -268,6 +268,23 @@ export const CreateAgendamentoSchema = z.object({
 
 export const UpdateAgendamentoSchema = CreateAgendamentoSchema.partial();
 
+// ── Compromisso (agenda pessoal do formador) ────────────────────────────────────
+
+const TipoCompromissoEnum = z.enum(["reuniao", "visita", "formacao_pessoal", "outro"]);
+
+export const CreateCompromissoSchema = z.object({
+  titulo: z.string().trim().min(1, "Título obrigatório").max(200),
+  descricao: optionalString(2000).nullable(),
+  tipo: TipoCompromissoEnum,
+  dataInicio: isoDatetime,
+  dataFim: isoDatetime.optional(),
+  local: optionalString(500).nullable(),
+  linkOnline: z.string().url("URL inválida").max(2048).optional().nullable(),
+  formandoId: z.string().optional().nullable(),
+});
+
+export const UpdateCompromissoSchema = CreateCompromissoSchema.partial();
+
 // ── Formação ──────────────────────────────────────────────────────────────────
 
 export const UpdateFormacaoSchema = z.object({

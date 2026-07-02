@@ -29,7 +29,7 @@ export type PlanoAssinatura = "GRATUITO" | "BASICO" | "INTERMEDIARIO" | "AVANCAD
 export type StatusOrganizacao = "TRIAL" | "ATIVO" | "SUSPENSO" | "CANCELADO";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
 export type PerspectivaFormativa = "humana" | "espiritual" | "comunitaria";
-export type TipoCompromisso = "individual" | "geral";
+export type TipoCompromisso = "reuniao" | "visita" | "formacao_pessoal" | "outro";
 export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoal" | "atividade-extra";
 
 export interface ProgressoEtapa {
@@ -353,6 +353,22 @@ export interface Compromisso {
   googleCalendarEventId?: string;
   criadoEm: string;
 }
+
+export const TIPO_COMPROMISSO_LABELS: Record<TipoCompromisso, string> = {
+  reuniao: "Reunião",
+  visita: "Visita",
+  formacao_pessoal: "Formação pessoal",
+  outro: "Outro",
+};
+
+export const TIPO_COMPROMISSO_CORES: Record<TipoCompromisso, string> = {
+  reuniao: "bg-blue-100 text-blue-700",
+  visita: "bg-emerald-100 text-emerald-700",
+  formacao_pessoal: "bg-violet-100 text-violet-700",
+  outro: "bg-slate-100 text-slate-600",
+};
+
+export const TIPOS_COMPROMISSO: TipoCompromisso[] = ["reuniao", "visita", "formacao_pessoal", "outro"];
 
 export interface DashboardStats {
   totalAgendadas: number;

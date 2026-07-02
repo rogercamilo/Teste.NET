@@ -3,6 +3,7 @@
   Formando, ProgressoEtapa, GradeFormativa, Eixo, Etapa,
   GrupoFormacao, PlanoFormativo, EixoPlano, RetiroPlano, PresencaFormacao,
   RelatorioEtapa, NotaAdesao, NivelFormativo, RecomendacaoEtapa, StatusRelatorio,
+  Compromisso, TipoCompromisso,
 } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -15,6 +16,13 @@ export type PrismaAgendamento = {
   grupoFormacaoId: string | null;
   dataInicio: Date; dataFim: Date; local: string | null; linkOnline: string | null;
   status: string; participantes: number; observacoes: string | null;
+  googleCalendarEventId: string | null; criadoEm: Date;
+};
+
+export type PrismaCompromisso = {
+  id: string; organizacaoId: string; formadorId: string; titulo: string; descricao: string | null;
+  dataInicio: Date; dataFim: Date; local: string | null; linkOnline: string | null;
+  tipo: string; formandoId: string | null; formandoNome: string | null;
   googleCalendarEventId: string | null; criadoEm: Date;
 };
 
@@ -111,6 +119,19 @@ export function toAgendamento(a: PrismaAgendamento): Agendamento {
     observacoes: a.observacoes ?? undefined,
     googleCalendarEventId: a.googleCalendarEventId ?? undefined,
     criadoEm: a.criadoEm.toISOString(),
+  };
+}
+
+export function toCompromisso(c: PrismaCompromisso): Compromisso {
+  return {
+    id: c.id, formadorId: c.formadorId, titulo: c.titulo,
+    descricao: c.descricao ?? undefined,
+    dataInicio: c.dataInicio.toISOString(), dataFim: c.dataFim.toISOString(),
+    local: c.local ?? undefined, linkOnline: c.linkOnline ?? undefined,
+    tipo: c.tipo as TipoCompromisso,
+    formandoId: c.formandoId ?? undefined, formandoNome: c.formandoNome ?? undefined,
+    googleCalendarEventId: c.googleCalendarEventId ?? undefined,
+    criadoEm: c.criadoEm.toISOString(),
   };
 }
 

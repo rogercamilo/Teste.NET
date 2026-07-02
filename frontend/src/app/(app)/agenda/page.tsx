@@ -1,7 +1,7 @@
 ﻿import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toAgendamento, toFormacao, toGrupoFormacao } from "@/lib/converters";
+import { toAgendamento, toFormacao, toGrupoFormacao, toCompromisso } from "@/lib/converters";
 import { type SessionUser } from "@/lib/auth-helpers";
 import AgendaClient from "./AgendaClient";
 
@@ -23,7 +23,11 @@ export default async function AgendaPage() {
     ];
   }
 
-  const [agendamentosRaw, formacoesRaw, gruposFormacaoRaw] = await Promise.all([
+  // Formandos para o vínculo opcional de compromisso (FC → próprio grupo; gestão → org).
+  const formandosWhere: Record<string, unknown> = { organizacaoId: user.organizacaoId, ativo: true, deletedAt: null };
+  if (user.role === "formador_comunitario") formandosWhere.grupoFormacaoId = user.grupoFormacaoId ?? null;
+
+  const [agendamentosRaw, formacoesRaw, gruposFormacaoRaw, compromissosRaw, formandosRaw] = await Promise.all([
     prisma.agendamento.findMany({
       where: agendamentosWhere,
       orderBy: { dataInicio: "desc" },
@@ -42,6 +46,16 @@ export default async function AgendaPage() {
       where: { organizacaoId: user.organizacaoId, ativo: true },
       orderBy: { nome: "asc" },
     }),
+    // Compromissos são privados: só os do próprio usuário.
+    prisma.compromisso.findMany({
+      where: { organizacaoId: user.organizacaoId, formadorId: user.id ?? "" },
+      orderBy: { dataInicio: "asc" },
+    }),
+    prisma.formando.findMany({
+      where: formandosWhere,
+      select: { id: true, nome: true },
+      orderBy: { nome: "asc" },
+    }),
   ]);
 
   return (
@@ -49,6 +63,8 @@ export default async function AgendaPage() {
       initialAgendamentos={agendamentosRaw.map(toAgendamento)}
       initialFormacoes={formacoesRaw.map(toFormacao)}
       initialGruposFormacao={gruposFormacaoRaw.map(toGrupoFormacao)}
+      initialCompromissos={compromissosRaw.map(toCompromisso)}
+      formandosVinculo={formandosRaw}
       role={user.role ?? "formador_comunitario"}
       userId={user.id ?? ""}
       grupoFormacaoId={user.grupoFormacaoId ?? null}

@@ -12,6 +12,7 @@ import {
   type NivelFormativo,
   type Formacao,
   type GrupoFormacao,
+  type Compromisso,
 } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,9 +36,12 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CompromissosTab } from "./CompromissosTab";
 import {
   BookOpen,
   Calendar,
+  CalendarClock,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -109,6 +113,8 @@ interface AgendaClientProps {
   initialAgendamentos: Agendamento[];
   initialFormacoes: Formacao[];
   initialGruposFormacao: GrupoFormacao[];
+  initialCompromissos: Compromisso[];
+  formandosVinculo: { id: string; nome: string }[];
   role: string;
   userId: string;
   grupoFormacaoId: string | null;
@@ -118,6 +124,8 @@ export default function AgendaClient({
   initialAgendamentos,
   initialFormacoes,
   initialGruposFormacao,
+  initialCompromissos,
+  formandosVinculo,
   role,
   userId,
   grupoFormacaoId: userGrupoFormacaoId,
@@ -191,6 +199,20 @@ export default function AgendaClient({
           Agendar Formação
         </Button>
       </div>
+
+      <Tabs defaultValue="formacoes" className="w-full">
+        <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className="bg-muted/50 h-9 min-w-max">
+            <TabsTrigger value="formacoes" className="text-xs h-7 gap-1.5">
+              <Calendar className="h-3.5 w-3.5" /> Formações
+            </TabsTrigger>
+            <TabsTrigger value="compromissos" className="text-xs h-7 gap-1.5">
+              <CalendarClock className="h-3.5 w-3.5" /> Meus compromissos
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="formacoes" className="space-y-5 mt-4">
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
         {STATUS_LIST.map((s) => {
@@ -336,6 +358,12 @@ export default function AgendaClient({
         isFC={isFC}
         onSaved={() => startTransition(() => router.refresh())}
       />
+        </TabsContent>
+
+        <TabsContent value="compromissos" className="mt-4">
+          <CompromissosTab initialCompromissos={initialCompromissos} formandosVinculo={formandosVinculo} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
