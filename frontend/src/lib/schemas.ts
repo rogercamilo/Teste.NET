@@ -224,6 +224,7 @@ export const UpdateOrganizacaoSchema = z.object({
   termoVocacional: optionalString(100),
   termoAcompanhamentoVocacional: optionalString(100),
   vocacionalDuracaoPadraoMeses: z.number().int().min(1).max(24).optional(),
+  emailAgendamentoAtivo: z.boolean().optional(),
   nomePlataforma: optionalString(100).nullable(),
   logoUrl: z
     .string()

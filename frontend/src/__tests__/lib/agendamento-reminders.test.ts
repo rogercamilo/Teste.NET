@@ -18,6 +18,7 @@ vi.mock("@/lib/prisma", () => ({
     agendamento: { findMany: vi.fn().mockResolvedValue([]), update: vi.fn().mockResolvedValue({}) },
     formando: { findMany: vi.fn().mockResolvedValue([]) },
     usuario: { findUnique: vi.fn().mockResolvedValue(null) },
+    organizacao: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }));
 
@@ -31,6 +32,7 @@ const findMany = vi.mocked(prisma.agendamento.findMany);
 const update = vi.mocked(prisma.agendamento.update);
 const formandoFindMany = vi.mocked(prisma.formando.findMany);
 const usuarioFindUnique = vi.mocked(prisma.usuario.findUnique);
+const orgFindMany = vi.mocked(prisma.organizacao.findMany);
 
 const HORA = 60 * 60 * 1000;
 const NOW = new Date("2026-07-02T12:00:00.000Z");
@@ -127,5 +129,18 @@ describe("checkAndSendReminders — escopo de grupo", () => {
     expect(criarNotificacao).toHaveBeenCalledTimes(1);
     // formando (1) + FC (1)
     expect(sendAgendamentoReminderEmail).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("checkAndSendReminders — opt-out de e-mail (item 1.6)", () => {
+  it("org com emailAgendamentoAtivo=false: não envia e-mail ao formando, mas mantém push", async () => {
+    findMany.mockResolvedValueOnce([] as never).mockResolvedValueOnce([baseRow()] as never);
+    orgFindMany.mockResolvedValueOnce([{ id: "org1" }] as never); // org desligou e-mails
+    formandoFindMany.mockResolvedValueOnce([{ nome: "Ana", email: "ana@x.com", tokenAssinatura: "t" }] as never);
+
+    await checkAndSendReminders(NOW);
+
+    expect(sendPushToOrg).toHaveBeenCalledTimes(1); // push segue
+    expect(sendAgendamentoReminderEmail).not.toHaveBeenCalled(); // e-mail ao formando é pulado
   });
 });

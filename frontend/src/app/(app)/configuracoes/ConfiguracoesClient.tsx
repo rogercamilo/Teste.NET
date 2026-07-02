@@ -2110,6 +2110,40 @@ function ComunidadeTab() {
         );
       })()}
 
+      {/* Comunicação — e-mail de agenda */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            Comunicação por e-mail
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Controle os e-mails de agenda enviados aos formandos. As notificações no app (sino) e o push
+            continuam funcionando normalmente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-6">
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.emailAgendamentoAtivo !== false}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, emailAgendamentoAtivo: e.target.checked }));
+                setDirty(true);
+              }}
+              className="mt-0.5 h-4 w-4 rounded border-border"
+            />
+            <span className="text-sm text-foreground">
+              Enviar e-mails de agenda aos formandos
+              <span className="block text-xs text-muted-foreground">
+                Inclui o e-mail ao criar um encontro e os lembretes automáticos (24h e 2h antes), com
+                convite de calendário e confirmação de presença.
+              </span>
+            </span>
+          </label>
+        </CardContent>
+      </Card>
+
       <div className="flex gap-2 justify-end">
         {dirty && (
           <Button variant="outline" size="sm" onClick={handleReset}>

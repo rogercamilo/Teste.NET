@@ -18,7 +18,7 @@ export async function GET() {
   try {
     const org = await prisma.organizacao.findUnique({
       where: { id: user.organizacaoId },
-      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
@@ -40,6 +40,7 @@ export async function GET() {
       termoVocacional: org.termoVocacional,
       termoAcompanhamentoVocacional: org.termoAcompanhamentoVocacional,
       vocacionalDuracaoPadraoMeses: org.vocacionalDuracaoPadraoMeses,
+      emailAgendamentoAtivo: org.emailAgendamentoAtivo,
       nomePlataforma: org.nomePlataforma ?? undefined,
       logoUrl: org.logoUrl ?? undefined,
       temaCor: org.temaCor,
@@ -91,12 +92,13 @@ export async function PUT(request: Request) {
         termoVocacional: body.termoVocacional || undefined,
         termoAcompanhamentoVocacional: body.termoAcompanhamentoVocacional || undefined,
         ...(body.vocacionalDuracaoPadraoMeses !== undefined ? { vocacionalDuracaoPadraoMeses: body.vocacionalDuracaoPadraoMeses } : {}),
+        ...(body.emailAgendamentoAtivo !== undefined ? { emailAgendamentoAtivo: body.emailAgendamentoAtivo } : {}),
         nomePlataforma: body.nomePlataforma?.trim() || null,
         logoUrl: body.logoUrl !== undefined ? (body.logoUrl || null) : undefined,
         temaCor: body.temaCor || undefined,
         ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
-      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     revalidateTag(orgBrandingTag(user.organizacaoId), { expire: 0 });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
@@ -118,6 +120,7 @@ export async function PUT(request: Request) {
       termoVocacional: updated.termoVocacional,
       termoAcompanhamentoVocacional: updated.termoAcompanhamentoVocacional,
       vocacionalDuracaoPadraoMeses: updated.vocacionalDuracaoPadraoMeses,
+      emailAgendamentoAtivo: updated.emailAgendamentoAtivo,
       nomePlataforma: updated.nomePlataforma ?? undefined,
       logoUrl: updated.logoUrl ?? undefined,
       temaCor: updated.temaCor,

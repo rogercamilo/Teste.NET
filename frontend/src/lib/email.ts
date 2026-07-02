@@ -792,6 +792,55 @@ export async function sendComunicadoEmail({
 /** Antecedência do lembrete de agenda. */
 export type ReminderQuando = "24h" | "2h";
 
+/** Campos de agendamento usados nos e-mails de agenda (criação + lembrete). */
+type AgendamentoEmail = {
+  id: string;
+  formacaoTema: string;
+  dataInicio: Date;
+  dataFim: Date;
+  local?: string | null;
+  linkOnline?: string | null;
+};
+
+/** Anexo `.ics` do encontro (reuso entre criação e lembrete). */
+function agendamentoIcsAttachment(ag: AgendamentoEmail): EmailAttachment {
+  const evento: CalendarEvent = {
+    id: ag.id,
+    title: ag.formacaoTema || "Encontro formativo",
+    start: ag.dataInicio,
+    end: ag.dataFim,
+    location: ag.local ?? ag.linkOnline ?? undefined,
+  };
+  const ics = buildEventIcs(evento);
+  return {
+    filename: icsFileName(ag.formacaoTema || "encontro"),
+    content: Buffer.from(ics, "utf-8").toString("base64"),
+    contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+  };
+}
+
+/** Bloco de detalhes (Quando/Local/Online) via keyValues. */
+function agendamentoDetalhes(ag: AgendamentoEmail): string {
+  const linhas: { label: string; value: string }[] = [{ label: "Quando", value: formatDataBr(ag.dataInicio) }];
+  if (ag.local) linhas.push({ label: "Local", value: escapeHtml(ag.local) });
+  if (ag.linkOnline) {
+    linhas.push({
+      label: "Online",
+      value: `<a href="${safeUrl(ag.linkOnline)}" style="color:#B25433;word-break:break-all;">${escapeHtml(ag.linkOnline)}</a>`,
+    });
+  }
+  return keyValues(linhas);
+}
+
+/** Botões de RSVP 1-clique (item 1.3) quando há token do formando. */
+function rsvpButtons(base: string, token: string, agId: string): string[] {
+  return [
+    paragraph("Você vai participar?"),
+    button("Vou participar", `${base}/rsvp/${token}?ag=${agId}&resp=sim`),
+    button("Não vou poder ir", `${base}/rsvp/${token}?ag=${agId}&resp=nao`),
+  ];
+}
+
 /**
  * Lembrete de encontro agendado (T-24h / T-2h) com o `.ics` do evento anexado.
  * Reaproveita `buildEventIcs` (lib/ics.ts). Envio transacional; a suppression
@@ -826,33 +875,15 @@ export async function sendAgendamentoReminderEmail({
   const tema = escapeHtml(agendamento.formacaoTema || "Encontro formativo");
   const quandoTxt = formatDataBr(agendamento.dataInicio);
 
-  const linhas: { label: string; value: string }[] = [{ label: "Quando", value: quandoTxt }];
-  if (agendamento.local) linhas.push({ label: "Local", value: escapeHtml(agendamento.local) });
-  if (agendamento.linkOnline) {
-    linhas.push({
-      label: "Online",
-      value: `<a href="${safeUrl(agendamento.linkOnline)}" style="color:#B25433;word-break:break-all;">${escapeHtml(agendamento.linkOnline)}</a>`,
-    });
-  }
-
   const base = appUrl.replace(/\/+$/, "");
   const agendaUrl = `${base}/agenda`;
-  // RSVP 1-clique (item 1.3): dois botões quando há token do formando.
-  const rsvpBlock = rsvpToken
-    ? [
-        paragraph("Você vai participar?"),
-        button("Vou participar", `${base}/rsvp/${rsvpToken}?ag=${agendamento.id}&resp=sim`),
-        button("Não vou poder ir", `${base}/rsvp/${rsvpToken}?ag=${agendamento.id}&resp=nao`),
-      ]
-    : [];
   const conteudo = [
     banner("info", `Lembrete: ${tema} acontece ${antecedencia}`),
     paragraph(`Olá, <strong>${escapeHtml(nome)}</strong>!`),
     paragraph(`Este é um lembrete do encontro <strong>${tema}</strong>.`),
-    keyValues(linhas),
+    agendamentoDetalhes(agendamento),
     paragraph("O convite está anexado (<strong>.ics</strong>) — abra para adicionar ao seu calendário."),
-    ...rsvpBlock,
-    ...(rsvpToken ? [] : [button("Ver na agenda", agendaUrl), linkFallback(agendaUrl)]),
+    ...(rsvpToken ? rsvpButtons(base, rsvpToken, agendamento.id) : [button("Ver na agenda", agendaUrl), linkFallback(agendaUrl)]),
   ].join("");
 
   const html = renderEmail({
@@ -863,22 +894,55 @@ export async function sendAgendamentoReminderEmail({
     logoUrl: LOGO_URL,
   });
 
-  const evento: CalendarEvent = {
-    id: agendamento.id,
-    title: agendamento.formacaoTema || "Encontro formativo",
-    start: agendamento.dataInicio,
-    end: agendamento.dataFim,
-    location: agendamento.local ?? agendamento.linkOnline ?? undefined,
-  };
-  const ics = buildEventIcs(evento);
-  const attachment: EmailAttachment = {
-    filename: icsFileName(agendamento.formacaoTema || "encontro"),
-    content: Buffer.from(ics, "utf-8").toString("base64"),
-    contentType: "text/calendar; charset=utf-8; method=PUBLISH",
-  };
-
   return send(organizacaoId, email, `Lembrete: ${agendamento.formacaoTema || "encontro"} — ${antecedencia}`, html, {
-    attachments: [attachment],
+    attachments: [agendamentoIcsAttachment(agendamento)],
+  });
+}
+
+/**
+ * E-mail de CRIAÇÃO de agendamento (item 1.6) — enviado ao formando quando o
+ * Formador Geral mantém o opt-in de e-mails de agenda ligado. Mesma estrutura do
+ * lembrete (`.ics` + RSVP), com texto de "nova formação agendada".
+ */
+export async function sendAgendamentoCriadoEmail({
+  organizacaoId,
+  email,
+  nome,
+  agendamento,
+  appUrl = APP_URL,
+  rsvpToken,
+}: {
+  organizacaoId: string;
+  email: string;
+  nome: string;
+  agendamento: AgendamentoEmail;
+  appUrl?: string;
+  rsvpToken?: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const tema = escapeHtml(agendamento.formacaoTema || "Encontro formativo");
+  const quandoTxt = formatDataBr(agendamento.dataInicio);
+  const base = appUrl.replace(/\/+$/, "");
+  const agendaUrl = `${base}/agenda`;
+
+  const conteudo = [
+    banner("info", `Nova formação agendada: ${tema}`),
+    paragraph(`Olá, <strong>${escapeHtml(nome)}</strong>!`),
+    paragraph(`Um novo encontro foi agendado: <strong>${tema}</strong>.`),
+    agendamentoDetalhes(agendamento),
+    paragraph("O convite está anexado (<strong>.ics</strong>) — abra para adicionar ao seu calendário."),
+    ...(rsvpToken ? rsvpButtons(base, rsvpToken, agendamento.id) : [button("Ver na agenda", agendaUrl), linkFallback(agendaUrl)]),
+  ].join("");
+
+  const html = renderEmail({
+    titulo: `Nova formação agendada: ${agendamento.formacaoTema || "Encontro formativo"}`,
+    preheader: `${agendamento.formacaoTema || "Encontro"} — ${quandoTxt}`,
+    eyebrow: "Agenda",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
+
+  return send(organizacaoId, email, `Nova formação agendada: ${agendamento.formacaoTema || "encontro"}`, html, {
+    attachments: [agendamentoIcsAttachment(agendamento)],
   });
 }
 

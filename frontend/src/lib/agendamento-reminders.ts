@@ -69,13 +69,6 @@ export async function checkAndSendReminders(now: Date = new Date()): Promise<Rem
     },
     select: REMINDER_SELECT,
   });
-  for (const row of t24) {
-    await sendReminderForRow(row, "24h", summary);
-    await prisma.agendamento
-      .update({ where: { id: row.id }, data: { lembrete24hEnviado: true } })
-      .catch((err) => logError("agendamento-reminders:flag24", err, { id: row.id }));
-  }
-
   // T-2h: qualquer encontro futuro dentro das próximas 2h.
   const t2 = await prisma.agendamento.findMany({
     where: {
@@ -86,8 +79,28 @@ export async function checkAndSendReminders(now: Date = new Date()): Promise<Rem
     },
     select: REMINDER_SELECT,
   });
+  if (t24.length === 0 && t2.length === 0) return summary;
+
+  // Item 1.6: orgs que desligaram o opt-in de e-mails de agenda pulam o e-mail
+  // ao formando (push e bell seguem). Uma query dos orgs distintos do lote.
+  const orgIds = [...new Set([...t24, ...t2].map((r) => r.organizacaoId))];
+  const emailOff = new Set(
+    (
+      await prisma.organizacao.findMany({
+        where: { id: { in: orgIds }, emailAgendamentoAtivo: false },
+        select: { id: true },
+      })
+    ).map((o) => o.id)
+  );
+
+  for (const row of t24) {
+    await sendReminderForRow(row, "24h", summary, !emailOff.has(row.organizacaoId));
+    await prisma.agendamento
+      .update({ where: { id: row.id }, data: { lembrete24hEnviado: true } })
+      .catch((err) => logError("agendamento-reminders:flag24", err, { id: row.id }));
+  }
   for (const row of t2) {
-    await sendReminderForRow(row, "2h", summary);
+    await sendReminderForRow(row, "2h", summary, !emailOff.has(row.organizacaoId));
     await prisma.agendamento
       .update({ where: { id: row.id }, data: { lembrete2hEnviado: true } })
       .catch((err) => logError("agendamento-reminders:flag2", err, { id: row.id }));
@@ -99,11 +112,12 @@ export async function checkAndSendReminders(now: Date = new Date()): Promise<Rem
 async function sendReminderForRow(
   row: ReminderRow,
   quando: ReminderQuando,
-  summary: ReminderSummary
+  summary: ReminderSummary,
+  emailAtivo: boolean
 ): Promise<void> {
   summary.agendamentos++;
   try {
-    const r = await dispatchReminder(row, quando);
+    const r = await dispatchReminder(row, quando, emailAtivo);
     summary.emails += r.emails;
     summary.push += r.push;
   } catch (err) {
@@ -114,7 +128,8 @@ async function sendReminderForRow(
 
 async function dispatchReminder(
   row: ReminderRow,
-  quando: ReminderQuando
+  quando: ReminderQuando,
+  emailAtivo: boolean
 ): Promise<{ emails: number; push: number }> {
   const org = row.organizacaoId;
   const tema = row.formacaoTema || "Encontro formativo";
@@ -128,17 +143,10 @@ async function dispatchReminder(
   let emails = 0;
   let push = 0;
 
-  let formandos: { nome: string; email: string; tokenAssinatura: string | null }[];
-
   if (row.grupoFormacaoId) {
-    // Escopo de grupo: push + e-mail aos formandos do grupo; bell + e-mail ao FC.
+    // Escopo de grupo: push ao grupo; bell + e-mail ao FC (staff, sempre).
     const p = await sendPushToGroup(org, row.grupoFormacaoId, pushPayload).catch(() => null);
     if (p) push += p.sent;
-
-    formandos = await prisma.formando.findMany({
-      where: { organizacaoId: org, grupoFormacaoId: row.grupoFormacaoId, ativo: true, deletedAt: null, email: { not: "" } },
-      select: { nome: true, email: true, tokenAssinatura: true },
-    });
 
     const fcId = await formadorDoGrupo(row.grupoFormacaoId).catch(() => null);
     if (fcId) {
@@ -159,28 +167,47 @@ async function dispatchReminder(
       }
     }
   } else {
-    // Escopo geral (org inteira): push à org + e-mail a todos os formandos ativos.
+    // Escopo geral (org inteira): push à org.
     const p = await sendPushToOrg(org, pushPayload).catch(() => null);
     if (p) push += p.sent;
-
-    formandos = await prisma.formando.findMany({
-      where: { organizacaoId: org, ativo: true, deletedAt: null, email: { not: "" } },
-      select: { nome: true, email: true, tokenAssinatura: true },
-    });
   }
 
-  for (const f of formandos) {
-    if (!f.email) continue;
-    const r = await sendAgendamentoReminderEmail({
-      organizacaoId: org,
-      email: f.email,
-      nome: f.nome,
-      agendamento: row,
-      quando,
-      rsvpToken: f.tokenAssinatura ?? undefined,
-    }).catch(() => ({ sent: false }));
-    if (r.sent) emails++;
+  // E-mail aos formandos — só quando o opt-in de e-mails de agenda está ligado (item 1.6).
+  if (emailAtivo) {
+    const formandos = await formandosAlvo(org, row.grupoFormacaoId);
+    for (const f of formandos) {
+      if (!f.email) continue;
+      const r = await sendAgendamentoReminderEmail({
+        organizacaoId: org,
+        email: f.email,
+        nome: f.nome,
+        agendamento: row,
+        quando,
+        rsvpToken: f.tokenAssinatura ?? undefined,
+      }).catch(() => ({ sent: false }));
+      if (r.sent) emails++;
+    }
   }
 
   return { emails, push };
+}
+
+/**
+ * Formandos-alvo de um agendamento para e-mail: do grupo (se houver) ou de toda
+ * a org (evento geral). Só ativos, com e-mail. Reutilizado pela criação (1.6).
+ */
+export async function formandosAlvo(
+  organizacaoId: string,
+  grupoFormacaoId: string | null
+): Promise<{ nome: string; email: string; tokenAssinatura: string | null }[]> {
+  return prisma.formando.findMany({
+    where: {
+      organizacaoId,
+      ...(grupoFormacaoId ? { grupoFormacaoId } : {}),
+      ativo: true,
+      deletedAt: null,
+      email: { not: "" },
+    },
+    select: { nome: true, email: true, tokenAssinatura: true },
+  });
 }

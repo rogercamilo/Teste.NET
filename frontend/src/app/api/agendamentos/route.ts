@@ -9,6 +9,8 @@ import type { Agendamento } from "@/types";
 import { sendPushToOrg } from "@/lib/push";
 import { formatDataBr } from "@/lib/utils";
 import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
+import { formandosAlvo } from "@/lib/agendamento-reminders";
+import { sendAgendamentoCriadoEmail } from "@/lib/email";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -122,9 +124,58 @@ export async function POST(request: Request) {
       url: "/agenda",
     }).catch(() => {});
 
+    // E-mail de criação aos formandos — só se o FG manteve o opt-in (item 1.6).
+    // Fire-and-forget: não bloqueia a resposta 201.
+    void notificarCriacaoPorEmail(row);
+
     return NextResponse.json(toAg(row), { status: 201 });
   } catch (err) {
     logError("agendamentos POST", err);
     return NextResponse.json({ error: "Falha ao criar agendamento" }, { status: 500 });
+  }
+}
+
+/**
+ * E-mail de criação de agendamento aos formandos-alvo (item 1.6) — respeitando o
+ * opt-in do Formador Geral (`emailAgendamentoAtivo`). Best-effort; erros não
+ * afetam a criação (chamado com `void`).
+ */
+async function notificarCriacaoPorEmail(row: {
+  id: string;
+  organizacaoId: string;
+  grupoFormacaoId: string | null;
+  formacaoTema: string;
+  dataInicio: Date;
+  dataFim: Date;
+  local: string | null;
+  linkOnline: string | null;
+}): Promise<void> {
+  try {
+    const org = await prisma.organizacao.findUnique({
+      where: { id: row.organizacaoId },
+      select: { emailAgendamentoAtivo: true },
+    });
+    if (!org?.emailAgendamentoAtivo) return;
+
+    const formandos = await formandosAlvo(row.organizacaoId, row.grupoFormacaoId);
+    for (const f of formandos) {
+      if (!f.email) continue;
+      await sendAgendamentoCriadoEmail({
+        organizacaoId: row.organizacaoId,
+        email: f.email,
+        nome: f.nome,
+        agendamento: {
+          id: row.id,
+          formacaoTema: row.formacaoTema,
+          dataInicio: row.dataInicio,
+          dataFim: row.dataFim,
+          local: row.local,
+          linkOnline: row.linkOnline,
+        },
+        rsvpToken: f.tokenAssinatura ?? undefined,
+      }).catch(() => {});
+    }
+  } catch (err) {
+    logError("agendamentos:email-criacao", err);
   }
 }

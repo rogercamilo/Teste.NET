@@ -1033,6 +1033,8 @@ export interface ComunidadeConfig {
   termoVocacional?: string;
   termoAcompanhamentoVocacional?: string;
   vocacionalDuracaoPadraoMeses?: number;
+  /** Opt-out do FG: envia e-mails de agenda (criação + lembretes) aos formandos. Push/bell não afetados. */
+  emailAgendamentoAtivo?: boolean;
   /** Nome da instância da plataforma nesta organização (ex.: "Portal Formativo da Diocese") */
   nomePlataforma?: string;
   /** Logo da organização em base64 ou URL */
