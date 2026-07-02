@@ -128,7 +128,7 @@ async function dispatchReminder(
   let emails = 0;
   let push = 0;
 
-  let formandos: { nome: string; email: string }[];
+  let formandos: { nome: string; email: string; tokenAssinatura: string | null }[];
 
   if (row.grupoFormacaoId) {
     // Escopo de grupo: push + e-mail aos formandos do grupo; bell + e-mail ao FC.
@@ -137,7 +137,7 @@ async function dispatchReminder(
 
     formandos = await prisma.formando.findMany({
       where: { organizacaoId: org, grupoFormacaoId: row.grupoFormacaoId, ativo: true, deletedAt: null, email: { not: "" } },
-      select: { nome: true, email: true },
+      select: { nome: true, email: true, tokenAssinatura: true },
     });
 
     const fcId = await formadorDoGrupo(row.grupoFormacaoId).catch(() => null);
@@ -165,7 +165,7 @@ async function dispatchReminder(
 
     formandos = await prisma.formando.findMany({
       where: { organizacaoId: org, ativo: true, deletedAt: null, email: { not: "" } },
-      select: { nome: true, email: true },
+      select: { nome: true, email: true, tokenAssinatura: true },
     });
   }
 
@@ -177,6 +177,7 @@ async function dispatchReminder(
       nome: f.nome,
       agendamento: row,
       quando,
+      rsvpToken: f.tokenAssinatura ?? undefined,
     }).catch(() => ({ sent: false }));
     if (r.sent) emails++;
   }

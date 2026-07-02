@@ -54,6 +54,7 @@ const PUBLIC = new Set<string>([
   "auth/recuperar-senha/route.ts", // reset por e-mail (não vaza existência)
   "auth/recuperar-senha/confirmar/route.ts", // reset via token
   "push/subscribe-formando/route.ts", // ativa push do formando via tokenAssinatura
+  "rsvp/[token]/route.ts", // RSVP 1-clique do formando via tokenAssinatura (deep link do lembrete)
   "portal/solicitar-acesso/route.ts", // formando pede magic link
   "portal/verificar/route.ts", // verifica magic link do portal
   "portal/logout/route.ts", // só apaga o cookie de sessão do portal (sem dados/DB)

@@ -145,7 +145,7 @@ async function getDashboardData(
         orderBy: { nome: "asc" },
       }),
       prisma.presencaFormacao.findMany({
-        where: { organizacaoId, data: { gte: threeMonthsAgo }, formando: { grupoFormacaoId } },
+        where: { organizacaoId, data: { gte: threeMonthsAgo, lte: now }, formando: { grupoFormacaoId } },
         select: { formandoId: true, presente: true },
       }),
       // Última avaliação de adesão por formando × perspectiva
@@ -235,7 +235,7 @@ async function getDashboardData(
         }),
         // Taxa de presença por morada nos últimos 90 dias (via formando)
         prisma.presencaFormacao.findMany({
-          where: { organizacaoId, data: { gte: threeMonthsAgo } },
+          where: { organizacaoId, data: { gte: threeMonthsAgo, lte: now } },
           select: { presente: true, formando: { select: { grupoFormacaoId: true } } },
         }),
       ]);

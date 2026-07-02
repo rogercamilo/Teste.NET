@@ -91,7 +91,11 @@ export function funilPorEtapa(
   });
 }
 
-/** Taxa de presença (%) de um membro nos últimos `dias`; `null` se sem registros. */
+/**
+ * Taxa de presença (%) de um membro nos últimos `dias`; `null` se sem registros.
+ * Ignora eventos futuros (`data > hoje`) — não se pode ter faltado a um encontro
+ * que ainda não aconteceu (linhas de RSVP criadas antes do evento, item 1.3).
+ */
 export function taxaPresenca90d(
   presencas: { formandoId: string; data: string; presente: boolean }[],
   formandoId: string,
@@ -99,12 +103,13 @@ export function taxaPresenca90d(
   dias = 90
 ): number | null {
   const limite = hoje.getTime() - dias * MS_POR_DIA;
+  const agora = hoje.getTime();
   let total = 0;
   let presentes = 0;
   for (const p of presencas) {
     if (p.formandoId !== formandoId) continue;
     const t = new Date(p.data).getTime();
-    if (Number.isNaN(t) || t < limite) continue;
+    if (Number.isNaN(t) || t < limite || t > agora) continue;
     total++;
     if (p.presente) presentes++;
   }

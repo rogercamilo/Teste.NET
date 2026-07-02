@@ -110,6 +110,9 @@ export default auth(async function proxy(req) {
     "/api/auth/recuperar-senha",
     "/ativar-notificacoes",
     "/api/push/subscribe-formando",
+    // RSVP público por deep link (token do formando) — página + API
+    "/rsvp",
+    "/api/rsvp/",
     // Portal do formando — API pública (magic link)
     "/api/portal/solicitar-acesso",
     "/api/portal/verificar",

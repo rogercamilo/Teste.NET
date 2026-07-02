@@ -105,6 +105,20 @@ describe("taxaPresenca90d", () => {
   it("retorna null quando não há registros na janela", () => {
     expect(taxaPresenca90d([], "a", hoje)).toBeNull();
   });
+
+  it("ignora eventos futuros (linha de RSVP antes do encontro)", () => {
+    const passado = iso(new Date(2026, 5, 20)); // presente
+    const futuro = iso(new Date(2026, 7, 1)); // após hoje, presente=false (RSVP)
+    const r = taxaPresenca90d(
+      [
+        { formandoId: "a", data: passado, presente: true },
+        { formandoId: "a", data: futuro, presente: false },
+      ],
+      "a",
+      hoje
+    );
+    expect(r).toBe(100); // só o passado conta
+  });
 });
 
 describe("mesesEntre", () => {

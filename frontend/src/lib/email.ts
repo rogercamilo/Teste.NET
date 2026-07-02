@@ -804,6 +804,7 @@ export async function sendAgendamentoReminderEmail({
   agendamento,
   quando,
   appUrl = APP_URL,
+  rsvpToken,
 }: {
   organizacaoId: string;
   email: string;
@@ -818,6 +819,8 @@ export async function sendAgendamentoReminderEmail({
   };
   quando: ReminderQuando;
   appUrl?: string;
+  /** Token do formando (tokenAssinatura) — habilita os botões de RSVP 1-clique. */
+  rsvpToken?: string;
 }): Promise<{ sent: boolean; error?: string }> {
   const antecedencia = quando === "24h" ? "amanhã" : "em cerca de 2 horas";
   const tema = escapeHtml(agendamento.formacaoTema || "Encontro formativo");
@@ -832,15 +835,24 @@ export async function sendAgendamentoReminderEmail({
     });
   }
 
-  const agendaUrl = `${appUrl.replace(/\/+$/, "")}/agenda`;
+  const base = appUrl.replace(/\/+$/, "");
+  const agendaUrl = `${base}/agenda`;
+  // RSVP 1-clique (item 1.3): dois botões quando há token do formando.
+  const rsvpBlock = rsvpToken
+    ? [
+        paragraph("Você vai participar?"),
+        button("Vou participar", `${base}/rsvp/${rsvpToken}?ag=${agendamento.id}&resp=sim`),
+        button("Não vou poder ir", `${base}/rsvp/${rsvpToken}?ag=${agendamento.id}&resp=nao`),
+      ]
+    : [];
   const conteudo = [
     banner("info", `Lembrete: ${tema} acontece ${antecedencia}`),
     paragraph(`Olá, <strong>${escapeHtml(nome)}</strong>!`),
     paragraph(`Este é um lembrete do encontro <strong>${tema}</strong>.`),
     keyValues(linhas),
     paragraph("O convite está anexado (<strong>.ics</strong>) — abra para adicionar ao seu calendário."),
-    button("Ver na agenda", agendaUrl),
-    linkFallback(agendaUrl),
+    ...rsvpBlock,
+    ...(rsvpToken ? [] : [button("Ver na agenda", agendaUrl), linkFallback(agendaUrl)]),
   ].join("");
 
   const html = renderEmail({
