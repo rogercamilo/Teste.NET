@@ -869,3 +869,62 @@ export async function sendAgendamentoReminderEmail({
     attachments: [attachment],
   });
 }
+
+/**
+ * Digest de formandos em risco (item 3.3) enviado ao Formador Comunitário do
+ * grupo — lista de membros que precisam de atenção com o motivo de cada um.
+ * Envio transacional; a suppression list é aplicada dentro de `send()`.
+ */
+export async function sendFormandosEmRiscoEmail({
+  organizacaoId,
+  email,
+  nomeFormador,
+  grupoNome,
+  grupoId,
+  membros,
+  termoFormando = "formando",
+  appUrl = APP_URL,
+}: {
+  organizacaoId: string;
+  email: string;
+  nomeFormador: string;
+  grupoNome: string;
+  grupoId: string;
+  membros: { nome: string; motivos: string[] }[];
+  termoFormando?: string;
+  appUrl?: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const n = membros.length;
+  const plural = n !== 1;
+  const linhas = membros.map((m) => ({
+    label: escapeHtml(m.nome),
+    value: m.motivos.map((x) => escapeHtml(x)).join(" · "),
+  }));
+  const jornadaUrl = `${appUrl.replace(/\/+$/, "")}/grupos-formacao/${grupoId}?tab=jornada`;
+
+  const conteudo = [
+    heading(`Olá, ${escapeHtml(nomeFormador)}!`),
+    paragraph(
+      `${n} ${escapeHtml(termoFormando)}${plural ? "s" : ""} da <strong>${escapeHtml(grupoNome)}</strong> ${plural ? "precisam" : "precisa"} de atenção — ${plural ? "estão" : "está"} com presença baixa ou atrasado${plural ? "s" : ""} no ritmo da etapa.`
+    ),
+    keyValues(linhas),
+    button("Ver na jornada", jornadaUrl),
+    linkFallback(jornadaUrl),
+    callout("info", "Um acompanhamento no momento certo ajuda o membro a retomar a jornada."),
+  ].join("");
+
+  const html = renderEmail({
+    titulo: `${n} ${escapeHtml(termoFormando)}${plural ? "s" : ""} ${plural ? "precisam" : "precisa"} de atenção`,
+    preheader: `Membros da ${escapeHtml(grupoNome)} para acompanhar de perto.`,
+    eyebrow: "Acompanhamento",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
+
+  return send(
+    organizacaoId,
+    email,
+    `${n} ${termoFormando}${plural ? "s" : ""} da ${grupoNome} ${plural ? "precisam" : "precisa"} de atenção`,
+    html
+  );
+}

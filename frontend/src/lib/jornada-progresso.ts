@@ -115,3 +115,73 @@ export function taxaPresenca90d(
 export function duracaoAnosEtapa(nivel: NivelFormativo): number {
   return REQUISITOS_ETAPAS[nivel]?.duracaoAnos ?? 0;
 }
+
+// ── Risco do formando (item 3.3) ───────────────────────────────────────────────
+// Mesma régua da aba Jornada (3.1): atrasado no ritmo E/OU presença baixa.
+
+/** Presença abaixo da qual o formando é considerado em risco (%). */
+export const LIMIAR_PRESENCA_RISCO = 50;
+
+export interface RiscoResultado {
+  emRisco: boolean;
+  motivos: string[];
+}
+
+/**
+ * Avalia se um formando está "em risco": atrasado no ritmo da etapa (só quando há
+ * `iniciouEm`) e/ou com presença abaixo do limiar nos últimos 90 dias. Retorna os
+ * motivos legíveis (mesmos chips da aba Jornada). Fonte única de verdade do risco.
+ */
+export function avaliarRiscoFormando(
+  formando: { nivelFormativo: NivelFormativo; progressoEtapas?: ProgressoEtapa[] },
+  presencasDoFormando: { formandoId: string; data: string; presente: boolean }[],
+  hoje: Date = new Date(),
+  formandoId?: string
+): RiscoResultado {
+  const motivos: string[] = [];
+
+  const { pct } = progressoNaEtapa(formando.nivelFormativo, formando.progressoEtapas);
+  const prog = (formando.progressoEtapas ?? []).find((p) => p.nivel === formando.nivelFormativo);
+  const meses = mesesEntre(prog?.iniciouEm, hoje);
+  if (meses !== null) {
+    const esperado = pctEsperadoNoRitmo(meses, duracaoAnosEtapa(formando.nivelFormativo));
+    if (estaAtrasadoNoRitmo(pct, esperado, meses)) {
+      const m = Math.round(meses);
+      motivos.push(`${pct}% em ${m} ${m === 1 ? "mês" : "meses"} de etapa`);
+    }
+  }
+
+  const idParaPresenca = formandoId ?? presencasDoFormando[0]?.formandoId ?? "";
+  const presenca = taxaPresenca90d(presencasDoFormando, idParaPresenca, hoje);
+  if (presenca !== null && presenca < LIMIAR_PRESENCA_RISCO) {
+    motivos.push(`presença ${presenca}%`);
+  }
+
+  return { emRisco: motivos.length > 0, motivos };
+}
+
+export type AcaoRisco = "alertar" | "resetar" | "nada";
+
+/** Dias mínimos entre re-alertas do mesmo formando enquanto o risco persiste. */
+export const REALERTA_DIAS = 14;
+
+/**
+ * Decide a ação de alerta com base no estado atual (`emRisco`) e no último alerta
+ * persistido (`riscoAlertadoEm`):
+ *  - em risco sem alerta anterior, ou anterior há ≥ `realertaDias` → "alertar";
+ *  - recuperou (não está em risco) mas havia alerta → "resetar";
+ *  - caso contrário → "nada" (throttle / estável).
+ */
+export function decidirAcaoRisco(
+  emRisco: boolean,
+  riscoAlertadoEm: Date | null | undefined,
+  hoje: Date = new Date(),
+  realertaDias = REALERTA_DIAS
+): AcaoRisco {
+  if (emRisco) {
+    if (!riscoAlertadoEm) return "alertar";
+    const dias = (hoje.getTime() - riscoAlertadoEm.getTime()) / 86_400_000;
+    return dias >= realertaDias ? "alertar" : "nada";
+  }
+  return riscoAlertadoEm ? "resetar" : "nada";
+}

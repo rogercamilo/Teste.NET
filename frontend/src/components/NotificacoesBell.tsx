@@ -20,7 +20,8 @@ type TipoNotificacao =
   | "plano_atualizado"
   | "grade_atribuida"
   | "grade_atualizada"
-  | "dados_formando_pendentes";
+  | "dados_formando_pendentes"
+  | "formando_em_risco";
 
 interface Notificacao {
   id: string;
@@ -44,6 +45,7 @@ const TIPO_CONFIG: Record<TipoNotificacao, { dot: string }> = {
   grade_atribuida:         { dot: "bg-orange-500"  },
   grade_atualizada:        { dot: "bg-orange-400"  },
   dados_formando_pendentes:{ dot: "bg-red-500"     },
+  formando_em_risco:       { dot: "bg-amber-500"   },
 };
 
 // ── Formatação de data relativa ───────────────────────────────────────────────

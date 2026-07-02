@@ -125,6 +125,7 @@ export type AuditAction =
   | "plan_limit_email_enviado"
   | "trial_reminder_sent"
   | "agendamento_reminders_sent"
+  | "formandos_risco_alertados"
   | "comunicado_sent"
   | "bulk_action_applied"
   | "db_pool_alert"

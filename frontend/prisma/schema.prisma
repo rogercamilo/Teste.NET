@@ -180,6 +180,7 @@ enum TipoNotificacao {
   grade_atualizada
   dados_formando_pendentes
   justificativa_formando
+  formando_em_risco
 }
 
 // ==========================================================
@@ -409,6 +410,7 @@ model Formando {
   tokenAssinatura     String?         @unique
   totalFormacoes      Int             @default(0)
   formacoesRealizadas Int             @default(0)
+  riscoAlertadoEm     DateTime?
   deletedAt           DateTime?
   criadoEm            DateTime        @default(now())
   atualizadoEm        DateTime        @updatedAt

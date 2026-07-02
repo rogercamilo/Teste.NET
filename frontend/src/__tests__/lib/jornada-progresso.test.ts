@@ -6,6 +6,8 @@ import {
   funilPorEtapa,
   taxaPresenca90d,
   mesesEntre,
+  avaliarRiscoFormando,
+  decidirAcaoRisco,
 } from "@/lib/jornada-progresso";
 import type { NivelFormativo, ProgressoEtapa } from "@/types";
 
@@ -111,5 +113,77 @@ describe("mesesEntre", () => {
     const m = mesesEntre(new Date(2025, 6, 2).toISOString(), new Date(2026, 6, 2));
     expect(m).not.toBeNull();
     expect(Math.round(m as number)).toBe(12);
+  });
+});
+
+describe("avaliarRiscoFormando", () => {
+  const hoje = new Date(2026, 6, 2);
+  const presenca = (formandoId: string, presente: boolean, data = new Date(2026, 5, 20)) => ({
+    formandoId,
+    data: data.toISOString(),
+    presente,
+  });
+
+  it("sinaliza risco por ritmo (iniciou há muito, progresso baixo)", () => {
+    // pre-discipulado: 2 anos. iniciou há 20 meses → esperado ~83%; concluído ~9%
+    const r = avaliarRiscoFormando(
+      {
+        nivelFormativo: "pre-discipulado",
+        progressoEtapas: [
+          prog({ nivel: "pre-discipulado", formacoesComunitariasRealizadas: 10, iniciouEm: new Date(2024, 10, 2).toISOString() }),
+        ],
+      },
+      [presenca("a", true)],
+      hoje,
+      "a"
+    );
+    expect(r.emRisco).toBe(true);
+    expect(r.motivos.some((m) => m.includes("etapa"))).toBe(true);
+  });
+
+  it("sinaliza risco por presença baixa mesmo sem atraso de ritmo", () => {
+    const r = avaliarRiscoFormando(
+      { nivelFormativo: "pre-discipulado", progressoEtapas: [] },
+      [presenca("b", false), presenca("b", false), presenca("b", true)],
+      hoje,
+      "b"
+    );
+    expect(r.emRisco).toBe(true);
+    expect(r.motivos.some((m) => m.startsWith("presença"))).toBe(true);
+  });
+
+  it("não sinaliza formando saudável (presença ok, sem iniciouEm)", () => {
+    const r = avaliarRiscoFormando(
+      { nivelFormativo: "pre-discipulado", progressoEtapas: [] },
+      [presenca("c", true), presenca("c", true)],
+      hoje,
+      "c"
+    );
+    expect(r.emRisco).toBe(false);
+    expect(r.motivos).toHaveLength(0);
+  });
+});
+
+describe("decidirAcaoRisco", () => {
+  const hoje = new Date(2026, 6, 2);
+
+  it("em risco sem histórico → alertar", () => {
+    expect(decidirAcaoRisco(true, null, hoje)).toBe("alertar");
+  });
+
+  it("em risco recém-alertado (<14d) → nada", () => {
+    expect(decidirAcaoRisco(true, new Date(2026, 5, 28), hoje)).toBe("nada");
+  });
+
+  it("em risco com alerta antigo (≥14d) → alertar", () => {
+    expect(decidirAcaoRisco(true, new Date(2026, 5, 1), hoje)).toBe("alertar");
+  });
+
+  it("recuperou com alerta prévio → resetar", () => {
+    expect(decidirAcaoRisco(false, new Date(2026, 5, 20), hoje)).toBe("resetar");
+  });
+
+  it("saudável sem histórico → nada", () => {
+    expect(decidirAcaoRisco(false, null, hoje)).toBe("nada");
   });
 });

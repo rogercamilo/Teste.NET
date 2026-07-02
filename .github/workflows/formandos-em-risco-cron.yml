@@ -1,0 +1,30 @@
+name: Formandos em risco
+
+# Varredura semanal: identifica formandos em risco (presença baixa e/ou atraso no
+# ritmo da etapa) e alerta o Formador Comunitário do grupo por bell + e-mail.
+# A lógica (heurística, agrupamento, anti-spam via riscoAlertadoEm) fica no
+# endpoint. Precisa do secret CRON_SECRET no repositório (mesmo valor do Railway).
+on:
+  schedule:
+    - cron: "0 8 * * 1" # segunda-feira, 08:00 UTC (~05:00 BRT)
+  workflow_dispatch: {}
+
+# Só faz um curl externo — não precisa de acesso ao repositório.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping endpoint de formandos em risco
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          # Diagnóstico sem vazar o segredo: imprime só o comprimento (0 = secret ausente/nome errado).
+          echo "CRON_SECRET recebido pelo workflow: ${#CRON_SECRET} caracteres"
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 180 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.formattio.com.br/api/cron/formandos-em-risco")
+          echo "Resposta do endpoint: HTTP $code"
+          test "$code" = "200"
