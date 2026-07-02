@@ -661,6 +661,8 @@ model Agendamento {
   participantes         Int       @default(0)
   observacoes           String?
   googleCalendarEventId String?
+  lembrete24hEnviado    Boolean   @default(false)
+  lembrete2hEnviado     Boolean   @default(false)
   deletedAt             DateTime?
   criadoEm              DateTime  @default(now())
   atualizadoEm          DateTime  @updatedAt

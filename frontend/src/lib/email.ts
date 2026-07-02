@@ -16,11 +16,14 @@ import {
   priceBox,
   sectionLabel,
   brandLogoUrl,
+  safeUrl,
 } from "./email-layout";
 import { logAction, logError } from "./audit-log";
 import { isEmailSuppressed } from "./email-suppression";
 import { prisma } from "./prisma";
 import { assertPublicHost } from "./ssrf";
+import { buildEventIcs, icsFileName, type CalendarEvent } from "./ics";
+import { formatDataBr } from "./utils";
 
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 /** URL absoluta do badge da marca para o cabeçalho dos e-mails. */
@@ -42,6 +45,14 @@ const PLATFORM_FROM_NAME = "Formattio";
 /** Fluxo de envio — define o subdomínio/reputação usado pelo Resend. */
 type EmailStream = "transactional" | "marketing";
 
+/** Anexo de e-mail — `content` em base64 (ex.: um `.ics` de lembrete de agenda). */
+export interface EmailAttachment {
+  filename: string;
+  /** Conteúdo do arquivo codificado em base64. */
+  content: string;
+  contentType?: string;
+}
+
 interface Sender {
   /** Nome exibido no campo "De" (ex.: nome da comunidade). */
   fromName?: string;
@@ -61,6 +72,8 @@ interface SendOptions extends Sender {
    * `"marketing"` usa o subdomínio dedicado de marketing para isolar reputação.
    */
   stream?: EmailStream;
+  /** Anexos opcionais (ex.: `.ics` de lembrete de agenda). */
+  attachments?: EmailAttachment[];
 }
 
 /** Monta o cabeçalho "De" como `"Nome" <endereço>`, higienizando o nome. */
@@ -101,7 +114,8 @@ async function sendViaResend(
   html: string,
   fromName: string | undefined,
   replyTo: string | undefined,
-  stream: EmailStream
+  stream: EmailStream,
+  attachments: EmailAttachment[] | undefined
 ): Promise<{ sent: boolean; error?: string }> {
   const fromAddress = stream === "marketing" ? RESEND_FROM_MARKETING : RESEND_FROM;
   try {
@@ -111,6 +125,9 @@ async function sendViaResend(
       subject,
       html,
       ...(replyTo ? { replyTo } : {}),
+      ...(attachments?.length
+        ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType })) }
+        : {}),
     });
     if (error) {
       logError("email/resend", error);
@@ -138,14 +155,24 @@ async function sendViaSmtp(
   subject: string,
   html: string,
   fromName: string | undefined,
-  replyTo: string | undefined
+  replyTo: string | undefined,
+  attachments: EmailAttachment[] | undefined
 ): Promise<{ sent: boolean; error?: string }> {
   const from = formatFrom(fromName, config.from || config.user);
   try {
     // Anti-SSRF: nunca conecta a um host SMTP interno/privado (config vem do tenant).
     await assertPublicHost(config.host);
     const transporter = createTransporter(config);
-    await transporter.sendMail({ from, to, subject, html, ...(replyTo ? { replyTo } : {}) });
+    await transporter.sendMail({
+      from,
+      to,
+      subject,
+      html,
+      ...(replyTo ? { replyTo } : {}),
+      ...(attachments?.length
+        ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, encoding: "base64", contentType: a.contentType })) }
+        : {}),
+    });
     return { sent: true };
   } catch (err) {
     logError("email/smtp", err);
@@ -192,18 +219,19 @@ async function send(
   //   2. Resend (provedor padrão da plataforma)
   //   3. SMTP de ambiente (fallback global via SMTP_*)
   const stream = opts.stream ?? "transactional";
+  const attachments = opts.attachments;
   const { config: smtpConfig, fromDb: smtpFromDb } = await resolveSmtpConfig(organizacaoId);
   const smtpReady = isSmtpReady(smtpConfig);
 
   const attempts: Array<{ provider: string; run: () => Promise<{ sent: boolean; error?: string }> }> = [];
   if (smtpReady && smtpFromDb) {
-    attempts.push({ provider: "smtp-tenant", run: () => sendViaSmtp(smtpConfig, to, subject, html, fromName, replyTo) });
+    attempts.push({ provider: "smtp-tenant", run: () => sendViaSmtp(smtpConfig, to, subject, html, fromName, replyTo, attachments) });
   }
   if (resend) {
-    attempts.push({ provider: "resend", run: () => sendViaResend(to, subject, html, fromName, replyTo, stream) });
+    attempts.push({ provider: "resend", run: () => sendViaResend(to, subject, html, fromName, replyTo, stream, attachments) });
   }
   if (smtpReady && !smtpFromDb) {
-    attempts.push({ provider: "smtp-env", run: () => sendViaSmtp(smtpConfig, to, subject, html, fromName, replyTo) });
+    attempts.push({ provider: "smtp-env", run: () => sendViaSmtp(smtpConfig, to, subject, html, fromName, replyTo, attachments) });
   }
 
   if (attempts.length === 0) {
@@ -758,5 +786,86 @@ export async function sendComunicadoEmail({
   return send(organizacaoId, to, assunto, html, {
     brandAsOrg: false,
     replyTo: "contato@formattio.com.br",
+  });
+}
+
+/** Antecedência do lembrete de agenda. */
+export type ReminderQuando = "24h" | "2h";
+
+/**
+ * Lembrete de encontro agendado (T-24h / T-2h) com o `.ics` do evento anexado.
+ * Reaproveita `buildEventIcs` (lib/ics.ts). Envio transacional; a suppression
+ * list é aplicada dentro de `send()`.
+ */
+export async function sendAgendamentoReminderEmail({
+  organizacaoId,
+  email,
+  nome,
+  agendamento,
+  quando,
+  appUrl = APP_URL,
+}: {
+  organizacaoId: string;
+  email: string;
+  nome: string;
+  agendamento: {
+    id: string;
+    formacaoTema: string;
+    dataInicio: Date;
+    dataFim: Date;
+    local?: string | null;
+    linkOnline?: string | null;
+  };
+  quando: ReminderQuando;
+  appUrl?: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const antecedencia = quando === "24h" ? "amanhã" : "em cerca de 2 horas";
+  const tema = escapeHtml(agendamento.formacaoTema || "Encontro formativo");
+  const quandoTxt = formatDataBr(agendamento.dataInicio);
+
+  const linhas: { label: string; value: string }[] = [{ label: "Quando", value: quandoTxt }];
+  if (agendamento.local) linhas.push({ label: "Local", value: escapeHtml(agendamento.local) });
+  if (agendamento.linkOnline) {
+    linhas.push({
+      label: "Online",
+      value: `<a href="${safeUrl(agendamento.linkOnline)}" style="color:#B25433;word-break:break-all;">${escapeHtml(agendamento.linkOnline)}</a>`,
+    });
+  }
+
+  const agendaUrl = `${appUrl.replace(/\/+$/, "")}/agenda`;
+  const conteudo = [
+    banner("info", `Lembrete: ${tema} acontece ${antecedencia}`),
+    paragraph(`Olá, <strong>${escapeHtml(nome)}</strong>!`),
+    paragraph(`Este é um lembrete do encontro <strong>${tema}</strong>.`),
+    keyValues(linhas),
+    paragraph("O convite está anexado (<strong>.ics</strong>) — abra para adicionar ao seu calendário."),
+    button("Ver na agenda", agendaUrl),
+    linkFallback(agendaUrl),
+  ].join("");
+
+  const html = renderEmail({
+    titulo: `Lembrete: ${agendamento.formacaoTema || "Encontro formativo"}`,
+    preheader: `${agendamento.formacaoTema || "Encontro"} — ${quandoTxt}`,
+    eyebrow: "Lembrete de Agenda",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
+
+  const evento: CalendarEvent = {
+    id: agendamento.id,
+    title: agendamento.formacaoTema || "Encontro formativo",
+    start: agendamento.dataInicio,
+    end: agendamento.dataFim,
+    location: agendamento.local ?? agendamento.linkOnline ?? undefined,
+  };
+  const ics = buildEventIcs(evento);
+  const attachment: EmailAttachment = {
+    filename: icsFileName(agendamento.formacaoTema || "encontro"),
+    content: Buffer.from(ics, "utf-8").toString("base64"),
+    contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+  };
+
+  return send(organizacaoId, email, `Lembrete: ${agendamento.formacaoTema || "encontro"} — ${antecedencia}`, html, {
+    attachments: [attachment],
   });
 }

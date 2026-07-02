@@ -47,9 +47,13 @@ export async function PUT(request: Request, { params }: Params) {
     const parsed = await parseJson(request, UpdateAgendamentoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
+    // Remarcação: se a data de início mudar, rearmar os lembretes (T-24h/T-2h)
+    // para o novo horário zerando as flags de idempotência.
+    const novaDataInicio = body.dataInicio ? new Date(body.dataInicio) : undefined;
+    const dataMudou = !!novaDataInicio && novaDataInicio.getTime() !== existing.dataInicio.getTime();
     const updated = await prisma.agendamento.update({
       where: { id, organizacaoId: user.organizacaoId },
-      data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, grupoFormacaoId: body.grupoFormacaoId !== undefined ? (body.grupoFormacaoId ?? null) : undefined, dataInicio: body.dataInicio ? new Date(body.dataInicio) : undefined, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null },
+      data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, grupoFormacaoId: body.grupoFormacaoId !== undefined ? (body.grupoFormacaoId ?? null) : undefined, dataInicio: novaDataInicio, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null, ...(dataMudou ? { lembrete24hEnviado: false, lembrete2hEnviado: false } : {}) },
     });
     logAction("agendamento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
 

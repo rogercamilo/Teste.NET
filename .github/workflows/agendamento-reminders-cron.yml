@@ -1,0 +1,31 @@
+name: Agenda reminders
+
+# Dispara os lembretes de encontros agendados (T-24h e T-2h) por push + e-mail.
+# A lógica (janelas, escopo, idempotência via flags) fica no endpoint. Precisa do
+# secret CRON_SECRET no repositório, com o MESMO valor da variável no Railway.
+on:
+  schedule:
+    - cron: "*/15 * * * *" # a cada 15 minutos (UTC)
+  workflow_dispatch: {}
+
+# Só faz um curl externo — não precisa de acesso ao repositório.
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping endpoint de lembretes de agenda
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          # Diagnóstico sem vazar o segredo: imprime só o comprimento (0 = secret ausente/nome errado).
+          echo "CRON_SECRET recebido pelo workflow: ${#CRON_SECRET} caracteres"
+          # --max-time folgado: o endpoint envia e-mails sequencialmente por org;
+          # evita falso-vermelho em orgs grandes (a idempotência por flags cobre reexecução).
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 180 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.formattio.com.br/api/cron/agendamento-reminders")
+          echo "Resposta do endpoint: HTTP $code"
+          test "$code" = "200"

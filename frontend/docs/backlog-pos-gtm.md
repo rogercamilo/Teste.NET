@@ -44,11 +44,12 @@ Status 2026-07-01: `lib/mock-data.ts` (protótipo órfão) **removido**. Reserva
 | # | Item | Ganho / feature alavancada | Esforço | Skill |
 |---|---|---|---|---|
 | 1.1 | **"Adicionar ao calendário" (`.ics` + link Google)** — fonte = seção Calendário; espelha p/ Portal do Formando. Gerado no cliente (Blob + link Google), sem endpoint novo | Evento no calendário pessoal + lembrete nativo ↔ Agenda, Portal | P | `feature-dev` → `/code-review` → `verify` |
-| 1.2 | **Lembretes inteligentes** (T-24h / T-2h via push+e-mail) | Reduz falta ↔ Push, Agenda, Presença | P/M | `feature-dev` |
+| 1.2 | ✅ **Lembretes inteligentes** (T-24h / T-2h via push+e-mail com `.ics`) — cron `*/15`, idempotência via flags no `Agendamento`, escopo espelha o agendamento (org vs grupo+FC) | Reduz falta ↔ Push, Agenda, Presença | P/M | `feature-dev` |
 | 1.3 | **Confirmação de presença 1-clique no lembrete** (deep link RSVP) | Fecha o loop de presença ↔ Portal RSVP | M | `feature-dev` |
 | 1.4 | **Sync bidirecional Google Calendar** — só sob demanda de cliente pagante (usa `googleCalendarEventId` reservado) | Propagação de alteração + RSVP de volta ↔ Agenda | G | `Plan` → `feature-dev` → `security-review` |
 | 1.5 | **Agenda pessoal do formador (modelo `Compromisso`)** — compromissos/reuniões, vínculo opcional a formando; scaffolding já existe no schema | Organiza o dia do formador ↔ Agenda, Formandos | M | `feature-dev` |
-| 1.6 | **E-mail opt-in na criação de agendamento** — a criação segue disparando push+bell por padrão; o e-mail (com anexo `.ics`) é um **toggle no painel de Configurações do Formador Geral**. Preserva reputação de domínio (nada de disparo forçado) e dá controle ao FG | Notificação por e-mail sem custo de reputação ↔ Configurações (FG), Agenda, e-mail | M | `feature-dev` |
+| 1.6 | **E-mail opt-in na criação de agendamento** — a criação segue disparando push+bell por padrão; o e-mail (com anexo `.ics`) é um **toggle no painel de Configurações do Formador Geral**. Preserva reputação de domínio (nada de disparo forçado) e dá controle ao FG. *(O pipeline de anexo `.ics` no e-mail já foi criado no 1.2.)* | Notificação por e-mail sem custo de reputação ↔ Configurações (FG), Agenda, e-mail | M | `feature-dev` |
+| 1.7 | **Agendamento para vários grupos** — hoje um `Agendamento` é *ou* de um grupo *ou* geral (org). Permitir selecionar **um ou mais grupos** na criação (notifica membros desses grupos + seus FCs). Requer mudança de schema (N:N `Agendamento`↔`GrupoFormacao`) + UI de criação; os lembretes do 1.2 passam a espelhar o multi-escopo | Precisão do alcance de convites/lembretes ↔ Agenda, Grupos, Push | M | `Plan` → `feature-dev` |
 
 ## Tema 2 — Deleite & Usabilidade *(o "encantar")*
 

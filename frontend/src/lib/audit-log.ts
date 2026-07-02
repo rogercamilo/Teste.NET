@@ -124,6 +124,7 @@ export type AuditAction =
   | "lgpd_incident_notification_sent"
   | "plan_limit_email_enviado"
   | "trial_reminder_sent"
+  | "agendamento_reminders_sent"
   | "comunicado_sent"
   | "bulk_action_applied"
   | "db_pool_alert"
