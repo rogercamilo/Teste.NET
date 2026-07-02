@@ -61,6 +61,7 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
 
 const STATUS_STYLES: Record<StatusFormacao, string> = {
   agendada: "bg-blue-100 text-blue-700 border-blue-200",
@@ -506,26 +507,39 @@ function AgendamentoCard({
                   </Badge>
                 </div>
               </div>
-              {canEdit && (
-                <div className="flex gap-1.5 shrink-0">
-                  {ag.status === "agendada" && (
-                    <>
-                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onStatusChange(ag.id, "confirmada")}>
-                        Confirmar
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onStatusChange(ag.id, "cancelada")}>
-                        Cancelar
-                      </Button>
-                    </>
-                  )}
-                  {ag.status === "confirmada" && (
-                    <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => onStatusChange(ag.id, "realizada")}>
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Concluir
+              <div className="flex gap-1.5 shrink-0 items-center">
+                <AdicionarAoCalendario
+                  compact
+                  className="h-7"
+                  event={{
+                    id: ag.id,
+                    title: ag.formacaoTema,
+                    start: ag.dataInicio,
+                    end: ag.dataFim,
+                    description:
+                      [ag.observacoes, ag.linkOnline ? `Online: ${ag.linkOnline}` : null]
+                        .filter(Boolean)
+                        .join("\n") || undefined,
+                    location: ag.local ?? ag.linkOnline ?? undefined,
+                  }}
+                />
+                {canEdit && ag.status === "agendada" && (
+                  <>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onStatusChange(ag.id, "confirmada")}>
+                      Confirmar
                     </Button>
-                  )}
-                </div>
-              )}
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onStatusChange(ag.id, "cancelada")}>
+                      Cancelar
+                    </Button>
+                  </>
+                )}
+                {canEdit && ag.status === "confirmada" && (
+                  <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => onStatusChange(ag.id, "realizada")}>
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Concluir
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="flex flex-wrap gap-4 mt-2.5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">

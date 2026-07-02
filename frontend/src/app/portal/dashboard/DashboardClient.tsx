@@ -24,6 +24,7 @@ import {
 } from "@/types";
 import type { PublicBranding } from "@/lib/public-branding";
 import type { PortalDashboardData, PortalProximoEncontro } from "@/lib/portal-data";
+import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
 
 function ProgressoBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
@@ -349,6 +350,19 @@ function ProximoEncontroItem({ encontro }: { encontro: PortalProximoEncontro }) 
             {tipoLabel}
           </span>
         )}
+      </div>
+
+      <div className="flex">
+        <AdicionarAoCalendario
+          event={{
+            id: encontro.id,
+            title: encontro.tema || tipoLabel || "Encontro",
+            start: encontro.dataInicio,
+            end: encontro.dataFim,
+            description: tipoLabel ?? undefined,
+            location: encontro.local ?? undefined,
+          }}
+        />
       </div>
 
       {/* RSVP — só quando há registro de presença (podeResponder) */}

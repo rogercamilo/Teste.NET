@@ -43,11 +43,12 @@ Status 2026-07-01: `lib/mock-data.ts` (protótipo órfão) **removido**. Reserva
 
 | # | Item | Ganho / feature alavancada | Esforço | Skill |
 |---|---|---|---|---|
-| 1.1 | **"Adicionar ao calendário" (`.ics` + link Google)** — fonte = seção Calendário; espelha p/ Portal do Formando e e-mails | Evento no calendário pessoal + lembrete nativo ↔ Agenda, Portal, e-mail | P | `feature-dev` → `/code-review` → `verify` |
+| 1.1 | **"Adicionar ao calendário" (`.ics` + link Google)** — fonte = seção Calendário; espelha p/ Portal do Formando. Gerado no cliente (Blob + link Google), sem endpoint novo | Evento no calendário pessoal + lembrete nativo ↔ Agenda, Portal | P | `feature-dev` → `/code-review` → `verify` |
 | 1.2 | **Lembretes inteligentes** (T-24h / T-2h via push+e-mail) | Reduz falta ↔ Push, Agenda, Presença | P/M | `feature-dev` |
 | 1.3 | **Confirmação de presença 1-clique no lembrete** (deep link RSVP) | Fecha o loop de presença ↔ Portal RSVP | M | `feature-dev` |
 | 1.4 | **Sync bidirecional Google Calendar** — só sob demanda de cliente pagante (usa `googleCalendarEventId` reservado) | Propagação de alteração + RSVP de volta ↔ Agenda | G | `Plan` → `feature-dev` → `security-review` |
 | 1.5 | **Agenda pessoal do formador (modelo `Compromisso`)** — compromissos/reuniões, vínculo opcional a formando; scaffolding já existe no schema | Organiza o dia do formador ↔ Agenda, Formandos | M | `feature-dev` |
+| 1.6 | **E-mail opt-in na criação de agendamento** — a criação segue disparando push+bell por padrão; o e-mail (com anexo `.ics`) é um **toggle no painel de Configurações do Formador Geral**. Preserva reputação de domínio (nada de disparo forçado) e dá controle ao FG | Notificação por e-mail sem custo de reputação ↔ Configurações (FG), Agenda, e-mail | M | `feature-dev` |
 
 ## Tema 2 — Deleite & Usabilidade *(o "encantar")*
 
@@ -83,7 +84,7 @@ portal do formador comunitário enriquecido. **Só entram com sinal de cliente p
 ## Sequência recomendada
 
 - **Onda 1 (quick wins de retenção):** 1.1 → 1.2 → 2.1 → 2.2 (+ 0.1 sempre ligada).
-- **Onda 2:** 3.1 → 3.3 → 1.3 → 1.5 (fecham o ciclo governança ↔ engajamento e a agenda do formador).
+- **Onda 2:** 3.1 → 3.3 → 1.3 → 1.6 → 1.5 (fecham o ciclo governança ↔ engajamento, e-mail opt-in e a agenda do formador).
 - **Onda 3 (demanda/receita):** 4.1 WhatsApp, 1.4 Google 2-vias.
 
 **Em execução agora:** 1.1 (seguro para entrar antes mesmo do go-live).
