@@ -6,6 +6,8 @@ import { ptBR } from "date-fns/locale";
 import { DashboardClient } from "./DashboardClient";
 import { toAgendamento } from "@/lib/converters";
 import { SessionUser } from "@/lib/auth-helpers";
+import { aniversariantesNaJanela } from "@/lib/dashboard-semana";
+import { totalRequerido } from "@/types";
 import type { DashboardStats, NivelFormativo, NotaAdesao, PerfilUsuario } from "@/types";
 
 const PERFIL_FC = "formador_comunitario" as const;
@@ -36,6 +38,7 @@ async function getDashboardData(
     canceladasMes,
     agendamentosEvolucao,
     proximasRaw,
+    formandosSemana,
   ] = await Promise.all([
     prisma.formando.count({ where: formandoBase }),
     prisma.formando.count({ where: { ...formandoBase, ativo: true } }),
@@ -62,7 +65,27 @@ async function getDashboardData(
       orderBy: { dataInicio: "asc" },
       take: 5,
     }),
+    // "Minha semana": base para aniversariantes + marcos formativos (select mínimo)
+    prisma.formando.findMany({
+      where: { ...formandoBase, ativo: true },
+      select: { id: true, nome: true, dataNascimento: true, nivelFormativo: true, formacoesRealizadas: true, totalFormacoes: true },
+    }),
   ]);
+
+  // ── Aniversariantes da semana + marcos formativos (≥80% e <100% da etapa) ──
+  const aniversariantesSemana = aniversariantesNaJanela(formandosSemana, now, 7)
+    .slice(0, 5)
+    .map((a) => ({ id: a.id, nome: a.nome, quando: a.quando }));
+
+  const marcosFormativos = formandosSemana
+    .map((f) => {
+      const total = f.totalFormacoes > 0 ? f.totalFormacoes : totalRequerido(f.nivelFormativo as NivelFormativo);
+      const progresso = total > 0 ? Math.round((f.formacoesRealizadas / total) * 100) : 0;
+      return { id: f.id, nome: f.nome, nivelFormativo: f.nivelFormativo as NivelFormativo, progresso };
+    })
+    .filter((m) => m.progresso >= 80 && m.progresso < 100)
+    .sort((a, b) => b.progresso - a.progresso)
+    .slice(0, 5);
 
   // ── Evolução mensal ────────────────────────────────────────────────────────
   const months: { yearMonth: string; label: string }[] = [];
@@ -108,6 +131,8 @@ async function getDashboardData(
     evolucaoMensal,
     porNivel,
     proximasFormacoes: proximasRaw.map(toAgendamento),
+    aniversariantesSemana,
+    marcosFormativos,
   };
 
   // ── FC: presença e acompanhamento ─────────────────────────────────────────
@@ -281,5 +306,5 @@ export default async function DashboardPage() {
   ]);
   const grupoFormacaoNome = grupoFormacao?.nome ?? null;
 
-  return <DashboardClient stats={stats} perfil={perfil} grupoFormacaoNome={grupoFormacaoNome} semMorada={semMorada} />;
+  return <DashboardClient stats={stats} perfil={perfil} grupoFormacaoNome={grupoFormacaoNome} semMorada={semMorada} nomeUsuario={user.name ?? null} />;
 }

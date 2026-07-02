@@ -56,7 +56,7 @@ Status 2026-07-01: `lib/mock-data.ts` (protótipo órfão) **removido**. Reserva
 | # | Item | Ganho | Esforço | Skill |
 |---|---|---|---|---|
 | 2.1 | ✅ **Empty states com propósito** — componente `ui/empty-state.tsx` (halo clay + CTA em slot) aplicado a 8 listas (Formandos, Grupos, Planos, Grades, Formações, Agenda, Jornada Vocacional, Vocacional); distingue vazio-de-verdade (CTA 1ª ação, respeita permissão) de vazio-por-filtro (limpar filtros) | Onboarding contínuo, sem tela morta | P | `frontend-design` |
-| 2.2 | **Home "meu dia/minha semana" do formador** (próximos encontros, pendências, marcos) | Vira home útil ↔ Dashboard, Agenda | M | `frontend-design` + `feature-dev` |
+| 2.2 | ✅ **Home "meu dia/minha semana" do formador** — saudação personalizada + faixa `MinhaSemana` (3 cards: próximos encontros 7d, pendências acionáveis por perfil, destaques = aniversariantes + marcos formativos ≥80%) no topo do dashboard | Vira home útil ↔ Dashboard, Agenda | M | `frontend-design` + `feature-dev` |
 | 2.3 | **Micro-interações & polish mobile** (transições, skeletons, toasts) | Sensação premium | P/M | `frontend-design` |
 | 2.4 | **Busca global / command palette (Cmd-K)** | Velocidade p/ admins | M | `feature-dev` |
 

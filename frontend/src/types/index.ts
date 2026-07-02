@@ -365,6 +365,10 @@ export interface DashboardStats {
   porNivel: { nivel: NivelFormativo; quantidade: number; percentual: number }[];
   proximasFormacoes: Agendamento[];
 
+  // "Minha semana" (item 2.2) — destaques humanos/formativos, escopados por perfil
+  aniversariantesSemana?: { id: string; nome: string; quando: string }[];
+  marcosFormativos?: { id: string; nome: string; nivelFormativo: NivelFormativo; progresso: number }[];
+
   // FC — presença e acompanhamento (últimos 90 dias)
   taxaPresencaGrupoFormacao?: number | null;
   formandosPresenca?: {

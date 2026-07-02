@@ -33,6 +33,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useTermos } from "@/lib/data-store";
+import { MinhaSemana } from "./MinhaSemana";
+import { saudacaoPorHora, primeiroNome } from "@/lib/dashboard-semana";
 
 // ── Paleta ─────────────────────────────────────────────────────────────────
 
@@ -154,16 +156,20 @@ interface Props {
   perfil: PerfilUsuario;
   grupoFormacaoNome?: string | null;
   semMorada?: boolean;
+  nomeUsuario?: string | null;
 }
 
 // ── Componente principal ───────────────────────────────────────────────────
 
-export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, semMorada }: Props) {
+export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, semMorada, nomeUsuario }: Props) {
   const router = useRouter();
   const termos = useTermos();
   const stats = rawStats ?? EMPTY_STATS;
   const isFC = perfil === "formador_comunitario";
   const isAdmin = perfil === "formador_geral" || perfil === "administrador";
+
+  const primeiro = primeiroNome(nomeUsuario);
+  const tituloSaudacao = primeiro ? `${saudacaoPorHora()}, ${primeiro}` : saudacaoPorHora();
 
   const subtitulo = isFC
     ? (grupoFormacaoNome ?? `Visão da sua ${termos.grupoFormacao.toLowerCase()}`)
@@ -173,10 +179,10 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
     return (
       <div className="space-y-6 animate-in-fast">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{tituloSaudacao}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Visão da sua {termos.grupoFormacao.toLowerCase()} —{" "}
-            {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+            {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
           </p>
         </div>
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -197,10 +203,10 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {subtitulo} —{" "}
-            {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+          <h1 className="text-2xl font-semibold text-foreground">{tituloSaudacao}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5 capitalize">
+            {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+            <span className="normal-case text-muted-foreground/80"> · {subtitulo}</span>
           </p>
         </div>
         <div className="flex gap-2">
@@ -216,6 +222,9 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
           )}
         </div>
       </div>
+
+      {/* ── Minha semana (item 2.2) ── */}
+      <MinhaSemana stats={stats} perfil={perfil} termos={termos} />
 
       {/* ── KPI row 1 — agendamentos ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
