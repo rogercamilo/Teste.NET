@@ -4,6 +4,7 @@ import { getOrgBranding } from "@/lib/org-cache";
 import { isGestao, type ComunidadeConfig, type TipoOrganizacao } from "@/types";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
+import { PageTransition } from "@/components/layout/PageTransition";
 import { ComunidadeProvider } from "@/components/layout/ComunidadeProvider";
 import { ThemeApplier } from "@/components/layout/ThemeApplier";
 import { getThemeInlineCss } from "@/lib/themes";
@@ -81,7 +82,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <AppTopbar role={user.role} grupoFormacaoId={user.grupoFormacaoId} />
           <QuotaWarningBanner role={user.role} />
           <main className="flex-1 overflow-auto p-4 md:p-6">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </main>
           <footer className="shrink-0 border-t border-border/60 bg-card/50 px-4 md:px-6 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-xs text-muted-foreground">

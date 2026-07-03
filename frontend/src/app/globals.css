@@ -140,6 +140,38 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+  /* Skeleton com brilho deslizante (sensação premium no carregamento). O
+     ::after varre uma faixa translúcida por cima do bg-muted; overflow clipa
+     ao raio do próprio skeleton. */
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--foreground) 6%, transparent),
+      transparent
+    );
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+
+  /* Acessibilidade: usuários com "reduzir movimento" não veem animações. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-in-fast,
+    .skeleton-shimmer::after {
+      animation: none;
+    }
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: oklch(0.91 0.010 70) transparent;
