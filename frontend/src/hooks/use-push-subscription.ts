@@ -44,7 +44,9 @@ async function getRegistration(): Promise<ServiceWorkerRegistration> {
   return navigator.serviceWorker.register(SW_PATH, { scope: "/" });
 }
 
-export function usePushSubscription(): UsePushSubscriptionReturn {
+export function usePushSubscription(
+  apiPath = "/api/push/subscribe"
+): UsePushSubscriptionReturn {
   const [permission, setPermission] = useState<PushPermission>(() =>
     isSupported ? (Notification.permission as PushPermission) : "default"
   );
@@ -78,7 +80,7 @@ export function usePushSubscription(): UsePushSubscriptionReturn {
 
       const { endpoint, keys } = sub.toJSON() as PushSubscriptionJSON;
 
-      await fetch("/api/push/subscribe", {
+      await fetch(apiPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpoint, p256dh: keys.p256dh, auth: keys.auth }),
@@ -103,7 +105,7 @@ export function usePushSubscription(): UsePushSubscriptionReturn {
       const { endpoint } = sub.toJSON() as PushSubscriptionJSON;
 
       // Remove from server first; browser unsubscribe is the cleanup step
-      const res = await fetch("/api/push/subscribe", {
+      const res = await fetch(apiPath, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpoint }),

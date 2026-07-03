@@ -25,6 +25,7 @@ import {
 import type { PublicBranding } from "@/lib/public-branding";
 import type { PortalDashboardData, PortalProximoEncontro } from "@/lib/portal-data";
 import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
+import { PortalNotificacoesCard } from "./PortalNotificacoesCard";
 
 function ProgressoBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
@@ -213,6 +214,9 @@ export default function DashboardClient({
             )}
           </CardContent>
         </Card>
+
+        {/* Notificações push — ativar/desativar neste aparelho */}
+        <PortalNotificacoesCard />
 
         {/* Progresso da etapa */}
         {progresso && (
