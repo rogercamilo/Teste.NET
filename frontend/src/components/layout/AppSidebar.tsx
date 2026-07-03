@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, Shield, ShieldCheck, UserCog } from "lucide-react";
+import { LogOut, Shield, ShieldCheck, UserCog } from "lucide-react";
 import { signOut } from "next-auth/react";
 import {
   Sidebar,
@@ -21,7 +21,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { navGroupsGestao, navGroupsFormador, navGroupsSuperAdmin, type NavGroup } from "./nav-items";
+import { resolveNavGroups, type NavGroup } from "./nav-items";
 import { useComunidade, useTermos } from "@/lib/data-store";
 import { hasVocacionalAccess } from "@/types";
 
@@ -52,47 +52,21 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   const isFormadorGeral = user.role === "formador_geral";
   const isAdmin = user.role === "administrador";
   const isSuperAdmin = user.role === "super_admin";
-  const isGestao = isFormadorGeral || isAdmin;
 
   const roleLabel = isSuperAdmin ? "Super Admin" : isFormadorGeral ? "Formador Geral" : isAdmin ? "Administrador" : formador;
   const RoleIcon = isSuperAdmin ? ShieldCheck : isFormadorGeral ? ShieldCheck : isAdmin ? Shield : UserCog;
 
-  // Inject "Visão Geral" for formadores before applying term substitution
-  const baseGroups: NavGroup[] = isSuperAdmin
-    ? navGroupsSuperAdmin
-    : isGestao
-    ? navGroupsGestao
-    : navGroupsFormador.map((g) => {
-        if (g.label === "Minha Morada" && user.grupoFormacaoId) {
-          return {
-            ...g,
-            items: [
-              { title: "Visão Geral", href: `/grupos-formacao/${user.grupoFormacaoId}`, icon: Home },
-              ...g.items,
-            ],
-          };
-        }
-        return g;
-      });
-
   const tipoOrg = comunidade.tipoOrganizacao;
   const vocacionalOk = hasVocacionalAccess(tipoOrg, comunidade.vocacionalHabilitado);
 
-  // Apply custom terminology and org-type/capability guards
-  const navGroups: NavGroup[] = baseGroups.map((g) => ({
-    ...g,
-    label: g.label === "Minha Morada" ? `Minha ${grupoFormacao}` : g.label,
-    items: g.items
-      .filter((item) => !item.requiredTipoOrg || (tipoOrg != null && item.requiredTipoOrg.includes(tipoOrg)))
-      .filter((item) => item.requiredCapability !== "vocacional" || vocacionalOk)
-      .map((item) => ({
-        ...item,
-        title:
-          item.title === "Moradas" ? `${grupoFormacao}s` :
-          item.title === "Formandos" ? `${formando}s` :
-          item.title,
-      })),
-  }));
+  const navGroups: NavGroup[] = resolveNavGroups({
+    role: user.role,
+    grupoFormacaoId: user.grupoFormacaoId,
+    termoGrupoFormacao: grupoFormacao,
+    termoFormando: formando,
+    tipoOrg,
+    vocacionalOk,
+  });
 
   const initials = user.name
     .split(" ")

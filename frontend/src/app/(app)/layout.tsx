@@ -78,7 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <PrimeiroAcessoModal primeiroAcesso={primeiroAcesso} />
         <AppSidebar user={user} nomePlataforma={orgBranding.nomePlataforma} />
         <SidebarInset>
-          <AppTopbar />
+          <AppTopbar role={user.role} grupoFormacaoId={user.grupoFormacaoId} />
           <QuotaWarningBanner role={user.role} />
           <main className="flex-1 overflow-auto p-4 md:p-6">
             {children}

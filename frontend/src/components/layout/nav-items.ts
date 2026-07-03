@@ -122,6 +122,57 @@ export const navGroupsSuperAdmin: NavGroup[] = [
   },
 ];
 
+/**
+ * Resolve os grupos de navegação para um usuário: escolhe o conjunto por papel,
+ * injeta "Visão Geral" da morada do formador, aplica os guards de tipo de org /
+ * capability vocacional e substitui a terminologia customizada. Fonte única
+ * usada pelo `AppSidebar` e pelo `CommandPalette` (Cmd-K).
+ */
+export function resolveNavGroups(opts: {
+  role: string;
+  grupoFormacaoId?: string | null;
+  termoGrupoFormacao: string;
+  termoFormando: string;
+  tipoOrg: TipoOrganizacao | null | undefined;
+  vocacionalOk: boolean;
+}): NavGroup[] {
+  const { role, grupoFormacaoId, termoGrupoFormacao, termoFormando, tipoOrg, vocacionalOk } = opts;
+  const isSuperAdmin = role === "super_admin";
+  const isGestao = role === "formador_geral" || role === "administrador";
+
+  const baseGroups: NavGroup[] = isSuperAdmin
+    ? navGroupsSuperAdmin
+    : isGestao
+    ? navGroupsGestao
+    : navGroupsFormador.map((g) => {
+        if (g.label === "Minha Morada" && grupoFormacaoId) {
+          return {
+            ...g,
+            items: [
+              { title: "Visão Geral", href: `/grupos-formacao/${grupoFormacaoId}`, icon: Home },
+              ...g.items,
+            ],
+          };
+        }
+        return g;
+      });
+
+  return baseGroups.map((g) => ({
+    ...g,
+    label: g.label === "Minha Morada" ? `Minha ${termoGrupoFormacao}` : g.label,
+    items: g.items
+      .filter((item) => !item.requiredTipoOrg || (tipoOrg != null && item.requiredTipoOrg.includes(tipoOrg)))
+      .filter((item) => item.requiredCapability !== "vocacional" || vocacionalOk)
+      .map((item) => ({
+        ...item,
+        title:
+          item.title === "Moradas" ? `${termoGrupoFormacao}s` :
+          item.title === "Formandos" ? `${termoFormando}s` :
+          item.title,
+      })),
+  }));
+}
+
 /** Formador Comunitário — acesso restrito à sua morada */
 export const navGroupsFormador: NavGroup[] = [
   {

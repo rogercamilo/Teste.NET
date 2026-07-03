@@ -1,12 +1,11 @@
 ﻿"use client";
 
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { NotificacoesBell } from "@/components/NotificacoesBell";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -103,9 +102,21 @@ function buildBreadcrumbs(pathname: string, grupoFormacao: string, formando: str
   return crumbs;
 }
 
-export function AppTopbar() {
+export function AppTopbar({ role, grupoFormacaoId }: { role: string; grupoFormacaoId?: string | null }) {
   const pathname = usePathname();
   const { grupoFormacao, formando } = useTermos();
+  const [cmdOpen, setCmdOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCmdOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const breadcrumbs = buildBreadcrumbs(pathname, grupoFormacao, formando);
 
@@ -142,15 +153,27 @@ export function AppTopbar() {
       </Breadcrumb>
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Buscar..."
-            className="h-8 w-48 pl-8 text-sm bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/40"
-          />
-        </div>
+        <button
+          type="button"
+          onClick={() => setCmdOpen(true)}
+          aria-label="Buscar"
+          className="flex h-8 items-center gap-2 rounded-md bg-muted/50 px-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Buscar...</span>
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-border/60 bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            Ctrl K
+          </kbd>
+        </button>
         <NotificacoesBell />
       </div>
+
+      <CommandPalette
+        open={cmdOpen}
+        onOpenChange={setCmdOpen}
+        role={role}
+        grupoFormacaoId={grupoFormacaoId}
+      />
     </header>
   );
 }
