@@ -65,7 +65,7 @@ Status 2026-07-01: `lib/mock-data.ts` (protótipo órfão) **removido**. Reserva
 | # | Item | Ganho | Esforço | Skill |
 |---|---|---|---|---|
 | 3.1 | ✅ **Painel de progresso da jornada por grupo** — aba "Jornada" no detalhe do grupo (funil por etapa, progresso na etapa com "pode avançar", "precisam de atenção" = ritmo atrasado e/ou presença <50%); client-side, helpers puros `lib/jornada-progresso.ts` | Registro → ação ↔ Jornada, Grupos | M | `feature-dev` |
-| 3.2 | **Relatórios exportáveis (PDF/CSV) p/ coordenação** | Prestação de contas ↔ Relatórios, Livro | M | `feature-dev` |
+| 3.2 | ✅ **Relatórios exportáveis (PDF/CSV) p/ coordenação** — botão "Exportar" na aba Jornada do grupo → PDF (branded, reusa template base eclesiástico) ou CSV (BOM+`;` p/ Excel pt-BR); rota `/api/grupos-formacao/[id]/relatorio` escopada por org+papel, rate-limited, auditada; conteúdo (resumo, funil, tabela de membros com progresso/presença/risco) do mesmo motor da aba Jornada | Prestação de contas ↔ Relatórios, Livro | M | `feature-dev` |
 | 3.3 | ✅ **Alertas de formando "em risco"** — cron semanal `/api/cron/formandos-em-risco` avalia (mesma régua do 3.1: ritmo atrasado e/ou presença <50%) e alerta o FC do grupo por bell + e-mail digest; anti-spam via `Formando.riscoAlertadoEm` (re-alerta 14d, reset ao recuperar) | Retenção do formando ↔ Presença, Progresso | M | `feature-dev` |
 
 ## Tema 4 — Integrações & Alcance
