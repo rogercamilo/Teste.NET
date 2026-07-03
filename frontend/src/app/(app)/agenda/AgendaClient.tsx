@@ -55,7 +55,6 @@ import {
   MapPin,
   Plus,
   Search,
-  Users,
 } from "lucide-react";
 import {
   format,
@@ -101,7 +100,6 @@ type FormState = {
   dataInicio: string;
   dataFim: string;
   local: string;
-  participantes: string;
   observacoes: string;
   grupoFormacaoIds: string[];
 };
@@ -113,7 +111,6 @@ const EMPTY_FORM: FormState = {
   dataInicio: "",
   dataFim: "",
   local: "",
-  participantes: "",
   observacoes: "",
   grupoFormacaoIds: [],
 };
@@ -465,7 +462,6 @@ function AgendamentoFormDialog({
         dataInicio: dataInicioISO,
         dataFim: dataFimISO,
         local: form.local.trim() || undefined,
-        participantes: Number(form.participantes) || 0,
         observacoes: form.observacoes.trim() || undefined,
         status: "agendada",
       };
@@ -500,7 +496,7 @@ function AgendamentoFormDialog({
           <div className="grid gap-1.5">
             <Label>Tipo de evento</Label>
             <Select value={form.tipoEvento} onValueChange={(v) => v && set("tipoEvento")(v as TipoEvento)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue>{TIPO_EVENTO_AGENDA_LABELS[form.tipoEvento]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -516,7 +512,7 @@ function AgendamentoFormDialog({
             <div className="grid gap-1.5">
               <Label>Formação <span className="text-destructive">*</span></Label>
               <Select value={form.formacaoId} onValueChange={(v) => v && set("formacaoId")(v)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecionar formação..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -557,15 +553,9 @@ function AgendamentoFormDialog({
               <Input type="datetime-local" value={form.dataFim} onChange={(e) => set("dataFim")(e.target.value)} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Local</Label>
-              <Input value={form.local} onChange={(e) => set("local")(e.target.value)} placeholder="Salão, online, endereço..." />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Participantes esperados</Label>
-              <Input type="number" min="0" value={form.participantes} onChange={(e) => set("participantes")(e.target.value)} placeholder="0" />
-            </div>
+          <div className="grid gap-1.5">
+            <Label>Local</Label>
+            <Input value={form.local} onChange={(e) => set("local")(e.target.value)} placeholder="Salão, online, endereço..." />
           </div>
           {!isFC && gruposFormacao.length > 0 && (
             <div className="grid gap-1.5">
@@ -704,7 +694,6 @@ function AgendamentoCard({
               </span>
               {ag.local && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{ag.local}</span>}
               <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" />{ag.formadorNome}</span>
-              <span className="flex items-center gap-1"><Users className="h-3 w-3" />{ag.participantes} participantes</span>
             </div>
           </div>
         </div>
