@@ -88,6 +88,8 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Download,
+  FileSpreadsheet,
   FileText,
   Flag,
   GitBranch,
@@ -1187,6 +1189,24 @@ export default function GrupoFormacaoDetail({
             </Card>
           ) : (
             <>
+              {/* Export do relatório do grupo (item 3.2) */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground">Panorama da jornada</p>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs gap-1.5")}>
+                    <Download className="h-3.5 w-3.5" /> Exportar
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => window.open(`/api/grupos-formacao/${grupoFormacao.id}/relatorio?formato=pdf`, "_blank")}>
+                      <FileText className="h-4 w-4 mr-2" /> Relatório PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(`/api/grupos-formacao/${grupoFormacao.id}/relatorio?formato=csv`, "_blank")}>
+                      <FileSpreadsheet className="h-4 w-4 mr-2" /> Planilha CSV
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
               {/* Funil de etapas */}
               <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2">

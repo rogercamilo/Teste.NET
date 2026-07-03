@@ -36,6 +36,7 @@ export type AuditAction =
   | "grupo_formacao_etapa_encerrada"
   | "grupo_formacao_nova_etapa"
   | "grupo_formacao_datas_etapa_updated"
+  | "relatorio_grupo_exportado"
   | "progresso_etapa_updated"
   | "formando_created"
   | "formando_updated"
