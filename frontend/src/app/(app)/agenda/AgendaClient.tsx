@@ -140,6 +140,16 @@ export default function AgendaClient({
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [page, setPage] = useState(1);
   const [novoOpen, setNovoOpen] = useState(false);
+  // Data pré-selecionada ao abrir o diálogo (clique num dia do calendário).
+  // `novoSeq` remonta o form a cada abertura para reaplicar o estado inicial
+  // (evita setState em efeito — regra do React Compiler).
+  const [novoData, setNovoData] = useState<string | null>(null);
+  const [novoSeq, setNovoSeq] = useState(0);
+  const abrirNovo = (data?: string) => {
+    setNovoData(data ?? null);
+    setNovoSeq((s) => s + 1);
+    setNovoOpen(true);
+  };
 
   const meus = isFC
     ? initialAgendamentos.filter(
@@ -200,7 +210,7 @@ export default function AgendaClient({
           <h1 className="text-2xl font-semibold text-foreground">Agenda</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Agendamento e controle de formações</p>
         </div>
-        <Button size="sm" onClick={() => setNovoOpen(true)}>
+        <Button size="sm" onClick={() => abrirNovo()}>
           <Plus className="h-4 w-4 mr-1.5" />
           Agendar Formação
         </Button>
@@ -292,7 +302,17 @@ export default function AgendaClient({
                 return (
                   <div
                     key={day.toISOString()}
-                    className={`aspect-square rounded-lg p-1 transition-colors cursor-pointer hover:bg-muted/60 ${today ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
+                    role="button"
+                    tabIndex={0}
+                    title="Agendar formação neste dia"
+                    onClick={() => abrirNovo(`${format(day, "yyyy-MM-dd")}T19:00`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        abrirNovo(`${format(day, "yyyy-MM-dd")}T19:00`);
+                      }
+                    }}
+                    className={`aspect-square rounded-lg p-1 transition-colors cursor-pointer hover:bg-muted/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${today ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
                   >
                     <span className={`text-xs font-medium block text-center mb-0.5 ${today ? "text-primary" : "text-foreground"}`}>
                       {format(day, "d")}
@@ -326,7 +346,7 @@ export default function AgendaClient({
               title="Nenhuma formação agendada"
               description="Agende a primeira formação — os participantes recebem lembretes automáticos e podem adicioná-la ao calendário pessoal."
               action={
-                <Button size="sm" onClick={() => setNovoOpen(true)}>
+                <Button size="sm" onClick={() => abrirNovo()}>
                   <Plus className="h-4 w-4 mr-1.5" />
                   Agendar formação
                 </Button>
@@ -355,7 +375,9 @@ export default function AgendaClient({
       </div>
 
       <AgendamentoFormDialog
+        key={novoSeq}
         open={novoOpen}
+        initialDataInicio={novoData ?? undefined}
         onClose={() => setNovoOpen(false)}
         formacoes={initialFormacoes}
         gruposFormacao={initialGruposFormacao}
@@ -377,6 +399,7 @@ export default function AgendaClient({
 function AgendamentoFormDialog({
   open,
   onClose,
+  initialDataInicio,
   formacoes,
   gruposFormacao,
   userId,
@@ -386,6 +409,7 @@ function AgendamentoFormDialog({
 }: {
   open: boolean;
   onClose: () => void;
+  initialDataInicio?: string;
   formacoes: Formacao[];
   gruposFormacao: GrupoFormacao[];
   userId: string;
@@ -394,7 +418,7 @@ function AgendamentoFormDialog({
   onSaved: () => void;
 }) {
   const { grupoFormacao: termoGrupoFormacao } = useTermos();
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState<FormState>(() => ({ ...EMPTY_FORM, dataInicio: initialDataInicio ?? "" }));
   const [saving, setSaving] = useState(false);
 
   const set = (field: keyof FormState) => (value: string) =>
