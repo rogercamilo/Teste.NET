@@ -7,12 +7,16 @@ import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   STATUS_FORMACAO_LABELS,
+  TIPO_EVENTO_AGENDA_LABELS,
+  TIPO_EVENTO_AGENDA_CORES,
+  TIPOS_EVENTO_AVULSO,
   type StatusFormacao,
   type Agendamento,
   type NivelFormativo,
   type Formacao,
   type GrupoFormacao,
   type Compromisso,
+  type TipoEvento,
 } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,7 +95,9 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 const STATUS_LIST = ["todos", "agendada", "confirmada", "realizada", "cancelada"] as const;
 
 type FormState = {
+  tipoEvento: TipoEvento;
   formacaoId: string;
+  titulo: string;
   dataInicio: string;
   dataFim: string;
   local: string;
@@ -101,7 +107,9 @@ type FormState = {
 };
 
 const EMPTY_FORM: FormState = {
+  tipoEvento: "formacao",
   formacaoId: "",
+  titulo: "",
   dataInicio: "",
   dataFim: "",
   local: "",
@@ -212,7 +220,7 @@ export default function AgendaClient({
         </div>
         <Button size="sm" onClick={() => abrirNovo()}>
           <Plus className="h-4 w-4 mr-1.5" />
-          Agendar Formação
+          Agendar evento
         </Button>
       </div>
 
@@ -343,12 +351,12 @@ export default function AgendaClient({
           meus.length === 0 ? (
             <EmptyState
               icon={Calendar}
-              title="Nenhuma formação agendada"
-              description="Agende a primeira formação — os participantes recebem lembretes automáticos e podem adicioná-la ao calendário pessoal."
+              title="Nenhum evento agendado"
+              description="Agende o primeiro evento (formação, retiro, convocação…) — os participantes recebem lembretes automáticos e podem adicioná-lo ao calendário pessoal."
               action={
                 <Button size="sm" onClick={() => abrirNovo()}>
                   <Plus className="h-4 w-4 mr-1.5" />
-                  Agendar formação
+                  Agendar evento
                 </Button>
               }
             />
@@ -356,7 +364,7 @@ export default function AgendaClient({
             <EmptyState
               icon={Search}
               title="Nenhum resultado"
-              description="Nenhuma formação corresponde ao filtro de status atual."
+              description="Nenhum evento corresponde ao filtro de status atual."
               secondaryAction={
                 <Button size="sm" variant="outline" onClick={() => setStatusFilter("todos")}>
                   Limpar filtro
@@ -433,11 +441,13 @@ function AgendamentoFormDialog({
     }));
 
   async function handleSave() {
-    if (!form.formacaoId) return toast.error("Selecione a formação.");
+    const isFormacao = form.tipoEvento === "formacao";
+    if (isFormacao && !form.formacaoId) return toast.error("Selecione a formação.");
+    if (!isFormacao && !form.titulo.trim()) return toast.error("Informe o título do evento.");
     if (!form.dataInicio) return toast.error("Informe a data e hora de início.");
     setSaving(true);
     try {
-      const formacao = formacoes.find((f) => f.id === form.formacaoId);
+      const formacao = isFormacao ? formacoes.find((f) => f.id === form.formacaoId) : undefined;
       const dataInicioISO = new Date(form.dataInicio).toISOString();
       const dataFimISO = form.dataFim ? new Date(form.dataFim).toISOString() : dataInicioISO;
       const grupoFormacaoIdsFinal = isFC
@@ -445,8 +455,9 @@ function AgendamentoFormDialog({
         : form.grupoFormacaoIds;
 
       const payload = {
-        formacaoId: form.formacaoId,
-        formacaoTema: formacao?.tema ?? "",
+        tipoEvento: form.tipoEvento,
+        formacaoId: isFormacao ? form.formacaoId : undefined,
+        formacaoTema: isFormacao ? (formacao?.tema ?? "") : form.titulo.trim(),
         nivelFormativo: formacao?.nivelFormativo ?? "pre-discipulado",
         tipoFormacao: formacao?.tipoFormacao ?? "comunitaria",
         formadorId: userId,
@@ -466,9 +477,9 @@ function AgendamentoFormDialog({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        return toast.error((err as { error?: string }).error ?? "Erro ao agendar formação.");
+        return toast.error((err as { error?: string }).error ?? "Erro ao agendar evento.");
       }
-      toast.success("Formação agendada!");
+      toast.success("Evento agendado!");
       setForm(EMPTY_FORM);
       onClose();
       onSaved();
@@ -483,25 +494,59 @@ function AgendamentoFormDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Agendar Formação</DialogTitle>
+          <DialogTitle>Agendar evento</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
-            <Label>Formação <span className="text-destructive">*</span></Label>
-            <Select value={form.formacaoId} onValueChange={(v) => v && set("formacaoId")(v)}>
+            <Label>Tipo de evento</Label>
+            <Select value={form.tipoEvento} onValueChange={(v) => v && set("tipoEvento")(v as TipoEvento)}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecionar formação..." />
+                <SelectValue>{TIPO_EVENTO_AGENDA_LABELS[form.tipoEvento]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {formacoes.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>
-                    <span>{f.tema}</span>
-                    {f.eixoNome && <span className="ml-2 text-xs text-muted-foreground">({f.eixoNome})</span>}
-                  </SelectItem>
+                <SelectItem value="formacao">{TIPO_EVENTO_AGENDA_LABELS.formacao}</SelectItem>
+                {TIPOS_EVENTO_AVULSO.map((t) => (
+                  <SelectItem key={t} value={t}>{TIPO_EVENTO_AGENDA_LABELS[t]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {form.tipoEvento === "formacao" ? (
+            <div className="grid gap-1.5">
+              <Label>Formação <span className="text-destructive">*</span></Label>
+              <Select value={form.formacaoId} onValueChange={(v) => v && set("formacaoId")(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar formação..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {formacoes.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      <span>{f.tema}</span>
+                      {f.eixoNome && <span className="ml-2 text-xs text-muted-foreground">({f.eixoNome})</span>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="grid gap-1.5">
+              <Label>Título <span className="text-destructive">*</span></Label>
+              <Input
+                value={form.titulo}
+                onChange={(e) => set("titulo")(e.target.value)}
+                placeholder={
+                  form.tipoEvento === "retiro"
+                    ? "Ex.: Retiro de Advento"
+                    : form.tipoEvento === "convocacao"
+                      ? "Ex.: Convocação Geral da Comunidade"
+                      : form.tipoEvento === "reuniao"
+                        ? "Ex.: Assembleia de formadores"
+                        : "Nome do evento"
+                }
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label>Data e hora de início <span className="text-destructive">*</span></Label>
@@ -604,9 +649,15 @@ function AgendamentoCard({
                   {ag.formacaoTema}
                 </h3>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  <Badge variant="outline" className={`text-xs ${NIVEL_CORES[ag.nivelFormativo]}`}>
-                    {NIVEL_FORMATIVO_LABELS[ag.nivelFormativo]}
-                  </Badge>
+                  {ag.tipoEvento && ag.tipoEvento !== "formacao" ? (
+                    <Badge variant="outline" className={`text-xs ${TIPO_EVENTO_AGENDA_CORES[ag.tipoEvento]}`}>
+                      {TIPO_EVENTO_AGENDA_LABELS[ag.tipoEvento]}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className={`text-xs ${NIVEL_CORES[ag.nivelFormativo]}`}>
+                      {NIVEL_FORMATIVO_LABELS[ag.nivelFormativo]}
+                    </Badge>
+                  )}
                   <Badge variant="outline" className={`text-xs ${STATUS_STYLES[ag.status]}`}>
                     {STATUS_FORMACAO_LABELS[ag.status]}
                   </Badge>

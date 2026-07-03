@@ -90,11 +90,18 @@ export async function POST(request: Request) {
     // Sincroniza o campo legado: setado só quando exatamente 1 grupo.
     const grupoFormacaoIdCol = targetGroups.length === 1 ? targetGroups[0] : null;
 
-    const formacao = await prisma.formacao.findFirst({
-      where: { id: body.formacaoId, deletedAt: null, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
-      select: { id: true },
-    });
-    if (!formacao) return NextResponse.json({ error: "Formação não encontrada" }, { status: 404 });
+    // Eventos avulsos (retiro/convocação/reunião/outro) não exigem Formação; usam
+    // formacaoTema como título. "formacao" (default) valida a Formação escolhida.
+    const tipoEvento = body.tipoEvento ?? "formacao";
+    let formacaoIdFinal: string | null = null;
+    if (tipoEvento === "formacao") {
+      const formacao = await prisma.formacao.findFirst({
+        where: { id: body.formacaoId ?? "", deletedAt: null, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+        select: { id: true },
+      });
+      if (!formacao) return NextResponse.json({ error: "Formação não encontrada" }, { status: 404 });
+      formacaoIdFinal = formacao.id;
+    }
 
     // formadorId is always the authenticated user; formadorNome resolved server-side.
     if (!user.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -108,7 +115,8 @@ export async function POST(request: Request) {
     const row = await prisma.agendamento.create({
       data: {
         organizacaoId: user.organizacaoId,
-        formacaoId: body.formacaoId,
+        tipoEvento,
+        formacaoId: formacaoIdFinal,
         formacaoTema: body.formacaoTema ?? "",
         nivelFormativo: body.nivelFormativo ?? "pre-discipulado",
         tipoFormacao: body.tipoFormacao ?? "comunitaria",
@@ -138,7 +146,7 @@ export async function POST(request: Request) {
             organizacaoId: user.organizacaoId!,
             destinatarioId: fcId,
             tipo: "novo_agendamento",
-            titulo: "Nova formação agendada para seu grupo",
+            titulo: "Novo evento agendado para seu grupo",
             corpo: `${row.formacaoTema} — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
             linkAcao: "/agenda",
           });
@@ -148,7 +156,7 @@ export async function POST(request: Request) {
 
     // Notificação push — fire-and-forget
     sendPushToOrg(user.organizacaoId, {
-      titulo: `Nova formação agendada`,
+      titulo: `Novo evento agendado`,
       corpo: `${row.formacaoTema} — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
       url: "/agenda",
     }).catch(() => {});

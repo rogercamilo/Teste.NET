@@ -11,7 +11,8 @@
 // ---------------------------------------------------------------------------
 
 export type PrismaAgendamento = {
-  id: string; organizacaoId: string; formacaoId: string; formacaoTema: string;
+  id: string; organizacaoId: string; formacaoId: string | null; formacaoTema: string;
+  tipoEvento: string;
   nivelFormativo: string; tipoFormacao: string; formadorId: string; formadorNome: string;
   grupoFormacaoId: string | null;
   dataInicio: Date; dataFim: Date; local: string | null; linkOnline: string | null;
@@ -109,9 +110,10 @@ export type PrismaPresenca = {
 
 export function toAgendamento(a: PrismaAgendamento): Agendamento {
   return {
-    id: a.id, formacaoId: a.formacaoId, formacaoTema: a.formacaoTema,
+    id: a.id, formacaoId: a.formacaoId ?? undefined, formacaoTema: a.formacaoTema,
     nivelFormativo: a.nivelFormativo as Agendamento["nivelFormativo"],
     tipoFormacao: a.tipoFormacao as Agendamento["tipoFormacao"],
+    tipoEvento: (a.tipoEvento as Agendamento["tipoEvento"]) ?? "formacao",
     formadorId: a.formadorId, formadorNome: a.formadorNome,
     grupoFormacaoId: a.grupoFormacaoId ?? undefined,
     grupoFormacaoIds: a.grupos

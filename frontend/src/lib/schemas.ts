@@ -250,8 +250,13 @@ export const CreateConviteSchema = z.object({
 
 // ── Agendamento ───────────────────────────────────────────────────────────────
 
-export const CreateAgendamentoSchema = z.object({
-  formacaoId: z.string().min(1, "formacaoId obrigatório"),
+const TipoEventoAgendaEnum = z.enum(["formacao", "retiro", "convocacao", "reuniao", "outro"]);
+
+const AgendamentoBaseSchema = z.object({
+  // Natureza do evento (item eventos avulsos). "formacao" (default) exige
+  // formacaoId; os demais (retiro/convocacao/reuniao/outro) exigem título.
+  tipoEvento: TipoEventoAgendaEnum.optional(),
+  formacaoId: z.string().optional().nullable(),
   formacaoTema: optionalString(500).default(""),
   nivelFormativo: NivelFormativoEnum.optional(),
   tipoFormacao: TipoFormacaoEnum.optional(),
@@ -269,7 +274,18 @@ export const CreateAgendamentoSchema = z.object({
   googleCalendarEventId: optionalString(255).nullable(),
 });
 
-export const UpdateAgendamentoSchema = CreateAgendamentoSchema.partial();
+export const CreateAgendamentoSchema = AgendamentoBaseSchema.superRefine((data, ctx) => {
+  const tipo = data.tipoEvento ?? "formacao";
+  if (tipo === "formacao") {
+    if (!data.formacaoId) {
+      ctx.addIssue({ code: "custom", path: ["formacaoId"], message: "Selecione a formação" });
+    }
+  } else if (!data.formacaoTema || !data.formacaoTema.trim()) {
+    ctx.addIssue({ code: "custom", path: ["formacaoTema"], message: "Informe o título do evento" });
+  }
+});
+
+export const UpdateAgendamentoSchema = AgendamentoBaseSchema.partial();
 
 // ── Compromisso (agenda pessoal do formador) ────────────────────────────────────
 

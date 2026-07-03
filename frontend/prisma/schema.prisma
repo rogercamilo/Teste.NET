@@ -651,7 +651,11 @@ model Formacao {
 model Agendamento {
   id                    String    @id @default(cuid())
   organizacaoId         String
-  formacaoId            String
+  // Evento coletivo: "formacao" (amarrado a uma Formação) ou avulso
+  // (retiro/convocacao/reuniao/outro). formacaoId é nulo p/ eventos avulsos;
+  // formacaoTema é sempre o título exibido (denormalizado).
+  tipoEvento            String    @default("formacao")
+  formacaoId            String?
   formacaoTema          String
   nivelFormativo        String // NivelFormativo
   tipoFormacao          String // TipoFormacao
@@ -673,7 +677,7 @@ model Agendamento {
   atualizadoEm          DateTime  @updatedAt
 
   organizacao   Organizacao        @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formacao      Formacao           @relation(fields: [formacaoId], references: [id])
+  formacao      Formacao?          @relation(fields: [formacaoId], references: [id])
   formador      Usuario            @relation(fields: [formadorId], references: [id])
   grupoFormacao GrupoFormacao?     @relation(fields: [grupoFormacaoId], references: [id], onDelete: SetNull)
   grupos        AgendamentoGrupo[]

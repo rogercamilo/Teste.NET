@@ -71,7 +71,7 @@ export async function PUT(request: Request, { params }: Params) {
     const dataMudou = !!novaDataInicio && novaDataInicio.getTime() !== existing.dataInicio.getTime();
     const updated = await prisma.agendamento.update({
       where: { id, organizacaoId: user.organizacaoId },
-      data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, grupoFormacaoId: targetGroups !== undefined ? (targetGroups.length === 1 ? targetGroups[0] : null) : undefined, dataInicio: novaDataInicio, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null, ...(dataMudou ? { lembrete24hEnviado: false, lembrete2hEnviado: false } : {}) },
+      data: { tipoEvento: body.tipoEvento, formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, grupoFormacaoId: targetGroups !== undefined ? (targetGroups.length === 1 ? targetGroups[0] : null) : undefined, dataInicio: novaDataInicio, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null, ...(dataMudou ? { lembrete24hEnviado: false, lembrete2hEnviado: false } : {}) },
     });
 
     // Substitui a junção de grupos-alvo (item 1.7) quando enviada.

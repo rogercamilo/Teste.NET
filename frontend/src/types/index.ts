@@ -31,6 +31,8 @@ export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observaca
 export type PerspectivaFormativa = "humana" | "espiritual" | "comunitaria";
 export type TipoCompromisso = "reuniao" | "visita" | "formacao_pessoal" | "outro";
 export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoal" | "atividade-extra";
+/** Natureza do evento coletivo na Agenda. "formacao" é amarrado a uma Formação; os demais são avulsos. */
+export type TipoEvento = "formacao" | "retiro" | "convocacao" | "reuniao" | "outro";
 
 export interface ProgressoEtapa {
   nivel: NivelFormativo;
@@ -212,10 +214,11 @@ export interface Formacao {
 
 export interface Agendamento {
   id: string;
-  formacaoId: string;
+  formacaoId?: string;
   formacaoTema: string;
   nivelFormativo: NivelFormativo;
   tipoFormacao: TipoFormacao;
+  tipoEvento: TipoEvento;
   formadorId: string;
   formadorNome: string;
   dataInicio: string;
@@ -371,6 +374,25 @@ export const TIPO_COMPROMISSO_CORES: Record<TipoCompromisso, string> = {
 };
 
 export const TIPOS_COMPROMISSO: TipoCompromisso[] = ["reuniao", "visita", "formacao_pessoal", "outro"];
+
+export const TIPO_EVENTO_AGENDA_LABELS: Record<TipoEvento, string> = {
+  formacao: "Formação",
+  retiro: "Retiro",
+  convocacao: "Convocação Geral",
+  reuniao: "Reunião / Assembleia",
+  outro: "Outro",
+};
+
+export const TIPO_EVENTO_AGENDA_CORES: Record<TipoEvento, string> = {
+  formacao: "bg-slate-100 text-slate-700",
+  retiro: "bg-violet-100 text-violet-700",
+  convocacao: "bg-amber-100 text-amber-800",
+  reuniao: "bg-blue-100 text-blue-700",
+  outro: "bg-gray-100 text-gray-700",
+};
+
+/** Tipos avulsos no formulário (excl. "formacao", que escolhe uma Formação cadastrada). */
+export const TIPOS_EVENTO_AVULSO: TipoEvento[] = ["retiro", "convocacao", "reuniao", "outro"];
 
 export interface DashboardStats {
   totalAgendadas: number;
