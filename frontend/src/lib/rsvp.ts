@@ -60,13 +60,21 @@ export async function registrarRsvpPorToken(input: {
       return { ok: false, status: 404, error: "Link inválido" };
     }
 
-    // Agendamento precisa ser da MESMA org e relevante ao formando (grupo dele ou evento geral).
+    // Agendamento precisa ser da MESMA org e relevante ao formando: evento geral
+    // de verdade (sem junção) OU um dos grupos-alvo é o do formando (item 1.7).
+    // A junção é a fonte da verdade — single-group também tem linha de junção
+    // (criada na POST e no backfill), então cobre legado + multi.
     const agendamento = await prisma.agendamento.findFirst({
       where: {
         id: agendamentoId,
         organizacaoId: formando.organizacaoId,
         deletedAt: null,
-        OR: [{ grupoFormacaoId: null }, { grupoFormacaoId: formando.grupoFormacaoId }],
+        OR: [
+          { grupoFormacaoId: null, grupos: { none: {} } },
+          ...(formando.grupoFormacaoId
+            ? [{ grupos: { some: { grupoFormacaoId: formando.grupoFormacaoId } } }]
+            : []),
+        ],
       },
       select: { id: true, formacaoTema: true, dataInicio: true, formadorId: true },
     });

@@ -47,14 +47,42 @@ export async function PUT(request: Request, { params }: Params) {
     const parsed = await parseJson(request, UpdateAgendamentoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
+
+    // Item 1.7: grupos-alvo (só quando enviados). Valida org e escopo do FC.
+    let targetGroups: string[] | undefined;
+    if (body.grupoFormacaoIds !== undefined || body.grupoFormacaoId !== undefined) {
+      targetGroups = [...new Set(body.grupoFormacaoIds ?? (body.grupoFormacaoId ? [body.grupoFormacaoId] : []))];
+      if (user.role === "formador_comunitario" && targetGroups.some((g) => g !== user.grupoFormacaoId)) {
+        return NextResponse.json({ error: "Sem permissão para agendar em outra morada" }, { status: 403 });
+      }
+      if (targetGroups.length > 0) {
+        const validos = await prisma.grupoFormacao.count({
+          where: { id: { in: targetGroups }, organizacaoId: user.organizacaoId },
+        });
+        if (validos !== targetGroups.length) {
+          return NextResponse.json({ error: "Grupo inválido" }, { status: 400 });
+        }
+      }
+    }
+
     // Remarcação: se a data de início mudar, rearmar os lembretes (T-24h/T-2h)
     // para o novo horário zerando as flags de idempotência.
     const novaDataInicio = body.dataInicio ? new Date(body.dataInicio) : undefined;
     const dataMudou = !!novaDataInicio && novaDataInicio.getTime() !== existing.dataInicio.getTime();
     const updated = await prisma.agendamento.update({
       where: { id, organizacaoId: user.organizacaoId },
-      data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, grupoFormacaoId: body.grupoFormacaoId !== undefined ? (body.grupoFormacaoId ?? null) : undefined, dataInicio: novaDataInicio, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null, ...(dataMudou ? { lembrete24hEnviado: false, lembrete2hEnviado: false } : {}) },
+      data: { formacaoTema: body.formacaoTema, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, grupoFormacaoId: targetGroups !== undefined ? (targetGroups.length === 1 ? targetGroups[0] : null) : undefined, dataInicio: novaDataInicio, dataFim: body.dataFim ? new Date(body.dataFim) : undefined, local: body.local ?? null, linkOnline: body.linkOnline ?? null, status: body.status, participantes: body.participantes, observacoes: body.observacoes ?? null, ...(dataMudou ? { lembrete24hEnviado: false, lembrete2hEnviado: false } : {}) },
     });
+
+    // Substitui a junção de grupos-alvo (item 1.7) quando enviada.
+    if (targetGroups !== undefined) {
+      await prisma.agendamentoGrupo.deleteMany({ where: { agendamentoId: id } });
+      if (targetGroups.length > 0) {
+        await prisma.agendamentoGrupo.createMany({
+          data: targetGroups.map((gid) => ({ agendamentoId: id, grupoFormacaoId: gid })),
+        });
+      }
+    }
     logAction("agendamento_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
 
     // Gatilho do último retiro do Período Vocacional — best-effort

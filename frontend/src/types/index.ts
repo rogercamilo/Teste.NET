@@ -225,6 +225,8 @@ export interface Agendamento {
   status: StatusFormacao;
   participantes: number;
   grupoFormacaoId?: string;
+  /** Grupos-alvo (item 1.7). Vazio = org inteira; 1+ = esses grupos. */
+  grupoFormacaoIds?: string[];
   observacoes?: string;
   googleCalendarEventId?: string;
   criadoEm: string;

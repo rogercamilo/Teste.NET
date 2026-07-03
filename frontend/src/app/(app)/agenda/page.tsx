@@ -17,9 +17,12 @@ export default async function AgendaPage() {
     deletedAt: null,
   };
   if (user.role === "formador_comunitario") {
+    const gid = user.grupoFormacaoId ?? null;
     agendamentosWhere.OR = [
-      { grupoFormacaoId: user.grupoFormacaoId ?? null },
+      { grupoFormacaoId: gid },
       { formadorId: user.id ?? "" },
+      // Multi-grupo (item 1.7): eventos que incluem a morada do FC via junção.
+      ...(gid ? [{ grupos: { some: { grupoFormacaoId: gid } } }] : []),
     ];
   }
 
@@ -31,6 +34,7 @@ export default async function AgendaPage() {
     prisma.agendamento.findMany({
       where: agendamentosWhere,
       orderBy: { dataInicio: "desc" },
+      include: { grupos: { select: { grupoFormacaoId: true } } },
     }),
     prisma.formacao.findMany({
       where: {

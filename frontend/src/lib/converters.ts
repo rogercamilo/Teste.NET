@@ -17,6 +17,7 @@ export type PrismaAgendamento = {
   dataInicio: Date; dataFim: Date; local: string | null; linkOnline: string | null;
   status: string; participantes: number; observacoes: string | null;
   googleCalendarEventId: string | null; criadoEm: Date;
+  grupos?: { grupoFormacaoId: string }[];
 };
 
 export type PrismaCompromisso = {
@@ -113,6 +114,11 @@ export function toAgendamento(a: PrismaAgendamento): Agendamento {
     tipoFormacao: a.tipoFormacao as Agendamento["tipoFormacao"],
     formadorId: a.formadorId, formadorNome: a.formadorNome,
     grupoFormacaoId: a.grupoFormacaoId ?? undefined,
+    grupoFormacaoIds: a.grupos
+      ? a.grupos.map((g) => g.grupoFormacaoId)
+      : a.grupoFormacaoId
+        ? [a.grupoFormacaoId]
+        : [],
     dataInicio: a.dataInicio.toISOString(), dataFim: a.dataFim.toISOString(),
     local: a.local ?? undefined, linkOnline: a.linkOnline ?? undefined,
     status: a.status as Agendamento["status"], participantes: a.participantes,

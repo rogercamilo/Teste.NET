@@ -42,6 +42,7 @@ import {
   BookOpen,
   Calendar,
   CalendarClock,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -96,7 +97,7 @@ type FormState = {
   local: string;
   participantes: string;
   observacoes: string;
-  grupoFormacaoId: string;
+  grupoFormacaoIds: string[];
 };
 
 const EMPTY_FORM: FormState = {
@@ -106,7 +107,7 @@ const EMPTY_FORM: FormState = {
   local: "",
   participantes: "",
   observacoes: "",
-  grupoFormacaoId: "",
+  grupoFormacaoIds: [],
 };
 
 interface AgendaClientProps {
@@ -141,7 +142,12 @@ export default function AgendaClient({
   const [novoOpen, setNovoOpen] = useState(false);
 
   const meus = isFC
-    ? initialAgendamentos.filter((a) => a.grupoFormacaoId === userGrupoFormacaoId || a.formadorId === userId)
+    ? initialAgendamentos.filter(
+        (a) =>
+          a.grupoFormacaoId === userGrupoFormacaoId ||
+          a.formadorId === userId ||
+          (userGrupoFormacaoId ? (a.grupoFormacaoIds?.includes(userGrupoFormacaoId) ?? false) : false)
+      )
     : initialAgendamentos;
 
   const filtered = meus.filter((a) =>
@@ -394,6 +400,14 @@ function AgendamentoFormDialog({
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
+  const toggleGrupo = (id: string) =>
+    setForm((prev) => ({
+      ...prev,
+      grupoFormacaoIds: prev.grupoFormacaoIds.includes(id)
+        ? prev.grupoFormacaoIds.filter((g) => g !== id)
+        : [...prev.grupoFormacaoIds, id],
+    }));
+
   async function handleSave() {
     if (!form.formacaoId) return toast.error("Selecione a formação.");
     if (!form.dataInicio) return toast.error("Informe a data e hora de início.");
@@ -402,7 +416,9 @@ function AgendamentoFormDialog({
       const formacao = formacoes.find((f) => f.id === form.formacaoId);
       const dataInicioISO = new Date(form.dataInicio).toISOString();
       const dataFimISO = form.dataFim ? new Date(form.dataFim).toISOString() : dataInicioISO;
-      const grupoFormacaoIdFinal = isFC ? (userGrupoFormacaoId ?? undefined) : (form.grupoFormacaoId || undefined);
+      const grupoFormacaoIdsFinal = isFC
+        ? (userGrupoFormacaoId ? [userGrupoFormacaoId] : [])
+        : form.grupoFormacaoIds;
 
       const payload = {
         formacaoId: form.formacaoId,
@@ -410,7 +426,7 @@ function AgendamentoFormDialog({
         nivelFormativo: formacao?.nivelFormativo ?? "pre-discipulado",
         tipoFormacao: formacao?.tipoFormacao ?? "comunitaria",
         formadorId: userId,
-        grupoFormacaoId: grupoFormacaoIdFinal,
+        grupoFormacaoIds: grupoFormacaoIdsFinal,
         dataInicio: dataInicioISO,
         dataFim: dataFimISO,
         local: form.local.trim() || undefined,
@@ -484,17 +500,35 @@ function AgendamentoFormDialog({
           </div>
           {!isFC && gruposFormacao.length > 0 && (
             <div className="grid gap-1.5">
-              <Label>{termoGrupoFormacao}</Label>
-              <Select value={form.grupoFormacaoId} onValueChange={(v) => v && set("grupoFormacaoId")(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={`Selecionar ${termoGrupoFormacao.toLowerCase()} (opcional)...`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {gruposFormacao.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>
+                {termoGrupoFormacao}s{" "}
+                <span className="font-normal text-xs text-muted-foreground">(vazio = todos)</span>
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {gruposFormacao.map((m) => {
+                  const selected = form.grupoFormacaoIds.includes(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => toggleGrupo(m.id)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
+                        selected
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {selected && <Check className="h-3 w-3" />}
+                      {m.nome}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {form.grupoFormacaoIds.length === 0
+                  ? "Todos os grupos da organização serão notificados."
+                  : `${form.grupoFormacaoIds.length} ${termoGrupoFormacao.toLowerCase()}(s) selecionado(s).`}
+              </p>
             </div>
           )}
           <div className="grid gap-1.5">

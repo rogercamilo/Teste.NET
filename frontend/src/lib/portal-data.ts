@@ -136,11 +136,16 @@ export async function getPortalDashboardData(
       formando.grupoFormacaoId
         ? prisma.agendamento.findMany({
             where: {
-              grupoFormacaoId: formando.grupoFormacaoId,
               organizacaoId,
               dataInicio: { gte: agora },
               status: { not: "cancelada" },
               deletedAt: null,
+              // Encontros do grupo do formando — legado (grupoFormacaoId) OU via
+              // junção multi-grupo (item 1.7).
+              OR: [
+                { grupoFormacaoId: formando.grupoFormacaoId },
+                { grupos: { some: { grupoFormacaoId: formando.grupoFormacaoId } } },
+              ],
             },
             select: {
               id: true,

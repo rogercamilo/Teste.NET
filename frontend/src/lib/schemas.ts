@@ -256,6 +256,9 @@ export const CreateAgendamentoSchema = z.object({
   nivelFormativo: NivelFormativoEnum.optional(),
   tipoFormacao: TipoFormacaoEnum.optional(),
   grupoFormacaoId: z.string().optional().nullable(),
+  // Item 1.7: grupos-alvo (multi). Vazio/omisso = org inteira. Precede o campo
+  // legado `grupoFormacaoId` quando presente.
+  grupoFormacaoIds: z.array(z.string().min(1)).max(50).optional(),
   dataInicio: isoDatetime,
   dataFim: isoDatetime.optional(),
   local: optionalString(500).nullable(),

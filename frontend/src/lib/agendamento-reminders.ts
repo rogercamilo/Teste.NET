@@ -30,6 +30,7 @@ const REMINDER_SELECT = {
   id: true,
   organizacaoId: true,
   grupoFormacaoId: true,
+  grupos: { select: { grupoFormacaoId: true } },
   formacaoTema: true,
   dataInicio: true,
   dataFim: true,
@@ -41,12 +42,23 @@ type ReminderRow = {
   id: string;
   organizacaoId: string;
   grupoFormacaoId: string | null;
+  grupos: { grupoFormacaoId: string }[];
   formacaoTema: string;
   dataInicio: Date;
   dataFim: Date;
   local: string | null;
   linkOnline: string | null;
 };
+
+/**
+ * Grupos-alvo de um agendamento (item 1.7): a junção é a fonte da verdade;
+ * cai no `grupoFormacaoId` legado se a junção estiver vazia. Array vazio = org.
+ */
+export function gruposAlvo(row: { grupoFormacaoId: string | null; grupos?: { grupoFormacaoId: string }[] }): string[] {
+  const daJuncao = row.grupos?.map((g) => g.grupoFormacaoId) ?? [];
+  if (daJuncao.length > 0) return daJuncao;
+  return row.grupoFormacaoId ? [row.grupoFormacaoId] : [];
+}
 
 export interface ReminderSummary {
   agendamentos: number;
@@ -143,13 +155,19 @@ async function dispatchReminder(
   let emails = 0;
   let push = 0;
 
-  if (row.grupoFormacaoId) {
-    // Escopo de grupo: push ao grupo; bell + e-mail ao FC (staff, sempre).
-    const p = await sendPushToGroup(org, row.grupoFormacaoId, pushPayload).catch(() => null);
-    if (p) push += p.sent;
+  const grupos = gruposAlvo(row);
 
-    const fcId = await formadorDoGrupo(row.grupoFormacaoId).catch(() => null);
-    if (fcId) {
+  if (grupos.length > 0) {
+    // Escopo de grupo(s) (item 1.7): push a cada grupo; bell + e-mail ao FC de
+    // cada grupo (staff, sempre), deduplicando FCs que cubram vários grupos.
+    const fcIds = new Set<string>();
+    for (const gid of grupos) {
+      const p = await sendPushToGroup(org, gid, pushPayload).catch(() => null);
+      if (p) push += p.sent;
+      const fcId = await formadorDoGrupo(gid).catch(() => null);
+      if (fcId) fcIds.add(fcId);
+    }
+    for (const fcId of fcIds) {
       await criarNotificacao({
         organizacaoId: org,
         destinatarioId: fcId,
@@ -174,7 +192,7 @@ async function dispatchReminder(
 
   // E-mail aos formandos — só quando o opt-in de e-mails de agenda está ligado (item 1.6).
   if (emailAtivo) {
-    const formandos = await formandosAlvo(org, row.grupoFormacaoId);
+    const formandos = await formandosAlvo(org, grupos);
     for (const f of formandos) {
       if (!f.email) continue;
       const r = await sendAgendamentoReminderEmail({
@@ -193,17 +211,18 @@ async function dispatchReminder(
 }
 
 /**
- * Formandos-alvo de um agendamento para e-mail: do grupo (se houver) ou de toda
- * a org (evento geral). Só ativos, com e-mail. Reutilizado pela criação (1.6).
+ * Formandos-alvo de um agendamento para e-mail: dos grupos-alvo (união, item
+ * 1.7) ou de toda a org quando a lista está vazia (evento geral). Só ativos, com
+ * e-mail. Reutilizado pela criação (1.6).
  */
 export async function formandosAlvo(
   organizacaoId: string,
-  grupoFormacaoId: string | null
+  grupoFormacaoIds: string[]
 ): Promise<{ nome: string; email: string; tokenAssinatura: string | null }[]> {
   return prisma.formando.findMany({
     where: {
       organizacaoId,
-      ...(grupoFormacaoId ? { grupoFormacaoId } : {}),
+      ...(grupoFormacaoIds.length > 0 ? { grupoFormacaoId: { in: grupoFormacaoIds } } : {}),
       ativo: true,
       deletedAt: null,
       email: { not: "" },

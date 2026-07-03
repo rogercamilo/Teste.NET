@@ -372,6 +372,7 @@ model GrupoFormacao {
   grade                   GradeFormativa?          @relation(fields: [gradeId], references: [id])
   formandos               Formando[]
   agendamentos            Agendamento[]
+  agendamentoGrupos       AgendamentoGrupo[]
   participacoesVocacional ParticipacaoVocacional[]
   // Usuários vinculados a este grupo de formação (formadores_comunitarios)
   usuarios                Usuario[]                @relation("UsuarioGrupoFormacao")
@@ -675,6 +676,7 @@ model Agendamento {
   formacao      Formacao           @relation(fields: [formacaoId], references: [id])
   formador      Usuario            @relation(fields: [formadorId], references: [id])
   grupoFormacao GrupoFormacao?     @relation(fields: [grupoFormacaoId], references: [id], onDelete: SetNull)
+  grupos        AgendamentoGrupo[]
   presencas     PresencaFormacao[]
 
   @@index([organizacaoId])
@@ -683,6 +685,26 @@ model Agendamento {
   @@index([grupoFormacaoId])
   @@index([organizacaoId, status, dataInicio])
   @@index([deletedAt])
+}
+
+// ==========================================================
+// AGENDAMENTO ↔ GRUPO (multi-grupo, item 1.7)
+// ==========================================================
+// Junção N:N dos grupos-alvo de um agendamento. Fonte da verdade para
+// notificações/lembretes/e-mail/RSVP. `Agendamento.grupoFormacaoId` é mantido
+// em sincronia (setado quando exatamente 1 grupo; null p/ org ou multi-grupo)
+// para preservar as leituras legadas (filtro do FC, dashboard, guards).
+model AgendamentoGrupo {
+  agendamentoId   String
+  grupoFormacaoId String   @map("morada_id")
+  criadoEm        DateTime @default(now())
+
+  agendamento   Agendamento   @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  grupoFormacao GrupoFormacao @relation(fields: [grupoFormacaoId], references: [id], onDelete: Cascade)
+
+  @@id([agendamentoId, grupoFormacaoId])
+  @@index([grupoFormacaoId])
+  @@map("agendamento_grupo")
 }
 
 // ==========================================================

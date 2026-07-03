@@ -26,17 +26,25 @@ export async function GET(request: Request) {
     const pagination = parsePagination(searchParams);
     const where: Record<string, unknown> = { organizacaoId: user.organizacaoId, deletedAt: null };
     if (user.role === "formador_comunitario") {
-      where.grupoFormacaoId = user.grupoFormacaoId ?? null;
+      const gid = user.grupoFormacaoId ?? null;
+      // Vê os agendamentos do próprio grupo — legado (grupoFormacaoId) OU via
+      // junção multi-grupo (item 1.7). Sem grupo, mantém o escopo org-wide legado.
+      if (gid) {
+        where.OR = [{ grupoFormacaoId: gid }, { grupos: { some: { grupoFormacaoId: gid } } }];
+      } else {
+        where.grupoFormacaoId = null;
+      }
     }
     const orderBy = { dataInicio: "asc" as const };
+    const include = { grupos: { select: { grupoFormacaoId: true } } } as const;
 
     if (!pagination) {
-      const rows = await prisma.agendamento.findMany({ where, orderBy });
+      const rows = await prisma.agendamento.findMany({ where, orderBy, include });
       return NextResponse.json(rows.map(toAg));
     }
 
     const [rows, total] = await Promise.all([
-      prisma.agendamento.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.agendamento.findMany({ where, orderBy, include, skip: pagination.skip, take: pagination.take }),
       prisma.agendamento.count({ where }),
     ]);
     return NextResponse.json(rows.map(toAg), { headers: paginationHeaders(total, pagination) });
@@ -61,9 +69,26 @@ export async function POST(request: Request) {
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 
-    if (user.role === "formador_comunitario" && body.grupoFormacaoId && body.grupoFormacaoId !== user.grupoFormacaoId) {
-      return NextResponse.json({ error: "Sem permissão para criar agendamento em outra morada" }, { status: 403 });
+    // Grupos-alvo (item 1.7): a lista multi precede o campo legado.
+    let targetGroups = [...new Set(body.grupoFormacaoIds ?? (body.grupoFormacaoId ? [body.grupoFormacaoId] : []))];
+    if (user.role === "formador_comunitario") {
+      // FC só agenda para a própria morada.
+      if (targetGroups.some((g) => g !== user.grupoFormacaoId)) {
+        return NextResponse.json({ error: "Sem permissão para criar agendamento em outra morada" }, { status: 403 });
+      }
+      if (targetGroups.length === 0 && user.grupoFormacaoId) targetGroups = [user.grupoFormacaoId];
     }
+    // Todos os grupos-alvo devem pertencer à org.
+    if (targetGroups.length > 0) {
+      const validos = await prisma.grupoFormacao.count({
+        where: { id: { in: targetGroups }, organizacaoId: user.organizacaoId },
+      });
+      if (validos !== targetGroups.length) {
+        return NextResponse.json({ error: "Grupo inválido" }, { status: 400 });
+      }
+    }
+    // Sincroniza o campo legado: setado só quando exatamente 1 grupo.
+    const grupoFormacaoIdCol = targetGroups.length === 1 ? targetGroups[0] : null;
 
     const formacao = await prisma.formacao.findFirst({
       where: { id: body.formacaoId, deletedAt: null, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
@@ -89,7 +114,8 @@ export async function POST(request: Request) {
         tipoFormacao: body.tipoFormacao ?? "comunitaria",
         formadorId,
         formadorNome,
-        grupoFormacaoId: body.grupoFormacaoId ?? user.grupoFormacaoId ?? null,
+        grupoFormacaoId: grupoFormacaoIdCol,
+        grupos: { create: targetGroups.map((gid) => ({ grupoFormacaoId: gid })) },
         dataInicio: new Date(body.dataInicio),
         dataFim: new Date(body.dataFim ?? body.dataInicio),
         local: body.local ?? null,
@@ -99,22 +125,25 @@ export async function POST(request: Request) {
         observacoes: body.observacoes ?? null,
         googleCalendarEventId: body.googleCalendarEventId ?? null,
       },
+      include: { grupos: { select: { grupoFormacaoId: true } } },
     });
     logAction("agendamento_created", user.id, getClientIp(request), { formacaoId: body.formacaoId }, user.organizacaoId);
 
-    // Bell: notifica FC do grupo (apenas se foi Admin/FG que agendou, não o próprio FC)
-    if (row.grupoFormacaoId && user.role !== "formador_comunitario") {
-      formadorDoGrupo(row.grupoFormacaoId).then((fcId) => {
-        if (!fcId) return;
-        criarNotificacao({
-          organizacaoId: user.organizacaoId!,
-          destinatarioId: fcId,
-          tipo: "novo_agendamento",
-          titulo: "Nova formação agendada para seu grupo",
-          corpo: `${row.formacaoTema} — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
-          linkAcao: "/agenda",
-        });
-      }).catch(() => {});
+    // Bell: notifica o FC de cada grupo-alvo (apenas se foi Admin/FG que agendou).
+    if (targetGroups.length > 0 && user.role !== "formador_comunitario") {
+      for (const gid of targetGroups) {
+        formadorDoGrupo(gid).then((fcId) => {
+          if (!fcId) return;
+          criarNotificacao({
+            organizacaoId: user.organizacaoId!,
+            destinatarioId: fcId,
+            tipo: "novo_agendamento",
+            titulo: "Nova formação agendada para seu grupo",
+            corpo: `${row.formacaoTema} — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
+            linkAcao: "/agenda",
+          });
+        }).catch(() => {});
+      }
     }
 
     // Notificação push — fire-and-forget
@@ -126,7 +155,7 @@ export async function POST(request: Request) {
 
     // E-mail de criação aos formandos — só se o FG manteve o opt-in (item 1.6).
     // Fire-and-forget: não bloqueia a resposta 201.
-    void notificarCriacaoPorEmail(row);
+    void notificarCriacaoPorEmail(row, targetGroups);
 
     return NextResponse.json(toAg(row), { status: 201 });
   } catch (err) {
@@ -140,16 +169,18 @@ export async function POST(request: Request) {
  * opt-in do Formador Geral (`emailAgendamentoAtivo`). Best-effort; erros não
  * afetam a criação (chamado com `void`).
  */
-async function notificarCriacaoPorEmail(row: {
-  id: string;
-  organizacaoId: string;
-  grupoFormacaoId: string | null;
-  formacaoTema: string;
-  dataInicio: Date;
-  dataFim: Date;
-  local: string | null;
-  linkOnline: string | null;
-}): Promise<void> {
+async function notificarCriacaoPorEmail(
+  row: {
+    id: string;
+    organizacaoId: string;
+    formacaoTema: string;
+    dataInicio: Date;
+    dataFim: Date;
+    local: string | null;
+    linkOnline: string | null;
+  },
+  grupos: string[]
+): Promise<void> {
   try {
     const org = await prisma.organizacao.findUnique({
       where: { id: row.organizacaoId },
@@ -157,7 +188,7 @@ async function notificarCriacaoPorEmail(row: {
     });
     if (!org?.emailAgendamentoAtivo) return;
 
-    const formandos = await formandosAlvo(row.organizacaoId, row.grupoFormacaoId);
+    const formandos = await formandosAlvo(row.organizacaoId, grupos);
     for (const f of formandos) {
       if (!f.email) continue;
       await sendAgendamentoCriadoEmail({

@@ -22,7 +22,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { checkAndSendReminders } from "@/lib/agendamento-reminders";
+import { checkAndSendReminders, gruposAlvo } from "@/lib/agendamento-reminders";
 import { prisma } from "@/lib/prisma";
 import { sendPushToOrg, sendPushToGroup } from "@/lib/push";
 import { sendAgendamentoReminderEmail } from "@/lib/email";
@@ -129,6 +129,45 @@ describe("checkAndSendReminders — escopo de grupo", () => {
     expect(criarNotificacao).toHaveBeenCalledTimes(1);
     // formando (1) + FC (1)
     expect(sendAgendamentoReminderEmail).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("gruposAlvo (item 1.7)", () => {
+  it("a junção precede o campo legado", () => {
+    expect(
+      gruposAlvo({ grupoFormacaoId: "g0", grupos: [{ grupoFormacaoId: "g1" }, { grupoFormacaoId: "g2" }] })
+    ).toEqual(["g1", "g2"]);
+  });
+  it("cai no legado quando a junção está vazia/ausente", () => {
+    expect(gruposAlvo({ grupoFormacaoId: "g0", grupos: [] })).toEqual(["g0"]);
+    expect(gruposAlvo({ grupoFormacaoId: "g0" })).toEqual(["g0"]);
+  });
+  it("org-wide quando não há grupo algum", () => {
+    expect(gruposAlvo({ grupoFormacaoId: null, grupos: [] })).toEqual([]);
+  });
+});
+
+describe("checkAndSendReminders — multi-grupo (item 1.7)", () => {
+  it("push a cada grupo, FC deduplicado e formandos pela união", async () => {
+    findMany
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([
+        baseRow({ grupoFormacaoId: null, grupos: [{ grupoFormacaoId: "g1" }, { grupoFormacaoId: "g2" }] }),
+      ] as never);
+    formandoFindMany.mockResolvedValueOnce([{ nome: "Caio", email: "caio@x.com", tokenAssinatura: null }] as never);
+    usuarioFindUnique.mockResolvedValue({ nome: "Formador", email: "fc@x.com" } as never);
+
+    await checkAndSendReminders(NOW);
+
+    expect(sendPushToGroup).toHaveBeenCalledTimes(2);
+    expect(sendPushToGroup).toHaveBeenCalledWith("org1", "g1", expect.any(Object));
+    expect(sendPushToGroup).toHaveBeenCalledWith("org1", "g2", expect.any(Object));
+    expect(sendPushToOrg).not.toHaveBeenCalled();
+    // formadorDoGrupo devolve "fc1" p/ ambos → um único bell (deduplicado)
+    expect(criarNotificacao).toHaveBeenCalledTimes(1);
+    expect(formandoFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ grupoFormacaoId: { in: ["g1", "g2"] } }) })
+    );
   });
 });
 
