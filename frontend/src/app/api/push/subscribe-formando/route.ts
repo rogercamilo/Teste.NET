@@ -62,7 +62,9 @@ export async function POST(request: Request) {
       },
     });
 
-    logAction("push_subscribed", formando.id, ip, { endpoint: endpoint.slice(0, 60), via: "token" }, formando.organizacaoId);
+    // Ator é um formando (não um Usuario) — usuarioId nulo evita violar a FK do
+    // AuditLog; a identidade vai em `details.formandoId`.
+    logAction("push_subscribed", undefined, ip, { formandoId: formando.id, endpoint: endpoint.slice(0, 60), via: "token" }, formando.organizacaoId);
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     logError("push/subscribe-formando POST", err);
@@ -95,7 +97,7 @@ export async function DELETE(request: Request) {
       where: { organizacaoId: formando.organizacaoId, endpoint },
     });
 
-    logAction("push_unsubscribed", formando.id, ip, { endpoint: endpoint.slice(0, 60), via: "token" }, formando.organizacaoId);
+    logAction("push_unsubscribed", undefined, ip, { formandoId: formando.id, endpoint: endpoint.slice(0, 60), via: "token" }, formando.organizacaoId);
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     logError("push/subscribe-formando DELETE", err);
