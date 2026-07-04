@@ -16,6 +16,10 @@ import {
   History,
   Check,
   X,
+  BookOpen,
+  Paperclip,
+  ChevronDown,
+  Download,
 } from "lucide-react";
 import {
   NIVEL_FORMATIVO_LABELS,
@@ -24,7 +28,11 @@ import {
 } from "@/types";
 import type { PublicBranding } from "@/lib/public-branding";
 import { portalHomeFor } from "@/lib/portal-routes";
-import type { PortalDashboardData, PortalProximoEncontro } from "@/lib/portal-data";
+import type {
+  PortalDashboardData,
+  PortalProximoEncontro,
+  PortalMaterialItem,
+} from "@/lib/portal-data";
 import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
 import { PortalNotificacoesCard } from "./PortalNotificacoesCard";
 
@@ -56,9 +64,11 @@ function formatEncontro(iso: string): string {
 
 export default function DashboardClient({
   data,
+  materiais,
   branding,
 }: {
   data: PortalDashboardData;
+  materiais: PortalMaterialItem[];
   branding: PublicBranding;
 }) {
   const router = useRouter();
@@ -254,6 +264,30 @@ export default function DashboardClient({
             </CardContent>
           </Card>
         )}
+
+        {/* Materiais das formações já realizadas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary" />
+              Materiais das formações
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {materiais.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">
+                Os materiais das suas formações aparecem aqui a partir do dia de
+                cada encontro.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {materiais.map((m) => (
+                  <MaterialItem key={m.agendamentoId} material={m} />
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Histórico */}
         <Card>
@@ -508,6 +542,103 @@ function JustificarInline({
       </div>
       {erro && <p className="text-xs text-destructive">{erro}</p>}
     </div>
+  );
+}
+
+function MaterialItem({ material }: { material: PortalMaterialItem }) {
+  const [aberto, setAberto] = useState(false);
+  const tipoLabel = material.tipoFormacao
+    ? TIPO_FORMACAO_LABELS[material.tipoFormacao]
+    : null;
+  const d = new Date(material.data);
+
+  return (
+    <li className="rounded-lg border border-border/60">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        className="flex w-full items-center justify-between gap-3 p-3 text-left"
+      >
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-foreground">
+            {material.tema || tipoLabel || "Formação"}
+          </p>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+            <span>{fmtData.format(d)}</span>
+            {tipoLabel && material.tema && <span>· {tipoLabel}</span>}
+            {material.anexoNome && (
+              <span className="flex items-center gap-1 text-primary">
+                <Paperclip className="h-3 w-3" />
+                Anexo
+              </span>
+            )}
+          </p>
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+            aberto ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {aberto && (
+        <div className="space-y-3 border-t border-border/60 p-3 text-sm">
+          {!material.temMaterial ? (
+            <p className="text-muted-foreground">
+              Sem material disponível para esta formação.
+            </p>
+          ) : (
+            <>
+              {material.objetivo && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Objetivo
+                  </p>
+                  <p className="mt-0.5 text-foreground">{material.objetivo}</p>
+                </div>
+              )}
+              {material.descricao && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Descrição
+                  </p>
+                  <p className="mt-0.5 whitespace-pre-wrap text-foreground">
+                    {material.descricao}
+                  </p>
+                </div>
+              )}
+              {material.materialApoio && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Material de apoio
+                  </p>
+                  <p className="mt-0.5 whitespace-pre-wrap text-foreground">
+                    {material.materialApoio}
+                  </p>
+                </div>
+              )}
+              {material.anexoNome && (
+                <a
+                  href={`/api/portal/formacoes/${material.agendamentoId}/material`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <Download className="h-4 w-4 text-primary" />
+                  <span className="truncate">{material.anexoNome}</span>
+                </a>
+              )}
+            </>
+          )}
+          {material.formadorNome && (
+            <p className="text-xs text-muted-foreground">
+              Formador: {material.formadorNome}
+            </p>
+          )}
+        </div>
+      )}
+    </li>
   );
 }
 

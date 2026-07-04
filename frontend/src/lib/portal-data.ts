@@ -63,6 +63,110 @@ export interface PortalDashboardData {
   } | null;
 }
 
+/**
+ * Material de uma formação já realizada, visível para o formando no portal.
+ * Reúne o contexto da formação (tema/objetivo/descrição), o material de apoio
+ * em texto/links e a indicação de anexo — o download do anexo é feito por rota
+ * dedicada e autorizada (`/api/portal/formacoes/[agendamentoId]/material`), então
+ * aqui só viaja o nome do arquivo, nunca o `documentoAnexoId` cru.
+ */
+export interface PortalMaterialItem {
+  agendamentoId: string;
+  data: string; // ISO — data do encontro
+  tema: string | null;
+  tipoFormacao: TipoFormacao | null;
+  formadorNome: string | null;
+  presente: boolean;
+  objetivo: string | null;
+  descricao: string | null;
+  materialApoio: string | null;
+  anexoNome: string | null;
+  temMaterial: boolean;
+}
+
+/**
+ * Fim do dia de HOJE no fuso local (America/Sao_Paulo). O material "abre" a
+ * partir do DIA agendado para o encontro — não da hora exata —, então incluímos
+ * qualquer encontro cuja data caia em hoje ou antes. O Brasil não observa mais
+ * horário de verão, então o offset fixo -03:00 é seguro.
+ */
+function fimDeHojeLocal(): Date {
+  const hoje = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date()); // YYYY-MM-DD
+  return new Date(`${hoje}T23:59:59.999-03:00`);
+}
+
+/**
+ * Formações já realizadas escaladas para o formando, com o material de estudo.
+ * A ponte de autorização é a própria `PresencaFormacao` (o formando foi escalado
+ * para aquele encontro) — independe de ter comparecido. Só entram encontros do
+ * tipo formação (com `Formacao` vinculada) cuja data já chegou (a partir do dia
+ * agendado). Escopado por formando + organização. `null`/inexistente → lista vazia.
+ */
+export async function getPortalMateriais(
+  formandoId: string,
+  organizacaoId: string
+): Promise<PortalMaterialItem[]> {
+  const presencas = await prisma.presencaFormacao.findMany({
+    where: {
+      formandoId,
+      organizacaoId,
+      data: { lte: fimDeHojeLocal() },
+      agendamento: { formacaoId: { not: null }, deletedAt: null },
+    },
+    select: {
+      agendamentoId: true,
+      data: true,
+      presente: true,
+      formacaoTema: true,
+      agendamento: {
+        select: {
+          tipoFormacao: true,
+          formadorNome: true,
+          formacao: {
+            select: {
+              tema: true,
+              objetivo: true,
+              descricao: true,
+              materialApoio: true,
+              documentoAnexo: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { data: "desc" },
+    take: 200,
+  });
+
+  return presencas.map((p) => {
+    const f = p.agendamento?.formacao;
+    const objetivo = f?.objetivo?.trim() || null;
+    const descricao = f?.descricao?.trim() || null;
+    const materialApoio = f?.materialApoio?.trim() || null;
+    const anexoNome = f?.documentoAnexo?.trim() || null;
+    return {
+      agendamentoId: p.agendamentoId,
+      data: p.data.toISOString(),
+      // Título = tema do ENCONTRO (denormalizado na presença), com o tema do
+      // template da formação como reserva.
+      tema: p.formacaoTema ?? f?.tema ?? null,
+      tipoFormacao: (p.agendamento?.tipoFormacao as TipoFormacao | undefined) ?? null,
+      formadorNome: p.agendamento?.formadorNome ?? null,
+      presente: p.presente,
+      objetivo,
+      descricao,
+      materialApoio,
+      anexoNome,
+      temMaterial: !!(objetivo || descricao || materialApoio || anexoNome),
+    };
+  });
+}
+
 const STATUS_VOCACIONAL_ATIVOS = ["ativa", "aguardando_carta", "em_discernimento"] as const;
 
 /**
