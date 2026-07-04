@@ -22,8 +22,8 @@ export async function POST(request: Request) {
     const email = parsed.data.email.trim().toLowerCase();
 
     const [rlIp, rlEmail] = await Promise.all([
-      limiters.portalMagicLinkIp(ip),
-      limiters.portalMagicLink(email),
+      limiters.portalRecuperarIp(ip),
+      limiters.portalRecuperar(email),
     ]);
     if (!rlIp.allowed || !rlEmail.allowed) {
       return NextResponse.json({ error: "Muitas tentativas. Aguarde alguns minutos e tente novamente." }, { status: 429 });

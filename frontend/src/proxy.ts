@@ -46,10 +46,8 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
 }
 
 // Rotas públicas do portal do formando (autenticação própria via portal_session)
-const PORTAL_PUBLIC_EXACT = new Set(["/portal", "/portal/verificar"]);
+const PORTAL_PUBLIC_EXACT = new Set(["/portal"]);
 const PORTAL_PUBLIC_PREFIXES = [
-  "/api/portal/solicitar-acesso",
-  "/api/portal/verificar",
   "/api/portal/login",
   "/api/portal/ativar",
   "/api/portal/recuperar",
@@ -82,7 +80,6 @@ export default auth(async function proxy(req) {
     "/",
     // Portal do formando — páginas públicas exatas (não usar prefixo: /portal/* inclui rotas protegidas)
     "/portal",
-    "/portal/verificar",
   ];
   // Prefix matches
   const publicPrefixes = [
@@ -116,14 +113,9 @@ export default auth(async function proxy(req) {
     "/api/auth/providers",
     "/api/auth/error",
     "/api/auth/recuperar-senha",
-    "/ativar-notificacoes",
-    "/api/push/subscribe-formando",
     // RSVP público por deep link (token do formando) — página + API
     "/rsvp",
     "/api/rsvp/",
-    // Portal do formando — API pública (magic link)
-    "/api/portal/solicitar-acesso",
-    "/api/portal/verificar",
     // Portal do formando — login por senha + primeiro acesso + reset (sem sessão ainda)
     "/api/portal/login",
     "/api/portal/ativar",
@@ -251,9 +243,9 @@ export default auth(async function proxy(req) {
 export const config = {
   matcher: [
     // `sw.js` precisa ser servido como asset estático puro (sem o gate de auth do
-    // proxy): o fluxo público /ativar-notificacoes (formando deslogado) registra
-    // o service worker, e um redirect 307 → /login quebra o registro. Mesma razão
-    // para o manifesto PWA.
+    // proxy): o portal (formando deslogado em /portal/ativar, /portal/recuperar)
+    // registra o service worker, e um redirect 307 → /login quebra o registro.
+    // Mesma razão para o manifesto PWA.
     "/((?!_next/static|_next/image|favicon.ico|public|brand|sw.js|site.webmanifest).*)",
   ],
 };

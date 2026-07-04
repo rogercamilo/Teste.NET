@@ -53,10 +53,7 @@ const PUBLIC = new Set<string>([
   "convites/[token]/route.ts", // valida o próprio token do convite
   "auth/recuperar-senha/route.ts", // reset por e-mail (não vaza existência)
   "auth/recuperar-senha/confirmar/route.ts", // reset via token
-  "push/subscribe-formando/route.ts", // ativa push do formando via tokenAssinatura
   "rsvp/[token]/route.ts", // RSVP 1-clique do formando via tokenAssinatura (deep link do lembrete)
-  "portal/solicitar-acesso/route.ts", // formando pede magic link
-  "portal/verificar/route.ts", // verifica magic link do portal
   "portal/login/route.ts", // login do formando por e-mail+senha (estabelece a sessão)
   "portal/ativar/[token]/route.ts", // 1º acesso: valida o próprio token e define a senha
   "portal/recuperar/route.ts", // pede reset por e-mail (anti-enumeração, não vaza existência)
@@ -76,6 +73,7 @@ const LIST_SCOPING_EXEMPT = new Set<string>([
   "cron/db-health/route.ts", // lista super_admins do sistema para alerta de pool (cron secret)
   "cron/security-alerts/route.ts", // lista super_admins do sistema para alerta de segurança (cron secret)
   "notificacoes/route.ts", // listarNaoLidas(userId) → where destinatarioId (escopo por usuário)
+  "portal/recuperar/route.ts", // findMany por e-mail global (anti-enumeração, resolve a org do formando)
 ]);
 
 // Rotas que escrevem mas NÃO escopam por organizacaoId — cada uma justificada.
@@ -98,7 +96,8 @@ const ORG_SCOPING_EXEMPT = new Set<string>([
   "notificacoes/route.ts",
   "notificacoes/[id]/route.ts",
   "push/subscribe/route.ts",
-  "push/subscribe-formando/route.ts",
+  "portal/ativar/[token]/route.ts", // 1º acesso: escopo pelo token de ativação do formando
+  "portal/recuperar/[token]/route.ts", // reset: escopo pelo token de reset do formando
   // Público/token/assinatura (escopo por entidade específica, não por org da sessão).
   "registro/route.ts", // cria a org
   "convites/route.ts", // cria convite p/ própria org (usa organizacaoId, mas garantimos abaixo)
@@ -108,7 +107,6 @@ const ORG_SCOPING_EXEMPT = new Set<string>([
   "cron/db-health/route.ts",
   "admin/retention/route.ts", // job de retenção LGPD cross-org (CRON_SECRET + timingSafeEqual)
   // Portal do formando (escopo por sessão de portal / formando).
-  "portal/solicitar-acesso/route.ts",
   "portal/presenca/[agendamentoId]/confirmar/route.ts",
   "portal/presenca/[agendamentoId]/justificar/route.ts",
   "portal/vocacional/solicitar-acompanhamento/route.ts",

@@ -77,7 +77,6 @@ import {
   ArrowRight,
   Award,
   BarChart3,
-  Bell,
   BookOpen,
   Calendar,
   CheckCircle2,
@@ -821,22 +820,22 @@ export default function FormandoDetailClient({
               <Button
                 variant="outline"
                 size="sm"
-                title="Reenviar convite de notificações por e-mail"
+                title="Reenviar e-mail de acesso ao Portal do Formando"
                 onClick={async () => {
                   try {
-                    const res = await fetch(`/api/formandos/${formando.id}/push-invite`, { method: "POST" });
-                    if (res.ok) toast.success("Convite enviado para " + formando.email);
+                    const res = await fetch(`/api/formandos/${formando.id}/reenviar-acesso`, { method: "POST" });
+                    if (res.ok) toast.success("Acesso ao portal enviado para " + formando.email);
                     else {
                       const { error } = await res.json();
-                      toast.error(error ?? "Falha ao enviar convite.");
+                      toast.error(error ?? "Falha ao reenviar o acesso.");
                     }
                   } catch {
-                    toast.error("Falha ao enviar convite.");
+                    toast.error("Falha ao reenviar o acesso.");
                   }
                 }}
               >
-                <Bell className="h-4 w-4 mr-1.5" />
-                Notificações
+                <Mail className="h-4 w-4 mr-1.5" />
+                Reenviar acesso
               </Button>
             )}
             <Button

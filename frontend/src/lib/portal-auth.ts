@@ -2,7 +2,6 @@ import { SignJWT, jwtVerify } from "jose";
 
 export const PORTAL_COOKIE = "portal_session";
 const TTL_SECONDS = 7 * 24 * 60 * 60; // 7 dias
-const MAGIC_TTL_SECONDS = 15 * 60; // 15 minutos — magic link
 
 function secret(): Uint8Array {
   const s = process.env.AUTH_SECRET;
@@ -27,26 +26,6 @@ export async function signPortalToken(payload: PortalPayload): Promise<string> {
 
 export async function verifyPortalToken(token: string): Promise<PortalPayload> {
   const { payload } = await jwtVerify(token, secret(), { audience: "portal" });
-  if (
-    typeof payload.formandoId !== "string" ||
-    typeof payload.organizacaoId !== "string"
-  ) {
-    throw new Error("Token inválido");
-  }
-  return { formandoId: payload.formandoId, organizacaoId: payload.organizacaoId };
-}
-
-export async function signPortalMagicToken(payload: PortalPayload): Promise<string> {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setAudience("portal-magic")
-    .setIssuedAt()
-    .setExpirationTime(`${MAGIC_TTL_SECONDS}s`)
-    .sign(secret());
-}
-
-export async function verifyPortalMagicToken(token: string): Promise<PortalPayload> {
-  const { payload } = await jwtVerify(token, secret(), { audience: "portal-magic" });
   if (
     typeof payload.formandoId !== "string" ||
     typeof payload.organizacaoId !== "string"

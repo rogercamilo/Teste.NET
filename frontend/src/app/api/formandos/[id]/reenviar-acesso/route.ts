@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
-import { sendPushInviteEmail } from "@/lib/email";
+import { sendPortalWelcomeEmail } from "@/lib/email";
+import { createFormandoAccessToken, ATIVACAO_TTL_MS } from "@/lib/portal-formando-auth";
 import { limiters } from "@/lib/rate-limit";
 import type { SessionUser as SU } from "@/lib/auth-helpers";
-import crypto from "crypto";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+/**
+ * Reenvia ao formando o e-mail de acesso ao Portal (boas-vindas + link de 1º
+ * acesso para criar/redefinir a senha). Conveniência de onboarding para a
+ * equipe. Substitui o antigo convite de push por token de assinatura.
+ */
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) {
@@ -26,41 +28,34 @@ export async function POST(
     const { id } = await params;
     const formando = await prisma.formando.findFirst({
       where: { id, organizacaoId: user.organizacaoId, deletedAt: null },
-      select: { id: true, nome: true, email: true, grupoFormacaoId: true, grupoFormacao: { select: { nome: true } } },
+      select: { id: true, nome: true, email: true, grupoFormacao: { select: { nome: true } } },
     });
 
     if (!formando) {
       return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
     }
-
     if (!formando.email) {
       return NextResponse.json({ error: "Este formando não possui e-mail cadastrado." }, { status: 400 });
     }
 
-    const tokenAssinatura = crypto.randomBytes(32).toString("hex");
-    await prisma.formando.update({
-      where: { id: formando.id },
-      data: { tokenAssinatura },
-    });
-
+    const raw = await createFormandoAccessToken(formando.id, "ativacao", ATIVACAO_TTL_MS);
     const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-    const result = await sendPushInviteEmail({
+    const result = await sendPortalWelcomeEmail({
       organizacaoId: user.organizacaoId,
       nome: formando.nome,
       email: formando.email,
       grupoNome: formando.grupoFormacao?.nome ?? null,
-      ativarUrl: `${appUrl}/ativar-notificacoes/${tokenAssinatura}`,
+      ativarUrl: `${appUrl}/portal/ativar/${raw}`,
     });
 
-    logAction("push_invite_sent", user.id, getClientIp(request), { formandoId: formando.id }, user.organizacaoId);
+    logAction("portal_acesso_reenviado", user.id, getClientIp(request), { formandoId: formando.id }, user.organizacaoId);
 
     if (!result.sent) {
       return NextResponse.json({ error: result.error ?? "Falha ao enviar e-mail." }, { status: 500 });
     }
-
     return NextResponse.json({ ok: true });
   } catch (err) {
-    logError("formandos/push-invite POST", err);
-    return NextResponse.json({ error: "Falha ao enviar convite." }, { status: 500 });
+    logError("formandos/reenviar-acesso POST", err);
+    return NextResponse.json({ error: "Falha ao reenviar o acesso." }, { status: 500 });
   }
 }

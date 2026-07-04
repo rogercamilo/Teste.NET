@@ -512,7 +512,7 @@ export async function sendPlanLimitReachedEmail({
   );
 }
 
-export async function sendPushInviteEmail({
+export async function sendPortalWelcomeEmail({
   organizacaoId,
   nome,
   email,
@@ -526,27 +526,27 @@ export async function sendPushInviteEmail({
   ativarUrl: string;
 }): Promise<{ sent: boolean; error?: string }> {
   const conteudo = [
-    heading(`Ative as notificações, ${escapeHtml(nome)}!`),
+    heading(`Bem-vindo(a), ${escapeHtml(nome)}!`),
     paragraph(
-      "Você está cadastrado(a) na plataforma de formação comunitária <strong>Formattio</strong>."
+      "Sua conta no <strong>Portal do Formando</strong> foi criada. É por ele que você acompanha sua presença, seus próximos encontros e ativa as notificações da sua comunidade."
     ),
     grupoNome ? paragraph(`Grupo de formação: <strong>${escapeHtml(grupoNome)}</strong>`) : "",
-    paragraph(
-      "Clique no botão abaixo para ativar as notificações no seu celular ou computador e receber avisos sobre encontros, datas e comunicados — mesmo com o navegador fechado."
-    ),
-    button("Ativar notificações", ativarUrl),
+    paragraph("Para começar, crie a sua senha de acesso:"),
+    button("Criar minha senha e acessar", ativarUrl),
     linkFallback(ativarUrl),
+    callout(
+      "info",
+      "Este link é válido por 7 dias. Se expirar, peça ao seu formador para reenviar o acesso."
+    ),
   ].join("");
   const html = renderEmail({
-    titulo: "Ative as notificações da sua comunidade",
-    preheader: "Receba avisos da sua comunidade mesmo com o navegador fechado.",
-    eyebrow: "Notificações",
+    titulo: "Acesse seu Portal do Formando",
+    preheader: "Crie sua senha e acesse o portal da sua comunidade.",
+    eyebrow: "Portal do Formando",
     conteudo,
     logoUrl: LOGO_URL,
-    notaRodape:
-      "Sem spam. Apenas avisos da sua comunidade. Você pode cancelar a qualquer momento acessando o mesmo link.",
   });
-  return send(organizacaoId, email, "Ative as notificações da sua comunidade — Formattio", html);
+  return send(organizacaoId, email, "Bem-vindo(a) ao seu Portal do Formando — Formattio", html);
 }
 
 export async function sendTrialExpiringEmail({
@@ -720,40 +720,6 @@ export async function sendSecurityAlertEmail({
   return send(organizacaoId, email, "⚠️ Pico de eventos de segurança — Formattio", html, {
     brandAsOrg: false,
   });
-}
-
-export async function sendPortalMagicLinkEmail({
-  organizacaoId,
-  nome,
-  email,
-  magicLinkUrl,
-}: {
-  organizacaoId: string;
-  nome: string;
-  email: string;
-  magicLinkUrl: string;
-}): Promise<{ sent: boolean; error?: string }> {
-  const conteudo = [
-    heading(`Olá, ${escapeHtml(nome)}!`),
-    paragraph(
-      "Recebemos uma solicitação de acesso ao seu portal de formação. Clique no botão abaixo para entrar."
-    ),
-    paragraph("O link é válido por <strong>15 minutos</strong>."),
-    button("Acessar meu portal", magicLinkUrl),
-    linkFallback(magicLinkUrl),
-    callout(
-      "info",
-      "Se não solicitou este acesso, ignore este e-mail. Nenhuma ação é necessária."
-    ),
-  ].join("");
-  const html = renderEmail({
-    titulo: "Seu link de acesso ao portal",
-    preheader: "Acesse seu portal de formação — link válido por 15 minutos.",
-    eyebrow: "Portal do Formando",
-    conteudo,
-    logoUrl: LOGO_URL,
-  });
-  return send(organizacaoId, email, "Seu link de acesso ao portal — Formattio", html);
 }
 
 export async function sendPortalPasswordResetEmail({

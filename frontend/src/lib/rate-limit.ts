@@ -147,11 +147,11 @@ export const limiters = {
   /** 5 trial reminder triggers per super admin per hour. */
   superAdminTrialReminder: (userId: string) => rateLimit(`sa_trial_reminder:${userId}`, 5, 60 * 60 * 1000),
 
-  /** 3 magic link requests per email per 15 minutes — portal do formando. */
-  portalMagicLink: (email: string) => rateLimit(`portal_ml:${email.toLowerCase()}`, 3, 15 * 60 * 1000),
+  /** 3 pedidos de reset por e-mail por 15 minutos — portal do formando. */
+  portalRecuperar: (email: string) => rateLimit(`portal_reset:${email.toLowerCase()}`, 3, 15 * 60 * 1000),
 
-  /** 10 magic link requests per IP per 15 minutes — second layer for portal, blocks email-rotation attacks. */
-  portalMagicLinkIp: (ip: string) => rateLimit(`portal_ml_ip:${ip}`, 10, 15 * 60 * 1000),
+  /** 10 pedidos de reset por IP por 15 minutos — segunda camada, bloqueia rotação de e-mails. */
+  portalRecuperarIp: (ip: string) => rateLimit(`portal_reset_ip:${ip}`, 10, 15 * 60 * 1000),
 
   /** 50 login attempts per IP per 15 minutes — portal do formando (senha). */
   portalLogin: (ip: string) => rateLimit(`portal_login:${ip}`, 50, 15 * 60 * 1000),

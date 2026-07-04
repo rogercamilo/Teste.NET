@@ -187,8 +187,11 @@ describe("limiters", () => {
     ["superAdminBulk", "u1"],
     ["superAdminComunicado", "u1"],
     ["superAdminTrialReminder", "u1"],
-    ["portalMagicLink", "User@Example.com"],
-    ["portalMagicLinkIp", "1.2.3.4"],
+    ["portalRecuperar", "User@Example.com"],
+    ["portalRecuperarIp", "1.2.3.4"],
+    ["portalLogin", "1.2.3.4"],
+    ["portalLoginEmail", "User@Example.com"],
+    ["portalAtivacao", "1.2.3.4"],
   ];
 
   for (const [nome, arg] of restantes) {

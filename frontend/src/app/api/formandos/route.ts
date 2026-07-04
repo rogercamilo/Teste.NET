@@ -10,7 +10,8 @@ import type { Formando, ProgressoEtapa } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
-import { sendPushInviteEmail } from "@/lib/email";
+import { sendPortalWelcomeEmail } from "@/lib/email";
+import { createFormandoAccessToken, ATIVACAO_TTL_MS } from "@/lib/portal-formando-auth";
 import { toFormando } from "@/lib/converters";
 import crypto from "crypto";
 
@@ -161,16 +162,21 @@ export async function POST(request: Request) {
     });
     logAction("formando_created", user.id, getClientIp(request), { nome: body.nome }, user.organizacaoId);
 
-    // Envia e-mail de ativação de notificações (fire-and-forget) se formando tem e-mail
+    // E-mail de boas-vindas ao Portal do Formando com link de 1º acesso (criar senha).
+    // Fire-and-forget: não bloqueia a criação nem falha por causa do e-mail.
     if (body.email) {
       const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-      sendPushInviteEmail({
-        organizacaoId: user.organizacaoId,
-        nome: row.nome,
-        email: row.email,
-        grupoNome: row.grupoFormacao?.nome ?? null,
-        ativarUrl: `${appUrl}/ativar-notificacoes/${tokenAssinatura}`,
-      }).catch(() => {});
+      createFormandoAccessToken(row.id, "ativacao", ATIVACAO_TTL_MS)
+        .then((raw) =>
+          sendPortalWelcomeEmail({
+            organizacaoId: user.organizacaoId!,
+            nome: row.nome,
+            email: row.email,
+            grupoNome: row.grupoFormacao?.nome ?? null,
+            ativarUrl: `${appUrl}/portal/ativar/${raw}`,
+          })
+        )
+        .catch((err) => logError("formandos:welcome-email", err));
     }
 
     // Notifica FC do grupo (apenas se não foi o próprio FC que adicionou)

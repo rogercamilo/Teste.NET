@@ -9,10 +9,9 @@ import { isAllowedPushEndpoint } from "@/lib/ssrf";
 
 /**
  * Inscrição de Web Push do próprio formando/vocacionado, autenticada pela
- * sessão do portal (cookie `portal_session`) — não pelo link mágico individual.
- * Espelha `/api/push/subscribe-formando`, mas dispensa o token: o formando ativa
- * e reativa direto do portal, o que resolve a perda de push ao trocar de
- * aparelho ou limpar o navegador.
+ * sessão do portal (cookie `portal_session`). O formando ativa e reativa direto
+ * do portal, o que resolve a perda de push ao trocar de aparelho ou limpar o
+ * navegador. Único caminho de push do formando (o link avulso foi aposentado).
  */
 
 const SubscribeSchema = z.object({
