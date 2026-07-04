@@ -302,13 +302,13 @@ function EnviarNotificacaoCard({ onSent, isGestao, userGrupoFormacaoId }: Enviar
 // ── Instruções para ativar ────────────────────────────────────────────────────
 
 function InstrucoesCard() {
-  const appUrl =
+  const portalUrl =
     typeof window !== "undefined"
-      ? window.location.origin
-      : "https://formattio.com.br";
+      ? `${window.location.origin}/portal`
+      : "https://formattio.com.br/portal";
 
   function copyLink() {
-    navigator.clipboard.writeText(appUrl).then(() => {
+    navigator.clipboard.writeText(portalUrl).then(() => {
       toast.success("Link copiado!");
     });
   }
@@ -321,15 +321,15 @@ function InstrucoesCard() {
           Como ativar nos dispositivos dos formandos
         </CardTitle>
         <CardDescription className="text-xs">
-          Siga os passos abaixo para orientar seus formandos a ativarem as notificações.
+          Oriente seus formandos a ativarem as notificações pelo Portal do Formando.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <ol className="space-y-3">
           {[
-            "Compartilhe o link do Formattio com seus formandos (WhatsApp, e-mail ou grupo).",
-            'O formando acessa o site e clica em "Ativar notificações" na página inicial ou em Configurações.',
-            'O dispositivo exibirá um prompt pedindo permissão — o formando toca em "Permitir".',
+            "Compartilhe o link do Portal do Formando (abaixo) com seus formandos — por WhatsApp, e-mail ou grupo.",
+            "O formando informa o e-mail dele e recebe na caixa de entrada um link de acesso seguro, sem senha. Ao clicar, entra no portal.",
+            'Já no painel, ele toca em "Ativar notificações" e, quando o navegador pedir, em "Permitir".',
             "Pronto! O dispositivo passa a receber notificações mesmo com o navegador fechado.",
           ].map((step, i) => (
             <li key={i} className="flex items-start gap-3">
@@ -345,7 +345,7 @@ function InstrucoesCard() {
 
         <div className="flex items-center gap-2">
           <div className="flex-1 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground truncate font-mono">
-            {appUrl}
+            {portalUrl}
           </div>
           <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={copyLink}>
             <Copy className="h-3.5 w-3.5" />
