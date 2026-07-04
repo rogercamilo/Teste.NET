@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { REQUISITOS_ETAPAS } from "@/types";
 import type { NivelFormativo, TipoFormacao } from "@/types";
+import type { PortalAudiencia } from "@/lib/portal-routes";
 
 export interface PortalHistoricoItem {
   id: string;
@@ -63,6 +64,34 @@ export interface PortalDashboardData {
 }
 
 const STATUS_VOCACIONAL_ATIVOS = ["ativa", "aguardando_carta", "em_discernimento"] as const;
+
+/**
+ * Público do portal para um formando: "vocacional" quando ele tem, AGORA, uma
+ * participação vocacional ativa vinculada à sua turma atual (mesma régua de
+ * `vocacionalAtivo` do dashboard); caso contrário, "formando". É a fonte única
+ * usada no login para marcar a `audiencia` na sessão. Deriva do dado real — não
+ * da porta (URL) que a pessoa digitou.
+ */
+export async function getPortalAudiencia(
+  formandoId: string,
+  organizacaoId: string
+): Promise<PortalAudiencia> {
+  const formando = await prisma.formando.findUnique({
+    where: { id: formandoId },
+    select: { grupoFormacaoId: true },
+  });
+  if (!formando?.grupoFormacaoId) return "formando";
+  const participacao = await prisma.participacaoVocacional.findFirst({
+    where: {
+      formandoId,
+      organizacaoId,
+      turmaId: formando.grupoFormacaoId,
+      status: { in: [...STATUS_VOCACIONAL_ATIVOS] },
+    },
+    select: { id: true },
+  });
+  return participacao ? "vocacional" : "formando";
+}
 
 /**
  * Carrega todos os dados do dashboard do portal do formando.

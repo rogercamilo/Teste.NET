@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getPortalSession } from "@/lib/portal-auth";
 import { getPortalDashboardData } from "@/lib/portal-data";
 import { getPublicBranding } from "@/lib/public-branding";
+import { portalHomeFor } from "@/lib/portal-routes";
 import DashboardClient from "./DashboardClient";
 
 export const metadata = {
@@ -10,15 +11,16 @@ export const metadata = {
 
 export default async function PortalDashboardPage() {
   const session = await getPortalSession();
-  if (!session) redirect("/portal");
+  if (!session) redirect("/portal/formando");
 
   const [data, branding] = await Promise.all([
     getPortalDashboardData(session.formandoId, session.organizacaoId),
     getPublicBranding(session.organizacaoId),
   ]);
 
-  // Sessão válida mas formando inexistente/inativo → encerra (proxy limpará o cookie no próximo acesso protegido)
-  if (!data) redirect("/portal");
+  // Sessão válida mas formando inexistente/inativo → encerra pela porta de
+  // origem (proxy limpará o cookie no próximo acesso protegido)
+  if (!data) redirect(portalHomeFor(session.audiencia));
 
   return <DashboardClient data={data} branding={branding} />;
 }

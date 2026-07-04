@@ -14,7 +14,7 @@ export default async function PortalVocacionalPage() {
   const branding = await getPublicBranding();
   return (
     <Suspense fallback={<div className="min-h-screen bg-background" />}>
-      <PortalLanding branding={branding} portalNome="Portal do Vocacionado" />
+      <PortalLanding branding={branding} portalNome="Portal do Vocacionado" portalKey="vocacional" />
     </Suspense>
   );
 }

@@ -12,7 +12,7 @@ export default async function PortalFormandoPage() {
   const branding = await getPublicBranding();
   return (
     <Suspense fallback={<div className="min-h-screen bg-background" />}>
-      <PortalLanding branding={branding} portalNome="Portal do Formando" />
+      <PortalLanding branding={branding} portalNome="Portal do Formando" portalKey="formando" />
     </Suspense>
   );
 }

@@ -1,7 +1,8 @@
 ﻿import { auth } from "@/auth.config";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { jwtVerify } from "jose";
+import { jwtVerify, decodeJwt } from "jose";
+import { portalHomeFor, type PortalAudiencia } from "@/lib/portal-routes";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -67,6 +68,18 @@ function isPortalProtected(pathname: string): boolean {
     (pathname.startsWith("/portal/") || pathname.startsWith("/api/portal/")) &&
     !isPortalPublic(pathname)
   );
+}
+
+// Lê a audiência do portal_session SEM verificar assinatura/expiração. Uso
+// exclusivo: escolher a porta de retorno quando a sessão expirou (o jwtVerify
+// já falhou). É só destino de redirect para uma página pública — nenhuma
+// confiança de segurança depende disso.
+function readPortalAudienciaUnsafe(token: string): PortalAudiencia {
+  try {
+    return decodeJwt(token).audiencia === "vocacional" ? "vocacional" : "formando";
+  } catch {
+    return "formando";
+  }
 }
 
 export default auth(async function proxy(req) {
@@ -170,7 +183,7 @@ export default auth(async function proxy(req) {
   if (isPortalProtected(pathname)) {
     const portalToken = req.cookies.get("portal_session")?.value;
     if (!portalToken) {
-      return NextResponse.redirect(new URL("/portal", req.url));
+      return NextResponse.redirect(new URL("/portal/formando", req.url));
     }
     try {
       const authSecret = process.env.AUTH_SECRET;
@@ -194,7 +207,10 @@ export default auth(async function proxy(req) {
       }
       return response;
     } catch {
-      const response = NextResponse.redirect(new URL("/portal", req.url));
+      // Sessão inválida/expirada: devolve o formando à SUA porta (formando ou
+      // vocacionado) lendo a audiência do token expirado sem verificá-lo.
+      const home = portalHomeFor(readPortalAudienciaUnsafe(portalToken));
+      const response = NextResponse.redirect(new URL(home, req.url));
       response.cookies.set("portal_session", "", { maxAge: 0, path: "/" });
       return response;
     }

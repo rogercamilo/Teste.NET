@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import type { PortalAudiencia } from "./portal-routes";
 
 export const PORTAL_COOKIE = "portal_session";
 const TTL_SECONDS = 7 * 24 * 60 * 60; // 7 dias
@@ -12,6 +13,7 @@ function secret(): Uint8Array {
 export interface PortalPayload {
   formandoId: string;
   organizacaoId: string;
+  audiencia: PortalAudiencia;
   [key: string]: unknown;
 }
 
@@ -32,7 +34,9 @@ export async function verifyPortalToken(token: string): Promise<PortalPayload> {
   ) {
     throw new Error("Token inválido");
   }
-  return { formandoId: payload.formandoId, organizacaoId: payload.organizacaoId };
+  // Tokens antigos (sem audiencia) e valores inesperados caem em "formando".
+  const audiencia: PortalAudiencia = payload.audiencia === "vocacional" ? "vocacional" : "formando";
+  return { formandoId: payload.formandoId, organizacaoId: payload.organizacaoId, audiencia };
 }
 
 export function portalCookieOptions(maxAge = TTL_SECONDS) {

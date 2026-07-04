@@ -23,6 +23,7 @@ import {
   TIPO_FORMACAO_LABELS,
 } from "@/types";
 import type { PublicBranding } from "@/lib/public-branding";
+import { portalHomeFor } from "@/lib/portal-routes";
 import type { PortalDashboardData, PortalProximoEncontro } from "@/lib/portal-data";
 import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
 import { PortalNotificacoesCard } from "./PortalNotificacoesCard";
@@ -81,13 +82,17 @@ export default function DashboardClient({
 
   const communityName = branding.nomePlataforma ?? branding.nome;
   const primeiroNome = formando.nome.split(" ")[0];
+  // Identidade do portal por público (dado vivo): rótulo e porta de retorno.
+  const isVocacionado = !!vocacional;
+  const portalLabel = isVocacionado ? "Portal do Vocacionado" : "Portal do Formando";
+  const portalHome = portalHomeFor(isVocacionado ? "vocacional" : "formando");
 
   async function handleLogout() {
     setLoggingOut(true);
     try {
       await fetch("/api/portal/logout", { method: "POST" });
     } finally {
-      router.push("/portal");
+      router.push(portalHome);
       router.refresh();
     }
   }
@@ -107,9 +112,12 @@ export default function DashboardClient({
             ) : (
               <img src="/brand/formatio-symbol.svg" alt="Formattio" width={28} height={28} />
             )}
-            <span className="truncate text-sm font-semibold text-foreground">
-              {communityName}
-            </span>
+            <div className="flex flex-col min-w-0 leading-tight">
+              <span className="truncate text-sm font-semibold text-foreground">
+                {communityName}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">{portalLabel}</span>
+            </div>
           </div>
           <Button
             variant="ghost"

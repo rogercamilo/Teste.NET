@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
 import type { PublicBranding } from "@/lib/public-branding";
+import type { PortalAudiencia } from "@/lib/portal-routes";
 
 const ERRO_MENSAGENS: Record<string, string> = {
   "link-invalido": "O link de acesso é inválido. Faça login abaixo.",
@@ -18,10 +19,16 @@ const ERRO_MENSAGENS: Record<string, string> = {
 export default function PortalLanding({
   branding,
   portalNome = "Portal do Formando",
+  portalKey = "formando",
 }: {
   branding: PublicBranding;
   portalNome?: string;
+  portalKey?: PortalAudiencia;
 }) {
+  // Propaga a porta de origem para o fluxo de recuperação, para que o "voltar
+  // ao login" retorne à porta certa.
+  const recuperarHref =
+    portalKey === "vocacional" ? "/portal/recuperar?p=vocacional" : "/portal/recuperar";
   const router = useRouter();
   const searchParams = useSearchParams();
   const erro = searchParams.get("erro");
@@ -145,7 +152,7 @@ export default function PortalLanding({
         </form>
 
         <p className="text-center text-sm mt-4">
-          <Link href="/portal/recuperar" className="text-primary hover:underline">Esqueci minha senha</Link>
+          <Link href={recuperarHref} className="text-primary hover:underline">Esqueci minha senha</Link>
         </p>
 
         <p className="text-center text-xs text-muted-foreground mt-6">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { peekAccessToken, definirSenhaPorToken } from "@/lib/portal-formando-auth";
+import { getPortalAudiencia } from "@/lib/portal-data";
 import { signPortalToken, portalCookieOptions } from "@/lib/portal-auth";
 import { validatePassword } from "@/lib/password-validation";
 import { limiters } from "@/lib/rate-limit";
@@ -50,7 +51,8 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Link inválido ou expirado." }, { status: 404 });
     }
 
-    const jwt = await signPortalToken({ formandoId: result.formandoId, organizacaoId: result.organizacaoId });
+    const audiencia = await getPortalAudiencia(result.formandoId, result.organizacaoId);
+    const jwt = await signPortalToken({ formandoId: result.formandoId, organizacaoId: result.organizacaoId, audiencia });
     const opts = portalCookieOptions();
     const response = NextResponse.json({ ok: true });
     response.cookies.set({

@@ -25,7 +25,7 @@ export default async function AtivarPage({ params }: { params: Promise<{ token: 
             Este link de primeiro acesso não é mais válido. Peça ao seu formador para reenviar o
             acesso ao portal.
           </p>
-          <Link href="/portal" className="mt-4 inline-block text-sm text-primary hover:underline">
+          <Link href="/portal/formando" className="mt-4 inline-block text-sm text-primary hover:underline">
             Ir para o login
           </Link>
           <p className="mt-8 text-xs text-muted-foreground">

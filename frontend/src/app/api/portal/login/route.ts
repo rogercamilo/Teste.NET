@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { loginFormando } from "@/lib/portal-formando-auth";
+import { getPortalAudiencia } from "@/lib/portal-data";
 import { signPortalToken, portalCookieOptions } from "@/lib/portal-auth";
 import { limiters } from "@/lib/rate-limit";
 import { parseJson } from "@/lib/schemas";
@@ -35,7 +36,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "E-mail ou senha inválidos." }, { status: 401 });
     }
 
-    const token = await signPortalToken({ formandoId: result.formandoId, organizacaoId: result.organizacaoId });
+    const audiencia = await getPortalAudiencia(result.formandoId, result.organizacaoId);
+    const token = await signPortalToken({ formandoId: result.formandoId, organizacaoId: result.organizacaoId, audiencia });
     const opts = portalCookieOptions();
     const response = NextResponse.json({ ok: true });
     response.cookies.set({

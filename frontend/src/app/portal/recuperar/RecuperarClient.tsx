@@ -2,14 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
 import type { PublicBranding } from "@/lib/public-branding";
+import { portalHomeFor } from "@/lib/portal-routes";
 
 export default function RecuperarClient({ branding }: { branding: PublicBranding }) {
   const communityName = branding.nomePlataforma ?? branding.nome;
+  // Porta de origem propagada por ?p= — mantém o usuário no seu próprio portal.
+  const isVocacional = useSearchParams().get("p") === "vocacional";
+  const portalHome = portalHomeFor(isVocacional ? "vocacional" : "formando");
+  const portalNome = isVocacional ? "Portal do Vocacionado" : "Portal do Formando";
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,7 +57,7 @@ export default function RecuperarClient({ branding }: { branding: PublicBranding
             <img src="/brand/formatio-symbol.svg" alt="Formattio" width={48} height={48} className="mb-4" />
           )}
           <h1 className="text-xl font-bold text-foreground">Recuperar senha</h1>
-          <p className="text-sm text-muted-foreground mt-1">Portal do Formando</p>
+          <p className="text-sm text-muted-foreground mt-1">{portalNome}</p>
         </div>
 
         {enviado ? (
@@ -64,7 +70,7 @@ export default function RecuperarClient({ branding }: { branding: PublicBranding
               Se <span className="font-medium text-foreground">{email}</span> tiver uma conta,
               você receberá um link para redefinir a senha. O link é válido por 1 hora.
             </p>
-            <Link href="/portal" className="mt-4 inline-block text-xs text-primary hover:underline">
+            <Link href={portalHome} className="mt-4 inline-block text-xs text-primary hover:underline">
               Voltar ao login
             </Link>
           </div>
@@ -116,7 +122,7 @@ export default function RecuperarClient({ branding }: { branding: PublicBranding
             </form>
 
             <p className="text-center text-xs text-muted-foreground mt-6">
-              <Link href="/portal" className="text-primary hover:underline">Voltar ao login</Link>
+              <Link href={portalHome} className="text-primary hover:underline">Voltar ao login</Link>
             </p>
           </>
         )}
