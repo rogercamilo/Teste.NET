@@ -9,10 +9,10 @@ export const metadata = {
 
 export default async function RecuperarTokenPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const [peek, branding] = await Promise.all([
-    peekAccessToken(token, "reset"),
-    getPublicBranding(),
-  ]);
+  // peek antes do branding: o token resolve a org do formando (branding correto do tenant).
+  // Token inválido → peek null → branding cai no DEFAULT_ORG_ID.
+  const peek = await peekAccessToken(token, "reset");
+  const branding = await getPublicBranding(peek?.organizacaoId);
 
   if (!peek) {
     const communityName = branding.nomePlataforma ?? branding.nome;

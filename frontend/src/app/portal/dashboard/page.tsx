@@ -14,7 +14,7 @@ export default async function PortalDashboardPage() {
 
   const [data, branding] = await Promise.all([
     getPortalDashboardData(session.formandoId, session.organizacaoId),
-    getPublicBranding(),
+    getPublicBranding(session.organizacaoId),
   ]);
 
   // Sessão válida mas formando inexistente/inativo → encerra (proxy limpará o cookie no próximo acesso protegido)

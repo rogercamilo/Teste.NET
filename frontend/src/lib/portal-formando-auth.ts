@@ -43,6 +43,7 @@ export interface TokenPeek {
   formandoId: string;
   nome: string;
   email: string;
+  organizacaoId: string;
   orgNome: string;
   grupoNome: string | null;
 }
@@ -63,6 +64,7 @@ export async function peekAccessToken(
           email: true,
           ativo: true,
           deletedAt: true,
+          organizacaoId: true,
           organizacao: { select: { nome: true } },
           grupoFormacao: { select: { nome: true } },
         },
@@ -74,6 +76,7 @@ export async function peekAccessToken(
     formandoId: tk.formando.id,
     nome: tk.formando.nome,
     email: tk.formando.email,
+    organizacaoId: tk.formando.organizacaoId,
     orgNome: tk.formando.organizacao.nome,
     grupoNome: tk.formando.grupoFormacao?.nome ?? null,
   };

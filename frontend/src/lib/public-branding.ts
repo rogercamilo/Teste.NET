@@ -15,9 +15,14 @@ const DEFAULT_BRANDING: PublicBranding = {
   temaCor: "Formattio",
 };
 
-// React.cache() deduplicates calls within a single request (layout + page share one DB hit)
-export const getPublicBranding = cache(async (): Promise<PublicBranding> => {
-  const orgId = process.env.DEFAULT_ORG_ID;
+// React.cache() deduplicates calls within a single request (layout + page share one DB hit
+// desde que passem o MESMO organizacaoId).
+//
+// `organizacaoId` deve ser passado sempre que a org for conhecida (portal autenticado, tokens
+// de ativação/reset). Superfícies anônimas — login da equipe, landing do portal — não têm como
+// resolver o tenant (não há roteamento por host/subdomínio), então caem no DEFAULT_ORG_ID.
+export const getPublicBranding = cache(async (organizacaoId?: string): Promise<PublicBranding> => {
+  const orgId = organizacaoId ?? process.env.DEFAULT_ORG_ID;
   if (!orgId) return DEFAULT_BRANDING;
   try {
     const org = await prisma.organizacao.findUnique({
