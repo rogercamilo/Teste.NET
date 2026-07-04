@@ -1,16 +1,8 @@
-import { Suspense } from "react";
-import PortalLanding from "./PortalLanding";
-import { getPublicBranding } from "@/lib/public-branding";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Portal do Formando",
-};
-
-export default async function PortalPage() {
-  const branding = await getPublicBranding();
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
-      <PortalLanding branding={branding} />
-    </Suspense>
-  );
+// /portal é mantido como alias da entrada canônica do Portal do Formando
+// (/portal/formando), preservando favoritos e links antigos que apontam para
+// /portal (logout, sessão expirada, token inválido etc.).
+export default function PortalPage() {
+  redirect("/portal/formando");
 }

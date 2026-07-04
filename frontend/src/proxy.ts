@@ -46,7 +46,7 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
 }
 
 // Rotas públicas do portal do formando (autenticação própria via portal_session)
-const PORTAL_PUBLIC_EXACT = new Set(["/portal", "/portal/vocacional"]);
+const PORTAL_PUBLIC_EXACT = new Set(["/portal", "/portal/formando", "/portal/vocacional"]);
 const PORTAL_PUBLIC_PREFIXES = [
   "/api/portal/login",
   "/api/portal/ativar",
@@ -80,6 +80,7 @@ export default auth(async function proxy(req) {
     "/",
     // Portal do formando — páginas públicas exatas (não usar prefixo: /portal/* inclui rotas protegidas)
     "/portal",
+    "/portal/formando",
     // Portal do vocacionado — entrada distinta, mesma autenticação por trás
     "/portal/vocacional",
   ];
