@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
 import type { PublicBranding } from "@/lib/public-branding";
-import type { PortalAudiencia } from "@/lib/portal-routes";
+import { portalHomeFor, type PortalAudiencia } from "@/lib/portal-routes";
 
 const ERRO_MENSAGENS: Record<string, string> = {
   "link-invalido": "O link de acesso é inválido. Faça login abaixo.",
@@ -40,17 +40,20 @@ export default function PortalLanding({
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  // Setado quando o perfil da conta pertence ao OUTRO portal — oferece a porta certa.
+  const [portalCerto, setPortalCerto] = useState<PortalAudiencia | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setFormError(null);
+    setPortalCerto(null);
 
     try {
       const res = await fetch("/api/portal/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, senha }),
+        body: JSON.stringify({ email, senha, portal: portalKey }),
       });
       if (res.ok) {
         router.push("/portal/dashboard");
@@ -62,6 +65,9 @@ export default function PortalLanding({
         return;
       }
       const data = await res.json().catch(() => null);
+      if (res.status === 403 && (data?.portalCorreto === "formando" || data?.portalCorreto === "vocacional")) {
+        setPortalCerto(data.portalCorreto);
+      }
       setFormError(data?.error ?? "E-mail ou senha inválidos.");
     } catch {
       setFormError("Falha de conexão. Verifique sua internet e tente novamente.");
@@ -94,9 +100,16 @@ export default function PortalLanding({
         )}
 
         {formError && (
-          <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {formError}
+          <div className="flex flex-col gap-2 p-3 mb-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {formError}
+            </div>
+            {portalCerto && (
+              <Link href={portalHomeFor(portalCerto)} className="font-medium underline underline-offset-2">
+                Ir para o {portalCerto === "vocacional" ? "Portal do Vocacionado" : "Portal do Formando"}
+              </Link>
+            )}
           </div>
         )}
 

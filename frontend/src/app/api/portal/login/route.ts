@@ -10,6 +10,8 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 const LoginSchema = z.object({
   email: z.string().email(),
   senha: z.string().min(1),
+  // Porta pela qual a pessoa está entrando. Cada portal só admite o seu perfil.
+  portal: z.enum(["formando", "vocacional"]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -19,6 +21,7 @@ export async function POST(request: Request) {
     const parsed = await parseJson(request, LoginSchema);
     if (!parsed.ok) return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     const { email, senha } = parsed.data;
+    const portalSolicitado = parsed.data.portal ?? "formando";
 
     const [rlIp, rlEmail] = await Promise.all([
       limiters.portalLogin(ip),
@@ -36,7 +39,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "E-mail ou senha inválidos." }, { status: 401 });
     }
 
+    // Perfis distintos: cada portal só admite o seu público. Credenciais válidas
+    // mas perfil incompatível com a porta → barra a entrada (sem emitir sessão) e
+    // aponta a porta correta. Só o dono da conta chega aqui (autenticou), então
+    // revelar a porta certa não é enumeração.
     const audiencia = await getPortalAudiencia(result.formandoId, result.organizacaoId);
+    if (audiencia !== portalSolicitado) {
+      logAction(
+        "portal_login_wrong_portal",
+        undefined,
+        ip,
+        { formandoId: result.formandoId, portalSolicitado, audiencia },
+        result.organizacaoId
+      );
+      return NextResponse.json(
+        {
+          error:
+            audiencia === "vocacional"
+              ? "Esta conta é do Portal do Vocacionado. Entre por lá."
+              : "Esta conta é do Portal do Formando. Entre por lá.",
+          portalCorreto: audiencia,
+        },
+        { status: 403 }
+      );
+    }
+
     const token = await signPortalToken({ formandoId: result.formandoId, organizacaoId: result.organizacaoId, audiencia });
     const opts = portalCookieOptions();
     const response = NextResponse.json({ ok: true });
