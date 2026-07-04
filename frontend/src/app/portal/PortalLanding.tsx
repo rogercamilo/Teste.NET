@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -136,6 +137,10 @@ export default function PortalLanding({ branding }: { branding: PublicBranding }
             )}
           </Button>
         </form>
+
+        <p className="text-center text-sm mt-4">
+          <Link href="/portal/recuperar" className="text-primary hover:underline">Esqueci minha senha</Link>
+        </p>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           Primeiro acesso? Use o link enviado no seu e-mail de boas-vindas para criar sua senha.

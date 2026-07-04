@@ -756,6 +756,40 @@ export async function sendPortalMagicLinkEmail({
   return send(organizacaoId, email, "Seu link de acesso ao portal — Formattio", html);
 }
 
+export async function sendPortalPasswordResetEmail({
+  organizacaoId,
+  nome,
+  email,
+  resetUrl,
+}: {
+  organizacaoId: string;
+  nome: string;
+  email: string;
+  resetUrl: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const conteudo = [
+    heading(`Olá, ${escapeHtml(nome)}!`),
+    paragraph(
+      "Recebemos um pedido para redefinir a senha do seu portal de formação. Clique no botão abaixo para criar uma nova senha."
+    ),
+    paragraph("O link é válido por <strong>1 hora</strong>."),
+    button("Redefinir minha senha", resetUrl),
+    linkFallback(resetUrl),
+    callout(
+      "info",
+      "Se não solicitou a redefinição, ignore este e-mail — sua senha atual continua válida."
+    ),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Redefinição de senha do portal",
+    preheader: "Crie uma nova senha para o seu portal — link válido por 1 hora.",
+    eyebrow: "Portal do Formando",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
+  return send(organizacaoId, email, "Redefinição de senha — Formattio", html);
+}
+
 export async function sendComunicadoEmail({
   organizacaoId,
   to,

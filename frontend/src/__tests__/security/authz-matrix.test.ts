@@ -59,6 +59,8 @@ const PUBLIC = new Set<string>([
   "portal/verificar/route.ts", // verifica magic link do portal
   "portal/login/route.ts", // login do formando por e-mail+senha (estabelece a sessão)
   "portal/ativar/[token]/route.ts", // 1º acesso: valida o próprio token e define a senha
+  "portal/recuperar/route.ts", // pede reset por e-mail (anti-enumeração, não vaza existência)
+  "portal/recuperar/[token]/route.ts", // reset: valida o próprio token e define a senha
   "portal/logout/route.ts", // só apaga o cookie de sessão do portal (sem dados/DB)
 ]);
 

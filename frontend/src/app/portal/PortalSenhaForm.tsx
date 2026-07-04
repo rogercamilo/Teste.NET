@@ -9,11 +9,16 @@ import { Lock, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
 import type { PublicBranding } from "@/lib/public-branding";
 
 interface Props {
-  token: string;
-  nome: string;
-  email: string;
-  grupoNome: string | null;
+  /** URL do POST que grava a senha (ativação ou reset). */
+  endpoint: string;
   branding: PublicBranding;
+  titulo: string;
+  subtitulo?: string;
+  submitLabel: string;
+  /** E-mail exibido (somente leitura), quando disponível. */
+  email?: string;
+  /** Linha informativa opcional (ex.: "Grupo: São João"). */
+  infoLinha?: string;
 }
 
 const REGRAS: { label: string; test: (s: string) => boolean }[] = [
@@ -24,10 +29,9 @@ const REGRAS: { label: string; test: (s: string) => boolean }[] = [
   { label: "Um caractere especial", test: (s) => /[^A-Za-z0-9]/.test(s) },
 ];
 
-export default function AtivarClient({ token, nome, email, grupoNome, branding }: Props) {
+export default function PortalSenhaForm({ endpoint, branding, titulo, subtitulo, submitLabel, email, infoLinha }: Props) {
   const router = useRouter();
   const communityName = branding.nomePlataforma ?? branding.nome;
-  const primeiroNome = nome.split(" ")[0];
 
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
@@ -44,7 +48,7 @@ export default function AtivarClient({ token, nome, email, grupoNome, branding }
     setLoading(true);
     setErro(null);
     try {
-      const res = await fetch(`/api/portal/ativar/${token}`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ senha }),
@@ -55,7 +59,7 @@ export default function AtivarClient({ token, nome, email, grupoNome, branding }
         return;
       }
       const data = await res.json().catch(() => null);
-      setErro(data?.error ?? "Não foi possível definir a senha. Tente novamente.");
+      setErro(data?.error ?? "Não foi possível salvar a senha. Tente novamente.");
     } catch {
       setErro("Falha de conexão. Verifique sua internet e tente novamente.");
     } finally {
@@ -74,13 +78,9 @@ export default function AtivarClient({ token, nome, email, grupoNome, branding }
             // eslint-disable-next-line @next/next/no-img-element
             <img src="/brand/formatio-symbol.svg" alt="Formattio" width={48} height={48} className="mb-4" />
           )}
-          <h1 className="text-xl font-bold text-foreground">Olá, {primeiroNome}!</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Crie uma senha para acessar o {communityName}.
-          </p>
-          {grupoNome && (
-            <p className="text-xs text-muted-foreground mt-1">Grupo: {grupoNome}</p>
-          )}
+          <h1 className="text-xl font-bold text-foreground">{titulo}</h1>
+          {subtitulo && <p className="text-sm text-muted-foreground mt-1">{subtitulo}</p>}
+          {infoLinha && <p className="text-xs text-muted-foreground mt-1">{infoLinha}</p>}
         </div>
 
         {erro && (
@@ -91,10 +91,12 @@ export default function AtivarClient({ token, nome, email, grupoNome, branding }
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="email-ro" className="text-sm font-medium">E-mail</Label>
-            <Input id="email-ro" type="email" value={email} readOnly disabled className="h-10 bg-muted/40" />
-          </div>
+          {email && (
+            <div className="space-y-1.5">
+              <Label htmlFor="email-ro" className="text-sm font-medium">E-mail</Label>
+              <Input id="email-ro" type="email" value={email} readOnly disabled className="h-10 bg-muted/40" />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="senha" className="text-sm font-medium">Nova senha</Label>
@@ -152,7 +154,7 @@ export default function AtivarClient({ token, nome, email, grupoNome, branding }
               </span>
             ) : (
               <>
-                Criar senha e entrar
+                {submitLabel}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}

@@ -52,7 +52,9 @@ const PORTAL_PUBLIC_PREFIXES = [
   "/api/portal/verificar",
   "/api/portal/login",
   "/api/portal/ativar",
+  "/api/portal/recuperar",
   "/portal/ativar",
+  "/portal/recuperar",
 ];
 
 function isPortalPublic(pathname: string): boolean {
@@ -122,10 +124,12 @@ export default auth(async function proxy(req) {
     // Portal do formando — API pública (magic link)
     "/api/portal/solicitar-acesso",
     "/api/portal/verificar",
-    // Portal do formando — login por senha + primeiro acesso (sem sessão ainda)
+    // Portal do formando — login por senha + primeiro acesso + reset (sem sessão ainda)
     "/api/portal/login",
     "/api/portal/ativar",
+    "/api/portal/recuperar",
     "/portal/ativar",
+    "/portal/recuperar",
   ];
   // Only /api/convites/<token> (exactly one non-empty segment) is public.
   // /api/convites and /api/convites/ (admin list/create/delete) remain auth-protected.
