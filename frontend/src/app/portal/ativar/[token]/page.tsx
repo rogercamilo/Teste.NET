@@ -2,6 +2,7 @@ import Link from "next/link";
 import { peekAccessToken } from "@/lib/portal-formando-auth";
 import { getPublicBranding } from "@/lib/public-branding";
 import PortalSenhaForm from "../../PortalSenhaForm";
+import PortalThemeStyle from "../../PortalThemeStyle";
 
 export const metadata = {
   title: "Primeiro acesso — Portal do Formando",
@@ -39,14 +40,17 @@ export default async function AtivarPage({ params }: { params: Promise<{ token: 
   const primeiroNome = peek.nome.split(" ")[0];
 
   return (
-    <PortalSenhaForm
-      endpoint={`/api/portal/ativar/${token}`}
-      branding={branding}
-      titulo={`Olá, ${primeiroNome}!`}
-      subtitulo={`Crie uma senha para acessar o ${communityName}.`}
-      submitLabel="Criar senha e entrar"
-      email={peek.email}
-      infoLinha={peek.grupoNome ? `Grupo: ${peek.grupoNome}` : undefined}
-    />
+    <>
+      <PortalThemeStyle temaCor={branding.temaCor} />
+      <PortalSenhaForm
+        endpoint={`/api/portal/ativar/${token}`}
+        branding={branding}
+        titulo={`Olá, ${primeiroNome}!`}
+        subtitulo={`Crie uma senha para acessar o ${communityName}.`}
+        submitLabel="Criar senha e entrar"
+        email={peek.email}
+        infoLinha={peek.grupoNome ? `Grupo: ${peek.grupoNome}` : undefined}
+      />
+    </>
   );
 }

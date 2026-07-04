@@ -2,6 +2,7 @@ import Link from "next/link";
 import { peekAccessToken } from "@/lib/portal-formando-auth";
 import { getPublicBranding } from "@/lib/public-branding";
 import PortalSenhaForm from "../../PortalSenhaForm";
+import PortalThemeStyle from "../../PortalThemeStyle";
 
 export const metadata = {
   title: "Redefinir senha — Portal do Formando",
@@ -35,13 +36,16 @@ export default async function RecuperarTokenPage({ params }: { params: Promise<{
   }
 
   return (
-    <PortalSenhaForm
-      endpoint={`/api/portal/recuperar/${token}`}
-      branding={branding}
-      titulo="Redefinir senha"
-      subtitulo="Crie uma nova senha para acessar seu portal."
-      submitLabel="Salvar nova senha e entrar"
-      email={peek.email}
-    />
+    <>
+      <PortalThemeStyle temaCor={branding.temaCor} />
+      <PortalSenhaForm
+        endpoint={`/api/portal/recuperar/${token}`}
+        branding={branding}
+        titulo="Redefinir senha"
+        subtitulo="Crie uma nova senha para acessar seu portal."
+        submitLabel="Salvar nova senha e entrar"
+        email={peek.email}
+      />
+    </>
   );
 }
