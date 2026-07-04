@@ -152,4 +152,13 @@ export const limiters = {
 
   /** 10 magic link requests per IP per 15 minutes — second layer for portal, blocks email-rotation attacks. */
   portalMagicLinkIp: (ip: string) => rateLimit(`portal_ml_ip:${ip}`, 10, 15 * 60 * 1000),
+
+  /** 50 login attempts per IP per 15 minutes — portal do formando (senha). */
+  portalLogin: (ip: string) => rateLimit(`portal_login:${ip}`, 50, 15 * 60 * 1000),
+
+  /** 10 login attempts per email per 30 minutes — brute-force por conta (portal). */
+  portalLoginEmail: (email: string) => rateLimit(`portal_login_email:${email.toLowerCase()}`, 10, 30 * 60 * 1000),
+
+  /** 10 tentativas de ativação/definição de senha por IP por hora — portal. */
+  portalAtivacao: (ip: string) => rateLimit(`portal_ativacao:${ip}`, 10, 60 * 60 * 1000),
 };

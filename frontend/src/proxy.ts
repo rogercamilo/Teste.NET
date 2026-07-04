@@ -47,7 +47,13 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
 
 // Rotas públicas do portal do formando (autenticação própria via portal_session)
 const PORTAL_PUBLIC_EXACT = new Set(["/portal", "/portal/verificar"]);
-const PORTAL_PUBLIC_PREFIXES = ["/api/portal/solicitar-acesso", "/api/portal/verificar"];
+const PORTAL_PUBLIC_PREFIXES = [
+  "/api/portal/solicitar-acesso",
+  "/api/portal/verificar",
+  "/api/portal/login",
+  "/api/portal/ativar",
+  "/portal/ativar",
+];
 
 function isPortalPublic(pathname: string): boolean {
   return (
@@ -116,6 +122,10 @@ export default auth(async function proxy(req) {
     // Portal do formando — API pública (magic link)
     "/api/portal/solicitar-acesso",
     "/api/portal/verificar",
+    // Portal do formando — login por senha + primeiro acesso (sem sessão ainda)
+    "/api/portal/login",
+    "/api/portal/ativar",
+    "/portal/ativar",
   ];
   // Only /api/convites/<token> (exactly one non-empty segment) is public.
   // /api/convites and /api/convites/ (admin list/create/delete) remain auth-protected.

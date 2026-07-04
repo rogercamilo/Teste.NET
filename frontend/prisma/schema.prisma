@@ -414,6 +414,13 @@ model Formando {
   totalFormacoes      Int             @default(0)
   formacoesRealizadas Int             @default(0)
   riscoAlertadoEm     DateTime?
+  // Autenticação do Portal do Formando (senha + primeiro acesso por e-mail).
+  // Espelha os campos de auth de Usuario. Formando é ator do portal, não Usuario.
+  passwordHash        String?
+  primeiroAcesso      Boolean         @default(true)
+  loginFailures       Int             @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
   deletedAt           DateTime?
   criadoEm            DateTime        @default(now())
   atualizadoEm        DateTime        @updatedAt
@@ -431,11 +438,36 @@ model Formando {
   pushSubscriptions       PushSubscription[]
   termosRegistro          TermoRegistro[]
   participacoesVocacional ParticipacaoVocacional[]
+  accessTokens            FormandoAccessToken[]
 
   @@index([organizacaoId])
   @@index([grupoFormacaoId])
   @@index([organizacaoId, ativo])
   @@index([deletedAt])
+}
+
+// ==========================================================
+// TOKEN DE ACESSO DO FORMANDO (portal): 1º acesso + reset de senha
+// ==========================================================
+
+enum TipoTokenAcessoFormando {
+  ativacao
+  reset
+}
+
+model FormandoAccessToken {
+  id         String                  @id @default(cuid())
+  formandoId String
+  tokenHash  String                  @unique // sha256 do token bruto (32 bytes hex)
+  tipo       TipoTokenAcessoFormando
+  expiresAt  DateTime
+  usedAt     DateTime?
+  criadoEm   DateTime                @default(now())
+
+  formando Formando @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+
+  @@index([formandoId])
+  @@index([expiresAt])
 }
 
 // ==========================================================

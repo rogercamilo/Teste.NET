@@ -57,6 +57,8 @@ const PUBLIC = new Set<string>([
   "rsvp/[token]/route.ts", // RSVP 1-clique do formando via tokenAssinatura (deep link do lembrete)
   "portal/solicitar-acesso/route.ts", // formando pede magic link
   "portal/verificar/route.ts", // verifica magic link do portal
+  "portal/login/route.ts", // login do formando por e-mail+senha (estabelece a sessão)
+  "portal/ativar/[token]/route.ts", // 1º acesso: valida o próprio token e define a senha
   "portal/logout/route.ts", // só apaga o cookie de sessão do portal (sem dados/DB)
 ]);
 
