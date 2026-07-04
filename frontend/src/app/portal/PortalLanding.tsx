@@ -15,7 +15,13 @@ const ERRO_MENSAGENS: Record<string, string> = {
   "sessao-expirada": "Sua sessão expirou. Entre novamente.",
 };
 
-export default function PortalLanding({ branding }: { branding: PublicBranding }) {
+export default function PortalLanding({
+  branding,
+  portalNome = "Portal do Formando",
+}: {
+  branding: PublicBranding;
+  portalNome?: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const erro = searchParams.get("erro");
@@ -70,7 +76,7 @@ export default function PortalLanding({ branding }: { branding: PublicBranding }
             <img src="/brand/formatio-symbol.svg" alt="Formattio" width={48} height={48} className="mb-4" />
           )}
           <h1 className="text-xl font-bold text-foreground">{communityName}</h1>
-          <p className="text-sm text-muted-foreground mt-1">Portal do Formando</p>
+          <p className="text-sm text-muted-foreground mt-1">{portalNome}</p>
         </div>
 
         {erroMensagem && (
