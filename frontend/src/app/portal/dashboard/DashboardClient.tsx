@@ -19,8 +19,9 @@ import {
   BookOpen,
   Paperclip,
   ChevronDown,
-  Download,
+  Eye,
 } from "lucide-react";
+import Link from "next/link";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_FORMATIVO_ICONS,
@@ -619,15 +620,13 @@ function MaterialItem({ material }: { material: PortalMaterialItem }) {
                 </div>
               )}
               {material.anexoNome && (
-                <a
-                  href={`/api/portal/formacoes/${material.agendamentoId}/material`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href={`/portal/dashboard/material/${material.agendamentoId}?nome=${encodeURIComponent(material.anexoNome)}`}
                   className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                 >
-                  <Download className="h-4 w-4 text-primary" />
-                  <span className="truncate">{material.anexoNome}</span>
-                </a>
+                  <Eye className="h-4 w-4 text-primary" />
+                  <span className="truncate">Visualizar material</span>
+                </Link>
               )}
             </>
           )}

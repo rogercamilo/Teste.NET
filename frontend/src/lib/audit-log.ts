@@ -102,7 +102,7 @@ export type AuditAction =
   | "portal_login_blocked"
   | "portal_login_wrong_portal"
   | "portal_ativado"
-  | "portal_material_baixado"
+  | "portal_material_visualizado"
   | "portal_reset_solicitado"
   | "portal_reset_concluido"
   | "portal_acesso_reenviado"

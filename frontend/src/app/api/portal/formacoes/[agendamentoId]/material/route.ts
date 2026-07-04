@@ -56,7 +56,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const arquivo = await prisma.arquivo.findUnique({ where: { id: arquivoId } });
     if (!arquivo) return new Response("Arquivo não encontrado", { status: 404 });
 
-    logAction("portal_material_baixado", undefined, getClientIp(request), { formandoId, agendamentoId, arquivoId }, organizacaoId);
+    logAction("portal_material_visualizado", undefined, getClientIp(request), { formandoId, agendamentoId, arquivoId }, organizacaoId);
 
     // R2: redireciona para pre-signed URL (mesmo padrão de arquivos/[id])
     if (

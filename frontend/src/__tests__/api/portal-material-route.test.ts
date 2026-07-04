@@ -100,7 +100,7 @@ describe("GET /api/portal/formacoes/[agendamentoId]/material", () => {
     expect(res.headers.get("Content-Type")).toBe("application/pdf");
     expect(res.headers.get("Content-Disposition")).toContain("apostila.pdf");
     expect(logAction).toHaveBeenCalledWith(
-      "portal_material_baixado",
+      "portal_material_visualizado",
       undefined,
       "10.0.0.1",
       expect.objectContaining({ formandoId: FORMANDO, agendamentoId: AGENDA, arquivoId: "arq_1" }),
