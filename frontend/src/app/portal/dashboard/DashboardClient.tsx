@@ -116,7 +116,7 @@ export default function DashboardClient({
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {branding.logoUrl ? (
               <img
@@ -148,7 +148,7 @@ export default function DashboardClient({
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl space-y-4 px-4 py-6">
+      <main className="mx-auto max-w-6xl space-y-4 px-4 py-6">
         {/* Saudação */}
         <div>
           <h1 className="text-xl font-bold text-foreground">Olá, {primeiroNome}</h1>
@@ -161,143 +161,149 @@ export default function DashboardClient({
           </p>
         </div>
 
-        {/* Presença */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              Minha presença
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-baseline justify-between">
-              <span className="text-3xl font-bold tabular-nums text-foreground">
-                {presenca.percentual}%
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {presenca.presentes} de {presenca.total}{" "}
-                {presenca.total === 1 ? "encontro" : "encontros"}
-              </span>
-            </div>
-            <ProgressoBar value={presenca.presentes} max={presenca.total} />
-          </CardContent>
-        </Card>
-
-        {/* Período Vocacional */}
-        {vocacional && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
-                Minha jornada vocacional
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {vocacional.status === "aguardando_carta"
-                  ? "É hora de entregar sua carta de discernimento ao formador."
-                  : vocacional.status === "em_discernimento"
-                  ? "Sua carta está em discernimento pelas autoridades da comunidade."
-                  : "Você está em período vocacional. Acompanhe sua agenda de encontros e retiros."}
-              </p>
-              {vocacional.acompanhamentoOferecido && (
-                solicitado ? (
-                  <p className="text-sm text-primary inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
-                  </p>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={solicitarAcompanhamento} disabled={solicitando}>
-                    {solicitando ? "Enviando…" : "Solicitar acompanhamento do plantão vocacional"}
-                  </Button>
-                )
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Trilha da Travessia (leitura) — só quando há livros na turma */}
-        {travessia && <TravessiaCard travessia={travessia} />}
-
-        {/* Próximos encontros */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              Próximos encontros
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {proximosEncontros.length === 0 ? (
-              <p className="py-2 text-sm text-muted-foreground">
-                Nenhum encontro agendado no momento.
-              </p>
-            ) : (
-              <ul className="space-y-3">
-                {proximosEncontros.map((enc) => (
-                  <ProximoEncontroItem key={enc.id} encontro={enc} />
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Notificações push — ativar/desativar neste aparelho */}
-        <PortalNotificacoesCard />
-
-        {/* Progresso da etapa */}
-        {progresso && (
+        {/* Faixa de status (cards compactos lado a lado no desktop) */}
+        <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Presença */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                Minha etapa
+                Minha presença
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <ProgressoLinha
-                label="Formações comunitárias"
-                value={progresso.formacoesComunitariasRealizadas}
-                max={progresso.requisitos.formacoesComunitarias}
-              />
-              <ProgressoLinha
-                label="Retiros comunitários"
-                value={progresso.retirosComunitariosRealizados}
-                max={progresso.requisitos.retirosComunitarios}
-              />
-              <ProgressoLinha
-                label="Retiros pessoais"
-                value={progresso.retirosPessoaisRealizados}
-                max={progresso.requisitos.retirosPessoais}
-              />
+            <CardContent className="space-y-2">
+              <div className="flex items-baseline justify-between">
+                <span className="text-3xl font-bold tabular-nums text-foreground">
+                  {presenca.percentual}%
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {presenca.presentes} de {presenca.total}{" "}
+                  {presenca.total === 1 ? "encontro" : "encontros"}
+                </span>
+              </div>
+              <ProgressoBar value={presenca.presentes} max={presenca.total} />
             </CardContent>
           </Card>
-        )}
 
-        {/* Materiais das formações já realizadas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-primary" />
-              Materiais das formações
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {materiais.length === 0 ? (
-              <p className="py-2 text-sm text-muted-foreground">
-                Os materiais das suas formações aparecem aqui a partir do dia de
-                cada encontro.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {materiais.map((m) => (
-                  <MaterialItem key={m.agendamentoId} material={m} />
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+          {/* Período Vocacional */}
+          {vocacional && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  Minha jornada vocacional
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {vocacional.status === "aguardando_carta"
+                    ? "É hora de entregar sua carta de discernimento ao formador."
+                    : vocacional.status === "em_discernimento"
+                    ? "Sua carta está em discernimento pelas autoridades da comunidade."
+                    : "Você está em período vocacional. Acompanhe sua agenda de encontros e retiros."}
+                </p>
+                {vocacional.acompanhamentoOferecido && (
+                  solicitado ? (
+                    <p className="text-sm text-primary inline-flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
+                    </p>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={solicitarAcompanhamento} disabled={solicitando}>
+                      {solicitando ? "Enviando…" : "Solicitar acompanhamento do plantão vocacional"}
+                    </Button>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Histórico */}
+          {/* Progresso da etapa (formando; não se aplica ao período vocacional) */}
+          {progresso && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Minha etapa
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ProgressoLinha
+                  label="Formações comunitárias"
+                  value={progresso.formacoesComunitariasRealizadas}
+                  max={progresso.requisitos.formacoesComunitarias}
+                />
+                <ProgressoLinha
+                  label="Retiros comunitários"
+                  value={progresso.retirosComunitariosRealizados}
+                  max={progresso.requisitos.retirosComunitarios}
+                />
+                <ProgressoLinha
+                  label="Retiros pessoais"
+                  value={progresso.retirosPessoaisRealizados}
+                  max={progresso.requisitos.retirosPessoais}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Notificações push — ativar/desativar neste aparelho */}
+          <PortalNotificacoesCard />
+        </div>
+
+        {/* Trilha da Travessia (leitura) — herói, ocupa a largura toda */}
+        {travessia && <TravessiaCard travessia={travessia} />}
+
+        {/* Encontros + Materiais lado a lado no desktop */}
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          {/* Próximos encontros */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                Próximos encontros
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {proximosEncontros.length === 0 ? (
+                <p className="py-2 text-sm text-muted-foreground">
+                  Nenhum encontro agendado no momento.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {proximosEncontros.map((enc) => (
+                    <ProximoEncontroItem key={enc.id} encontro={enc} />
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Materiais das formações já realizadas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                Materiais das formações
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {materiais.length === 0 ? (
+                <p className="py-2 text-sm text-muted-foreground">
+                  Os materiais das suas formações aparecem aqui a partir do dia de
+                  cada encontro.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {materiais.map((m) => (
+                    <MaterialItem key={m.agendamentoId} material={m} />
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Histórico — largura toda */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -311,7 +317,7 @@ export default function DashboardClient({
                 Ainda não há registros de presença nesta etapa.
               </p>
             ) : (
-              <ul className="divide-y">
+              <ul className="grid gap-x-6 sm:grid-cols-2">
                 {presenca.historico.map((item) => (
                   <HistoricoItem key={item.id} item={item} />
                 ))}
@@ -657,7 +663,7 @@ function HistoricoItem({
   const d = new Date(item.data);
 
   return (
-    <li className="flex items-center justify-between gap-3 py-2.5">
+    <li className="flex items-center justify-between gap-3 border-b border-border/50 py-2.5 last:border-0">
       <div className="min-w-0">
         <p className="truncate text-sm text-foreground">
           {item.tema || tipoLabel || "Encontro"}

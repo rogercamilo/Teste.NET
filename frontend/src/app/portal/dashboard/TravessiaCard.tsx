@@ -198,40 +198,46 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
           })}
         </div>
 
-        {/* Trilha por livro */}
-        <div className="space-y-6">
-          {travessia.livros.map((livro) => (
-            <LivroTrilha
-              key={livro.id}
-              livro={livro}
-              lidos={lidos}
-              pendentes={pendentes}
-              partilhas={partilhas}
-              onToggle={toggle}
-              onSalvarPartilha={salvarPartilha}
-              onRemoverPartilha={removerPartilha}
+        {/* No desktop, a trilha ocupa a coluna esquerda e Missão/Mural a direita,
+            aproveitando a largura do herói. No mobile, tudo empilha. */}
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          {/* Trilha por livro */}
+          <div className="space-y-6">
+            {travessia.livros.map((livro) => (
+              <LivroTrilha
+                key={livro.id}
+                livro={livro}
+                lidos={lidos}
+                pendentes={pendentes}
+                partilhas={partilhas}
+                onToggle={toggle}
+                onSalvarPartilha={salvarPartilha}
+                onRemoverPartilha={removerPartilha}
+              />
+            ))}
+          </div>
+
+          {/* Missão + Mural */}
+          <div className="space-y-5">
+            <MissaoSection
+              missao={travessia.missao}
+              frutos={frutosTotal}
+              capitulosLidos={capitulosLidos}
+              totalCapitulos={totalCapitulos}
+              instagramFeito={instagramFeito}
+              youtubeFeito={youtubeFeito}
+              youtubeUrl={youtubeUrl}
+              onInstagram={setInstagramFeito}
+              onYoutube={(feito, url) => {
+                setYoutubeFeito(feito);
+                setYoutubeUrl(url);
+              }}
             />
-          ))}
+
+            {/* Mural de Frutos da turma (se o formador ligou) */}
+            {travessia.mural && <MuralSection muralInicial={travessia.mural} meusFrutos={frutosTotal} />}
+          </div>
         </div>
-
-        {/* Missão — evangelização por rede */}
-        <MissaoSection
-          missao={travessia.missao}
-          frutos={frutosTotal}
-          capitulosLidos={capitulosLidos}
-          totalCapitulos={totalCapitulos}
-          instagramFeito={instagramFeito}
-          youtubeFeito={youtubeFeito}
-          youtubeUrl={youtubeUrl}
-          onInstagram={setInstagramFeito}
-          onYoutube={(feito, url) => {
-            setYoutubeFeito(feito);
-            setYoutubeUrl(url);
-          }}
-        />
-
-        {/* Mural de Frutos da turma (se o formador ligou) */}
-        {travessia.mural && <MuralSection muralInicial={travessia.mural} meusFrutos={frutosTotal} />}
       </CardContent>
     </Card>
   );
@@ -465,7 +471,9 @@ function CapituloPartilha({
       <MessageSquareText className="h-3.5 w-3.5" />
       Partilhar reflexão
     </button>
-  );
+
+
+);
 }
 
 /**
