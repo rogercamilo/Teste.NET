@@ -167,6 +167,58 @@ export async function getPortalMateriais(
   });
 }
 
+/** Aniversariante do mês no mesmo grupo/turma (toque de comunidade). */
+export interface PortalAniversariante {
+  nome: string;
+  dia: number;
+  ehVoce: boolean;
+  hoje: boolean;
+}
+
+/**
+ * Aniversariantes do mês corrente no MESMO grupo/turma do formando — reforça o
+ * sentido de família do portal. Nome + dia (sem ano/idade — só o necessário para
+ * celebrar), ordenados por dia, com marcação de "hoje" e de "você". Mês/dia de
+ * referência no fuso de São Paulo; o dia vem dos componentes UTC da data (datas
+ * YYYY-MM-DD são gravadas como meia-noite UTC — ver feedback-date-only-timezone).
+ * Sem grupo → lista vazia.
+ */
+export async function getPortalAniversariantes(
+  formandoId: string,
+  organizacaoId: string
+): Promise<PortalAniversariante[]> {
+  const eu = await prisma.formando.findFirst({
+    where: { id: formandoId, organizacaoId, ativo: true, deletedAt: null },
+    select: { grupoFormacaoId: true },
+  });
+  if (!eu?.grupoFormacaoId) return [];
+
+  const membros = await prisma.formando.findMany({
+    where: { organizacaoId, grupoFormacaoId: eu.grupoFormacaoId, ativo: true, deletedAt: null },
+    select: { id: true, nome: true, dataNascimento: true },
+  });
+
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(new Date());
+  const mesAtual = Number(partes.find((p) => p.type === "month")?.value);
+  const diaHoje = Number(partes.find((p) => p.type === "day")?.value);
+
+  return membros
+    .filter((m) => m.dataNascimento != null)
+    .map((m) => ({
+      nome: m.nome,
+      mes: m.dataNascimento.getUTCMonth() + 1,
+      dia: m.dataNascimento.getUTCDate(),
+      ehVoce: m.id === formandoId,
+    }))
+    .filter((m) => m.mes === mesAtual)
+    .sort((a, b) => a.dia - b.dia)
+    .map((m) => ({ nome: m.nome, dia: m.dia, ehVoce: m.ehVoce, hoje: m.dia === diaHoje }));
+}
+
 /** Partilha textual do vocacionado sobre um capítulo, com a reação do formador. */
 export interface TravessiaPartilha {
   texto: string;

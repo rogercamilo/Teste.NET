@@ -39,55 +39,62 @@ export function MuralSection({
           (leitura, partilhas e evangelização). Sem ranking: é para celebrar o caminho em comunidade.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Total coletivo — número protagonista */}
-        <div className="flex items-center gap-3 rounded-lg border bg-primary/5 px-4 py-3">
-          <Sprout className="h-8 w-8 shrink-0 text-primary" />
-          <div className="leading-tight">
-            <div className="text-3xl font-bold tabular-nums text-foreground">
-              {muralInicial.turmaFrutosTotal}
+      <CardContent>
+        {/* Total coletivo à esquerda, quem aparece à direita (one view no desktop) */}
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* Total coletivo — número protagonista */}
+          <div className="flex items-center gap-3 rounded-lg border bg-primary/5 px-4 py-3 md:col-span-1">
+            <Sprout className="h-8 w-8 shrink-0 text-primary" />
+            <div className="leading-tight">
+              <div className="text-3xl font-bold tabular-nums text-foreground">
+                {muralInicial.turmaFrutosTotal}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Frutos colhidos pela turma inteira 🌱
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Frutos colhidos pela turma inteira 🌱
-            </div>
+          </div>
+
+          {/* Quem escolheu aparecer */}
+          <div className="md:col-span-2">
+            {participantes.length > 0 ? (
+              <>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  Quem está aparecendo no mural ({participantes.length})
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {participantes.map((p, i) => (
+                    <div
+                      key={`${p.nome}-${i}`}
+                      className={
+                        "rounded-md border px-3 py-2 " +
+                        ("eu" in p && p.eu ? "border-primary/40 bg-primary/5" : "bg-card")
+                      }
+                    >
+                      <p className="truncate text-sm font-medium">
+                        {p.nome}
+                        {"eu" in p && p.eu ? (
+                          <span className="text-xs font-normal text-muted-foreground"> · você</span>
+                        ) : null}
+                      </p>
+                      <p className="flex items-center gap-1 text-xs text-primary">
+                        <Sprout className="h-3 w-3" />
+                        {p.frutos} {p.frutos === 1 ? "Fruto" : "Frutos"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="flex h-full items-center gap-1.5 rounded-md border border-dashed px-3 py-2.5 text-xs text-muted-foreground">
+                <ArrowDown className="h-3.5 w-3.5 shrink-0" />
+                Ninguém apareceu ainda. Ative{" "}
+                <strong className="font-medium text-foreground">“Aparecer no mural”</strong> na Missão
+                (abaixo) para ser o primeiro.
+              </p>
+            )}
           </div>
         </div>
-
-        {/* Quem escolheu aparecer */}
-        {participantes.length > 0 ? (
-          <div>
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
-              Quem está aparecendo no mural ({participantes.length})
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {participantes.map((p, i) => (
-                <div
-                  key={`${p.nome}-${i}`}
-                  className={
-                    "rounded-md border px-3 py-2 " +
-                    ("eu" in p && p.eu ? "border-primary/40 bg-primary/5" : "bg-card")
-                  }
-                >
-                  <p className="truncate text-sm font-medium">
-                    {p.nome}
-                    {"eu" in p && p.eu ? (
-                      <span className="text-xs font-normal text-muted-foreground"> · você</span>
-                    ) : null}
-                  </p>
-                  <p className="flex items-center gap-1 text-xs text-primary">
-                    <Sprout className="h-3 w-3" />
-                    {p.frutos} {p.frutos === 1 ? "Fruto" : "Frutos"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="flex items-center gap-1.5 rounded-md border border-dashed px-3 py-2.5 text-xs text-muted-foreground">
-            <ArrowDown className="h-3.5 w-3.5 shrink-0" />
-            Ninguém apareceu ainda. Ative <strong className="font-medium text-foreground">“Aparecer no mural”</strong> na Missão (abaixo) para ser o primeiro.
-          </p>
-        )}
       </CardContent>
     </Card>
   );

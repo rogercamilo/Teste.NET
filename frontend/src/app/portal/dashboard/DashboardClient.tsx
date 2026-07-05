@@ -20,6 +20,7 @@ import {
   Paperclip,
   ChevronDown,
   Eye,
+  Cake,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -34,6 +35,7 @@ import type {
   PortalProximoEncontro,
   PortalMaterialItem,
   PortalTravessia,
+  PortalAniversariante,
 } from "@/lib/portal-data";
 import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
 import { PortalNotificacoesCard } from "./PortalNotificacoesCard";
@@ -60,6 +62,7 @@ const fmtHora = new Intl.DateTimeFormat("pt-BR", {
   hour: "2-digit",
   minute: "2-digit",
 });
+const fmtMes = new Intl.DateTimeFormat("pt-BR", { month: "long" });
 
 function formatEncontro(iso: string): string {
   const d = new Date(iso);
@@ -70,11 +73,13 @@ export default function DashboardClient({
   data,
   materiais,
   travessia,
+  aniversariantes,
   branding,
 }: {
   data: PortalDashboardData;
   materiais: PortalMaterialItem[];
   travessia: PortalTravessia | null;
+  aniversariantes: PortalAniversariante[];
   branding: PublicBranding;
 }) {
   const router = useRouter();
@@ -277,29 +282,7 @@ export default function DashboardClient({
           <PortalNotificacoesCard />
         </div>
 
-        {/* Mural de Frutos da turma — informação geral coletiva, no topo */}
-        {travessia?.mural && (
-          <MuralSection
-            muralInicial={travessia.mural}
-            meusFrutos={travessia.frutosTotal}
-            exibir={muralExibir}
-          />
-        )}
-
-        {/* Trilha da Travessia (leitura) — herói, ocupa a largura toda. O controle
-            "Aparecer no mural" é renderizado abaixo da Missão, dentro do card. */}
-        {travessia && (
-          <TravessiaCard
-            travessia={travessia}
-            muralOptIn={
-              travessia.mural
-                ? { exibir: muralExibir, salvando: muralSalvando, onToggle: alternarMural }
-                : null
-            }
-          />
-        )}
-
-        {/* Encontros + Materiais lado a lado no desktop */}
+        {/* Faixa comunitária — o que vem aí + quem celebrar (sentido de família) */}
         <div className="grid items-start gap-4 lg:grid-cols-2">
           {/* Próximos encontros */}
           <Card>
@@ -324,6 +307,34 @@ export default function DashboardClient({
             </CardContent>
           </Card>
 
+          {/* Aniversariantes do mês — sentido de família da turma */}
+          <AniversariantesCard aniversariantes={aniversariantes} />
+        </div>
+
+        {/* Mural de Frutos da turma — informação geral coletiva, no topo */}
+        {travessia?.mural && (
+          <MuralSection
+            muralInicial={travessia.mural}
+            meusFrutos={travessia.frutosTotal}
+            exibir={muralExibir}
+          />
+        )}
+
+        {/* Trilha da Travessia (leitura) — herói, ocupa a largura toda. O controle
+            "Aparecer no mural" é renderizado abaixo da Missão, dentro do card. */}
+        {travessia && (
+          <TravessiaCard
+            travessia={travessia}
+            muralOptIn={
+              travessia.mural
+                ? { exibir: muralExibir, salvando: muralSalvando, onToggle: alternarMural }
+                : null
+            }
+          />
+        )}
+
+        {/* Materiais + Histórico lado a lado no desktop */}
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           {/* Materiais das formações já realizadas */}
           <Card>
             <CardHeader>
@@ -347,36 +358,89 @@ export default function DashboardClient({
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* Histórico — largura toda */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
-              Histórico
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {presenca.historico.length === 0 ? (
-              <p className="py-2 text-sm text-muted-foreground">
-                Ainda não há registros de presença nesta etapa.
-              </p>
-            ) : (
-              <ul className="grid gap-x-6 sm:grid-cols-2">
-                {presenca.historico.map((item) => (
-                  <HistoricoItem key={item.id} item={item} />
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+          {/* Histórico */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-4 w-4 text-primary" />
+                Histórico
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {presenca.historico.length === 0 ? (
+                <p className="py-2 text-sm text-muted-foreground">
+                  Ainda não há registros de presença nesta etapa.
+                </p>
+              ) : (
+                <ul>
+                  {presenca.historico.map((item) => (
+                    <HistoricoItem key={item.id} item={item} />
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         <p className="pt-2 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} {communityName}
         </p>
       </main>
     </div>
+  );
+}
+
+/**
+ * Aniversariantes do mês no grupo/turma — toque de comunidade ("família"). Lista
+ * nome + dia (sem ano), com destaque para quem faz aniversário HOJE e para "você".
+ */
+function AniversariantesCard({ aniversariantes }: { aniversariantes: PortalAniversariante[] }) {
+  const mes = fmtMes.format(new Date());
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Cake className="h-4 w-4 text-primary" />
+          Aniversariantes de {mes}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {aniversariantes.length === 0 ? (
+          <p className="py-2 text-sm text-muted-foreground">
+            Ninguém da sua turma faz aniversário neste mês.
+          </p>
+        ) : (
+          <ul className="space-y-1">
+            {aniversariantes.map((a, i) => (
+              <li
+                key={`${a.nome}-${a.dia}-${i}`}
+                className={
+                  "flex items-center justify-between gap-3 rounded-md px-2 py-1.5 " +
+                  (a.hoje ? "bg-primary/5" : "")
+                }
+              >
+                <span className="flex min-w-0 items-center gap-2 text-sm">
+                  {a.hoje && <span className="shrink-0 text-base leading-none">🎉</span>}
+                  <span className="truncate font-medium text-foreground">
+                    {a.nome}
+                    {a.ehVoce && <span className="text-xs font-normal text-muted-foreground"> · você</span>}
+                  </span>
+                </span>
+                <span
+                  className={
+                    "shrink-0 text-xs tabular-nums " +
+                    (a.hoje ? "font-semibold text-primary" : "text-muted-foreground")
+                  }
+                >
+                  {a.hoje ? "hoje! 🎂" : `dia ${a.dia}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

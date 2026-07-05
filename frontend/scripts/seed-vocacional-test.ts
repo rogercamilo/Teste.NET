@@ -196,6 +196,34 @@ async function main() {
     },
   });
 
+  // 2b. Colegas da turma com aniversário NESTE mês (testa o card de
+  // aniversariantes) — um faz aniversário HOJE, outro daqui a alguns dias.
+  const hoje = new Date();
+  const aniv = (dia: number) => new Date(Date.UTC(1990, hoje.getMonth(), dia));
+  const colegas = [
+    { id: "fmd_voc_aniv_hoje", nome: "Ana Aniversariante", email: "ana.aniv@formattio.dev", dia: hoje.getDate() },
+    { id: "fmd_voc_aniv_mes", nome: "Pedro do Mês", email: "pedro.mes@formattio.dev", dia: hoje.getDate() >= 20 ? 5 : 25 },
+  ];
+  for (const c of colegas) {
+    await prisma.formando.upsert({
+      where: { id: c.id },
+      update: { ativo: true, deletedAt: null, grupoFormacaoId: TURMA_ID, dataNascimento: aniv(c.dia) },
+      create: {
+        id: c.id,
+        organizacaoId: ORG,
+        nome: c.nome,
+        email: c.email,
+        dataNascimento: aniv(c.dia),
+        estadoCivil: "solteiro",
+        modalidade: "presencial",
+        nivelFormativo: NIVEL,
+        dataIngresso: dias(-300),
+        telefone: "(11) 90000-0000",
+        grupoFormacaoId: TURMA_ID,
+      },
+    });
+  }
+
   // 3. Participação vocacional ATIVA (faz o login cair no portal vocacional).
   await prisma.participacaoVocacional.upsert({
     where: { id: PARTICIPACAO_ID },
