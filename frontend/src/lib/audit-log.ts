@@ -131,6 +131,8 @@ export type AuditAction =
   | "vocacional_leitura_criada"
   | "vocacional_leitura_editada"
   | "vocacional_leitura_removida"
+  | "travessia_capitulo_lido"
+  | "travessia_capitulo_desmarcado"
   | "password_reset_requested"
   | "password_reset_confirmed"
   | "lgpd_incident_notification_sent"

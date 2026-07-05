@@ -33,9 +33,11 @@ import type {
   PortalDashboardData,
   PortalProximoEncontro,
   PortalMaterialItem,
+  PortalTravessia,
 } from "@/lib/portal-data";
 import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
 import { PortalNotificacoesCard } from "./PortalNotificacoesCard";
+import { TravessiaCard } from "./TravessiaCard";
 
 function ProgressoBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
@@ -66,10 +68,12 @@ function formatEncontro(iso: string): string {
 export default function DashboardClient({
   data,
   materiais,
+  travessia,
   branding,
 }: {
   data: PortalDashboardData;
   materiais: PortalMaterialItem[];
+  travessia: PortalTravessia | null;
   branding: PublicBranding;
 }) {
   const router = useRouter();
@@ -210,6 +214,9 @@ export default function DashboardClient({
             </CardContent>
           </Card>
         )}
+
+        {/* Trilha da Travessia (leitura) — só quando há livros na turma */}
+        {travessia && <TravessiaCard travessia={travessia} />}
 
         {/* Próximos encontros */}
         <Card>

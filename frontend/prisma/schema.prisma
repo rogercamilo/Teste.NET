@@ -252,6 +252,7 @@ model Organizacao {
   participacoesVocacional   ParticipacaoVocacional[]
   acompanhamentosVocacional AcompanhamentoVocacional[]
   leiturasVocacionais       LeituraVocacional[]
+  acoesLeitura              AcaoLeitura[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -441,6 +442,7 @@ model Formando {
   termosRegistro          TermoRegistro[]
   participacoesVocacional ParticipacaoVocacional[]
   accessTokens            FormandoAccessToken[]
+  acoesLeitura            AcaoLeitura[]
 
   @@index([organizacaoId])
   @@index([grupoFormacaoId])
@@ -1350,6 +1352,7 @@ model LeituraVocacional {
   organizacao Organizacao       @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   turma       GrupoFormacao     @relation(fields: [turmaId], references: [id], onDelete: Cascade)
   capitulos   CapituloLeitura[]
+  acoes       AcaoLeitura[]
 
   @@index([organizacaoId])
   @@index([turmaId, ordem])
@@ -1363,7 +1366,47 @@ model CapituloLeitura {
   titulo    String
 
   leitura LeituraVocacional @relation(fields: [leituraId], references: [id], onDelete: Cascade)
+  acoes   AcaoLeitura[]
 
   @@unique([leituraId, numero])
   @@index([leituraId])
+}
+
+// Catálogo tipado de ações que rendem "Frutos da Travessia". Extensível sem
+// mexer no schema: novas ações (partilha, evangelização por rede) são só novos
+// valores. Fatia 2 usa apenas `leitura` (capítulo lido).
+enum TipoAcaoLeitura {
+  leitura
+  partilha
+  evangelizacao_instagram
+  evangelizacao_youtube
+}
+
+// Livro-razão (append/remove) dos Frutos conquistados pelo vocacionado na sua
+// trilha de leitura. Gamificação ADITIVA: cada linha soma frutos, nunca subtrai
+// entre si. O valor em `frutos` é FIXADO pelo sistema no momento da ação (o
+// catálogo pode mudar sem reescrever o histórico). Para `tipo=leitura`,
+// `capituloId` aponta o capítulo lido e o par (formando, capítulo) é único —
+// um capítulo rende fruto uma só vez; desmarcar remove a linha.
+model AcaoLeitura {
+  id            String          @id @default(cuid())
+  organizacaoId String
+  formandoId    String
+  leituraId     String
+  capituloId    String? // preenchido para tipo=leitura
+  tipo          TipoAcaoLeitura @default(leitura)
+  frutos        Int
+  criadoEm      DateTime        @default(now())
+
+  organizacao Organizacao       @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando    Formando          @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  leitura     LeituraVocacional @relation(fields: [leituraId], references: [id], onDelete: Cascade)
+  capitulo    CapituloLeitura?  @relation(fields: [capituloId], references: [id], onDelete: Cascade)
+
+  // NULLs são distintos no índice único do Postgres, então isto só barra
+  // capítulos lidos em duplicidade — ações sem capítulo (partilha) ficam livres.
+  @@unique([formandoId, capituloId])
+  @@index([organizacaoId])
+  @@index([leituraId])
+  @@index([formandoId, leituraId])
 }

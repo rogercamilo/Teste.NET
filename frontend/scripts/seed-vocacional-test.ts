@@ -230,6 +230,27 @@ async function main() {
     },
   });
 
+  // 3c. Progresso de leitura do vocacionado (Fatia 2): 2 primeiros capítulos
+  // lidos, para a Trilha da Travessia já surgir com Frutos no portal.
+  const capsLidos = await prisma.capituloLeitura.findMany({
+    where: { leituraId: LEITURA_ID, numero: { in: [1, 2] } },
+    select: { id: true },
+  });
+  for (const c of capsLidos) {
+    await prisma.acaoLeitura.upsert({
+      where: { formandoId_capituloId: { formandoId: FORMANDO_ID, capituloId: c.id } },
+      update: {},
+      create: {
+        organizacaoId: ORG,
+        formandoId: FORMANDO_ID,
+        leituraId: LEITURA_ID,
+        capituloId: c.id,
+        tipo: "leitura",
+        frutos: 1,
+      },
+    });
+  }
+
   // 4. Templates de Formação + anexo PDF real (na primeira formação).
   const pdf = buildMinimalPdf([
     "Roteiro de Discernimento — Vontade de Deus",

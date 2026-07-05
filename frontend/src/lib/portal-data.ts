@@ -167,6 +167,113 @@ export async function getPortalMateriais(
   });
 }
 
+export interface TravessiaCapitulo {
+  id: string;
+  numero: number;
+  titulo: string;
+  lido: boolean;
+}
+
+export interface TravessiaLivro {
+  id: string;
+  titulo: string;
+  autor: string | null;
+  ordem: number;
+  capitulos: TravessiaCapitulo[];
+  totalCapitulos: number;
+  capitulosLidos: number;
+  percentual: number;
+}
+
+export interface PortalTravessia {
+  frutosTotal: number;
+  livros: TravessiaLivro[];
+  totalCapitulos: number;
+  capitulosLidos: number;
+  percentualGeral: number;
+  // Marcos atingidos no agregado da trilha (¼, ½, ¾, 100%).
+  marcos: { um_quarto: boolean; metade: boolean; tres_quartos: boolean; completo: boolean };
+}
+
+/**
+ * Trilha da Travessia do vocacionado: os livros indicados à SUA turma (ativos,
+ * em ordem) com o estado de leitura de cada capítulo e o total de Frutos já
+ * conquistados. A autorização é a pertença à turma — os livros vivem na turma
+ * (`turmaId === grupoFormacaoId`) e as ações são escopadas ao formando. Retorna
+ * `null` quando não há turma ou nenhum livro cadastrado (nada a exibir).
+ */
+export async function getPortalTravessia(
+  formandoId: string,
+  organizacaoId: string
+): Promise<PortalTravessia | null> {
+  const formando = await prisma.formando.findFirst({
+    where: { id: formandoId, organizacaoId, ativo: true, deletedAt: null },
+    select: { grupoFormacaoId: true },
+  });
+  if (!formando?.grupoFormacaoId) return null;
+
+  const [livros, acoes] = await Promise.all([
+    prisma.leituraVocacional.findMany({
+      where: { turmaId: formando.grupoFormacaoId, organizacaoId, ativo: true },
+      orderBy: { ordem: "asc" },
+      include: {
+        capitulos: { orderBy: { numero: "asc" }, select: { id: true, numero: true, titulo: true } },
+      },
+    }),
+    prisma.acaoLeitura.findMany({
+      where: { formandoId, organizacaoId, tipo: "leitura", capituloId: { not: null } },
+      select: { capituloId: true, frutos: true },
+    }),
+  ]);
+
+  if (livros.length === 0) return null;
+
+  const lidos = new Set(acoes.map((a) => a.capituloId));
+  const frutosTotal = acoes.reduce((s, a) => s + a.frutos, 0);
+
+  let totalCapitulos = 0;
+  let capitulosLidos = 0;
+  const livrosOut: TravessiaLivro[] = livros.map((l) => {
+    const capitulos = l.capitulos.map((c) => ({
+      id: c.id,
+      numero: c.numero,
+      titulo: c.titulo,
+      lido: lidos.has(c.id),
+    }));
+    const lidosNoLivro = capitulos.filter((c) => c.lido).length;
+    totalCapitulos += capitulos.length;
+    capitulosLidos += lidosNoLivro;
+    return {
+      id: l.id,
+      titulo: l.titulo,
+      autor: l.autor,
+      ordem: l.ordem,
+      capitulos,
+      totalCapitulos: capitulos.length,
+      capitulosLidos: lidosNoLivro,
+      percentual: capitulos.length > 0 ? Math.round((lidosNoLivro / capitulos.length) * 100) : 0,
+    };
+  });
+
+  const percentualGeral =
+    totalCapitulos > 0 ? Math.round((capitulosLidos / totalCapitulos) * 100) : 0;
+  const fracao = totalCapitulos > 0 ? capitulosLidos / totalCapitulos : 0;
+
+  return {
+    frutosTotal,
+    livros: livrosOut,
+    totalCapitulos,
+    capitulosLidos,
+    percentualGeral,
+    marcos: {
+      um_quarto: fracao >= 0.25,
+      metade: fracao >= 0.5,
+      tres_quartos: fracao >= 0.75,
+      completo: totalCapitulos > 0 && capitulosLidos === totalCapitulos,
+    },
+  };
+}
+
 const STATUS_VOCACIONAL_ATIVOS = ["ativa", "aguardando_carta", "em_discernimento"] as const;
 
 /**

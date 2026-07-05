@@ -1082,3 +1082,39 @@ export interface ComunidadeConfig {
   /** Chave da paleta de cores (ex.: "azul", "verde") */
   temaCor?: string;
 }
+
+// ==========================================================
+// TRAVESSIA DE LEITURA — Frutos da Travessia (gamificação)
+// ==========================================================
+
+/**
+ * Catálogo tipado de ações que rendem Frutos. Espelha o enum `TipoAcaoLeitura`
+ * do schema; novos frutos entram aqui e no enum sem mexer nas tabelas. Fatia 2
+ * usa apenas `leitura`.
+ */
+export type TipoAcaoLeitura =
+  | "leitura"
+  | "partilha"
+  | "evangelizacao_instagram"
+  | "evangelizacao_youtube";
+
+/**
+ * Valor em Frutos de cada ação — FIXADO pelo sistema (não configurável por
+ * turma). É a fonte da verdade usada ao registrar a ação; o valor é copiado
+ * para a linha de `AcaoLeitura` no momento, então mudanças aqui não reescrevem
+ * o histórico já conquistado.
+ */
+export const FRUTOS_POR_ACAO: Record<TipoAcaoLeitura, number> = {
+  leitura: 1,
+  partilha: 3,
+  evangelizacao_instagram: 5,
+  evangelizacao_youtube: 5,
+};
+
+/** Marcos da trilha (frações do total de capítulos) e o rótulo comemorativo. */
+export const MARCOS_TRAVESSIA = [
+  { fracao: 0.25, chave: "um_quarto", label: "Primeiro quarto da travessia" },
+  { fracao: 0.5, chave: "metade", label: "Metade do caminho" },
+  { fracao: 0.75, chave: "tres_quartos", label: "Três quartos vencidos" },
+  { fracao: 1, chave: "completo", label: "Travessia concluída" },
+] as const;

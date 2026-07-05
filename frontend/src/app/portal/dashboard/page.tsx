@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { getPortalSession } from "@/lib/portal-auth";
-import { getPortalDashboardData, getPortalMateriais } from "@/lib/portal-data";
+import {
+  getPortalDashboardData,
+  getPortalMateriais,
+  getPortalTravessia,
+} from "@/lib/portal-data";
 import { getPublicBranding } from "@/lib/public-branding";
 import { portalHomeFor } from "@/lib/portal-routes";
 import DashboardClient from "./DashboardClient";
@@ -13,9 +17,13 @@ export default async function PortalDashboardPage() {
   const session = await getPortalSession();
   if (!session) redirect("/portal/formando");
 
-  const [data, materiais, branding] = await Promise.all([
+  const [data, materiais, travessia, branding] = await Promise.all([
     getPortalDashboardData(session.formandoId, session.organizacaoId),
     getPortalMateriais(session.formandoId, session.organizacaoId),
+    // Trilha de leitura é do público vocacional — pura economia p/ o formando.
+    session.audiencia === "vocacional"
+      ? getPortalTravessia(session.formandoId, session.organizacaoId)
+      : Promise.resolve(null),
     getPublicBranding(session.organizacaoId),
   ]);
 
@@ -23,5 +31,7 @@ export default async function PortalDashboardPage() {
   // origem (proxy limpará o cookie no próximo acesso protegido)
   if (!data) redirect(portalHomeFor(session.audiencia));
 
-  return <DashboardClient data={data} materiais={materiais} branding={branding} />;
+  return (
+    <DashboardClient data={data} materiais={materiais} travessia={travessia} branding={branding} />
+  );
 }
