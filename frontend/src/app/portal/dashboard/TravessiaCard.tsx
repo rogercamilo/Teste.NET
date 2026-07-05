@@ -22,7 +22,10 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
   const totalCapitulos = travessia.totalCapitulos;
   const capitulosLidos = lidos.size;
   const fracao = totalCapitulos > 0 ? capitulosLidos / totalCapitulos : 0;
-  const percentualGeral = Math.round(fracao * 100);
+  const completo = totalCapitulos > 0 && capitulosLidos === totalCapitulos;
+  // "100%" só quando TUDO foi lido — arredondar mostraria 100% em 199/200
+  // (Math.round(99.5)), contradizendo o marco de conclusão.
+  const percentualGeral = completo ? 100 : Math.min(99, Math.round(fracao * 100));
   // 1 Fruto por capítulo lido (valor fixo do sistema; ações extras virão depois).
   const frutosTotal = capitulosLidos;
 
@@ -63,7 +66,7 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sprout className="h-4 w-4 text-primary" />
-          Minha Travessia
+          Minha Travessia literaria
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -138,8 +141,7 @@ function LivroTrilha({
   onToggle: (capituloId: string, estaLido: boolean) => void;
 }) {
   const lidosNoLivro = livro.capitulos.filter((c) => lidos.has(c.id)).length;
-  const pct =
-    livro.totalCapitulos > 0 ? Math.round((lidosNoLivro / livro.totalCapitulos) * 100) : 0;
+  const completoLivro = livro.totalCapitulos > 0 && lidosNoLivro === livro.totalCapitulos;
 
   return (
     <div>
@@ -150,7 +152,7 @@ function LivroTrilha({
         </div>
         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
           {lidosNoLivro}/{livro.totalCapitulos}
-          {pct === 100 && livro.totalCapitulos > 0 ? " · concluído" : ""}
+          {completoLivro ? " · concluído" : ""}
         </span>
       </div>
 
@@ -179,7 +181,7 @@ function LivroTrilha({
                 aria-pressed={estaLido}
                 aria-label={`${estaLido ? "Desmarcar" : "Marcar como lido"}: capítulo ${cap.numero}`}
                 className={
-                  "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors " +
+                  "relative z-10 flex h-8 w-8 shrink-0 cursor-pointer select-none items-center justify-center rounded-full border-2 text-xs font-semibold caret-transparent transition-colors disabled:cursor-default " +
                   (estaLido
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-muted-foreground/30 bg-card text-muted-foreground hover:border-primary/60")
@@ -197,7 +199,7 @@ function LivroTrilha({
                 type="button"
                 onClick={() => onToggle(cap.id, estaLido)}
                 disabled={pendente}
-                className="flex-1 pt-1.5 text-left text-sm"
+                className="flex-1 cursor-pointer select-none pt-1.5 text-left text-sm caret-transparent disabled:cursor-default"
               >
                 <span className={estaLido ? "text-foreground" : "text-muted-foreground"}>
                   <span className="text-muted-foreground/70">Cap. {cap.numero} · </span>

@@ -220,8 +220,17 @@ export async function getPortalTravessia(
         capitulos: { orderBy: { numero: "asc" }, select: { id: true, numero: true, titulo: true } },
       },
     }),
+    // Escopado aos livros ATIVOS da turma atual (mesma régua dos `livros`
+    // acima), senão `frutosTotal` contaria ações de livros desativados ou de
+    // turma anterior, divergindo de `capitulosLidos`.
     prisma.acaoLeitura.findMany({
-      where: { formandoId, organizacaoId, tipo: "leitura", capituloId: { not: null } },
+      where: {
+        formandoId,
+        organizacaoId,
+        tipo: "leitura",
+        capituloId: { not: null },
+        leitura: { turmaId: formando.grupoFormacaoId, ativo: true },
+      },
       select: { capituloId: true, frutos: true },
     }),
   ]);
