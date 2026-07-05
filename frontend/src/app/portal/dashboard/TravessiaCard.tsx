@@ -31,6 +31,14 @@ function YoutubeIcon({ className }: { className?: string }) {
   );
 }
 
+// Rótulos curtos das etapas da travessia (dão contexto aos marcos %).
+const MARCO_CURTO: Record<string, string> = {
+  um_quarto: "Primeiro quarto",
+  metade: "Metade do caminho",
+  tres_quartos: "Três quartos",
+  completo: "Concluída",
+};
+
 /**
  * Trilha da Travessia — o vocacionado percorre os livros da sua turma marcando
  * capítulos lidos e, se quiser, partilhando uma reflexão sobre cada capítulo.
@@ -176,64 +184,83 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
           </div>
         </div>
 
-        {/* Marcos da travessia */}
-        <div className="flex flex-wrap gap-2">
-          {MARCOS_TRAVESSIA.map((m) => {
-            const atingido = totalCapitulos > 0 && fracao >= m.fracao;
-            return (
-              <span
-                key={m.chave}
-                title={m.label}
-                className={
-                  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors " +
-                  (atingido
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground")
-                }
-              >
-                <Flag className="h-3 w-3" />
-                {Math.round(m.fracao * 100)}%
-              </span>
-            );
-          })}
-        </div>
-
-        {/* No desktop, a trilha ocupa a coluna esquerda e a Missão a direita,
-            aproveitando a largura do herói. No mobile, tudo empilha. (O Mural de
-            Frutos vive no bloco de informações gerais do topo — ver DashboardClient.) */}
-        <div className="grid items-start gap-6 lg:grid-cols-2">
-          {/* Trilha por livro */}
-          <div className="space-y-6">
-            {travessia.livros.map((livro) => (
-              <LivroTrilha
-                key={livro.id}
-                livro={livro}
-                lidos={lidos}
-                pendentes={pendentes}
-                partilhas={partilhas}
-                onToggle={toggle}
-                onSalvarPartilha={salvarPartilha}
-                onRemoverPartilha={removerPartilha}
-              />
-            ))}
+        {/* Marcos da travessia — barra de progresso + etapas rotuladas, para os
+            números terem contexto (não ficarem soltos). */}
+        <div className="space-y-3">
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${percentualGeral}%` }}
+            />
           </div>
-
-          {/* Missão — evangelização por rede */}
-          <MissaoSection
-            missao={travessia.missao}
-            frutos={frutosTotal}
-            capitulosLidos={capitulosLidos}
-            totalCapitulos={totalCapitulos}
-            instagramFeito={instagramFeito}
-            youtubeFeito={youtubeFeito}
-            youtubeUrl={youtubeUrl}
-            onInstagram={setInstagramFeito}
-            onYoutube={(feito, url) => {
-              setYoutubeFeito(feito);
-              setYoutubeUrl(url);
-            }}
-          />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {MARCOS_TRAVESSIA.map((m) => {
+              const atingido = totalCapitulos > 0 && fracao >= m.fracao;
+              return (
+                <div
+                  key={m.chave}
+                  title={m.label}
+                  className={
+                    "flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-colors " +
+                    (atingido ? "border-primary/40 bg-primary/5" : "border-border bg-muted/30")
+                  }
+                >
+                  <span
+                    className={
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-full " +
+                      (atingido ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")
+                    }
+                  >
+                    {atingido ? <Check className="h-4 w-4" /> : <Flag className="h-3.5 w-3.5" />}
+                  </span>
+                  <div className="min-w-0 leading-tight">
+                    <div
+                      className={
+                        "text-sm font-semibold tabular-nums " +
+                        (atingido ? "text-foreground" : "text-muted-foreground")
+                      }
+                    >
+                      {Math.round(m.fracao * 100)}%
+                    </div>
+                    <div className="truncate text-[11px] text-muted-foreground">{MARCO_CURTO[m.chave]}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Trilha por livro — largura toda (capítulos + comentários) */}
+        <div className="space-y-6">
+          {travessia.livros.map((livro) => (
+            <LivroTrilha
+              key={livro.id}
+              livro={livro}
+              lidos={lidos}
+              pendentes={pendentes}
+              partilhas={partilhas}
+              onToggle={toggle}
+              onSalvarPartilha={salvarPartilha}
+              onRemoverPartilha={removerPartilha}
+            />
+          ))}
+        </div>
+
+        {/* Missão — abaixo da trilha, ocupando a largura toda */}
+        <MissaoSection
+          missao={travessia.missao}
+          frutos={frutosTotal}
+          capitulosLidos={capitulosLidos}
+          totalCapitulos={totalCapitulos}
+          instagramFeito={instagramFeito}
+          youtubeFeito={youtubeFeito}
+          youtubeUrl={youtubeUrl}
+          onInstagram={setInstagramFeito}
+          onYoutube={(feito, url) => {
+            setYoutubeFeito(feito);
+            setYoutubeUrl(url);
+          }}
+        />
       </CardContent>
     </Card>
   );
@@ -608,43 +635,120 @@ function MissaoSection({
         Compartilhe sua leitura e some <strong>5 Frutos</strong> por rede. Cada rede conta uma vez.
       </p>
 
-      {/* Instagram */}
-      <div className="flex flex-wrap items-center gap-2.5 rounded-md border bg-card px-3 py-2.5">
-        <InstagramIcon className="h-4 w-4 shrink-0 text-primary" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">Instagram</p>
-          <p className="text-xs text-muted-foreground">
-            {instagramFeito
-              ? "Card compartilhado · +5 Frutos"
-              : missao.orgInstagram
-                ? `Gere um card e marque @${missao.orgInstagram}`
-                : "Gere um card da sua Travessia"}
-          </p>
+      {/* Instagram + YouTube lado a lado (a Missão agora ocupa a largura toda) */}
+      <div className="grid gap-3 md:grid-cols-2 md:items-start">
+        {/* Instagram */}
+        <div className="flex flex-wrap items-center gap-2.5 rounded-md border bg-card px-3 py-2.5">
+          <InstagramIcon className="h-4 w-4 shrink-0 text-primary" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Instagram</p>
+            <p className="text-xs text-muted-foreground">
+              {instagramFeito
+                ? "Card compartilhado · +5 Frutos"
+                : missao.orgInstagram
+                  ? `Gere um card e marque @${missao.orgInstagram}`
+                  : "Gere um card da sua Travessia"}
+            </p>
+          </div>
+          {instagramFeito ? (
+            <button
+              type="button"
+              onClick={removerInstagram}
+              title="Desfazer"
+              aria-label="Desfazer compartilhamento no Instagram"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
+            >
+              <Check className="h-3.5 w-3.5 text-primary" /> Feito
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={compartilharInstagram}
+              disabled={compartilhando}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+            >
+              {compartilhando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+              Compartilhar
+            </button>
+          )}
         </div>
-        {instagramFeito ? (
-          <button
-            type="button"
-            onClick={removerInstagram}
-            title="Desfazer"
-            aria-label="Desfazer compartilhamento no Instagram"
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
-          >
-            <Check className="h-3.5 w-3.5 text-primary" /> Feito
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={compartilharInstagram}
-            disabled={compartilhando}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
-          >
-            {compartilhando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-            Compartilhar
-          </button>
-        )}
+
+        {/* YouTube */}
+        <div className="rounded-md border bg-card px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <YoutubeIcon className="h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">YouTube</p>
+              <p className="text-xs text-muted-foreground">
+                {youtubeFeito ? "Vídeo registrado · +5 Frutos" : "Cole o link de um vídeo sobre sua leitura"}
+              </p>
+            </div>
+            {youtubeFeito ? (
+              <button
+                type="button"
+                onClick={removerYoutube}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remover
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setYtAberto((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+              >
+                <Share2 className="h-3.5 w-3.5" /> Registrar vídeo
+              </button>
+            )}
+          </div>
+
+          {youtubeFeito && youtubeUrl && (
+            <a
+              href={youtubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 block truncate text-xs text-primary underline underline-offset-2"
+            >
+              {youtubeUrl}
+            </a>
+          )}
+
+          {ytAberto && !youtubeFeito && (
+            <div className="mt-2.5">
+              <input
+                type="url"
+                value={ytRascunho}
+                onChange={(e) => setYtRascunho(e.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+                autoFocus
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary/60"
+              />
+              {ytErro && <p className="mt-1 text-xs text-destructive">{ytErro}</p>}
+              <div className="mt-1.5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={salvarYoutube}
+                  disabled={ytSalvando || !ytRascunho.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  {ytSalvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Salvar link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setYtAberto(false)}
+                  disabled={ytSalvando}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Fallback desktop: baixar card + copiar legenda */}
+      {/* Fallback desktop: baixar card + copiar legenda (largura toda) */}
       {fallback && !instagramFeito && (
         <div className="space-y-2 rounded-md border border-primary/30 bg-card p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -684,80 +788,6 @@ function MissaoSection({
           </div>
         </div>
       )}
-
-      {/* YouTube */}
-      <div className="rounded-md border bg-card px-3 py-2.5">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <YoutubeIcon className="h-4 w-4 shrink-0 text-primary" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">YouTube</p>
-            <p className="text-xs text-muted-foreground">
-              {youtubeFeito ? "Vídeo registrado · +5 Frutos" : "Cole o link de um vídeo sobre sua leitura"}
-            </p>
-          </div>
-          {youtubeFeito ? (
-            <button
-              type="button"
-              onClick={removerYoutube}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Remover
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setYtAberto((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-            >
-              <Share2 className="h-3.5 w-3.5" /> Registrar vídeo
-            </button>
-          )}
-        </div>
-
-        {youtubeFeito && youtubeUrl && (
-          <a
-            href={youtubeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 block truncate text-xs text-primary underline underline-offset-2"
-          >
-            {youtubeUrl}
-          </a>
-        )}
-
-        {ytAberto && !youtubeFeito && (
-          <div className="mt-2.5">
-            <input
-              type="url"
-              value={ytRascunho}
-              onChange={(e) => setYtRascunho(e.target.value)}
-              placeholder="https://youtube.com/watch?v=..."
-              autoFocus
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary/60"
-            />
-            {ytErro && <p className="mt-1 text-xs text-destructive">{ytErro}</p>}
-            <div className="mt-1.5 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={salvarYoutube}
-                disabled={ytSalvando || !ytRascunho.trim()}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
-              >
-                {ytSalvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                Salvar link
-              </button>
-              <button
-                type="button"
-                onClick={() => setYtAberto(false)}
-                disabled={ytSalvando}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" /> Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
     </section>
   );
 }
