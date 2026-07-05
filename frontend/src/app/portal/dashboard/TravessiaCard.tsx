@@ -231,7 +231,7 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
         />
 
         {/* Mural de Frutos da turma (se o formador ligou) */}
-        {travessia.mural && <MuralSection muralInicial={travessia.mural} />}
+        {travessia.mural && <MuralSection muralInicial={travessia.mural} meusFrutos={frutosTotal} />}
       </CardContent>
     </Card>
   );
@@ -763,9 +763,17 @@ function MissaoSection({
  * os cards de quem optou por aparecer (sem ranking). O vocacionado escolhe se se
  * exibe — otimista com reversão.
  */
-function MuralSection({ muralInicial }: { muralInicial: TravessiaMural }) {
+function MuralSection({ muralInicial, meusFrutos }: { muralInicial: TravessiaMural; meusFrutos: number }) {
   const [exibir, setExibir] = useState(muralInicial.minhaExibicao);
   const [salvando, setSalvando] = useState(false);
+
+  // Lista exibida: os outros participantes (do servidor, sem mim) + o meu card
+  // com Frutos AO VIVO quando estou exibindo — reordenada alfabeticamente, como
+  // no servidor (sem ranking). Aparece/some na hora ao alternar o opt-in.
+  const participantes = [
+    ...muralInicial.participantes,
+    ...(exibir && muralInicial.meuNome ? [{ nome: muralInicial.meuNome, frutos: meusFrutos, eu: true }] : []),
+  ].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
   async function alternar() {
     if (salvando) return;
@@ -839,11 +847,20 @@ function MuralSection({ muralInicial }: { muralInicial: TravessiaMural }) {
         </span>
       </div>
 
-      {muralInicial.participantes.length > 0 && (
+      {participantes.length > 0 && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {muralInicial.participantes.map((p) => (
-            <div key={p.nome} className="rounded-md border bg-card px-3 py-2">
-              <p className="truncate text-sm font-medium">{p.nome}</p>
+          {participantes.map((p, i) => (
+            <div
+              key={`${p.nome}-${i}`}
+              className={
+                "rounded-md border px-3 py-2 " +
+                ("eu" in p && p.eu ? "border-primary/40 bg-primary/5" : "bg-card")
+              }
+            >
+              <p className="truncate text-sm font-medium">
+                {p.nome}
+                {"eu" in p && p.eu ? <span className="text-xs font-normal text-muted-foreground"> · você</span> : null}
+              </p>
               <p className="flex items-center gap-1 text-xs text-primary">
                 <Sprout className="h-3 w-3" />
                 {p.frutos} {p.frutos === 1 ? "Fruto" : "Frutos"}

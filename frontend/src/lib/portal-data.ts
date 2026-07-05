@@ -217,10 +217,12 @@ export interface MuralParticipante {
 /**
  * Mural de Frutos da turma: presente só quando o formador ligou. `turmaFrutosTotal`
  * é o coletivo (todos os vocacionados ativos); `participantes` traz apenas quem
- * optou por aparecer, em ordem alfabética (sem ranking individual).
+ * optou por aparecer, EXCETO o próprio vocacionado (o cliente reinsere o card
+ * dele com Frutos ao vivo ao alternar o opt-in). Ordem alfabética, sem ranking.
  */
 export interface TravessiaMural {
   minhaExibicao: boolean;
+  meuNome: string;
   turmaFrutosTotal: number;
   participantes: MuralParticipante[];
 }
@@ -380,10 +382,12 @@ async function carregarMural(
     orderBy: { formando: { nome: "asc" } },
   });
 
-  const minhaExibicao = participacoes.find((p) => p.formandoId === formandoId)?.muralOptIn ?? false;
+  const minha = participacoes.find((p) => p.formandoId === formandoId);
+  const minhaExibicao = minha?.muralOptIn ?? false;
+  const meuNome = minha?.formando.nome ?? "";
   const ids = participacoes.map((p) => p.formandoId);
   if (ids.length === 0) {
-    return { minhaExibicao, turmaFrutosTotal: 0, participantes: [] };
+    return { minhaExibicao, meuNome, turmaFrutosTotal: 0, participantes: [] };
   }
 
   // Frutos por vocacionado (só livros ATIVOS da turma), num único groupBy.
@@ -398,11 +402,13 @@ async function carregarMural(
     (t, p) => t + (frutosPorFormando.get(p.formandoId) ?? 0),
     0
   );
+  // Exclui o próprio vocacionado: o cliente reinsere o card dele (com Frutos ao
+  // vivo) assim que alterna o opt-in, sem esperar reload.
   const participantes: MuralParticipante[] = participacoes
-    .filter((p) => p.muralOptIn)
+    .filter((p) => p.muralOptIn && p.formandoId !== formandoId)
     .map((p) => ({ nome: p.formando.nome, frutos: frutosPorFormando.get(p.formandoId) ?? 0 }));
 
-  return { minhaExibicao, turmaFrutosTotal, participantes };
+  return { minhaExibicao, meuNome, turmaFrutosTotal, participantes };
 }
 
 const STATUS_VOCACIONAL_ATIVOS = ["ativa", "aguardando_carta", "em_discernimento"] as const;
