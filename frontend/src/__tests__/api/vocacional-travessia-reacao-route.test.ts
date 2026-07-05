@@ -76,7 +76,7 @@ describe("PATCH reação à partilha", () => {
     expect(res.status).toBe(404);
     expect(prisma.acaoLeitura.update).not.toHaveBeenCalled();
     // O gate consulta escopado por turma + tipo=partilha.
-    const where = vi.mocked(prisma.acaoLeitura.findFirst).mock.calls[0][0].where;
+    const where = vi.mocked(prisma.acaoLeitura.findFirst).mock.calls[0][0]?.where;
     expect(where).toMatchObject({ id: ACAO, organizacaoId: ORG, tipo: "partilha" });
   });
 

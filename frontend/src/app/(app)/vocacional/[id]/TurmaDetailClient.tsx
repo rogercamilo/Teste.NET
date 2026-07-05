@@ -810,7 +810,12 @@ function PartilhaReacaoItem({
   podeReagir: boolean;
 }) {
   const [curtiu, setCurtiu] = useState(partilha.formadorCurtiu);
-  const [nota, setNota] = useState(partilha.formadorNota ?? "");
+  const [curtindo, setCurtindo] = useState(false);
+  // `notaSalva` = valor persistido (fonte da verdade p/ exibir e reverter);
+  // `rascunho` = texto em edição. Separá-los evita reverter para a prop original
+  // (que não é atualizada sem router.refresh) ao cancelar após já ter salvo.
+  const [notaSalva, setNotaSalva] = useState(partilha.formadorNota ?? "");
+  const [rascunho, setRascunho] = useState(notaSalva);
   const [editandoNota, setEditandoNota] = useState(false);
   const [salvandoNota, setSalvandoNota] = useState(false);
 
@@ -824,22 +829,31 @@ function PartilhaReacaoItem({
   }
 
   async function toggleCurtida() {
+    if (curtindo) return; // trava contra cliques concorrentes (evita PATCHes em corrida)
     const anterior = curtiu;
     setCurtiu(!anterior); // otimista
+    setCurtindo(true);
     try {
       await reagir({ curtiu: !anterior });
     } catch (e) {
       setCurtiu(anterior);
       toast.error(e instanceof Error ? e.message : "Erro ao curtir");
+    } finally {
+      setCurtindo(false);
     }
+  }
+
+  function abrirEdicaoNota() {
+    setRascunho(notaSalva);
+    setEditandoNota(true);
   }
 
   async function salvarNota() {
     setSalvandoNota(true);
     try {
-      const limpa = nota.trim();
+      const limpa = rascunho.trim();
       await reagir({ nota: limpa || null });
-      setNota(limpa);
+      setNotaSalva(limpa);
       setEditandoNota(false);
       toast.success("Nota enviada ao vocacionado.");
     } catch (e) {
@@ -860,15 +874,15 @@ function PartilhaReacaoItem({
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Button
             size="sm" variant={curtiu ? "default" : "outline"} className="h-7 gap-1.5 px-2.5"
-            onClick={toggleCurtida}
+            onClick={toggleCurtida} disabled={curtindo}
           >
             <Heart className={"h-3.5 w-3.5 " + (curtiu ? "fill-current" : "")} />
             {curtiu ? "Curtido" : "Curtir"}
           </Button>
           {!editandoNota && (
-            <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2" onClick={() => setEditandoNota(true)}>
+            <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2" onClick={abrirEdicaoNota}>
               <Pencil className="h-3.5 w-3.5" />
-              {nota ? "Editar nota" : "Adicionar nota"}
+              {notaSalva ? "Editar nota" : "Adicionar nota"}
             </Button>
           )}
         </div>
@@ -883,8 +897,8 @@ function PartilhaReacaoItem({
       {editandoNota ? (
         <div className="mt-2">
           <Textarea
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
+            value={rascunho}
+            onChange={(e) => setRascunho(e.target.value)}
             maxLength={500}
             rows={2}
             placeholder="Uma palavra de incentivo ao vocacionado…"
@@ -895,15 +909,15 @@ function PartilhaReacaoItem({
               <Send className="h-3.5 w-3.5" />
               {salvandoNota ? "Enviando…" : "Enviar nota"}
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setNota(partilha.formadorNota ?? ""); setEditandoNota(false); }} disabled={salvandoNota}>
+            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditandoNota(false)} disabled={salvandoNota}>
               Cancelar
             </Button>
           </div>
         </div>
       ) : (
-        nota && (
+        notaSalva && (
           <p className="mt-2 rounded bg-primary/5 px-2 py-1 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Sua nota: </span>{nota}
+            <span className="font-medium text-foreground">Sua nota: </span>{notaSalva}
           </p>
         )
       )}

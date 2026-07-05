@@ -5,9 +5,7 @@ export interface ProgressoPartilha {
   acaoId: string;
   livroTitulo: string;
   capituloNumero: number;
-  capituloTitulo: string;
   texto: string;
-  criadoEm: string; // ISO
   formadorCurtiu: boolean;
   formadorNota: string | null;
 }
@@ -72,11 +70,10 @@ export async function getTurmaTravessiaProgresso(
       tipo: true,
       frutos: true,
       texto: true,
-      criadoEm: true,
       formadorCurtiu: true,
       formadorNota: true,
       leitura: { select: { titulo: true } },
-      capitulo: { select: { numero: true, titulo: true } },
+      capitulo: { select: { numero: true } },
     },
     orderBy: { criadoEm: "asc" },
   });
@@ -95,9 +92,7 @@ export async function getTurmaTravessiaProgresso(
         acaoId: a.id,
         livroTitulo: a.leitura.titulo,
         capituloNumero: a.capitulo?.numero ?? 0,
-        capituloTitulo: a.capitulo?.titulo ?? "",
         texto: a.texto,
-        criadoEm: a.criadoEm.toISOString(),
         formadorCurtiu: a.formadorCurtiu,
         formadorNota: a.formadorNota,
       });
