@@ -10,8 +10,9 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 const LoginSchema = z.object({
   email: z.string().email(),
   senha: z.string().min(1),
-  // Porta pela qual a pessoa está entrando. Cada portal só admite o seu perfil.
-  portal: z.enum(["formando", "vocacional"]).optional(),
+  // Porta pela qual a pessoa entra — obrigatória. Cada portal só admite o seu
+  // perfil; requisição sem porta válida não corresponde a portal algum → 400.
+  portal: z.enum(["formando", "vocacional"]),
 });
 
 export async function POST(request: Request) {
@@ -20,8 +21,7 @@ export async function POST(request: Request) {
   try {
     const parsed = await parseJson(request, LoginSchema);
     if (!parsed.ok) return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
-    const { email, senha } = parsed.data;
-    const portalSolicitado = parsed.data.portal ?? "formando";
+    const { email, senha, portal: portalSolicitado } = parsed.data;
 
     const [rlIp, rlEmail] = await Promise.all([
       limiters.portalLogin(ip),

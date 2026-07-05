@@ -102,14 +102,20 @@ describe("gate cruzado de perfil — login do portal", () => {
     expect(res.cookies.get("portal_session")?.value).toBe("signed.jwt.token");
   });
 
-  it("sem `portal` no corpo assume formando (compat) → vocacionado é barrado", async () => {
-    vi.mocked(loginFormando).mockResolvedValue({ ok: true, formandoId: "f2", organizacaoId: ORG } as never);
-    vi.mocked(getPortalAudiencia).mockResolvedValue("vocacional");
-
+  it("sem `portal` no corpo → 400 (requisição não corresponde a um portal válido)", async () => {
     const res = await POST(loginReq({ email: "a@b.com", senha: "s3nha!" }));
 
-    expect(res.status).toBe(403);
-    expect((await res.json()).portalCorreto).toBe("vocacional");
+    expect(res.status).toBe(400);
+    // Requisição malformada nem chega a consultar credenciais/perfil.
+    expect(loginFormando).not.toHaveBeenCalled();
+    expect(getPortalAudiencia).not.toHaveBeenCalled();
+  });
+
+  it("`portal` com valor inválido → 400", async () => {
+    const res = await POST(loginReq({ email: "a@b.com", senha: "s3nha!", portal: "outro" }));
+
+    expect(res.status).toBe(400);
+    expect(loginFormando).not.toHaveBeenCalled();
   });
 
   it("credencial inválida → 401 genérico, gate nem é avaliado", async () => {

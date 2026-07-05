@@ -185,7 +185,7 @@ export default function DashboardClient({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-primary" />
-                Meu período vocacional
+                Minha jornada vocacional
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -203,7 +203,7 @@ export default function DashboardClient({
                   </p>
                 ) : (
                   <Button size="sm" variant="outline" onClick={solicitarAcompanhamento} disabled={solicitando}>
-                    {solicitando ? "Enviando…" : "Solicitar encontro de acompanhamento"}
+                    {solicitando ? "Enviando…" : "Solicitar acompanhamento do plantão vocacional"}
                   </Button>
                 )
               )}
