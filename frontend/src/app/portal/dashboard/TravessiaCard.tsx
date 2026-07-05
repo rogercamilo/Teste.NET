@@ -454,10 +454,13 @@ function CapituloPartilha({
   }
 
   return (
+    // block-level (flex) para cair na linha ABAIXO do título do capítulo — como
+    // inline-flex ficava colado ao título na mesma linha (o mt-1.5 não quebra o
+    // fluxo inline). `w-fit` mantém a área de clique restrita ao texto do convite.
     <button
       type="button"
       onClick={abrir}
-      className="mt-1.5 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+      className="mt-1.5 flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-primary"
     >
       <MessageSquareText className="h-3.5 w-3.5" />
       Partilhar reflexão
@@ -532,7 +535,11 @@ function MissaoSection({
         await registrarInstagram();
       } else {
         // Fallback (desktop): mostra o card para baixar + legenda para copiar.
-        setFallback({ url: URL.createObjectURL(blob), legenda });
+        // Revoga um object URL anterior antes de trocar (evita vazamento).
+        setFallback((prev) => {
+          if (prev) URL.revokeObjectURL(prev.url);
+          return { url: URL.createObjectURL(blob), legenda };
+        });
       }
     } catch {
       // AbortError (usuário cancelou o share) cai aqui silenciosamente.
@@ -542,8 +549,13 @@ function MissaoSection({
   }
 
   async function removerInstagram() {
-    onInstagram(false);
-    await fetch("/api/portal/travessia/evangelizacao?rede=instagram", { method: "DELETE" }).catch(() => {});
+    onInstagram(false); // otimista
+    try {
+      const res = await fetch("/api/portal/travessia/evangelizacao?rede=instagram", { method: "DELETE" });
+      if (!res.ok) throw new Error();
+    } catch {
+      onInstagram(true); // reverte se o servidor recusou
+    }
   }
 
   async function salvarYoutube() {
@@ -572,8 +584,14 @@ function MissaoSection({
   }
 
   async function removerYoutube() {
-    onYoutube(false, null);
-    await fetch("/api/portal/travessia/evangelizacao?rede=youtube", { method: "DELETE" }).catch(() => {});
+    const anterior = youtubeUrl;
+    onYoutube(false, null); // otimista
+    try {
+      const res = await fetch("/api/portal/travessia/evangelizacao?rede=youtube", { method: "DELETE" });
+      if (!res.ok) throw new Error();
+    } catch {
+      onYoutube(true, anterior); // reverte se o servidor recusou
+    }
   }
 
   return (
@@ -603,6 +621,8 @@ function MissaoSection({
           <button
             type="button"
             onClick={removerInstagram}
+            title="Desfazer"
+            aria-label="Desfazer compartilhamento no Instagram"
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
           >
             <Check className="h-3.5 w-3.5 text-primary" /> Feito
@@ -648,7 +668,10 @@ function MissaoSection({
               type="button"
               onClick={async () => {
                 await registrarInstagram();
-                setFallback(null);
+                setFallback((prev) => {
+                  if (prev) URL.revokeObjectURL(prev.url);
+                  return null;
+                });
               }}
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
             >
@@ -783,8 +806,10 @@ function MuralSection({ muralInicial }: { muralInicial: TravessiaMural }) {
         <span className="text-xs text-muted-foreground">Juntos na travessia 🌱</span>
       </div>
 
-      {/* Opt-in do próprio vocacionado */}
-      <label className="flex cursor-pointer items-center gap-2.5 rounded-md border bg-card px-3 py-2.5">
+      {/* Opt-in do próprio vocacionado. `div` (não `label`): um `button` é
+          elemento labelável, e envolvê-lo num `label` faz o clique no texto
+          re-disparar o toggle — otimista, isso alternaria duas vezes. */}
+      <div className="flex items-center gap-2.5 rounded-md border bg-card px-3 py-2.5">
         <button
           type="button"
           role="switch"
@@ -812,7 +837,7 @@ function MuralSection({ muralInicial }: { muralInicial: TravessiaMural }) {
           Aparecer no mural com meus Frutos
           <span className="block text-xs text-muted-foreground">Sem ranking — só para celebrar juntos.</span>
         </span>
-      </label>
+      </div>
 
       {muralInicial.participantes.length > 0 && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
