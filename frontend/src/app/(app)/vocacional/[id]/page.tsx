@@ -32,7 +32,7 @@ export default async function TurmaVocacionalPage({ params }: { params: Promise<
   // FC só acessa a turma da qual é formador responsável.
   if (!gestao && turma.formadorId !== user.id) redirect("/vocacional");
 
-  const [participacoes, formandosDisponiveis, acompanhadores] = await Promise.all([
+  const [participacoes, formandosDisponiveis, acompanhadores, leituras] = await Promise.all([
     prisma.participacaoVocacional.findMany({
       where: { turmaId: id, organizacaoId: user.organizacaoId },
       orderBy: { criadoEm: "desc" },
@@ -53,6 +53,13 @@ export default async function TurmaVocacionalPage({ params }: { params: Promise<
       where: { organizacaoId: user.organizacaoId, deletedAt: null, ativo: true },
       select: { id: true, nome: true },
       orderBy: { nome: "asc" },
+    }),
+    prisma.leituraVocacional.findMany({
+      where: { turmaId: id, organizacaoId: user.organizacaoId },
+      orderBy: { ordem: "asc" },
+      include: {
+        capitulos: { orderBy: { numero: "asc" }, select: { id: true, numero: true, titulo: true } },
+      },
     }),
   ]);
 
@@ -76,6 +83,14 @@ export default async function TurmaVocacionalPage({ params }: { params: Promise<
       }}
       formandosDisponiveis={formandosDisponiveis}
       acompanhadores={acompanhadores}
+      leituras={leituras.map((l) => ({
+        id: l.id,
+        titulo: l.titulo,
+        autor: l.autor,
+        ordem: l.ordem,
+        ativo: l.ativo,
+        capitulos: l.capitulos,
+      }))}
       participacoes={participacoes.map((p) => ({
         id: p.id,
         formandoId: p.formandoId,

@@ -251,6 +251,7 @@ model Organizacao {
   termosRegistro            TermoRegistro[]
   participacoesVocacional   ParticipacaoVocacional[]
   acompanhamentosVocacional AcompanhamentoVocacional[]
+  leiturasVocacionais       LeituraVocacional[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -374,6 +375,7 @@ model GrupoFormacao {
   agendamentos            Agendamento[]
   agendamentoGrupos       AgendamentoGrupo[]
   participacoesVocacional ParticipacaoVocacional[]
+  leiturasVocacionais     LeituraVocacional[]
   // Usuários vinculados a este grupo de formação (formadores_comunitarios)
   usuarios                Usuario[]                @relation("UsuarioGrupoFormacao")
 
@@ -1325,4 +1327,43 @@ model SolicitacaoAcompanhamento {
 
   @@index([participacaoId])
   @@index([status])
+}
+
+// ==========================================================
+// LEITURA VOCACIONAL — indicações de leitura da turma vocacional
+// ==========================================================
+
+// Livro indicado a uma turma vocacional (GrupoFormacao tipo=vocacional). O
+// formador cadastra título, autor e os capítulos; o vocacionado percorre a
+// "Trilha da Travessia" no portal registrando o andamento (fatias seguintes).
+model LeituraVocacional {
+  id            String   @id @default(cuid())
+  organizacaoId String
+  turmaId       String   @map("morada_id") // → GrupoFormacao tipo=vocacional
+  titulo        String
+  autor         String?
+  ordem         Int      @default(0) // ordem do livro na trilha da turma
+  ativo         Boolean  @default(true)
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  organizacao Organizacao       @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  turma       GrupoFormacao     @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  capitulos   CapituloLeitura[]
+
+  @@index([organizacaoId])
+  @@index([turmaId, ordem])
+}
+
+// Capítulo de uma leitura, numerado sequencialmente (1..N).
+model CapituloLeitura {
+  id        String @id @default(cuid())
+  leituraId String
+  numero    Int
+  titulo    String
+
+  leitura LeituraVocacional @relation(fields: [leituraId], references: [id], onDelete: Cascade)
+
+  @@unique([leituraId, numero])
+  @@index([leituraId])
 }

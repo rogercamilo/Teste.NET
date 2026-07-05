@@ -192,6 +192,28 @@ export const CreateAcompanhamentoVocacionalSchema = z.object({
   anotacaoEvolucao: nonEmptyString(10000),
 });
 
+// ── Leitura Vocacional (indicações de leitura da turma) ───────────────────────
+// Os capítulos chegam como um array de títulos (um por linha no cliente); a API
+// os numera 1..N na ordem recebida.
+const capitulosLeitura = z
+  .array(nonEmptyString(200))
+  .min(1, "Informe ao menos um capítulo")
+  .max(120, "Máximo 120 capítulos");
+
+export const CreateLeituraSchema = z.object({
+  titulo: nonEmptyString(200),
+  autor: optionalString(120).nullable(),
+  capitulos: capitulosLeitura,
+});
+
+export const UpdateLeituraSchema = z.object({
+  titulo: nonEmptyString(200).optional(),
+  autor: optionalString(120).nullable(),
+  ordem: z.number().int().min(0).max(1000).optional(),
+  ativo: z.boolean().optional(),
+  capitulos: capitulosLeitura.optional(),
+});
+
 // ── Organização ───────────────────────────────────────────────────────────────
 
 export const PlanoAssinaturaEnum = z.enum(["GRATUITO", "BASICO", "INTERMEDIARIO", "AVANCADO", "PERSONALIZADO"]);
