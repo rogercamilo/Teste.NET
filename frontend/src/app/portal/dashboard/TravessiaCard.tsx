@@ -2,9 +2,34 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Sprout, Flag, Loader2, MessageSquareText, Heart, Pencil, Trash2, X } from "lucide-react";
+import {
+  Check, Sprout, Flag, Loader2, MessageSquareText, Heart, Pencil, Trash2, X,
+  Share2, Megaphone, Download, Copy, Users,
+} from "lucide-react";
 import { MARCOS_TRAVESSIA, FRUTOS_POR_ACAO } from "@/types";
-import type { PortalTravessia, TravessiaLivro, TravessiaPartilha } from "@/lib/portal-data";
+import type {
+  PortalTravessia, TravessiaLivro, TravessiaPartilha, TravessiaMissao, TravessiaMural,
+} from "@/lib/portal-data";
+import { gerarCardTravessia, legendaTravessia } from "./travessia-card-image";
+
+// Glifos de marca (lucide removeu os ícones de Instagram/YouTube).
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+function YoutubeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+    </svg>
+  );
+}
 
 /**
  * Trilha da Travessia — o vocacionado percorre os livros da sua turma marcando
@@ -29,6 +54,11 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
       )
   );
 
+  // Estado otimista da "Missão" (evangelização por rede).
+  const [instagramFeito, setInstagramFeito] = useState(travessia.missao.instagramFeito);
+  const [youtubeFeito, setYoutubeFeito] = useState(travessia.missao.youtubeFeito);
+  const [youtubeUrl, setYoutubeUrl] = useState<string | null>(travessia.missao.youtubeUrl);
+
   const totalCapitulos = travessia.totalCapitulos;
   const capitulosLidos = lidos.size;
   const fracao = totalCapitulos > 0 ? capitulosLidos / totalCapitulos : 0;
@@ -36,9 +66,12 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
   // "100%" só quando TUDO foi lido — arredondar mostraria 100% em 199/200
   // (Math.round(99.5)), contradizendo o marco de conclusão.
   const percentualGeral = completo ? 100 : Math.min(99, Math.round(fracao * 100));
-  // Frutos = leitura (1 por capítulo) + partilha (3 por capítulo partilhado).
+  // Frutos = leitura (1/capítulo) + partilha (3/capítulo) + evangelização (5/rede).
   const frutosTotal =
-    capitulosLidos * FRUTOS_POR_ACAO.leitura + partilhas.size * FRUTOS_POR_ACAO.partilha;
+    capitulosLidos * FRUTOS_POR_ACAO.leitura +
+    partilhas.size * FRUTOS_POR_ACAO.partilha +
+    (instagramFeito ? FRUTOS_POR_ACAO.evangelizacao_instagram : 0) +
+    (youtubeFeito ? FRUTOS_POR_ACAO.evangelizacao_youtube : 0);
 
   async function toggle(capituloId: string, estaLido: boolean) {
     if (pendentes.has(capituloId)) return;
@@ -180,6 +213,25 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
             />
           ))}
         </div>
+
+        {/* Missão — evangelização por rede */}
+        <MissaoSection
+          missao={travessia.missao}
+          frutos={frutosTotal}
+          capitulosLidos={capitulosLidos}
+          totalCapitulos={totalCapitulos}
+          instagramFeito={instagramFeito}
+          youtubeFeito={youtubeFeito}
+          youtubeUrl={youtubeUrl}
+          onInstagram={setInstagramFeito}
+          onYoutube={(feito, url) => {
+            setYoutubeFeito(feito);
+            setYoutubeUrl(url);
+          }}
+        />
+
+        {/* Mural de Frutos da turma (se o formador ligou) */}
+        {travessia.mural && <MuralSection muralInicial={travessia.mural} />}
       </CardContent>
     </Card>
   );
@@ -410,5 +462,371 @@ function CapituloPartilha({
       <MessageSquareText className="h-3.5 w-3.5" />
       Partilhar reflexão
     </button>
+  );
+}
+
+/**
+ * Missão: leva a Travessia para fora. O vocacionado compartilha sua leitura no
+ * Instagram (card on-brand + share nativo, sugerindo o @ da comunidade) ou cola o
+ * link de um vídeo no YouTube. Cada rede rende 5 Frutos uma vez (crédito na
+ * confiança — o app não verifica a postagem).
+ */
+function MissaoSection({
+  missao,
+  frutos,
+  capitulosLidos,
+  totalCapitulos,
+  instagramFeito,
+  youtubeFeito,
+  youtubeUrl,
+  onInstagram,
+  onYoutube,
+}: {
+  missao: TravessiaMissao;
+  frutos: number;
+  capitulosLidos: number;
+  totalCapitulos: number;
+  instagramFeito: boolean;
+  youtubeFeito: boolean;
+  youtubeUrl: string | null;
+  onInstagram: (feito: boolean) => void;
+  onYoutube: (feito: boolean, url: string | null) => void;
+}) {
+  const [compartilhando, setCompartilhando] = useState(false);
+  const [fallback, setFallback] = useState<{ url: string; legenda: string } | null>(null);
+  const [ytAberto, setYtAberto] = useState(false);
+  const [ytRascunho, setYtRascunho] = useState("");
+  const [ytSalvando, setYtSalvando] = useState(false);
+  const [ytErro, setYtErro] = useState<string | null>(null);
+
+  const dadosCard = {
+    orgNome: missao.orgNome,
+    instagramHandle: missao.orgInstagram,
+    frutos,
+    capitulosLidos,
+    totalCapitulos,
+  };
+
+  async function registrarInstagram() {
+    const res = await fetch("/api/portal/travessia/evangelizacao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rede: "instagram" }),
+    });
+    if (res.ok) onInstagram(true);
+  }
+
+  async function compartilharInstagram() {
+    if (compartilhando) return;
+    setCompartilhando(true);
+    try {
+      const blob = await gerarCardTravessia(dadosCard);
+      const legenda = legendaTravessia(dadosCard);
+      if (!blob) throw new Error("card");
+      const file = new File([blob], "minha-travessia.png", { type: "image/png" });
+
+      // Caminho feliz: share nativo com o arquivo (mobile). Ao concluir, credita.
+      const nav = navigator as Navigator & { canShare?: (d?: ShareData) => boolean };
+      if (nav.canShare?.({ files: [file] }) && navigator.share) {
+        await navigator.share({ files: [file], text: legenda });
+        await registrarInstagram();
+      } else {
+        // Fallback (desktop): mostra o card para baixar + legenda para copiar.
+        setFallback({ url: URL.createObjectURL(blob), legenda });
+      }
+    } catch {
+      // AbortError (usuário cancelou o share) cai aqui silenciosamente.
+    } finally {
+      setCompartilhando(false);
+    }
+  }
+
+  async function removerInstagram() {
+    onInstagram(false);
+    await fetch("/api/portal/travessia/evangelizacao?rede=instagram", { method: "DELETE" }).catch(() => {});
+  }
+
+  async function salvarYoutube() {
+    const url = ytRascunho.trim();
+    if (!url || ytSalvando) return;
+    setYtSalvando(true);
+    setYtErro(null);
+    try {
+      const res = await fetch("/api/portal/travessia/evangelizacao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rede: "youtube", url }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? "Falha ao salvar");
+      }
+      onYoutube(true, url);
+      setYtAberto(false);
+      setYtRascunho("");
+    } catch (e) {
+      setYtErro(e instanceof Error ? e.message : "Falha ao salvar");
+    } finally {
+      setYtSalvando(false);
+    }
+  }
+
+  async function removerYoutube() {
+    onYoutube(false, null);
+    await fetch("/api/portal/travessia/evangelizacao?rede=youtube", { method: "DELETE" }).catch(() => {});
+  }
+
+  return (
+    <section className="space-y-3 rounded-lg border border-primary/20 bg-primary/[0.03] p-4">
+      <div className="flex items-center gap-2">
+        <Megaphone className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold">Missão — leve sua Travessia adiante</h3>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Compartilhe sua leitura e some <strong>5 Frutos</strong> por rede. Cada rede conta uma vez.
+      </p>
+
+      {/* Instagram */}
+      <div className="flex flex-wrap items-center gap-2.5 rounded-md border bg-card px-3 py-2.5">
+        <InstagramIcon className="h-4 w-4 shrink-0 text-primary" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">Instagram</p>
+          <p className="text-xs text-muted-foreground">
+            {instagramFeito
+              ? "Card compartilhado · +5 Frutos"
+              : missao.orgInstagram
+                ? `Gere um card e marque @${missao.orgInstagram}`
+                : "Gere um card da sua Travessia"}
+          </p>
+        </div>
+        {instagramFeito ? (
+          <button
+            type="button"
+            onClick={removerInstagram}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
+          >
+            <Check className="h-3.5 w-3.5 text-primary" /> Feito
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={compartilharInstagram}
+            disabled={compartilhando}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+          >
+            {compartilhando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+            Compartilhar
+          </button>
+        )}
+      </div>
+
+      {/* Fallback desktop: baixar card + copiar legenda */}
+      {fallback && !instagramFeito && (
+        <div className="space-y-2 rounded-md border border-primary/30 bg-card p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={fallback.url} alt="Card da sua Travessia" className="mx-auto w-40 rounded-md" />
+          <p className="text-xs text-muted-foreground">
+            Baixe o card e publique no seu Instagram
+            {missao.orgInstagram ? `, marcando @${missao.orgInstagram}` : ""}. Depois, confirme abaixo.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={fallback.url}
+              download="minha-travessia.png"
+              className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
+            >
+              <Download className="h-3.5 w-3.5" /> Baixar card
+            </a>
+            <button
+              type="button"
+              onClick={() => navigator.clipboard?.writeText(fallback.legenda).catch(() => {})}
+              className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
+            >
+              <Copy className="h-3.5 w-3.5" /> Copiar legenda
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await registrarInstagram();
+                setFallback(null);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+            >
+              <Check className="h-3.5 w-3.5" /> Já compartilhei
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* YouTube */}
+      <div className="rounded-md border bg-card px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <YoutubeIcon className="h-4 w-4 shrink-0 text-primary" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">YouTube</p>
+            <p className="text-xs text-muted-foreground">
+              {youtubeFeito ? "Vídeo registrado · +5 Frutos" : "Cole o link de um vídeo sobre sua leitura"}
+            </p>
+          </div>
+          {youtubeFeito ? (
+            <button
+              type="button"
+              onClick={removerYoutube}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Remover
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setYtAberto((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Registrar vídeo
+            </button>
+          )}
+        </div>
+
+        {youtubeFeito && youtubeUrl && (
+          <a
+            href={youtubeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 block truncate text-xs text-primary underline underline-offset-2"
+          >
+            {youtubeUrl}
+          </a>
+        )}
+
+        {ytAberto && !youtubeFeito && (
+          <div className="mt-2.5">
+            <input
+              type="url"
+              value={ytRascunho}
+              onChange={(e) => setYtRascunho(e.target.value)}
+              placeholder="https://youtube.com/watch?v=..."
+              autoFocus
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary/60"
+            />
+            {ytErro && <p className="mt-1 text-xs text-destructive">{ytErro}</p>}
+            <div className="mt-1.5 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={salvarYoutube}
+                disabled={ytSalvando || !ytRascunho.trim()}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+              >
+                {ytSalvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Salvar link
+              </button>
+              <button
+                type="button"
+                onClick={() => setYtAberto(false)}
+                disabled={ytSalvando}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" /> Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Mural de Frutos da turma: celebra o caminho coletivo. Mostra o total da turma e
+ * os cards de quem optou por aparecer (sem ranking). O vocacionado escolhe se se
+ * exibe — otimista com reversão.
+ */
+function MuralSection({ muralInicial }: { muralInicial: TravessiaMural }) {
+  const [exibir, setExibir] = useState(muralInicial.minhaExibicao);
+  const [salvando, setSalvando] = useState(false);
+
+  async function alternar() {
+    if (salvando) return;
+    const novo = !exibir;
+    setExibir(novo);
+    setSalvando(true);
+    try {
+      const res = await fetch("/api/portal/travessia/mural", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optIn: novo }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setExibir(!novo);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <section className="space-y-3 rounded-lg border bg-muted/30 p-4">
+      <div className="flex items-center gap-2">
+        <Users className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold flex-1">Mural de Frutos da turma</h3>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 rounded-md border bg-card px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <Sprout className="h-6 w-6 text-primary" />
+          <div className="leading-tight">
+            <div className="text-2xl font-bold tabular-nums text-foreground">
+              {muralInicial.turmaFrutosTotal}
+            </div>
+            <div className="text-xs text-muted-foreground">Frutos colhidos pela turma</div>
+          </div>
+        </div>
+        <span className="text-xs text-muted-foreground">Juntos na travessia 🌱</span>
+      </div>
+
+      {/* Opt-in do próprio vocacionado */}
+      <label className="flex cursor-pointer items-center gap-2.5 rounded-md border bg-card px-3 py-2.5">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={exibir}
+          aria-label="Aparecer no mural"
+          onClick={alternar}
+          disabled={salvando}
+          className={
+            "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 " +
+            (exibir ? "bg-primary" : "bg-muted-foreground/30")
+          }
+        >
+          {salvando ? (
+            <Loader2 className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 animate-spin text-white" />
+          ) : (
+            <span
+              className={
+                "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform " +
+                (exibir ? "translate-x-5" : "translate-x-0.5")
+              }
+            />
+          )}
+        </button>
+        <span className="text-sm">
+          Aparecer no mural com meus Frutos
+          <span className="block text-xs text-muted-foreground">Sem ranking — só para celebrar juntos.</span>
+        </span>
+      </label>
+
+      {muralInicial.participantes.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {muralInicial.participantes.map((p) => (
+            <div key={p.nome} className="rounded-md border bg-card px-3 py-2">
+              <p className="truncate text-sm font-medium">{p.nome}</p>
+              <p className="flex items-center gap-1 text-xs text-primary">
+                <Sprout className="h-3 w-3" />
+                {p.frutos} {p.frutos === 1 ? "Fruto" : "Frutos"}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

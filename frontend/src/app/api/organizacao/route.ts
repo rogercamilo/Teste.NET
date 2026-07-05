@@ -18,7 +18,7 @@ export async function GET() {
   try {
     const org = await prisma.organizacao.findUnique({
       where: { id: user.organizacaoId },
-      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
@@ -41,6 +41,8 @@ export async function GET() {
       termoAcompanhamentoVocacional: org.termoAcompanhamentoVocacional,
       vocacionalDuracaoPadraoMeses: org.vocacionalDuracaoPadraoMeses,
       emailAgendamentoAtivo: org.emailAgendamentoAtivo,
+      instagramHandle: org.instagramHandle ?? undefined,
+      youtubeUrl: org.youtubeUrl ?? undefined,
       nomePlataforma: org.nomePlataforma ?? undefined,
       logoUrl: org.logoUrl ?? undefined,
       temaCor: org.temaCor,
@@ -93,12 +95,17 @@ export async function PUT(request: Request) {
         termoAcompanhamentoVocacional: body.termoAcompanhamentoVocacional || undefined,
         ...(body.vocacionalDuracaoPadraoMeses !== undefined ? { vocacionalDuracaoPadraoMeses: body.vocacionalDuracaoPadraoMeses } : {}),
         ...(body.emailAgendamentoAtivo !== undefined ? { emailAgendamentoAtivo: body.emailAgendamentoAtivo } : {}),
+        // Handle sem "@" nem espaços; vazio → null. YouTube: URL crua ou null.
+        ...(body.instagramHandle !== undefined
+          ? { instagramHandle: body.instagramHandle?.replace(/^@+/, "").trim() || null }
+          : {}),
+        ...(body.youtubeUrl !== undefined ? { youtubeUrl: body.youtubeUrl?.trim() || null } : {}),
         nomePlataforma: body.nomePlataforma?.trim() || null,
         logoUrl: body.logoUrl !== undefined ? (body.logoUrl || null) : undefined,
         temaCor: body.temaCor || undefined,
         ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
-      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     revalidateTag(orgBrandingTag(user.organizacaoId), { expire: 0 });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
@@ -121,6 +128,8 @@ export async function PUT(request: Request) {
       termoAcompanhamentoVocacional: updated.termoAcompanhamentoVocacional,
       vocacionalDuracaoPadraoMeses: updated.vocacionalDuracaoPadraoMeses,
       emailAgendamentoAtivo: updated.emailAgendamentoAtivo,
+      instagramHandle: updated.instagramHandle ?? undefined,
+      youtubeUrl: updated.youtubeUrl ?? undefined,
       nomePlataforma: updated.nomePlataforma ?? undefined,
       logoUrl: updated.logoUrl ?? undefined,
       temaCor: updated.temaCor,

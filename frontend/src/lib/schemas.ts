@@ -231,6 +231,32 @@ export const ReacaoPartilhaSchema = z
     message: "Informe a curtida e/ou uma nota",
   });
 
+// Evangelização da Travessia (portal do vocacionado): o vocacionado registra ter
+// divulgado sua leitura no Instagram (card on-brand + share nativo, sem URL) ou
+// no YouTube (link do vídeo). Rende Fruto uma vez por rede na travessia inteira.
+export const EvangelizacaoSchema = z
+  .object({
+    rede: z.enum(["instagram", "youtube"]),
+    url: z
+      .string()
+      .trim()
+      .max(300, "Link muito longo")
+      .refine((v) => /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(v), {
+        message: "Informe um link do YouTube",
+      })
+      .optional(),
+  })
+  .refine((v) => v.rede !== "youtube" || !!v.url, {
+    message: "Informe o link do vídeo no YouTube",
+    path: ["url"],
+  });
+
+// Opt-in do vocacionado no Mural de Frutos da turma.
+export const MuralOptInSchema = z.object({ optIn: z.boolean() });
+
+// Formador liga/desliga o Mural de Frutos na turma.
+export const MuralTurmaSchema = z.object({ ativo: z.boolean() });
+
 // ── Organização ───────────────────────────────────────────────────────────────
 
 export const PlanoAssinaturaEnum = z.enum(["GRATUITO", "BASICO", "INTERMEDIARIO", "AVANCADO", "PERSONALIZADO"]);
@@ -264,6 +290,21 @@ export const UpdateOrganizacaoSchema = z.object({
   termoAcompanhamentoVocacional: optionalString(100),
   vocacionalDuracaoPadraoMeses: z.number().int().min(1).max(24).optional(),
   emailAgendamentoAtivo: z.boolean().optional(),
+  // Redes sociais da comunidade (evangelização da Travessia). O handle chega com
+  // ou sem "@"; a rota normaliza tirando o "@" e espaços. YouTube deve ser URL.
+  instagramHandle: z
+    .string()
+    .max(64, "Máximo 64 caracteres")
+    .trim()
+    .optional()
+    .nullable(),
+  youtubeUrl: z
+    .string()
+    .trim()
+    .max(300, "Máximo 300 caracteres")
+    .refine((v) => v === "" || /^https?:\/\//i.test(v), { message: "Informe uma URL válida" })
+    .optional()
+    .nullable(),
   nomePlataforma: optionalString(100).nullable(),
   logoUrl: z
     .string()

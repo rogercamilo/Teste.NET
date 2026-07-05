@@ -1075,6 +1075,10 @@ export interface ComunidadeConfig {
   vocacionalDuracaoPadraoMeses?: number;
   /** Opt-out do FG: envia e-mails de agenda (criação + lembretes) aos formandos. Push/bell não afetados. */
   emailAgendamentoAtivo?: boolean;
+  /** @ do Instagram da comunidade (sem "@") — usado na evangelização da Travessia. */
+  instagramHandle?: string;
+  /** URL do canal/perfil no YouTube da comunidade. */
+  youtubeUrl?: string;
   /** Nome da instância da plataforma nesta organização (ex.: "Portal Formativo da Diocese") */
   nomePlataforma?: string;
   /** Logo da organização em base64 ou URL */

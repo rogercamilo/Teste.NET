@@ -208,6 +208,10 @@ model Organizacao {
   termoVocacional               String            @default("Período Vocacional")
   termoAcompanhamentoVocacional String            @default("Acompanhamento Vocacional")
   vocacionalDuracaoPadraoMeses  Int               @default(12)
+  // Redes sociais da comunidade — usadas na evangelização da Travessia (Fatia 4):
+  // o card gerado sugere marcar o @ do Instagram; o link do YouTube abre o canal.
+  instagramHandle               String? // sem "@" (armazenado normalizado)
+  youtubeUrl                    String?
   // Comunicação — e-mails de agenda ao formando (criação + lembretes); push/bell sempre ligados
   emailAgendamentoAtivo         Boolean           @default(true)
   planoAssinatura               PlanoAssinatura   @default(GRATUITO)
@@ -365,6 +369,9 @@ model GrupoFormacao {
   vocacionalAcompanhamentoAtivo Boolean           @default(false)
   vocacionalTotalRetiros        Int?
   vocacionalDuracaoMeses        Int?
+  // Mural de Frutos da turma (Fatia 4): o formador liga; cada vocacionado opta
+  // por aparecer (ParticipacaoVocacional.muralOptIn). Sem ranking individual.
+  muralFrutosAtivo              Boolean           @default(false)
   criadoEm                      DateTime          @default(now())
   atualizadoEm                  DateTime          @updatedAt
 
@@ -1278,6 +1285,8 @@ model ParticipacaoVocacional {
   // Termo de ingresso lavrado no Livro (ref. fraca) — referenciado na retificação
   // quando a inscrição é cancelada por equívoco.
   termoIngressoId  String?
+  // Opt-in do vocacionado para aparecer no Mural de Frutos da turma (Fatia 4).
+  muralOptIn       Boolean                      @default(false)
   criadoEm         DateTime                     @default(now())
   atualizadoEm     DateTime                     @updatedAt
 

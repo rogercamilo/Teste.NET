@@ -194,6 +194,37 @@ export interface TravessiaLivro {
   percentual: number;
 }
 
+/**
+ * Estado da "Missão": evangelização da leitura pelas redes. Cada rede rende Fruto
+ * uma vez por travessia (crédito na confiança — sem prova). `orgInstagram`/
+ * `orgYoutube` são as redes da comunidade a sugerir no card / botão.
+ */
+export interface TravessiaMissao {
+  instagramFeito: boolean;
+  youtubeFeito: boolean;
+  youtubeUrl: string | null;
+  orgInstagram: string | null;
+  orgYoutube: string | null;
+  orgNome: string;
+}
+
+/** Participante que optou por aparecer no Mural de Frutos (sem ranking). */
+export interface MuralParticipante {
+  nome: string;
+  frutos: number;
+}
+
+/**
+ * Mural de Frutos da turma: presente só quando o formador ligou. `turmaFrutosTotal`
+ * é o coletivo (todos os vocacionados ativos); `participantes` traz apenas quem
+ * optou por aparecer, em ordem alfabética (sem ranking individual).
+ */
+export interface TravessiaMural {
+  minhaExibicao: boolean;
+  turmaFrutosTotal: number;
+  participantes: MuralParticipante[];
+}
+
 export interface PortalTravessia {
   frutosTotal: number;
   livros: TravessiaLivro[];
@@ -202,6 +233,9 @@ export interface PortalTravessia {
   percentualGeral: number;
   // Marcos atingidos no agregado da trilha (¼, ½, ¾, 100%).
   marcos: { um_quarto: boolean; metade: boolean; tres_quartos: boolean; completo: boolean };
+  missao: TravessiaMissao;
+  // Presente só quando o Mural está ligado na turma; caso contrário, null.
+  mural: TravessiaMural | null;
 }
 
 /**
@@ -217,13 +251,14 @@ export async function getPortalTravessia(
 ): Promise<PortalTravessia | null> {
   const formando = await prisma.formando.findFirst({
     where: { id: formandoId, organizacaoId, ativo: true, deletedAt: null },
-    select: { grupoFormacaoId: true },
+    select: { grupoFormacaoId: true, grupoFormacao: { select: { muralFrutosAtivo: true } } },
   });
   if (!formando?.grupoFormacaoId) return null;
+  const turmaId = formando.grupoFormacaoId;
 
-  const [livros, acoes] = await Promise.all([
+  const [livros, acoes, org] = await Promise.all([
     prisma.leituraVocacional.findMany({
-      where: { turmaId: formando.grupoFormacaoId, organizacaoId, ativo: true },
+      where: { turmaId, organizacaoId, ativo: true },
       orderBy: { ordem: "asc" },
       include: {
         capitulos: { orderBy: { numero: "asc" }, select: { id: true, numero: true, titulo: true } },
@@ -231,14 +266,14 @@ export async function getPortalTravessia(
     }),
     // Escopado aos livros ATIVOS da turma atual (mesma régua dos `livros`
     // acima), senão `frutosTotal` contaria ações de livros desativados ou de
-    // turma anterior, divergindo de `capitulosLidos`. Traz leitura E partilha:
-    // os Frutos são a soma de TODAS as ações (leitura=1, partilha=3).
+    // turma anterior. Traz TODAS as ações (leitura=1, partilha=3, evangelização
+    // por rede=5) — os Frutos são a soma de todas elas. Evangelização tem
+    // `capituloId` nulo (não é por capítulo), então NÃO filtramos por capítulo.
     prisma.acaoLeitura.findMany({
       where: {
         formandoId,
         organizacaoId,
-        capituloId: { not: null },
-        leitura: { turmaId: formando.grupoFormacaoId, ativo: true },
+        leitura: { turmaId, ativo: true },
       },
       select: {
         capituloId: true,
@@ -249,9 +284,27 @@ export async function getPortalTravessia(
         formadorNota: true,
       },
     }),
+    prisma.organizacao.findUnique({
+      where: { id: organizacaoId },
+      select: { nome: true, instagramHandle: true, youtubeUrl: true },
+    }),
   ]);
 
   if (livros.length === 0) return null;
+
+  const missao: TravessiaMissao = {
+    instagramFeito: acoes.some((a) => a.tipo === "evangelizacao_instagram"),
+    youtubeFeito: acoes.some((a) => a.tipo === "evangelizacao_youtube"),
+    youtubeUrl: acoes.find((a) => a.tipo === "evangelizacao_youtube")?.texto ?? null,
+    orgInstagram: org?.instagramHandle ?? null,
+    orgYoutube: org?.youtubeUrl ?? null,
+    orgNome: org?.nome ?? "",
+  };
+
+  // Mural de Frutos — só quando o formador ligou na turma.
+  const mural = formando.grupoFormacao?.muralFrutosAtivo
+    ? await carregarMural(turmaId, organizacaoId, formandoId)
+    : null;
 
   const lidos = new Set(acoes.filter((a) => a.tipo === "leitura").map((a) => a.capituloId));
   const partilhaPorCapitulo = new Map<string, TravessiaPartilha>(
@@ -306,7 +359,50 @@ export async function getPortalTravessia(
       tres_quartos: fracao >= 0.75,
       completo: totalCapitulos > 0 && capitulosLidos === totalCapitulos,
     },
+    missao,
+    mural,
   };
+}
+
+/**
+ * Agrega o Mural de Frutos de uma turma para o portal: o coletivo (todos os
+ * vocacionados ATIVOS) e os cards de quem optou por aparecer (sem ranking, ordem
+ * alfabética). Escopado por org + turma e aos livros ATIVOS — espelha o portal.
+ */
+async function carregarMural(
+  turmaId: string,
+  organizacaoId: string,
+  formandoId: string
+): Promise<TravessiaMural> {
+  const participacoes = await prisma.participacaoVocacional.findMany({
+    where: { turmaId, organizacaoId, status: { in: [...STATUS_VOCACIONAL_ATIVOS] } },
+    select: { formandoId: true, muralOptIn: true, formando: { select: { nome: true } } },
+    orderBy: { formando: { nome: "asc" } },
+  });
+
+  const minhaExibicao = participacoes.find((p) => p.formandoId === formandoId)?.muralOptIn ?? false;
+  const ids = participacoes.map((p) => p.formandoId);
+  if (ids.length === 0) {
+    return { minhaExibicao, turmaFrutosTotal: 0, participantes: [] };
+  }
+
+  // Frutos por vocacionado (só livros ATIVOS da turma), num único groupBy.
+  const somas = await prisma.acaoLeitura.groupBy({
+    by: ["formandoId"],
+    where: { formandoId: { in: ids }, organizacaoId, leitura: { turmaId, ativo: true } },
+    _sum: { frutos: true },
+  });
+  const frutosPorFormando = new Map(somas.map((s) => [s.formandoId, s._sum.frutos ?? 0]));
+
+  const turmaFrutosTotal = participacoes.reduce(
+    (t, p) => t + (frutosPorFormando.get(p.formandoId) ?? 0),
+    0
+  );
+  const participantes: MuralParticipante[] = participacoes
+    .filter((p) => p.muralOptIn)
+    .map((p) => ({ nome: p.formando.nome, frutos: frutosPorFormando.get(p.formandoId) ?? 0 }));
+
+  return { minhaExibicao, turmaFrutosTotal, participantes };
 }
 
 const STATUS_VOCACIONAL_ATIVOS = ["ativa", "aguardando_carta", "em_discernimento"] as const;

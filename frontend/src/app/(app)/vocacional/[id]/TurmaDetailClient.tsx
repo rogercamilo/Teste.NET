@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, Plus, Users, Sprout, FileText, HeartHandshake, Lock,
   CheckCircle2, XCircle, Upload, Calendar, BookOpen, Pencil, Trash2,
-  Heart, MessageSquareText, ChevronDown, Send,
+  Heart, MessageSquareText, ChevronDown, Send, Megaphone, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +45,7 @@ interface Turma {
   vigenciaInicio: string | null; vigenciaFim: string | null;
   vocacionalDuracaoMeses: number | null; vocacionalTotalRetiros: number | null;
   vocacionalAcompanhamentoAtivo: boolean;
+  muralFrutosAtivo: boolean;
 }
 
 interface CapituloLeitura {
@@ -220,6 +221,8 @@ export default function TurmaDetailClient(props: Props) {
           turmaId={turma.id}
           progresso={travessiaProgresso}
           podeReagir={podeGerirLeituras}
+          podeGerirMural={podeGerirLeituras}
+          muralAtivoInicial={turma.muralFrutosAtivo}
         />
       )}
 
@@ -691,16 +694,85 @@ function LeituraFormDialog({
 }
 
 /**
+ * Liga/desliga o Mural de Frutos da turma. Ao ligar, cada vocacionado passa a
+ * poder optar por aparecer no Mural (no portal). Otimista com reversão.
+ */
+function MuralTurmaToggle({ turmaId, ativoInicial }: { turmaId: string; ativoInicial: boolean }) {
+  const [ativo, setAtivo] = useState(ativoInicial);
+  const [salvando, setSalvando] = useState(false);
+
+  async function alternar() {
+    if (salvando) return;
+    const novo = !ativo;
+    setAtivo(novo);
+    setSalvando(true);
+    try {
+      const res = await fetch(`/api/vocacional/turmas/${turmaId}/mural`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ativo: novo }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(novo ? "Mural de Frutos ligado para a turma." : "Mural de Frutos desligado.");
+    } catch {
+      setAtivo(!novo);
+      toast.error("Não foi possível atualizar o Mural.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5">
+      <Megaphone className="h-4 w-4 shrink-0 text-primary" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">Mural de Frutos da turma</p>
+        <p className="text-xs text-muted-foreground">
+          {ativo
+            ? "Ligado — cada vocacionado escolhe se aparece no Mural."
+            : "Desligado — o Mural não aparece no portal dos vocacionados."}
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={ativo}
+        aria-label="Ligar Mural de Frutos"
+        onClick={alternar}
+        disabled={salvando}
+        className={
+          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 " +
+          (ativo ? "bg-primary" : "bg-muted-foreground/30")
+        }
+      >
+        {salvando ? (
+          <Loader2 className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 animate-spin text-white" />
+        ) : (
+          <span
+            className={
+              "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform " +
+              (ativo ? "translate-x-5" : "translate-x-0.5")
+            }
+          />
+        )}
+      </button>
+    </div>
+  );
+}
+
+/**
  * Painel de progresso da Trilha da Travessia: por vocacionado ativo, quanto leu,
  * Frutos somados e as partilhas textuais. O formador pode reagir a cada partilha
  * (curtida + nota curta de incentivo) — read-only para quem não gere a turma.
  */
 function TravessiaProgressoSection({
-  turmaId, progresso, podeReagir,
+  turmaId, progresso, podeReagir, podeGerirMural, muralAtivoInicial,
 }: {
   turmaId: string;
   progresso: TurmaTravessiaProgresso;
   podeReagir: boolean;
+  podeGerirMural: boolean;
+  muralAtivoInicial: boolean;
 }) {
   return (
     <section className="space-y-2.5">
@@ -711,6 +783,8 @@ function TravessiaProgressoSection({
           {progresso.totalCapitulos} {progresso.totalCapitulos === 1 ? "capítulo" : "capítulos"} na trilha
         </span>
       </div>
+
+      {podeGerirMural && <MuralTurmaToggle turmaId={turmaId} ativoInicial={muralAtivoInicial} />}
 
       {progresso.participantes.length === 0 ? (
         <Card className="border-dashed">

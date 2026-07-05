@@ -1867,6 +1867,31 @@ function ComunidadeTab() {
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Instagram</Label>
+              <Input
+                value={form.instagramHandle ?? ""}
+                onChange={(e) => handleChange("instagramHandle", e.target.value)}
+                placeholder="@suacomunidade"
+              />
+              <p className="text-xs text-muted-foreground">
+                Sugerido aos vocacionados ao compartilhar a Travessia no Instagram.
+              </p>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>YouTube</Label>
+              <Input
+                value={form.youtubeUrl ?? ""}
+                onChange={(e) => handleChange("youtubeUrl", e.target.value)}
+                placeholder="https://youtube.com/@suacomunidade"
+              />
+              <p className="text-xs text-muted-foreground">
+                Canal da comunidade (usado na evangelização da Travessia).
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

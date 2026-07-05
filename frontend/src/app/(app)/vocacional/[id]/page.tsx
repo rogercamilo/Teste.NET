@@ -82,6 +82,7 @@ export default async function TurmaVocacionalPage({ params }: { params: Promise<
         vocacionalDuracaoMeses: turma.vocacionalDuracaoMeses,
         vocacionalTotalRetiros: turma.vocacionalTotalRetiros,
         vocacionalAcompanhamentoAtivo: turma.vocacionalAcompanhamentoAtivo,
+        muralFrutosAtivo: turma.muralFrutosAtivo,
       }}
       formandosDisponiveis={formandosDisponiveis}
       acompanhadores={acompanhadores}

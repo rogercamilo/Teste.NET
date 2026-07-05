@@ -147,16 +147,21 @@ const FORMACOES = [
 ] as const;
 
 async function main() {
-  // 0. Destrava o módulo vocacional no tenant (menu + Livro + portal).
+  // 0. Destrava o módulo vocacional no tenant (menu + Livro + portal) e cadastra
+  // as redes da comunidade (Fatia 4 — evangelização da Travessia).
   await prisma.organizacao.update({
     where: { id: ORG },
-    data: { vocacionalHabilitado: true },
+    data: {
+      vocacionalHabilitado: true,
+      instagramHandle: "comunidadesaomiguel",
+      youtubeUrl: "https://youtube.com/@comunidadesaomiguel",
+    },
   });
 
-  // 1. Turma vocacional (morada tipo=vocacional) com acompanhamento ativo.
+  // 1. Turma vocacional (morada tipo=vocacional) com acompanhamento e Mural ativos.
   await prisma.grupoFormacao.upsert({
     where: { id: TURMA_ID },
-    update: { vocacionalAcompanhamentoAtivo: true, ativo: true },
+    update: { vocacionalAcompanhamentoAtivo: true, ativo: true, muralFrutosAtivo: true },
     create: {
       id: TURMA_ID,
       organizacaoId: ORG,
@@ -165,6 +170,7 @@ async function main() {
       localReuniao: "Casa de Retiros N. Sra.",
       formadorId: FORMADOR,
       vocacionalAcompanhamentoAtivo: true,
+      muralFrutosAtivo: true,
       vocacionalTotalRetiros: 4,
       vocacionalDuracaoMeses: 18,
       vigenciaInicio: dias(-120),
@@ -193,7 +199,7 @@ async function main() {
   // 3. Participação vocacional ATIVA (faz o login cair no portal vocacional).
   await prisma.participacaoVocacional.upsert({
     where: { id: PARTICIPACAO_ID },
-    update: { status: "ativa", turmaId: TURMA_ID, acompanhadorId: FORMADOR },
+    update: { status: "ativa", turmaId: TURMA_ID, acompanhadorId: FORMADOR, muralOptIn: true },
     create: {
       id: PARTICIPACAO_ID,
       organizacaoId: ORG,
@@ -202,6 +208,7 @@ async function main() {
       status: "ativa",
       dataIngresso: dias(-120),
       acompanhadorId: FORMADOR,
+      muralOptIn: true,
     },
   });
 
