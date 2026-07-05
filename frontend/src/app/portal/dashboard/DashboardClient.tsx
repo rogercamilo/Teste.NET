@@ -38,6 +38,7 @@ import type {
 import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
 import { PortalNotificacoesCard } from "./PortalNotificacoesCard";
 import { TravessiaCard } from "./TravessiaCard";
+import { MuralSection } from "./TravessiaMural";
 
 function ProgressoBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
@@ -161,8 +162,8 @@ export default function DashboardClient({
           </p>
         </div>
 
-        {/* Faixa de status (cards compactos lado a lado no desktop) */}
-        <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Faixa de status (cards compactos lado a lado, mesma altura no desktop) */}
+        <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {/* Presença */}
           <Card>
             <CardHeader>
@@ -171,7 +172,7 @@ export default function DashboardClient({
                 Minha presença
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="flex flex-1 flex-col justify-center gap-2">
               <div className="flex items-baseline justify-between">
                 <span className="text-3xl font-bold tabular-nums text-foreground">
                   {presenca.percentual}%
@@ -194,7 +195,7 @@ export default function DashboardClient({
                   Minha jornada vocacional
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="flex flex-1 flex-col gap-3">
                 <p className="text-sm text-muted-foreground">
                   {vocacional.status === "aguardando_carta"
                     ? "É hora de entregar sua carta de discernimento ao formador."
@@ -203,15 +204,17 @@ export default function DashboardClient({
                     : "Você está em período vocacional. Acompanhe sua agenda de encontros e retiros."}
                 </p>
                 {vocacional.acompanhamentoOferecido && (
-                  solicitado ? (
-                    <p className="text-sm text-primary inline-flex items-center gap-1.5">
-                      <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
-                    </p>
-                  ) : (
-                    <Button size="sm" variant="outline" onClick={solicitarAcompanhamento} disabled={solicitando}>
-                      {solicitando ? "Enviando…" : "Solicitar acompanhamento do plantão vocacional"}
-                    </Button>
-                  )
+                  <div className="mt-auto">
+                    {solicitado ? (
+                      <p className="inline-flex items-center gap-1.5 text-sm text-primary">
+                        <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
+                      </p>
+                    ) : (
+                      <Button size="sm" variant="outline" className="w-full" onClick={solicitarAcompanhamento} disabled={solicitando}>
+                        {solicitando ? "Enviando…" : "Solicitar acompanhamento"}
+                      </Button>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -226,7 +229,7 @@ export default function DashboardClient({
                   Minha etapa
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="flex flex-1 flex-col justify-center gap-4">
                 <ProgressoLinha
                   label="Formações comunitárias"
                   value={progresso.formacoesComunitariasRealizadas}
@@ -249,6 +252,11 @@ export default function DashboardClient({
           {/* Notificações push — ativar/desativar neste aparelho */}
           <PortalNotificacoesCard />
         </div>
+
+        {/* Mural de Frutos da turma — informação geral coletiva, no topo */}
+        {travessia?.mural && (
+          <MuralSection muralInicial={travessia.mural} meusFrutos={travessia.frutosTotal} />
+        )}
 
         {/* Trilha da Travessia (leitura) — herói, ocupa a largura toda */}
         {travessia && <TravessiaCard travessia={travessia} />}

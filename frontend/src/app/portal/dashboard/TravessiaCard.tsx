@@ -4,11 +4,11 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Check, Sprout, Flag, Loader2, MessageSquareText, Heart, Pencil, Trash2, X,
-  Share2, Megaphone, Download, Copy, Users,
+  Share2, Megaphone, Download, Copy,
 } from "lucide-react";
 import { MARCOS_TRAVESSIA, FRUTOS_POR_ACAO } from "@/types";
 import type {
-  PortalTravessia, TravessiaLivro, TravessiaPartilha, TravessiaMissao, TravessiaMural,
+  PortalTravessia, TravessiaLivro, TravessiaPartilha, TravessiaMissao,
 } from "@/lib/portal-data";
 import { gerarCardTravessia, legendaTravessia } from "./travessia-card-image";
 
@@ -198,8 +198,9 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
           })}
         </div>
 
-        {/* No desktop, a trilha ocupa a coluna esquerda e Missão/Mural a direita,
-            aproveitando a largura do herói. No mobile, tudo empilha. */}
+        {/* No desktop, a trilha ocupa a coluna esquerda e a Missão a direita,
+            aproveitando a largura do herói. No mobile, tudo empilha. (O Mural de
+            Frutos vive no bloco de informações gerais do topo — ver DashboardClient.) */}
         <div className="grid items-start gap-6 lg:grid-cols-2">
           {/* Trilha por livro */}
           <div className="space-y-6">
@@ -217,26 +218,21 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
             ))}
           </div>
 
-          {/* Missão + Mural */}
-          <div className="space-y-5">
-            <MissaoSection
-              missao={travessia.missao}
-              frutos={frutosTotal}
-              capitulosLidos={capitulosLidos}
-              totalCapitulos={totalCapitulos}
-              instagramFeito={instagramFeito}
-              youtubeFeito={youtubeFeito}
-              youtubeUrl={youtubeUrl}
-              onInstagram={setInstagramFeito}
-              onYoutube={(feito, url) => {
-                setYoutubeFeito(feito);
-                setYoutubeUrl(url);
-              }}
-            />
-
-            {/* Mural de Frutos da turma (se o formador ligou) */}
-            {travessia.mural && <MuralSection muralInicial={travessia.mural} meusFrutos={frutosTotal} />}
-          </div>
+          {/* Missão — evangelização por rede */}
+          <MissaoSection
+            missao={travessia.missao}
+            frutos={frutosTotal}
+            capitulosLidos={capitulosLidos}
+            totalCapitulos={totalCapitulos}
+            instagramFeito={instagramFeito}
+            youtubeFeito={youtubeFeito}
+            youtubeUrl={youtubeUrl}
+            onInstagram={setInstagramFeito}
+            onYoutube={(feito, url) => {
+              setYoutubeFeito(feito);
+              setYoutubeUrl(url);
+            }}
+          />
         </div>
       </CardContent>
     </Card>
@@ -766,117 +762,3 @@ function MissaoSection({
   );
 }
 
-/**
- * Mural de Frutos da turma: celebra o caminho coletivo. Mostra o total da turma e
- * os cards de quem optou por aparecer (sem ranking). O vocacionado escolhe se se
- * exibe — otimista com reversão.
- */
-function MuralSection({ muralInicial, meusFrutos }: { muralInicial: TravessiaMural; meusFrutos: number }) {
-  const [exibir, setExibir] = useState(muralInicial.minhaExibicao);
-  const [salvando, setSalvando] = useState(false);
-
-  // Lista exibida: os outros participantes (do servidor, sem mim) + o meu card
-  // com Frutos AO VIVO quando estou exibindo — reordenada alfabeticamente, como
-  // no servidor (sem ranking). Aparece/some na hora ao alternar o opt-in.
-  const participantes = [
-    ...muralInicial.participantes,
-    ...(exibir && muralInicial.meuNome ? [{ nome: muralInicial.meuNome, frutos: meusFrutos, eu: true }] : []),
-  ].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-
-  async function alternar() {
-    if (salvando) return;
-    const novo = !exibir;
-    setExibir(novo);
-    setSalvando(true);
-    try {
-      const res = await fetch("/api/portal/travessia/mural", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ optIn: novo }),
-      });
-      if (!res.ok) throw new Error();
-    } catch {
-      setExibir(!novo);
-    } finally {
-      setSalvando(false);
-    }
-  }
-
-  return (
-    <section className="space-y-3 rounded-lg border bg-muted/30 p-4">
-      <div className="flex items-center gap-2">
-        <Users className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold flex-1">Mural de Frutos da turma</h3>
-      </div>
-
-      <div className="flex items-center justify-between gap-4 rounded-md border bg-card px-4 py-3">
-        <div className="flex items-center gap-2.5">
-          <Sprout className="h-6 w-6 text-primary" />
-          <div className="leading-tight">
-            <div className="text-2xl font-bold tabular-nums text-foreground">
-              {muralInicial.turmaFrutosTotal}
-            </div>
-            <div className="text-xs text-muted-foreground">Frutos colhidos pela turma</div>
-          </div>
-        </div>
-        <span className="text-xs text-muted-foreground">Juntos na travessia 🌱</span>
-      </div>
-
-      {/* Opt-in do próprio vocacionado. `div` (não `label`): um `button` é
-          elemento labelável, e envolvê-lo num `label` faz o clique no texto
-          re-disparar o toggle — otimista, isso alternaria duas vezes. */}
-      <div className="flex items-center gap-2.5 rounded-md border bg-card px-3 py-2.5">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={exibir}
-          aria-label="Aparecer no mural"
-          onClick={alternar}
-          disabled={salvando}
-          className={
-            "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 " +
-            (exibir ? "bg-primary" : "bg-muted-foreground/30")
-          }
-        >
-          {salvando ? (
-            <Loader2 className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 animate-spin text-white" />
-          ) : (
-            <span
-              className={
-                "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform " +
-                (exibir ? "translate-x-5" : "translate-x-0.5")
-              }
-            />
-          )}
-        </button>
-        <span className="text-sm">
-          Aparecer no mural com meus Frutos
-          <span className="block text-xs text-muted-foreground">Sem ranking — só para celebrar juntos.</span>
-        </span>
-      </div>
-
-      {participantes.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {participantes.map((p, i) => (
-            <div
-              key={`${p.nome}-${i}`}
-              className={
-                "rounded-md border px-3 py-2 " +
-                ("eu" in p && p.eu ? "border-primary/40 bg-primary/5" : "bg-card")
-              }
-            >
-              <p className="truncate text-sm font-medium">
-                {p.nome}
-                {"eu" in p && p.eu ? <span className="text-xs font-normal text-muted-foreground"> · você</span> : null}
-              </p>
-              <p className="flex items-center gap-1 text-xs text-primary">
-                <Sprout className="h-3 w-3" />
-                {p.frutos} {p.frutos === 1 ? "Fruto" : "Frutos"}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
