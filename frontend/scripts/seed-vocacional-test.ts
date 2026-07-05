@@ -238,7 +238,7 @@ async function main() {
   });
   for (const c of capsLidos) {
     await prisma.acaoLeitura.upsert({
-      where: { formandoId_capituloId: { formandoId: FORMANDO_ID, capituloId: c.id } },
+      where: { formandoId_capituloId_tipo: { formandoId: FORMANDO_ID, capituloId: c.id, tipo: "leitura" } },
       update: {},
       create: {
         organizacaoId: ORG,
@@ -247,6 +247,24 @@ async function main() {
         capituloId: c.id,
         tipo: "leitura",
         frutos: 1,
+      },
+    });
+  }
+
+  // 3d. Partilha textual do capítulo 1 (Fatia 3): reflexão que rende Fruto e
+  // aparece ao formador no painel de progresso.
+  if (capsLidos[0]) {
+    await prisma.acaoLeitura.upsert({
+      where: { formandoId_capituloId_tipo: { formandoId: FORMANDO_ID, capituloId: capsLidos[0].id, tipo: "partilha" } },
+      update: {},
+      create: {
+        organizacaoId: ORG,
+        formandoId: FORMANDO_ID,
+        leituraId: LEITURA_ID,
+        capituloId: capsLidos[0].id,
+        tipo: "partilha",
+        frutos: 3,
+        texto: "Este capítulo me ajudou a entender que discernir é, antes de tudo, escutar em oração. Senti paz ao rezar com a Palavra.",
       },
     });
   }

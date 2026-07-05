@@ -167,11 +167,20 @@ export async function getPortalMateriais(
   });
 }
 
+/** Partilha textual do vocacionado sobre um capítulo, com a reação do formador. */
+export interface TravessiaPartilha {
+  texto: string;
+  formadorCurtiu: boolean;
+  formadorNota: string | null;
+}
+
 export interface TravessiaCapitulo {
   id: string;
   numero: number;
   titulo: string;
   lido: boolean;
+  // Partilha do vocacionado sobre este capítulo (null quando não partilhou).
+  partilha: TravessiaPartilha | null;
 }
 
 export interface TravessiaLivro {
@@ -222,22 +231,38 @@ export async function getPortalTravessia(
     }),
     // Escopado aos livros ATIVOS da turma atual (mesma régua dos `livros`
     // acima), senão `frutosTotal` contaria ações de livros desativados ou de
-    // turma anterior, divergindo de `capitulosLidos`.
+    // turma anterior, divergindo de `capitulosLidos`. Traz leitura E partilha:
+    // os Frutos são a soma de TODAS as ações (leitura=1, partilha=3).
     prisma.acaoLeitura.findMany({
       where: {
         formandoId,
         organizacaoId,
-        tipo: "leitura",
         capituloId: { not: null },
         leitura: { turmaId: formando.grupoFormacaoId, ativo: true },
       },
-      select: { capituloId: true, frutos: true },
+      select: {
+        capituloId: true,
+        frutos: true,
+        tipo: true,
+        texto: true,
+        formadorCurtiu: true,
+        formadorNota: true,
+      },
     }),
   ]);
 
   if (livros.length === 0) return null;
 
-  const lidos = new Set(acoes.map((a) => a.capituloId));
+  const lidos = new Set(acoes.filter((a) => a.tipo === "leitura").map((a) => a.capituloId));
+  const partilhaPorCapitulo = new Map<string, TravessiaPartilha>(
+    acoes
+      .filter((a) => a.tipo === "partilha" && a.capituloId && a.texto)
+      .map((a) => [
+        a.capituloId as string,
+        { texto: a.texto as string, formadorCurtiu: a.formadorCurtiu, formadorNota: a.formadorNota },
+      ])
+  );
+  // Frutos = soma de todas as ações (leitura + partilha), valor fixado por linha.
   const frutosTotal = acoes.reduce((s, a) => s + a.frutos, 0);
 
   let totalCapitulos = 0;
@@ -248,6 +273,7 @@ export async function getPortalTravessia(
       numero: c.numero,
       titulo: c.titulo,
       lido: lidos.has(c.id),
+      partilha: partilhaPorCapitulo.get(c.id) ?? null,
     }));
     const lidosNoLivro = capitulos.filter((c) => c.lido).length;
     totalCapitulos += capitulos.length;

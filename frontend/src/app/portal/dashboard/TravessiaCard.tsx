@@ -2,22 +2,32 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Sprout, Flag, Loader2 } from "lucide-react";
-import { MARCOS_TRAVESSIA } from "@/types";
-import type { PortalTravessia, TravessiaLivro } from "@/lib/portal-data";
+import { Check, Sprout, Flag, Loader2, MessageSquareText, Heart, Pencil, Trash2, X } from "lucide-react";
+import { MARCOS_TRAVESSIA, FRUTOS_POR_ACAO } from "@/types";
+import type { PortalTravessia, TravessiaLivro, TravessiaPartilha } from "@/lib/portal-data";
 
 /**
  * Trilha da Travessia — o vocacionado percorre os livros da sua turma marcando
- * capítulos lidos. Cada estação acende no clay da marca; a leitura rende Frutos
+ * capítulos lidos e, se quiser, partilhando uma reflexão sobre cada capítulo.
+ * Cada estação acende no clay da marca; leitura e partilha rendem Frutos
  * (gamificação aditiva). Estado otimista local, no mesmo espírito do RSVP do
  * dashboard: o clique reflete na hora e reconcilia com o servidor por baixo.
  */
 export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
-  // Fonte da verdade da UI: conjunto de capítulos lidos (otimista).
+  // Fonte da verdade da UI: capítulos lidos (otimista).
   const [lidos, setLidos] = useState<Set<string>>(
     () => new Set(travessia.livros.flatMap((l) => l.capitulos.filter((c) => c.lido).map((c) => c.id)))
   );
   const [pendentes, setPendentes] = useState<Set<string>>(new Set());
+  // Partilhas por capítulo (otimista), semeadas do servidor.
+  const [partilhas, setPartilhas] = useState<Map<string, TravessiaPartilha>>(
+    () =>
+      new Map(
+        travessia.livros.flatMap((l) =>
+          l.capitulos.filter((c) => c.partilha).map((c) => [c.id, c.partilha as TravessiaPartilha])
+        )
+      )
+  );
 
   const totalCapitulos = travessia.totalCapitulos;
   const capitulosLidos = lidos.size;
@@ -26,8 +36,9 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
   // "100%" só quando TUDO foi lido — arredondar mostraria 100% em 199/200
   // (Math.round(99.5)), contradizendo o marco de conclusão.
   const percentualGeral = completo ? 100 : Math.min(99, Math.round(fracao * 100));
-  // 1 Fruto por capítulo lido (valor fixo do sistema; ações extras virão depois).
-  const frutosTotal = capitulosLidos;
+  // Frutos = leitura (1 por capítulo) + partilha (3 por capítulo partilhado).
+  const frutosTotal =
+    capitulosLidos * FRUTOS_POR_ACAO.leitura + partilhas.size * FRUTOS_POR_ACAO.partilha;
 
   async function toggle(capituloId: string, estaLido: boolean) {
     if (pendentes.has(capituloId)) return;
@@ -61,12 +72,54 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
     }
   }
 
+  // Salva (cria/edita) a partilha do capítulo. Reconciliamos pelo servidor: a
+  // reação do formador vem de lá, então não a inventamos localmente.
+  async function salvarPartilha(capituloId: string, texto: string) {
+    const anterior = partilhas.get(capituloId) ?? null;
+    const res = await fetch(`/api/portal/travessia/capitulos/${capituloId}/partilha`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texto }),
+    });
+    if (!res.ok) throw new Error();
+    // Edição preserva a reação existente; criação começa sem reação.
+    setPartilhas((prev) => {
+      const next = new Map(prev);
+      next.set(capituloId, {
+        texto,
+        formadorCurtiu: anterior?.formadorCurtiu ?? false,
+        formadorNota: anterior?.formadorNota ?? null,
+      });
+      return next;
+    });
+  }
+
+  async function removerPartilha(capituloId: string) {
+    const anterior = partilhas.get(capituloId);
+    // Otimista.
+    setPartilhas((prev) => {
+      const next = new Map(prev);
+      next.delete(capituloId);
+      return next;
+    });
+    try {
+      const res = await fetch(`/api/portal/travessia/capitulos/${capituloId}/partilha`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      if (anterior) {
+        setPartilhas((prev) => new Map(prev).set(capituloId, anterior));
+      }
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sprout className="h-4 w-4 text-primary" />
-          Minha Travessia literaria
+          Minha Travessia literária
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -120,7 +173,10 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
               livro={livro}
               lidos={lidos}
               pendentes={pendentes}
+              partilhas={partilhas}
               onToggle={toggle}
+              onSalvarPartilha={salvarPartilha}
+              onRemoverPartilha={removerPartilha}
             />
           ))}
         </div>
@@ -133,12 +189,18 @@ function LivroTrilha({
   livro,
   lidos,
   pendentes,
+  partilhas,
   onToggle,
+  onSalvarPartilha,
+  onRemoverPartilha,
 }: {
   livro: TravessiaLivro;
   lidos: Set<string>;
   pendentes: Set<string>;
+  partilhas: Map<string, TravessiaPartilha>;
   onToggle: (capituloId: string, estaLido: boolean) => void;
+  onSalvarPartilha: (capituloId: string, texto: string) => Promise<void>;
+  onRemoverPartilha: (capituloId: string) => void;
 }) {
   const lidosNoLivro = livro.capitulos.filter((c) => lidos.has(c.id)).length;
   const completoLivro = livro.totalCapitulos > 0 && lidosNoLivro === livro.totalCapitulos;
@@ -195,21 +257,158 @@ function LivroTrilha({
                   cap.numero
                 )}
               </button>
-              <button
-                type="button"
-                onClick={() => onToggle(cap.id, estaLido)}
-                disabled={pendente}
-                className="flex-1 cursor-pointer select-none pt-1.5 text-left text-sm caret-transparent disabled:cursor-default"
-              >
-                <span className={estaLido ? "text-foreground" : "text-muted-foreground"}>
-                  <span className="text-muted-foreground/70">Cap. {cap.numero} · </span>
-                  {cap.titulo}
-                </span>
-              </button>
+              <div className="flex-1 pt-1.5">
+                <button
+                  type="button"
+                  onClick={() => onToggle(cap.id, estaLido)}
+                  disabled={pendente}
+                  className="cursor-pointer select-none text-left text-sm caret-transparent disabled:cursor-default"
+                >
+                  <span className={estaLido ? "text-foreground" : "text-muted-foreground"}>
+                    <span className="text-muted-foreground/70">Cap. {cap.numero} · </span>
+                    {cap.titulo}
+                  </span>
+                </button>
+                <CapituloPartilha
+                  capituloId={cap.id}
+                  partilha={partilhas.get(cap.id) ?? null}
+                  onSalvar={onSalvarPartilha}
+                  onRemover={onRemoverPartilha}
+                />
+              </div>
             </li>
           );
         })}
       </ol>
     </div>
+  );
+}
+
+/**
+ * Partilha de um capítulo: mostra a reflexão já escrita (com a reação do
+ * formador, se houver) ou um convite discreto para partilhar. Editar abre uma
+ * caixa inline. A reação do formador é read-only aqui — vem de quem acompanha.
+ */
+function CapituloPartilha({
+  capituloId,
+  partilha,
+  onSalvar,
+  onRemover,
+}: {
+  capituloId: string;
+  partilha: TravessiaPartilha | null;
+  onSalvar: (capituloId: string, texto: string) => Promise<void>;
+  onRemover: (capituloId: string) => void;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [rascunho, setRascunho] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  function abrir() {
+    setRascunho(partilha?.texto ?? "");
+    setEditando(true);
+  }
+
+  async function salvar() {
+    const texto = rascunho.trim();
+    if (!texto || salvando) return;
+    setSalvando(true);
+    try {
+      await onSalvar(capituloId, texto);
+      setEditando(false);
+    } catch {
+      // Mantém a caixa aberta para nova tentativa.
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  if (editando) {
+    return (
+      <div className="mt-2">
+        <textarea
+          value={rascunho}
+          onChange={(e) => setRascunho(e.target.value)}
+          maxLength={2000}
+          rows={3}
+          autoFocus
+          placeholder="O que este capítulo tocou em você?"
+          className="w-full resize-y rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary/60"
+        />
+        <div className="mt-1.5 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={salvar}
+            disabled={salvando || !rascunho.trim()}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+          >
+            {salvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Salvar partilha
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditando(false)}
+            disabled={salvando}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+            Cancelar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (partilha) {
+    return (
+      <div className="mt-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2">
+        <p className="whitespace-pre-wrap text-sm text-foreground">{partilha.texto}</p>
+        <div className="mt-1.5 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={abrir}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Pencil className="h-3 w-3" />
+            Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => onRemover(capituloId)}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-3 w-3" />
+            Remover
+          </button>
+        </div>
+        {(partilha.formadorCurtiu || partilha.formadorNota) && (
+          <div className="mt-2 border-t border-primary/15 pt-2">
+            {partilha.formadorCurtiu && (
+              <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                <Heart className="h-3.5 w-3.5 fill-current" />
+                O formador curtiu sua partilha
+              </p>
+            )}
+            {partilha.formadorNota && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Formador: </span>
+                {partilha.formadorNota}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={abrir}
+      className="mt-1.5 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+    >
+      <MessageSquareText className="h-3.5 w-3.5" />
+      Partilhar reflexão
+    </button>
   );
 }

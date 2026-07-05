@@ -1393,9 +1393,18 @@ model AcaoLeitura {
   organizacaoId String
   formandoId    String
   leituraId     String
-  capituloId    String? // preenchido para tipo=leitura
+  capituloId    String? // preenchido para tipo=leitura e tipo=partilha
   tipo          TipoAcaoLeitura @default(leitura)
   frutos        Int
+  // Conteúdo da partilha textual (tipo=partilha): reflexão do vocacionado sobre
+  // o capítulo, visível ao formador. Nulo nas demais ações.
+  texto            String?
+  // Reação do formador à partilha (Fatia 3): curtida + nota curta de incentivo.
+  // Só se aplica a linhas tipo=partilha; `formadorReagiuId` guarda quem reagiu.
+  formadorCurtiu   Boolean   @default(false)
+  formadorNota     String?
+  formadorReagiuEm DateTime?
+  formadorReagiuId String?
   criadoEm      DateTime        @default(now())
 
   organizacao Organizacao       @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
@@ -1403,9 +1412,10 @@ model AcaoLeitura {
   leitura     LeituraVocacional @relation(fields: [leituraId], references: [id], onDelete: Cascade)
   capitulo    CapituloLeitura?  @relation(fields: [capituloId], references: [id], onDelete: Cascade)
 
-  // NULLs são distintos no índice único do Postgres, então isto só barra
-  // capítulos lidos em duplicidade — ações sem capítulo (partilha) ficam livres.
-  @@unique([formandoId, capituloId])
+  // Único por (formando, capítulo, TIPO): um capítulo rende no máximo 1 fruto de
+  // leitura E 1 de partilha (linhas distintas). NULLs são distintos no Postgres,
+  // então ações sem capítulo (evangelização, Fatia 4) permanecem livres.
+  @@unique([formandoId, capituloId, tipo])
   @@index([organizacaoId])
   @@index([leituraId])
   @@index([formandoId, leituraId])

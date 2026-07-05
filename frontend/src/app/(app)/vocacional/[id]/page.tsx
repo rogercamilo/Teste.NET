@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth-helpers";
 import { hasVocacionalAccess, isGestao, temPermissao } from "@/types";
+import { getTurmaTravessiaProgresso } from "@/lib/vocacional-travessia";
 import TurmaDetailClient from "./TurmaDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export default async function TurmaVocacionalPage({ params }: { params: Promise<
   // FC só acessa a turma da qual é formador responsável.
   if (!gestao && turma.formadorId !== user.id) redirect("/vocacional");
 
-  const [participacoes, formandosDisponiveis, acompanhadores, leituras] = await Promise.all([
+  const [participacoes, formandosDisponiveis, acompanhadores, leituras, travessiaProgresso] = await Promise.all([
     prisma.participacaoVocacional.findMany({
       where: { turmaId: id, organizacaoId: user.organizacaoId },
       orderBy: { criadoEm: "desc" },
@@ -61,6 +62,7 @@ export default async function TurmaVocacionalPage({ params }: { params: Promise<
         capitulos: { orderBy: { numero: "asc" }, select: { id: true, numero: true, titulo: true } },
       },
     }),
+    getTurmaTravessiaProgresso(id, user.organizacaoId),
   ]);
 
   return (
@@ -91,6 +93,7 @@ export default async function TurmaVocacionalPage({ params }: { params: Promise<
         ativo: l.ativo,
         capitulos: l.capitulos,
       }))}
+      travessiaProgresso={travessiaProgresso}
       participacoes={participacoes.map((p) => ({
         id: p.id,
         formandoId: p.formandoId,

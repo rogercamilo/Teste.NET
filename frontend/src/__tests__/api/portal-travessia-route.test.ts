@@ -103,6 +103,6 @@ describe("DELETE /api/portal/travessia/capitulos/[capituloId]", () => {
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, lido: false });
-    expect(prisma.acaoLeitura.deleteMany).toHaveBeenCalledWith({ where: { formandoId: FORMANDO, capituloId: CAP } });
+    expect(prisma.acaoLeitura.deleteMany).toHaveBeenCalledWith({ where: { formandoId: FORMANDO, capituloId: CAP, tipo: "leitura" } });
   });
 });

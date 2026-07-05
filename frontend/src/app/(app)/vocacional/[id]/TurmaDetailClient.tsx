@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, Plus, Users, Sprout, FileText, HeartHandshake, Lock,
   CheckCircle2, XCircle, Upload, Calendar, BookOpen, Pencil, Trash2,
+  Heart, MessageSquareText, ChevronDown, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { isGestao, temPermissao, CONDICAO_MEMBRO_LABELS, type CondicaoMembro } from "@/types";
+import type { TurmaTravessiaProgresso, ProgressoParticipante, ProgressoPartilha } from "@/lib/vocacional-travessia";
 
 interface Option { id: string; nome: string }
 
@@ -69,6 +71,7 @@ interface Props {
   formandosDisponiveis: Option[];
   acompanhadores: Option[];
   leituras: Leitura[];
+  travessiaProgresso: TurmaTravessiaProgresso | null;
   participacoes: Participacao[];
 }
 
@@ -104,7 +107,7 @@ interface NotaAcompanhamento {
 }
 
 export default function TurmaDetailClient(props: Props) {
-  const { userRole, userId, termoVocacional, termoAcompanhamento, turma, formandosDisponiveis, acompanhadores, leituras, participacoes } = props;
+  const { userRole, userId, termoVocacional, termoAcompanhamento, turma, formandosDisponiveis, acompanhadores, leituras, travessiaProgresso, participacoes } = props;
   const router = useRouter();
   const gestao = isGestao(userRole);
   const ehFormadorTurma = turma.formadorId === userId;
@@ -210,6 +213,15 @@ export default function TurmaDetailClient(props: Props) {
 
       {/* Leituras da turma */}
       <LeiturasSection turmaId={turma.id} leituras={leituras} podeGerir={podeGerirLeituras} />
+
+      {/* Progresso da Travessia (leitura + partilhas dos vocacionados) */}
+      {travessiaProgresso && (
+        <TravessiaProgressoSection
+          turmaId={turma.id}
+          progresso={travessiaProgresso}
+          podeReagir={podeGerirLeituras}
+        />
+      )}
 
       {/* Inscrever */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -675,5 +687,226 @@ function LeituraFormDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Painel de progresso da Trilha da Travessia: por vocacionado ativo, quanto leu,
+ * Frutos somados e as partilhas textuais. O formador pode reagir a cada partilha
+ * (curtida + nota curta de incentivo) — read-only para quem não gere a turma.
+ */
+function TravessiaProgressoSection({
+  turmaId, progresso, podeReagir,
+}: {
+  turmaId: string;
+  progresso: TurmaTravessiaProgresso;
+  podeReagir: boolean;
+}) {
+  return (
+    <section className="space-y-2.5">
+      <div className="flex items-center gap-2">
+        <Sprout className="h-4 w-4 text-primary" />
+        <h2 className="text-sm font-semibold flex-1">Progresso da Travessia</h2>
+        <span className="text-xs text-muted-foreground">
+          {progresso.totalCapitulos} {progresso.totalCapitulos === 1 ? "capítulo" : "capítulos"} na trilha
+        </span>
+      </div>
+
+      {progresso.participantes.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            <Users className="mx-auto mb-2 h-6 w-6 opacity-50" />
+            Nenhum vocacionado ativo na turma para acompanhar.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-2">
+          {progresso.participantes.map((p) => (
+            <ParticipanteProgressoCard
+              key={p.formandoId}
+              turmaId={turmaId}
+              participante={p}
+              totalCapitulos={progresso.totalCapitulos}
+              podeReagir={podeReagir}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ParticipanteProgressoCard({
+  turmaId, participante, totalCapitulos, podeReagir,
+}: {
+  turmaId: string;
+  participante: ProgressoParticipante;
+  totalCapitulos: number;
+  podeReagir: boolean;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const temPartilhas = participante.partilhas.length > 0;
+
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardContent className="py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-[10rem]">
+            <p className="text-sm font-medium">{participante.nome}</p>
+            <p className="text-xs text-muted-foreground">
+              {participante.capitulosLidos}/{totalCapitulos} lidos · {participante.percentual}%
+            </p>
+          </div>
+          <Badge variant="secondary" className="gap-1">
+            <Sprout className="h-3 w-3" />
+            {participante.frutos} {participante.frutos === 1 ? "Fruto" : "Frutos"}
+          </Badge>
+          {temPartilhas && (
+            <Button
+              size="sm" variant="ghost" className="gap-1.5"
+              onClick={() => setAberto((v) => !v)}
+              aria-expanded={aberto}
+            >
+              <MessageSquareText className="h-4 w-4" />
+              {participante.partilhas.length}{" "}
+              {participante.partilhas.length === 1 ? "partilha" : "partilhas"}
+              <ChevronDown className={"h-4 w-4 transition-transform " + (aberto ? "rotate-180" : "")} />
+            </Button>
+          )}
+        </div>
+
+        {/* Barra de progresso */}
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${participante.percentual}%` }} />
+        </div>
+
+        {aberto && temPartilhas && (
+          <div className="mt-3 space-y-2.5 border-t pt-3">
+            {participante.partilhas.map((pt) => (
+              <PartilhaReacaoItem
+                key={pt.acaoId}
+                turmaId={turmaId}
+                partilha={pt}
+                podeReagir={podeReagir}
+              />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Uma partilha no painel do formador: mostra livro/capítulo, o texto e — para
+ * quem gere a turma — controles de reação (curtida + nota curta). Otimista com
+ * reversão, no espírito das demais ações do app.
+ */
+function PartilhaReacaoItem({
+  turmaId, partilha, podeReagir,
+}: {
+  turmaId: string;
+  partilha: ProgressoPartilha;
+  podeReagir: boolean;
+}) {
+  const [curtiu, setCurtiu] = useState(partilha.formadorCurtiu);
+  const [nota, setNota] = useState(partilha.formadorNota ?? "");
+  const [editandoNota, setEditandoNota] = useState(false);
+  const [salvandoNota, setSalvandoNota] = useState(false);
+
+  async function reagir(payload: { curtiu?: boolean; nota?: string | null }) {
+    const res = await fetch(`/api/vocacional/turmas/${turmaId}/travessia/partilhas/${partilha.acaoId}/reacao`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? "Falha"); }
+  }
+
+  async function toggleCurtida() {
+    const anterior = curtiu;
+    setCurtiu(!anterior); // otimista
+    try {
+      await reagir({ curtiu: !anterior });
+    } catch (e) {
+      setCurtiu(anterior);
+      toast.error(e instanceof Error ? e.message : "Erro ao curtir");
+    }
+  }
+
+  async function salvarNota() {
+    setSalvandoNota(true);
+    try {
+      const limpa = nota.trim();
+      await reagir({ nota: limpa || null });
+      setNota(limpa);
+      setEditandoNota(false);
+      toast.success("Nota enviada ao vocacionado.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar nota");
+    } finally {
+      setSalvandoNota(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border bg-muted/30 px-3 py-2">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {partilha.livroTitulo} · Cap. {partilha.capituloNumero}
+      </p>
+      <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{partilha.texto}</p>
+
+      {podeReagir ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Button
+            size="sm" variant={curtiu ? "default" : "outline"} className="h-7 gap-1.5 px-2.5"
+            onClick={toggleCurtida}
+          >
+            <Heart className={"h-3.5 w-3.5 " + (curtiu ? "fill-current" : "")} />
+            {curtiu ? "Curtido" : "Curtir"}
+          </Button>
+          {!editandoNota && (
+            <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2" onClick={() => setEditandoNota(true)}>
+              <Pencil className="h-3.5 w-3.5" />
+              {nota ? "Editar nota" : "Adicionar nota"}
+            </Button>
+          )}
+        </div>
+      ) : (
+        curtiu && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-primary">
+            <Heart className="h-3.5 w-3.5 fill-current" /> Curtida
+          </p>
+        )
+      )}
+
+      {editandoNota ? (
+        <div className="mt-2">
+          <Textarea
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            maxLength={500}
+            rows={2}
+            placeholder="Uma palavra de incentivo ao vocacionado…"
+            className="text-sm"
+          />
+          <div className="mt-1.5 flex items-center gap-2">
+            <Button size="sm" className="h-7 gap-1.5 px-2.5" onClick={salvarNota} disabled={salvandoNota}>
+              <Send className="h-3.5 w-3.5" />
+              {salvandoNota ? "Enviando…" : "Enviar nota"}
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setNota(partilha.formadorNota ?? ""); setEditandoNota(false); }} disabled={salvandoNota}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        nota && (
+          <p className="mt-2 rounded bg-primary/5 px-2 py-1 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Sua nota: </span>{nota}
+          </p>
+        )
+      )}
+    </div>
   );
 }

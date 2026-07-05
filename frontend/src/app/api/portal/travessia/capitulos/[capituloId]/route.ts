@@ -51,7 +51,7 @@ export async function POST(request: Request, { params }: Params) {
     // Idempotente: marcar de novo não duplica fruto (o par formando+capítulo é
     // único). O valor do fruto é fixado pelo sistema no momento da ação.
     await prisma.acaoLeitura.upsert({
-      where: { formandoId_capituloId: { formandoId, capituloId: capitulo.id } },
+      where: { formandoId_capituloId_tipo: { formandoId, capituloId: capitulo.id, tipo: "leitura" } },
       create: {
         organizacaoId,
         formandoId,
@@ -90,8 +90,9 @@ export async function DELETE(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Capítulo não encontrado" }, { status: 404 });
     }
 
-    // Gamificação aditiva: desmarcar remove só a linha daquele capítulo.
-    await prisma.acaoLeitura.deleteMany({ where: { formandoId, capituloId: capitulo.id } });
+    // Gamificação aditiva: desmarcar remove só a linha de LEITURA daquele
+    // capítulo — uma partilha eventual sobre ele permanece com seu Fruto.
+    await prisma.acaoLeitura.deleteMany({ where: { formandoId, capituloId: capitulo.id, tipo: "leitura" } });
 
     logAction("travessia_capitulo_desmarcado", undefined, getClientIp(request), { formandoId, capituloId: capitulo.id }, organizacaoId);
     return NextResponse.json({ ok: true, lido: false });

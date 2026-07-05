@@ -214,6 +214,23 @@ export const UpdateLeituraSchema = z.object({
   capitulos: capitulosLeitura.optional(),
 });
 
+// Partilha textual de um capítulo (portal do vocacionado): reflexão que rende
+// Fruto e fica visível ao formador. Uma por capítulo, editável. `.trim()` antes
+// do `.min(1)` rejeita conteúdo só de espaços (uma partilha vazia não vale).
+export const PartilhaLeituraSchema = z.object({
+  texto: z.string().trim().min(1, "Escreva sua reflexão").max(2000, "Máximo 2000 caracteres"),
+});
+
+// Reação do formador a uma partilha (curtida + nota curta de incentivo).
+export const ReacaoPartilhaSchema = z
+  .object({
+    curtiu: z.boolean().optional(),
+    nota: optionalString(500).nullable(),
+  })
+  .refine((v) => v.curtiu !== undefined || v.nota !== undefined, {
+    message: "Informe a curtida e/ou uma nota",
+  });
+
 // ── Organização ───────────────────────────────────────────────────────────────
 
 export const PlanoAssinaturaEnum = z.enum(["GRATUITO", "BASICO", "INTERMEDIARIO", "AVANCADO", "PERSONALIZADO"]);
