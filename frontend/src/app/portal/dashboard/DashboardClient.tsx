@@ -83,6 +83,30 @@ export default function DashboardClient({
   const [solicitando, setSolicitando] = useState(false);
   const [solicitado, setSolicitado] = useState(vocacional?.solicitacaoPendente ?? false);
 
+  // Opt-in do Mural: estado ELEVADO aqui porque o controle vive junto da Missão
+  // (na Travessia, embaixo) e o display vive no Mural (topo) — os dois reagem
+  // juntos ao alternar. Otimista com reversão.
+  const [muralExibir, setMuralExibir] = useState(travessia?.mural?.minhaExibicao ?? false);
+  const [muralSalvando, setMuralSalvando] = useState(false);
+  async function alternarMural() {
+    if (muralSalvando) return;
+    const novo = !muralExibir;
+    setMuralExibir(novo);
+    setMuralSalvando(true);
+    try {
+      const res = await fetch("/api/portal/travessia/mural", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optIn: novo }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setMuralExibir(!novo);
+    } finally {
+      setMuralSalvando(false);
+    }
+  }
+
   async function solicitarAcompanhamento() {
     setSolicitando(true);
     try {
@@ -255,11 +279,25 @@ export default function DashboardClient({
 
         {/* Mural de Frutos da turma — informação geral coletiva, no topo */}
         {travessia?.mural && (
-          <MuralSection muralInicial={travessia.mural} meusFrutos={travessia.frutosTotal} />
+          <MuralSection
+            muralInicial={travessia.mural}
+            meusFrutos={travessia.frutosTotal}
+            exibir={muralExibir}
+          />
         )}
 
-        {/* Trilha da Travessia (leitura) — herói, ocupa a largura toda */}
-        {travessia && <TravessiaCard travessia={travessia} />}
+        {/* Trilha da Travessia (leitura) — herói, ocupa a largura toda. O controle
+            "Aparecer no mural" é renderizado abaixo da Missão, dentro do card. */}
+        {travessia && (
+          <TravessiaCard
+            travessia={travessia}
+            muralOptIn={
+              travessia.mural
+                ? { exibir: muralExibir, salvando: muralSalvando, onToggle: alternarMural }
+                : null
+            }
+          />
+        )}
 
         {/* Encontros + Materiais lado a lado no desktop */}
         <div className="grid items-start gap-4 lg:grid-cols-2">

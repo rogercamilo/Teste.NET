@@ -11,6 +11,13 @@ import type {
   PortalTravessia, TravessiaLivro, TravessiaPartilha, TravessiaMissao,
 } from "@/lib/portal-data";
 import { gerarCardTravessia, legendaTravessia } from "./travessia-card-image";
+import { MuralOptInToggle } from "./TravessiaMural";
+
+interface MuralOptInControle {
+  exibir: boolean;
+  salvando: boolean;
+  onToggle: () => void;
+}
 
 // Glifos de marca (lucide removeu os ícones de Instagram/YouTube).
 function InstagramIcon({ className }: { className?: string }) {
@@ -46,7 +53,13 @@ const MARCO_CURTO: Record<string, string> = {
  * (gamificação aditiva). Estado otimista local, no mesmo espírito do RSVP do
  * dashboard: o clique reflete na hora e reconcilia com o servidor por baixo.
  */
-export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
+export function TravessiaCard({
+  travessia,
+  muralOptIn,
+}: {
+  travessia: PortalTravessia;
+  muralOptIn?: MuralOptInControle | null;
+}) {
   // Fonte da verdade da UI: capítulos lidos (otimista).
   const [lidos, setLidos] = useState<Set<string>>(
     () => new Set(travessia.livros.flatMap((l) => l.capitulos.filter((c) => c.lido).map((c) => c.id)))
@@ -80,6 +93,11 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
     partilhas.size * FRUTOS_POR_ACAO.partilha +
     (instagramFeito ? FRUTOS_POR_ACAO.evangelizacao_instagram : 0) +
     (youtubeFeito ? FRUTOS_POR_ACAO.evangelizacao_youtube : 0);
+  // Próximo marco ainda não atingido (para dar direção — "o que falta").
+  const proximoMarco = MARCOS_TRAVESSIA.find((m) => !(totalCapitulos > 0 && fracao >= m.fracao));
+  const capitulosParaProximo = proximoMarco
+    ? Math.max(1, Math.ceil(proximoMarco.fracao * totalCapitulos) - capitulosLidos)
+    : 0;
 
   async function toggle(capituloId: string, estaLido: boolean) {
     if (pendentes.has(capituloId)) return;
@@ -184,9 +202,28 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
           </div>
         </div>
 
-        {/* Marcos da travessia — barra de progresso + etapas rotuladas, para os
-            números terem contexto (não ficarem soltos). */}
-        <div className="space-y-3">
+        {/* Marcos da leitura — barra de progresso + etapas rotuladas, com contexto
+            do que cada uma significa e do que falta para a próxima. */}
+        <div className="space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+            <span className="text-sm font-semibold text-foreground">Marcos da leitura</span>
+            <span className="text-xs text-muted-foreground">
+              {proximoMarco ? (
+                <>
+                  Faltam{" "}
+                  <strong className="font-semibold text-primary">
+                    {capitulosParaProximo} {capitulosParaProximo === 1 ? "capítulo" : "capítulos"}
+                  </strong>{" "}
+                  para “{MARCO_CURTO[proximoMarco.chave]}”
+                </>
+              ) : (
+                <span className="font-medium text-primary">Travessia concluída! 🎉</span>
+              )}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Cada etapa acende conforme você lê os capítulos dos livros da sua turma.
+          </p>
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-all"
@@ -261,6 +298,15 @@ export function TravessiaCard({ travessia }: { travessia: PortalTravessia }) {
             setYoutubeUrl(url);
           }}
         />
+
+        {/* Controle do Mural — logo abaixo da Missão (o Mural em si fica no topo) */}
+        {muralOptIn && (
+          <MuralOptInToggle
+            exibir={muralOptIn.exibir}
+            salvando={muralOptIn.salvando}
+            onToggle={muralOptIn.onToggle}
+          />
+        )}
       </CardContent>
     </Card>
   );
