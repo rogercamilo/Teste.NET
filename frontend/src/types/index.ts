@@ -1111,8 +1111,11 @@ export type TipoAcaoLeitura =
 export const FRUTOS_POR_ACAO: Record<TipoAcaoLeitura, number> = {
   leitura: 1,
   partilha: 3,
-  evangelizacao_instagram: 5,
-  evangelizacao_youtube: 5,
+  // Evangelização é POR CAPÍTULO (uma vez por rede em cada capítulo). Valor
+  // enxuto para não ofuscar leitura/partilha — o histórico já lavrado mantém o
+  // valor da linha (mudanças aqui não reescrevem Frutos conquistados).
+  evangelizacao_instagram: 2,
+  evangelizacao_youtube: 2,
 };
 
 /** Marcos da trilha (frações do total de capítulos) e o rótulo comemorativo. */

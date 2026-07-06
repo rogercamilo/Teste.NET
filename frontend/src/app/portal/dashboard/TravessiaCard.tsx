@@ -4,11 +4,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Check, Sprout, Flag, Loader2, MessageSquareText, Heart, Pencil, Trash2, X,
-  Share2, Megaphone,
 } from "lucide-react";
 import { MARCOS_TRAVESSIA, FRUTOS_POR_ACAO } from "@/types";
 import type {
-  PortalTravessia, TravessiaLivro, TravessiaPartilha, TravessiaMissao,
+  PortalTravessia, TravessiaLivro, TravessiaPartilha, CapituloEvangelizacao,
 } from "@/lib/portal-data";
 import { MuralOptInToggle } from "./TravessiaMural";
 
@@ -74,11 +73,14 @@ export function TravessiaCard({
       )
   );
 
-  // Estado otimista da "Missão" (evangelização por rede).
-  const [instagramFeito, setInstagramFeito] = useState(travessia.missao.instagramFeito);
-  const [instagramUrl, setInstagramUrl] = useState<string | null>(travessia.missao.instagramUrl);
-  const [youtubeFeito, setYoutubeFeito] = useState(travessia.missao.youtubeFeito);
-  const [youtubeUrl, setYoutubeUrl] = useState<string | null>(travessia.missao.youtubeUrl);
+  // Evangelização POR CAPÍTULO (Instagram/YouTube) — estado otimista por capítulo,
+  // semeado do servidor. Cada rede rende Frutos uma vez em cada capítulo.
+  const [evangelizacoes, setEvangelizacoes] = useState<Map<string, CapituloEvangelizacao>>(
+    () =>
+      new Map(
+        travessia.livros.flatMap((l) => l.capitulos.map((c) => [c.id, c.evangelizacao] as const))
+      )
+  );
 
   const totalCapitulos = travessia.totalCapitulos;
   const capitulosLidos = lidos.size;
@@ -87,12 +89,17 @@ export function TravessiaCard({
   // "100%" só quando TUDO foi lido — arredondar mostraria 100% em 199/200
   // (Math.round(99.5)), contradizendo o marco de conclusão.
   const percentualGeral = completo ? 100 : Math.min(99, Math.round(fracao * 100));
-  // Frutos = leitura (1/capítulo) + partilha (3/capítulo) + evangelização (5/rede).
+  // Frutos de evangelização: soma por capítulo das redes registradas (2/rede).
+  let evangelizacaoFrutos = 0;
+  for (const e of evangelizacoes.values()) {
+    if (e.instagramFeito) evangelizacaoFrutos += FRUTOS_POR_ACAO.evangelizacao_instagram;
+    if (e.youtubeFeito) evangelizacaoFrutos += FRUTOS_POR_ACAO.evangelizacao_youtube;
+  }
+  // Frutos = leitura (1/capítulo) + partilha (3/capítulo) + evangelização (2/rede/capítulo).
   const frutosTotal =
     capitulosLidos * FRUTOS_POR_ACAO.leitura +
     partilhas.size * FRUTOS_POR_ACAO.partilha +
-    (instagramFeito ? FRUTOS_POR_ACAO.evangelizacao_instagram : 0) +
-    (youtubeFeito ? FRUTOS_POR_ACAO.evangelizacao_youtube : 0);
+    evangelizacaoFrutos;
   // Próximo marco ainda não atingido (para dar direção — "o que falta").
   const proximoMarco = MARCOS_TRAVESSIA.find((m) => !(totalCapitulos > 0 && fracao >= m.fracao));
   const capitulosParaProximo = proximoMarco
@@ -170,6 +177,70 @@ export function TravessiaCard({
       if (anterior) {
         setPartilhas((prev) => new Map(prev).set(capituloId, anterior));
       }
+    }
+  }
+
+  // Registra a divulgação de um capítulo numa rede. Só atualiza o estado no
+  // sucesso — o filho mostra o spinner enquanto aguarda e captura o erro.
+  async function registrarEvangelizacao(
+    capituloId: string,
+    rede: "instagram" | "youtube",
+    url: string | null
+  ) {
+    const res = await fetch(`/api/portal/travessia/capitulos/${capituloId}/evangelizacao`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // Link opcional (Instagram): só envia quando há algo.
+      body: JSON.stringify(url ? { rede, url } : { rede }),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error ?? "Falha ao registrar");
+    }
+    setEvangelizacoes((prev) => {
+      const next = new Map(prev);
+      const cur =
+        next.get(capituloId) ??
+        { instagramFeito: false, instagramUrl: null, youtubeFeito: false, youtubeUrl: null };
+      const upd = { ...cur };
+      if (rede === "instagram") {
+        upd.instagramFeito = true;
+        upd.instagramUrl = url;
+      } else {
+        upd.youtubeFeito = true;
+        upd.youtubeUrl = url;
+      }
+      next.set(capituloId, upd);
+      return next;
+    });
+  }
+
+  async function removerEvangelizacao(capituloId: string, rede: "instagram" | "youtube") {
+    const anterior = evangelizacoes.get(capituloId);
+    // Otimista.
+    setEvangelizacoes((prev) => {
+      const next = new Map(prev);
+      const cur = next.get(capituloId);
+      if (!cur) return prev;
+      const upd = { ...cur };
+      if (rede === "instagram") {
+        upd.instagramFeito = false;
+        upd.instagramUrl = null;
+      } else {
+        upd.youtubeFeito = false;
+        upd.youtubeUrl = null;
+      }
+      next.set(capituloId, upd);
+      return next;
+    });
+    try {
+      const res = await fetch(
+        `/api/portal/travessia/capitulos/${capituloId}/evangelizacao?rede=${rede}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error();
+    } catch {
+      if (anterior) setEvangelizacoes((prev) => new Map(prev).set(capituloId, anterior));
     }
   }
 
@@ -276,31 +347,18 @@ export function TravessiaCard({
               lidos={lidos}
               pendentes={pendentes}
               partilhas={partilhas}
+              evangelizacoes={evangelizacoes}
+              orgInstagram={travessia.orgInstagram}
               onToggle={toggle}
               onSalvarPartilha={salvarPartilha}
               onRemoverPartilha={removerPartilha}
+              onRegistrarEvangelizacao={registrarEvangelizacao}
+              onRemoverEvangelizacao={removerEvangelizacao}
             />
           ))}
         </div>
 
-        {/* Missão — abaixo da trilha, ocupando a largura toda */}
-        <MissaoSection
-          missao={travessia.missao}
-          instagramFeito={instagramFeito}
-          instagramUrl={instagramUrl}
-          youtubeFeito={youtubeFeito}
-          youtubeUrl={youtubeUrl}
-          onInstagram={(feito, url) => {
-            setInstagramFeito(feito);
-            setInstagramUrl(url);
-          }}
-          onYoutube={(feito, url) => {
-            setYoutubeFeito(feito);
-            setYoutubeUrl(url);
-          }}
-        />
-
-        {/* Controle do Mural — logo abaixo da Missão (o Mural em si fica no topo) */}
+        {/* Controle do Mural — logo abaixo da trilha (o Mural em si fica no topo) */}
         {muralOptIn && (
           <MuralOptInToggle
             exibir={muralOptIn.exibir}
@@ -318,17 +376,29 @@ function LivroTrilha({
   lidos,
   pendentes,
   partilhas,
+  evangelizacoes,
+  orgInstagram,
   onToggle,
   onSalvarPartilha,
   onRemoverPartilha,
+  onRegistrarEvangelizacao,
+  onRemoverEvangelizacao,
 }: {
   livro: TravessiaLivro;
   lidos: Set<string>;
   pendentes: Set<string>;
   partilhas: Map<string, TravessiaPartilha>;
+  evangelizacoes: Map<string, CapituloEvangelizacao>;
+  orgInstagram: string | null;
   onToggle: (capituloId: string, estaLido: boolean) => void;
   onSalvarPartilha: (capituloId: string, texto: string) => Promise<void>;
   onRemoverPartilha: (capituloId: string) => void;
+  onRegistrarEvangelizacao: (
+    capituloId: string,
+    rede: "instagram" | "youtube",
+    url: string | null
+  ) => Promise<void>;
+  onRemoverEvangelizacao: (capituloId: string, rede: "instagram" | "youtube") => void;
 }) {
   const lidosNoLivro = livro.capitulos.filter((c) => lidos.has(c.id)).length;
   const completoLivro = livro.totalCapitulos > 0 && lidosNoLivro === livro.totalCapitulos;
@@ -402,6 +472,20 @@ function LivroTrilha({
                   partilha={partilhas.get(cap.id) ?? null}
                   onSalvar={onSalvarPartilha}
                   onRemover={onRemoverPartilha}
+                />
+                <CapituloEvangelizacao
+                  capituloId={cap.id}
+                  evangelizacao={
+                    evangelizacoes.get(cap.id) ?? {
+                      instagramFeito: false,
+                      instagramUrl: null,
+                      youtubeFeito: false,
+                      youtubeUrl: null,
+                    }
+                  }
+                  orgInstagram={orgInstagram}
+                  onRegistrar={onRegistrarEvangelizacao}
+                  onRemover={onRemoverEvangelizacao}
                 />
               </div>
             </li>
@@ -547,280 +631,206 @@ function CapituloPartilha({
 }
 
 /**
- * Missão: leva a Travessia para fora. A prova vem da rede social PARA o portal — o
- * vocacionado registra que divulgou sua leitura e, se quiser, cola o link da
- * postagem (Instagram é opcional; YouTube exige o link do vídeo). Cada rede rende
- * 5 Frutos uma vez (crédito na confiança — o app não verifica a postagem). O @ da
- * comunidade é reforçado pelo formador no dia a dia.
+ * Evangelização de UM capítulo pelas redes (Instagram/YouTube). A prova flui da
+ * rede social PARA o portal: o vocacionado registra que divulgou aquele capítulo
+ * e, se quiser, cola o link (Instagram opcional; YouTube exige o link do vídeo).
+ * Cada rede rende Frutos uma vez por capítulo (crédito na confiança — sem prova).
+ * O @ da comunidade é reforçado pelo formador no dia a dia; aqui é só lembrete.
  */
-function MissaoSection({
-  missao,
-  instagramFeito,
-  instagramUrl,
-  youtubeFeito,
-  youtubeUrl,
-  onInstagram,
-  onYoutube,
+function CapituloEvangelizacao({
+  capituloId,
+  evangelizacao,
+  orgInstagram,
+  onRegistrar,
+  onRemover,
 }: {
-  missao: TravessiaMissao;
-  instagramFeito: boolean;
-  instagramUrl: string | null;
-  youtubeFeito: boolean;
-  youtubeUrl: string | null;
-  onInstagram: (feito: boolean, url: string | null) => void;
-  onYoutube: (feito: boolean, url: string | null) => void;
+  capituloId: string;
+  evangelizacao: CapituloEvangelizacao;
+  orgInstagram: string | null;
+  onRegistrar: (
+    capituloId: string,
+    rede: "instagram" | "youtube",
+    url: string | null
+  ) => Promise<void>;
+  onRemover: (capituloId: string, rede: "instagram" | "youtube") => void;
 }) {
-  const [igAberto, setIgAberto] = useState(false);
-  const [igRascunho, setIgRascunho] = useState("");
-  const [igSalvando, setIgSalvando] = useState(false);
-  const [igErro, setIgErro] = useState<string | null>(null);
-  const [ytAberto, setYtAberto] = useState(false);
-  const [ytRascunho, setYtRascunho] = useState("");
-  const [ytSalvando, setYtSalvando] = useState(false);
-  const [ytErro, setYtErro] = useState<string | null>(null);
+  const [aberto, setAberto] = useState<null | "instagram" | "youtube">(null);
+  const [rascunho, setRascunho] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  async function salvarInstagram() {
-    if (igSalvando) return;
-    const url = igRascunho.trim();
-    setIgSalvando(true);
-    setIgErro(null);
+  function abrir(rede: "instagram" | "youtube") {
+    setRascunho("");
+    setErro(null);
+    setAberto((atual) => (atual === rede ? null : rede));
+  }
+
+  async function salvar() {
+    if (!aberto || salvando) return;
+    const url = rascunho.trim();
+    // YouTube exige o link; Instagram é opcional.
+    if (aberto === "youtube" && !url) {
+      setErro("Cole o link do vídeo");
+      return;
+    }
+    setSalvando(true);
+    setErro(null);
     try {
-      const res = await fetch("/api/portal/travessia/evangelizacao", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // Link é OPCIONAL: só envia se o vocacionado colou algo.
-        body: JSON.stringify(url ? { rede: "instagram", url } : { rede: "instagram" }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error ?? "Falha ao registrar");
-      }
-      onInstagram(true, url || null);
-      setIgAberto(false);
-      setIgRascunho("");
+      await onRegistrar(capituloId, aberto, url || null);
+      setAberto(null);
+      setRascunho("");
     } catch (e) {
-      setIgErro(e instanceof Error ? e.message : "Falha ao registrar");
+      setErro(e instanceof Error ? e.message : "Falha ao registrar");
     } finally {
-      setIgSalvando(false);
+      setSalvando(false);
     }
   }
 
-  async function removerInstagram() {
-    const anterior = instagramUrl;
-    onInstagram(false, null); // otimista
-    try {
-      const res = await fetch("/api/portal/travessia/evangelizacao?rede=instagram", { method: "DELETE" });
-      if (!res.ok) throw new Error();
-    } catch {
-      onInstagram(true, anterior); // reverte se o servidor recusou
-    }
-  }
+  const igFeito = evangelizacao.instagramFeito;
+  const ytFeito = evangelizacao.youtubeFeito;
 
-  async function salvarYoutube() {
-    const url = ytRascunho.trim();
-    if (!url || ytSalvando) return;
-    setYtSalvando(true);
-    setYtErro(null);
-    try {
-      const res = await fetch("/api/portal/travessia/evangelizacao", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rede: "youtube", url }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error ?? "Falha ao salvar");
-      }
-      onYoutube(true, url);
-      setYtAberto(false);
-      setYtRascunho("");
-    } catch (e) {
-      setYtErro(e instanceof Error ? e.message : "Falha ao salvar");
-    } finally {
-      setYtSalvando(false);
-    }
-  }
-
-  async function removerYoutube() {
-    const anterior = youtubeUrl;
-    onYoutube(false, null); // otimista
-    try {
-      const res = await fetch("/api/portal/travessia/evangelizacao?rede=youtube", { method: "DELETE" });
-      if (!res.ok) throw new Error();
-    } catch {
-      onYoutube(true, anterior); // reverte se o servidor recusou
-    }
-  }
+  const pill =
+    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors";
+  const pillOcioso = "text-muted-foreground hover:border-primary/50 hover:text-primary";
+  const pillAtivo = "border-primary/60 text-primary";
 
   return (
-    <section className="space-y-3 rounded-lg border border-primary/20 bg-primary/[0.03] p-4">
-      <div className="flex items-center gap-2">
-        <Megaphone className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold">Missão — leve sua Travessia adiante</h3>
+    <div className="mt-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {igFeito ? (
+          <RedeFeitaChip
+            rede="instagram"
+            url={evangelizacao.instagramUrl}
+            onRemover={() => onRemover(capituloId, "instagram")}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => abrir("instagram")}
+            aria-pressed={aberto === "instagram"}
+            className={pill + " " + (aberto === "instagram" ? pillAtivo : pillOcioso)}
+          >
+            <InstagramIcon className="h-3 w-3" /> Instagram
+          </button>
+        )}
+
+        {ytFeito ? (
+          <RedeFeitaChip
+            rede="youtube"
+            url={evangelizacao.youtubeUrl}
+            onRemover={() => onRemover(capituloId, "youtube")}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => abrir("youtube")}
+            aria-pressed={aberto === "youtube"}
+            className={pill + " " + (aberto === "youtube" ? pillAtivo : pillOcioso)}
+          >
+            <YoutubeIcon className="h-3 w-3" /> YouTube
+          </button>
+        )}
+
+        {(!igFeito || !ytFeito) && !aberto && (
+          <span className="text-[11px] text-muted-foreground">
+            · divulgue este capítulo (+2 Frutos por rede)
+          </span>
+        )}
       </div>
-      <p className="text-xs text-muted-foreground">
-        Compartilhe sua leitura e some <strong>5 Frutos</strong> por rede. Cada rede conta uma vez.
-      </p>
 
-      {/* Instagram + YouTube lado a lado (a Missão agora ocupa a largura toda) */}
-      <div className="grid gap-3 md:grid-cols-2 md:items-start">
-        {/* Instagram — link da postagem OPCIONAL (rede social → portal) */}
-        <div className="rounded-md border bg-card px-3 py-2.5">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <InstagramIcon className="h-4 w-4 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">Instagram</p>
-              <p className="text-xs text-muted-foreground">
-                {instagramFeito
-                  ? "Postagem registrada · +5 Frutos"
-                  : missao.orgInstagram
-                    ? `Registre sua postagem e marque @${missao.orgInstagram}`
-                    : "Registre sua postagem sobre a leitura"}
-              </p>
-            </div>
-            {instagramFeito ? (
-              <button
-                type="button"
-                onClick={removerInstagram}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Remover
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setIgAberto((v) => !v)}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-              >
-                <Share2 className="h-3.5 w-3.5" /> Registrar postagem
-              </button>
-            )}
-          </div>
-
-          {instagramFeito && instagramUrl && (
-            <a
-              href={instagramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block truncate text-xs text-primary underline underline-offset-2"
-            >
-              {instagramUrl}
-            </a>
-          )}
-
-          {igAberto && !instagramFeito && (
-            <div className="mt-2.5">
-              <input
-                type="url"
-                value={igRascunho}
-                onChange={(e) => setIgRascunho(e.target.value)}
-                placeholder="https://instagram.com/p/… (opcional)"
-                autoFocus
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary/60"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
+      {aberto && (
+        <div className="mt-1.5">
+          <input
+            type="url"
+            value={rascunho}
+            onChange={(e) => setRascunho(e.target.value)}
+            placeholder={
+              aberto === "instagram"
+                ? "https://instagram.com/p/… (opcional)"
+                : "https://youtube.com/watch?v=…"
+            }
+            autoFocus
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary/60"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {aberto === "instagram" ? (
+              <>
                 O link é opcional
-                {missao.orgInstagram ? ` — lembre de marcar @${missao.orgInstagram} na postagem` : ""}.
-              </p>
-              {igErro && <p className="mt-1 text-xs text-destructive">{igErro}</p>}
-              <div className="mt-1.5 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={salvarInstagram}
-                  disabled={igSalvando}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
-                >
-                  {igSalvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                  Confirmar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIgAberto(false)}
-                  disabled={igSalvando}
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3.5 w-3.5" /> Cancelar
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* YouTube */}
-        <div className="rounded-md border bg-card px-3 py-2.5">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <YoutubeIcon className="h-4 w-4 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">YouTube</p>
-              <p className="text-xs text-muted-foreground">
-                {youtubeFeito ? "Vídeo registrado · +5 Frutos" : "Cole o link de um vídeo sobre sua leitura"}
-              </p>
-            </div>
-            {youtubeFeito ? (
-              <button
-                type="button"
-                onClick={removerYoutube}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Remover
-              </button>
+                {orgInstagram ? ` — lembre de marcar @${orgInstagram} na postagem` : ""}.
+              </>
             ) : (
-              <button
-                type="button"
-                onClick={() => setYtAberto((v) => !v)}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-              >
-                <Share2 className="h-3.5 w-3.5" /> Registrar vídeo
-              </button>
+              "Cole o link do vídeo sobre este capítulo."
             )}
-          </div>
-
-          {youtubeFeito && youtubeUrl && (
-            <a
-              href={youtubeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block truncate text-xs text-primary underline underline-offset-2"
+          </p>
+          {erro && <p className="mt-1 text-xs text-destructive">{erro}</p>}
+          <div className="mt-1.5 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={salvar}
+              disabled={salvando}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
             >
-              {youtubeUrl}
-            </a>
-          )}
-
-          {ytAberto && !youtubeFeito && (
-            <div className="mt-2.5">
-              <input
-                type="url"
-                value={ytRascunho}
-                onChange={(e) => setYtRascunho(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                autoFocus
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary/60"
-              />
-              {ytErro && <p className="mt-1 text-xs text-destructive">{ytErro}</p>}
-              <div className="mt-1.5 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={salvarYoutube}
-                  disabled={ytSalvando || !ytRascunho.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
-                >
-                  {ytSalvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                  Salvar link
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setYtAberto(false)}
-                  disabled={ytSalvando}
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3.5 w-3.5" /> Cancelar
-                </button>
-              </div>
-            </div>
-          )}
+              {salvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Confirmar
+            </button>
+            <button
+              type="button"
+              onClick={() => setAberto(null)}
+              disabled={salvando}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" /> Cancelar
+            </button>
+          </div>
         </div>
-      </div>
-    </section>
+      )}
+    </div>
   );
 }
 
+/**
+ * Chip compacto de uma rede já registrada num capítulo: ícone + rótulo (link
+ * quando informado) + selo de concluído + ação de remover.
+ */
+function RedeFeitaChip({
+  rede,
+  url,
+  onRemover,
+}: {
+  rede: "instagram" | "youtube";
+  url: string | null;
+  onRemover: () => void;
+}) {
+  const label = rede === "instagram" ? "Instagram" : "YouTube";
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/5 px-2 py-0.5 text-xs text-primary">
+      {rede === "instagram" ? (
+        <InstagramIcon className="h-3 w-3" />
+      ) : (
+        <YoutubeIcon className="h-3 w-3" />
+      )}
+      {url ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2"
+        >
+          {label}
+        </a>
+      ) : (
+        <span>{label}</span>
+      )}
+      <Check className="h-3 w-3" />
+      <button
+        type="button"
+        onClick={onRemover}
+        aria-label={`Remover registro no ${label}`}
+        title="Remover"
+        className="ml-0.5 text-primary/70 hover:text-destructive"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}

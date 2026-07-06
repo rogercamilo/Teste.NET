@@ -226,6 +226,18 @@ export interface TravessiaPartilha {
   formadorNota: string | null;
 }
 
+/**
+ * Evangelização de UM capítulo pelas redes. Cada rede rende Fruto uma vez por
+ * capítulo (crédito na confiança — sem prova). O link é opcional no Instagram e
+ * obrigatório no YouTube; guardamos o que o vocacionado colou, quando colou.
+ */
+export interface CapituloEvangelizacao {
+  instagramFeito: boolean;
+  instagramUrl: string | null;
+  youtubeFeito: boolean;
+  youtubeUrl: string | null;
+}
+
 export interface TravessiaCapitulo {
   id: string;
   numero: number;
@@ -233,6 +245,8 @@ export interface TravessiaCapitulo {
   lido: boolean;
   // Partilha do vocacionado sobre este capítulo (null quando não partilhou).
   partilha: TravessiaPartilha | null;
+  // Registro de divulgação nas redes deste capítulo (Instagram/YouTube).
+  evangelizacao: CapituloEvangelizacao;
 }
 
 export interface TravessiaLivro {
@@ -246,20 +260,6 @@ export interface TravessiaLivro {
   percentual: number;
 }
 
-/**
- * Estado da "Missão": evangelização da leitura pelas redes. Cada rede rende Fruto
- * uma vez por travessia (crédito na confiança — sem prova). `orgInstagram`/
- * `orgYoutube` são as redes da comunidade a sugerir no card / botão.
- */
-export interface TravessiaMissao {
-  instagramFeito: boolean;
-  instagramUrl: string | null;
-  youtubeFeito: boolean;
-  youtubeUrl: string | null;
-  orgInstagram: string | null;
-  orgYoutube: string | null;
-  orgNome: string;
-}
 
 /** Participante que optou por aparecer no Mural de Frutos (sem ranking). */
 export interface MuralParticipante {
@@ -288,7 +288,9 @@ export interface PortalTravessia {
   percentualGeral: number;
   // Marcos atingidos no agregado da trilha (¼, ½, ¾, 100%).
   marcos: { um_quarto: boolean; metade: boolean; tres_quartos: boolean; completo: boolean };
-  missao: TravessiaMissao;
+  // @ do Instagram da comunidade — dica exibida ao registrar a postagem de cada
+  // capítulo (o formador reforça o uso no dia a dia). null quando não configurado.
+  orgInstagram: string | null;
   // Presente só quando o Mural está ligado na turma; caso contrário, null.
   mural: TravessiaMural | null;
 }
@@ -341,21 +343,11 @@ export async function getPortalTravessia(
     }),
     prisma.organizacao.findUnique({
       where: { id: organizacaoId },
-      select: { nome: true, instagramHandle: true, youtubeUrl: true },
+      select: { instagramHandle: true },
     }),
   ]);
 
   if (livros.length === 0) return null;
-
-  const missao: TravessiaMissao = {
-    instagramFeito: acoes.some((a) => a.tipo === "evangelizacao_instagram"),
-    instagramUrl: acoes.find((a) => a.tipo === "evangelizacao_instagram")?.texto ?? null,
-    youtubeFeito: acoes.some((a) => a.tipo === "evangelizacao_youtube"),
-    youtubeUrl: acoes.find((a) => a.tipo === "evangelizacao_youtube")?.texto ?? null,
-    orgInstagram: org?.instagramHandle ?? null,
-    orgYoutube: org?.youtubeUrl ?? null,
-    orgNome: org?.nome ?? "",
-  };
 
   // Mural de Frutos — só quando o formador ligou na turma.
   const mural = formando.grupoFormacao?.muralFrutosAtivo
@@ -371,6 +363,23 @@ export async function getPortalTravessia(
         { texto: a.texto as string, formadorCurtiu: a.formadorCurtiu, formadorNota: a.formadorNota },
       ])
   );
+  // Evangelização por capítulo (Instagram/YouTube). Uma linha por rede/capítulo.
+  const evangelizacaoPorCapitulo = new Map<string, CapituloEvangelizacao>();
+  for (const a of acoes) {
+    if (!a.capituloId) continue;
+    if (a.tipo !== "evangelizacao_instagram" && a.tipo !== "evangelizacao_youtube") continue;
+    const atual =
+      evangelizacaoPorCapitulo.get(a.capituloId) ??
+      { instagramFeito: false, instagramUrl: null, youtubeFeito: false, youtubeUrl: null };
+    if (a.tipo === "evangelizacao_instagram") {
+      atual.instagramFeito = true;
+      atual.instagramUrl = a.texto ?? null;
+    } else {
+      atual.youtubeFeito = true;
+      atual.youtubeUrl = a.texto ?? null;
+    }
+    evangelizacaoPorCapitulo.set(a.capituloId, atual);
+  }
   // Frutos = soma de todas as ações (leitura + partilha), valor fixado por linha.
   const frutosTotal = acoes.reduce((s, a) => s + a.frutos, 0);
 
@@ -383,6 +392,9 @@ export async function getPortalTravessia(
       titulo: c.titulo,
       lido: lidos.has(c.id),
       partilha: partilhaPorCapitulo.get(c.id) ?? null,
+      evangelizacao:
+        evangelizacaoPorCapitulo.get(c.id) ??
+        { instagramFeito: false, instagramUrl: null, youtubeFeito: false, youtubeUrl: null },
     }));
     const lidosNoLivro = capitulos.filter((c) => c.lido).length;
     totalCapitulos += capitulos.length;
@@ -415,7 +427,7 @@ export async function getPortalTravessia(
       tres_quartos: fracao >= 0.75,
       completo: totalCapitulos > 0 && capitulosLidos === totalCapitulos,
     },
-    missao,
+    orgInstagram: org?.instagramHandle ?? null,
     mural,
   };
 }
