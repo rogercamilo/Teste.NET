@@ -283,7 +283,7 @@ export default function DashboardClient({
         </div>
 
         {/* Faixa comunitária — o que vem aí + quem celebrar (sentido de família) */}
-        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="grid items-stretch gap-4 lg:grid-cols-2">
           {/* Próximos encontros */}
           <Card>
             <CardHeader>
@@ -334,7 +334,7 @@ export default function DashboardClient({
         )}
 
         {/* Materiais + Histórico lado a lado no desktop */}
-        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="grid items-stretch gap-4 lg:grid-cols-2">
           {/* Materiais das formações já realizadas */}
           <Card>
             <CardHeader>
