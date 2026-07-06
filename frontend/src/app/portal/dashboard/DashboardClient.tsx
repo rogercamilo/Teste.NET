@@ -40,6 +40,7 @@ import type {
 import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
 import { PortalNotificacoesCard } from "./PortalNotificacoesCard";
 import { TravessiaCard } from "./TravessiaCard";
+import { EtapaCard } from "./EtapaCard";
 import { MuralSection } from "./TravessiaMural";
 
 function ProgressoBar({ value, max }: { value: number; max: number }) {
@@ -249,34 +250,8 @@ export default function DashboardClient({
             </Card>
           )}
 
-          {/* Progresso da etapa (formando; não se aplica ao período vocacional) */}
-          {progresso && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                  Minha etapa
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col justify-center gap-4">
-                <ProgressoLinha
-                  label="Formações comunitárias"
-                  value={progresso.formacoesComunitariasRealizadas}
-                  max={progresso.requisitos.formacoesComunitarias}
-                />
-                <ProgressoLinha
-                  label="Retiros comunitários"
-                  value={progresso.retirosComunitariosRealizados}
-                  max={progresso.requisitos.retirosComunitarios}
-                />
-                <ProgressoLinha
-                  label="Retiros pessoais"
-                  value={progresso.retirosPessoaisRealizados}
-                  max={progresso.requisitos.retirosPessoais}
-                />
-              </CardContent>
-            </Card>
-          )}
+          {/* A etapa do formando virou herói de largura total abaixo (EtapaCard),
+              espelhando a Travessia do vocacionado — fora da faixa compacta. */}
 
           {/* Notificações push — ativar/desativar neste aparelho */}
           <PortalNotificacoesCard />
@@ -310,6 +285,13 @@ export default function DashboardClient({
           {/* Aniversariantes do mês — sentido de família da turma */}
           <AniversariantesCard aniversariantes={aniversariantes} />
         </div>
+
+        {/* Etapa formativa do formando — herói de largura total, mesma estrutura
+            de apresentação da Travessia. Mutuamente exclusivo com a trilha
+            (progresso é do formando; travessia é do vocacionado). */}
+        {progresso && (
+          <EtapaCard progresso={progresso} nivelFormativo={formando.nivelFormativo} />
+        )}
 
         {/* Mural de Frutos da turma — informação geral coletiva, no topo */}
         {travessia?.mural && (
@@ -441,28 +423,6 @@ function AniversariantesCard({ aniversariantes }: { aniversariantes: PortalAnive
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function ProgressoLinha({
-  label,
-  value,
-  max,
-}: {
-  label: string;
-  value: number;
-  max: number;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-foreground">{label}</span>
-        <span className="tabular-nums text-muted-foreground">
-          {value}/{max}
-        </span>
-      </div>
-      <ProgressoBar value={value} max={max} />
-    </div>
   );
 }
 
