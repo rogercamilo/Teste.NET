@@ -4,13 +4,12 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Check, Sprout, Flag, Loader2, MessageSquareText, Heart, Pencil, Trash2, X,
-  Share2, Megaphone, Download, Copy,
+  Share2, Megaphone,
 } from "lucide-react";
 import { MARCOS_TRAVESSIA, FRUTOS_POR_ACAO } from "@/types";
 import type {
   PortalTravessia, TravessiaLivro, TravessiaPartilha, TravessiaMissao,
 } from "@/lib/portal-data";
-import { gerarCardTravessia, legendaTravessia } from "./travessia-card-image";
 import { MuralOptInToggle } from "./TravessiaMural";
 
 interface MuralOptInControle {
@@ -77,6 +76,7 @@ export function TravessiaCard({
 
   // Estado otimista da "Missão" (evangelização por rede).
   const [instagramFeito, setInstagramFeito] = useState(travessia.missao.instagramFeito);
+  const [instagramUrl, setInstagramUrl] = useState<string | null>(travessia.missao.instagramUrl);
   const [youtubeFeito, setYoutubeFeito] = useState(travessia.missao.youtubeFeito);
   const [youtubeUrl, setYoutubeUrl] = useState<string | null>(travessia.missao.youtubeUrl);
 
@@ -286,13 +286,14 @@ export function TravessiaCard({
         {/* Missão — abaixo da trilha, ocupando a largura toda */}
         <MissaoSection
           missao={travessia.missao}
-          frutos={frutosTotal}
-          capitulosLidos={capitulosLidos}
-          totalCapitulos={totalCapitulos}
           instagramFeito={instagramFeito}
+          instagramUrl={instagramUrl}
           youtubeFeito={youtubeFeito}
           youtubeUrl={youtubeUrl}
-          onInstagram={setInstagramFeito}
+          onInstagram={(feito, url) => {
+            setInstagramFeito(feito);
+            setInstagramUrl(url);
+          }}
           onYoutube={(feito, url) => {
             setYoutubeFeito(feito);
             setYoutubeUrl(url);
@@ -546,92 +547,72 @@ function CapituloPartilha({
 }
 
 /**
- * Missão: leva a Travessia para fora. O vocacionado compartilha sua leitura no
- * Instagram (card on-brand + share nativo, sugerindo o @ da comunidade) ou cola o
- * link de um vídeo no YouTube. Cada rede rende 5 Frutos uma vez (crédito na
- * confiança — o app não verifica a postagem).
+ * Missão: leva a Travessia para fora. A prova vem da rede social PARA o portal — o
+ * vocacionado registra que divulgou sua leitura e, se quiser, cola o link da
+ * postagem (Instagram é opcional; YouTube exige o link do vídeo). Cada rede rende
+ * 5 Frutos uma vez (crédito na confiança — o app não verifica a postagem). O @ da
+ * comunidade é reforçado pelo formador no dia a dia.
  */
 function MissaoSection({
   missao,
-  frutos,
-  capitulosLidos,
-  totalCapitulos,
   instagramFeito,
+  instagramUrl,
   youtubeFeito,
   youtubeUrl,
   onInstagram,
   onYoutube,
 }: {
   missao: TravessiaMissao;
-  frutos: number;
-  capitulosLidos: number;
-  totalCapitulos: number;
   instagramFeito: boolean;
+  instagramUrl: string | null;
   youtubeFeito: boolean;
   youtubeUrl: string | null;
-  onInstagram: (feito: boolean) => void;
+  onInstagram: (feito: boolean, url: string | null) => void;
   onYoutube: (feito: boolean, url: string | null) => void;
 }) {
-  const [compartilhando, setCompartilhando] = useState(false);
-  const [fallback, setFallback] = useState<{ url: string; legenda: string } | null>(null);
+  const [igAberto, setIgAberto] = useState(false);
+  const [igRascunho, setIgRascunho] = useState("");
+  const [igSalvando, setIgSalvando] = useState(false);
+  const [igErro, setIgErro] = useState<string | null>(null);
   const [ytAberto, setYtAberto] = useState(false);
   const [ytRascunho, setYtRascunho] = useState("");
   const [ytSalvando, setYtSalvando] = useState(false);
   const [ytErro, setYtErro] = useState<string | null>(null);
 
-  const dadosCard = {
-    orgNome: missao.orgNome,
-    instagramHandle: missao.orgInstagram,
-    frutos,
-    capitulosLidos,
-    totalCapitulos,
-  };
-
-  async function registrarInstagram() {
-    const res = await fetch("/api/portal/travessia/evangelizacao", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rede: "instagram" }),
-    });
-    if (res.ok) onInstagram(true);
-  }
-
-  async function compartilharInstagram() {
-    if (compartilhando) return;
-    setCompartilhando(true);
+  async function salvarInstagram() {
+    if (igSalvando) return;
+    const url = igRascunho.trim();
+    setIgSalvando(true);
+    setIgErro(null);
     try {
-      const blob = await gerarCardTravessia(dadosCard);
-      const legenda = legendaTravessia(dadosCard);
-      if (!blob) throw new Error("card");
-      const file = new File([blob], "minha-travessia.png", { type: "image/png" });
-
-      // Caminho feliz: share nativo com o arquivo (mobile). Ao concluir, credita.
-      const nav = navigator as Navigator & { canShare?: (d?: ShareData) => boolean };
-      if (nav.canShare?.({ files: [file] }) && navigator.share) {
-        await navigator.share({ files: [file], text: legenda });
-        await registrarInstagram();
-      } else {
-        // Fallback (desktop): mostra o card para baixar + legenda para copiar.
-        // Revoga um object URL anterior antes de trocar (evita vazamento).
-        setFallback((prev) => {
-          if (prev) URL.revokeObjectURL(prev.url);
-          return { url: URL.createObjectURL(blob), legenda };
-        });
+      const res = await fetch("/api/portal/travessia/evangelizacao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Link é OPCIONAL: só envia se o vocacionado colou algo.
+        body: JSON.stringify(url ? { rede: "instagram", url } : { rede: "instagram" }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? "Falha ao registrar");
       }
-    } catch {
-      // AbortError (usuário cancelou o share) cai aqui silenciosamente.
+      onInstagram(true, url || null);
+      setIgAberto(false);
+      setIgRascunho("");
+    } catch (e) {
+      setIgErro(e instanceof Error ? e.message : "Falha ao registrar");
     } finally {
-      setCompartilhando(false);
+      setIgSalvando(false);
     }
   }
 
   async function removerInstagram() {
-    onInstagram(false); // otimista
+    const anterior = instagramUrl;
+    onInstagram(false, null); // otimista
     try {
       const res = await fetch("/api/portal/travessia/evangelizacao?rede=instagram", { method: "DELETE" });
       if (!res.ok) throw new Error();
     } catch {
-      onInstagram(true); // reverte se o servidor recusou
+      onInstagram(true, anterior); // reverte se o servidor recusou
     }
   }
 
@@ -683,39 +664,85 @@ function MissaoSection({
 
       {/* Instagram + YouTube lado a lado (a Missão agora ocupa a largura toda) */}
       <div className="grid gap-3 md:grid-cols-2 md:items-start">
-        {/* Instagram */}
-        <div className="flex flex-wrap items-center gap-2.5 rounded-md border bg-card px-3 py-2.5">
-          <InstagramIcon className="h-4 w-4 shrink-0 text-primary" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">Instagram</p>
-            <p className="text-xs text-muted-foreground">
-              {instagramFeito
-                ? "Card compartilhado · +5 Frutos"
-                : missao.orgInstagram
-                  ? `Gere um card e marque @${missao.orgInstagram}`
-                  : "Gere um card da sua Travessia"}
-            </p>
+        {/* Instagram — link da postagem OPCIONAL (rede social → portal) */}
+        <div className="rounded-md border bg-card px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <InstagramIcon className="h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Instagram</p>
+              <p className="text-xs text-muted-foreground">
+                {instagramFeito
+                  ? "Postagem registrada · +5 Frutos"
+                  : missao.orgInstagram
+                    ? `Registre sua postagem e marque @${missao.orgInstagram}`
+                    : "Registre sua postagem sobre a leitura"}
+              </p>
+            </div>
+            {instagramFeito ? (
+              <button
+                type="button"
+                onClick={removerInstagram}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remover
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIgAberto((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+              >
+                <Share2 className="h-3.5 w-3.5" /> Registrar postagem
+              </button>
+            )}
           </div>
-          {instagramFeito ? (
-            <button
-              type="button"
-              onClick={removerInstagram}
-              title="Desfazer"
-              aria-label="Desfazer compartilhamento no Instagram"
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
+
+          {instagramFeito && instagramUrl && (
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 block truncate text-xs text-primary underline underline-offset-2"
             >
-              <Check className="h-3.5 w-3.5 text-primary" /> Feito
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={compartilharInstagram}
-              disabled={compartilhando}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
-            >
-              {compartilhando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-              Compartilhar
-            </button>
+              {instagramUrl}
+            </a>
+          )}
+
+          {igAberto && !instagramFeito && (
+            <div className="mt-2.5">
+              <input
+                type="url"
+                value={igRascunho}
+                onChange={(e) => setIgRascunho(e.target.value)}
+                placeholder="https://instagram.com/p/… (opcional)"
+                autoFocus
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary/60"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                O link é opcional
+                {missao.orgInstagram ? ` — lembre de marcar @${missao.orgInstagram} na postagem` : ""}.
+              </p>
+              {igErro && <p className="mt-1 text-xs text-destructive">{igErro}</p>}
+              <div className="mt-1.5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={salvarInstagram}
+                  disabled={igSalvando}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  {igSalvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Confirmar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIgAberto(false)}
+                  disabled={igSalvando}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancelar
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
@@ -793,47 +820,6 @@ function MissaoSection({
           )}
         </div>
       </div>
-
-      {/* Fallback desktop: baixar card + copiar legenda (largura toda) */}
-      {fallback && !instagramFeito && (
-        <div className="space-y-2 rounded-md border border-primary/30 bg-card p-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={fallback.url} alt="Card da sua Travessia" className="mx-auto w-40 rounded-md" />
-          <p className="text-xs text-muted-foreground">
-            Baixe o card e publique no seu Instagram
-            {missao.orgInstagram ? `, marcando @${missao.orgInstagram}` : ""}. Depois, confirme abaixo.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={fallback.url}
-              download="minha-travessia.png"
-              className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
-            >
-              <Download className="h-3.5 w-3.5" /> Baixar card
-            </a>
-            <button
-              type="button"
-              onClick={() => navigator.clipboard?.writeText(fallback.legenda).catch(() => {})}
-              className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
-            >
-              <Copy className="h-3.5 w-3.5" /> Copiar legenda
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await registrarInstagram();
-                setFallback((prev) => {
-                  if (prev) URL.revokeObjectURL(prev.url);
-                  return null;
-                });
-              }}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-            >
-              <Check className="h-3.5 w-3.5" /> Já compartilhei
-            </button>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

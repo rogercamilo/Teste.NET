@@ -237,19 +237,28 @@ export const ReacaoPartilhaSchema = z
 export const EvangelizacaoSchema = z
   .object({
     rede: z.enum(["instagram", "youtube"]),
-    url: z
-      .string()
-      .trim()
-      .max(300, "Link muito longo")
-      .refine((v) => /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(v), {
-        message: "Informe um link do YouTube",
-      })
-      .optional(),
+    url: z.string().trim().max(300, "Link muito longo").optional(),
   })
+  // YouTube: link obrigatório e do próprio YouTube.
   .refine((v) => v.rede !== "youtube" || !!v.url, {
     message: "Informe o link do vídeo no YouTube",
     path: ["url"],
-  });
+  })
+  .refine(
+    (v) =>
+      v.rede !== "youtube" ||
+      !v.url ||
+      /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(v.url),
+    { message: "Informe um link do YouTube", path: ["url"] }
+  )
+  // Instagram: link OPCIONAL (o vocacionado compartilha se quiser); se vier, do Instagram.
+  .refine(
+    (v) =>
+      v.rede !== "instagram" ||
+      !v.url ||
+      /^https?:\/\/(www\.)?(instagram\.com|instagr\.am)\//i.test(v.url),
+    { message: "Informe um link do Instagram", path: ["url"] }
+  );
 
 // Opt-in do vocacionado no Mural de Frutos da turma.
 export const MuralOptInSchema = z.object({ optIn: z.boolean() });

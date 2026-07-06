@@ -8,8 +8,9 @@ import type { TipoAcaoLeitura } from "@/types";
 
 /**
  * Evangelização da Travessia: o vocacionado registra ter divulgado sua leitura no
- * Instagram (card on-brand + share nativo — sem prova, crédito na confiança) ou no
- * YouTube (link do vídeo). Rende Fruto UMA VEZ por rede na travessia inteira.
+ * Instagram (link da postagem OPCIONAL — compartilha se quiser; crédito na confiança)
+ * ou no YouTube (link do vídeo, obrigatório). Rende Fruto UMA VEZ por rede na
+ * travessia inteira. O @ da comunidade é reforçado pelo formador no dia a dia.
  *
  * A ação não é por capítulo (`capituloId` nulo); é ancorada ao PRIMEIRO livro
  * ativo da turma só para satisfazer a FK e manter o escopo org+turma dos Frutos.
@@ -77,7 +78,8 @@ export async function POST(request: Request) {
     });
 
     if (existente) {
-      if (rede === "youtube" && url) {
+      // Idempotente: atualiza o link (YouTube ou Instagram) se veio um; nunca duplica o Fruto.
+      if (url) {
         await prisma.acaoLeitura.update({ where: { id: existente.id }, data: { texto: url } });
       }
       return NextResponse.json({ ok: true, jaRegistrado: true });
@@ -91,7 +93,8 @@ export async function POST(request: Request) {
         capituloId: null,
         tipo,
         frutos: FRUTOS_POR_ACAO[tipo],
-        texto: rede === "youtube" ? url ?? null : null,
+        // Link da postagem/vídeo. Instagram é opcional (pode ser null).
+        texto: url ?? null,
       },
     });
 

@@ -253,6 +253,7 @@ export interface TravessiaLivro {
  */
 export interface TravessiaMissao {
   instagramFeito: boolean;
+  instagramUrl: string | null;
   youtubeFeito: boolean;
   youtubeUrl: string | null;
   orgInstagram: string | null;
@@ -348,6 +349,7 @@ export async function getPortalTravessia(
 
   const missao: TravessiaMissao = {
     instagramFeito: acoes.some((a) => a.tipo === "evangelizacao_instagram"),
+    instagramUrl: acoes.find((a) => a.tipo === "evangelizacao_instagram")?.texto ?? null,
     youtubeFeito: acoes.some((a) => a.tipo === "evangelizacao_youtube"),
     youtubeUrl: acoes.find((a) => a.tipo === "evangelizacao_youtube")?.texto ?? null,
     orgInstagram: org?.instagramHandle ?? null,
