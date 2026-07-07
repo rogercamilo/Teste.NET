@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   CalendarDays,
   CheckCircle2,
@@ -42,6 +43,25 @@ import { PortalNotificacoesCard } from "./PortalNotificacoesCard";
 import { TravessiaCard } from "./TravessiaCard";
 import { EtapaCard } from "./EtapaCard";
 import { MuralSection } from "./TravessiaMural";
+
+// Mesmo padrão visual da identificação do formando no app (FormandosClient):
+// iniciais + cor de fundo por nível formativo quando não há foto.
+const NIVEL_AVATAR_BG: Record<string, string> = {
+  "pre-discipulado": "bg-violet-100 text-violet-700",
+  discipulado: "bg-blue-100 text-blue-700",
+  "primeiras-promessas": "bg-emerald-100 text-emerald-700",
+  "formacao-permanente": "bg-amber-100 text-amber-700",
+  vocacional: "bg-rose-100 text-rose-700",
+};
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+}
 
 function ProgressoBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
@@ -181,15 +201,27 @@ export default function DashboardClient({
 
       <main className="mx-auto max-w-6xl space-y-4 px-4 py-6">
         {/* Saudação */}
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Olá, {primeiroNome}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            <span className="mr-1">{NIVEL_FORMATIVO_ICONS[formando.nivelFormativo]}</span>
-            {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
-            {formando.grupoFormacao && (
-              <> · Grupo {formando.grupoFormacao.nome}</>
+        <div className="flex items-center gap-3">
+          <Avatar size="lg" className="h-12 w-12 shrink-0">
+            {formando.fotoUrl && (
+              <AvatarImage src={formando.fotoUrl} alt={formando.nome} />
             )}
-          </p>
+            <AvatarFallback
+              className={`font-semibold ${NIVEL_AVATAR_BG[formando.nivelFormativo] ?? "bg-muted"}`}
+            >
+              {getInitials(formando.nome)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-foreground">Olá, {primeiroNome}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              <span className="mr-1">{NIVEL_FORMATIVO_ICONS[formando.nivelFormativo]}</span>
+              {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
+              {formando.grupoFormacao && (
+                <> · Grupo {formando.grupoFormacao.nome}</>
+              )}
+            </p>
+          </div>
         </div>
 
         {/* Faixa de status (cards compactos lado a lado, mesma altura no desktop) */}

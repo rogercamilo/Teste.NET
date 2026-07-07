@@ -3,6 +3,32 @@ import { prisma } from "@/lib/prisma";
 import { REQUISITOS_ETAPAS } from "@/types";
 import type { NivelFormativo, TipoFormacao } from "@/types";
 import type { PortalAudiencia } from "@/lib/portal-routes";
+import { R2_ENABLED, getImageR2Url, readLocalFile } from "@/lib/storage";
+
+/**
+ * Resolve o campo `foto` do formando (base64 legado, key R2 ou key local) em um
+ * src pronto para `<img>` DENTRO do portal. O portal usa sessão própria
+ * (`portal_session`) e não a sessão do app, então não pode consumir
+ * `/api/imagens/serve` (que exige `auth()`). Por isso a foto é entregue já
+ * resolvida pelo servidor, como os demais dados: base64 volta direto; R2 vira
+ * URL pré-assinada de curta duração; arquivo local é embutido como data URL.
+ */
+async function resolvePortalFoto(foto: string | null): Promise<string | undefined> {
+  if (!foto) return undefined;
+  if (foto.startsWith("data:")) return foto;
+  try {
+    if (R2_ENABLED) {
+      return (await getImageR2Url(foto, 3600)) ?? undefined;
+    }
+    const buffer = await readLocalFile(foto);
+    const ext = foto.split(".").pop()?.toLowerCase() ?? "jpg";
+    const mime =
+      ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    return `data:${mime};base64,${buffer.toString("base64")}`;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface PortalHistoricoItem {
   id: string;
@@ -35,6 +61,8 @@ export interface PortalDashboardData {
     id: string;
     nome: string;
     nivelFormativo: NivelFormativo;
+    /** Foto do formando resolvida para uso direto no portal (ou undefined). */
+    fotoUrl?: string;
     grupoFormacao: { id: string; nome: string } | null;
   };
   presenca: {
@@ -521,6 +549,7 @@ export async function getPortalDashboardData(
     select: {
       id: true,
       nome: true,
+      foto: true,
       nivelFormativo: true,
       grupoFormacaoId: true,
       grupoFormacao: { select: { id: true, nome: true } },
@@ -528,6 +557,8 @@ export async function getPortalDashboardData(
   });
 
   if (!formando) return null;
+
+  const fotoUrl = await resolvePortalFoto(formando.foto);
 
   const nivel = formando.nivelFormativo as NivelFormativo;
   const agora = new Date();
@@ -637,6 +668,7 @@ export async function getPortalDashboardData(
       id: formando.id,
       nome: formando.nome,
       nivelFormativo: nivel,
+      fotoUrl,
       grupoFormacao: formando.grupoFormacao
         ? { id: formando.grupoFormacao.id, nome: formando.grupoFormacao.nome }
         : null,
