@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Camera, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { applyPhoneMask } from "@/lib/utils";
 import type { PublicBranding } from "@/lib/public-branding";
 import { portalHomeFor, type PortalAudiencia } from "@/lib/portal-routes";
 import type { PortalPerfil } from "@/lib/portal-data";
+import { camposFaltantes } from "@/lib/perfil-completude";
 
 const NIVEL_AVATAR_BG: Record<string, string> = {
   "pre-discipulado": "bg-violet-100 text-violet-700",
@@ -76,6 +77,10 @@ export default function PerfilClient({
 
   const communityName = branding.nomePlataforma ?? branding.nome;
   const portalLabel = audiencia === "vocacional" ? "Portal do Vocacionado" : "Portal do Formando";
+
+  // Completude do cadastro (Fase 3): reflete o estado salvo no servidor (perfil).
+  // Após salvar + router.refresh() o aviso se atualiza sozinho.
+  const faltantes = camposFaltantes(perfil);
 
   // A foto salva na hora (PATCH próprio), como no app: o resto do formulário sai
   // no botão "Salvar". Após o upload devolver a key, gravamos e recarregamos para
@@ -167,6 +172,28 @@ export default function PerfilClient({
             formador.
           </p>
         </div>
+
+        {/* Aviso de completude — orienta exatamente o que ainda falta. */}
+        {faltantes.length > 0 ? (
+          <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0 text-sm">
+              <p className="font-medium text-foreground">
+                {faltantes.length === 1
+                  ? "Falta 1 dado para completar seu cadastro"
+                  : `Faltam ${faltantes.length} dados para completar seu cadastro`}
+              </p>
+              <p className="mt-0.5 text-muted-foreground">{faltantes.join(", ")}.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+            <p className="text-sm font-medium text-emerald-800">
+              Seu cadastro está completo. Obrigado!
+            </p>
+          </div>
+        )}
 
         {/* Foto + identidade (nome/etapa são definidos pelo formador — só leitura) */}
         <Card>

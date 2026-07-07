@@ -78,6 +78,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
 import { applyPhoneMask, stripPhone, resolveImageSrc, idadeEmAnos } from "@/lib/utils";
+import { perfilIncompleto } from "@/lib/perfil-completude";
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
@@ -466,6 +467,12 @@ export default function FormandosClient({
                             {formando.nome}
                           </p>
                           <p className="text-xs text-muted-foreground">{formando.email}</p>
+                          {perfilIncompleto(formando) && (
+                            <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-amber-600">
+                              <AlertTriangle className="h-3 w-3" />
+                              Cadastro pendente
+                            </span>
+                          )}
                         </div>
                       </Link>
                     </TableCell>
@@ -855,9 +862,21 @@ function FormandoCard({
           </DropdownMenu>
         </div>
 
-        <Badge variant="outline" className={`text-xs mb-3 ${NIVEL_CORES[formando.nivelFormativo]}`}>
-          {etapaLabels[formando.nivelFormativo]}
-        </Badge>
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline" className={`text-xs ${NIVEL_CORES[formando.nivelFormativo]}`}>
+            {etapaLabels[formando.nivelFormativo]}
+          </Badge>
+          {perfilIncompleto(formando) && (
+            <Badge
+              variant="outline"
+              className="gap-1 text-xs bg-amber-50 text-amber-700 border-amber-200"
+              title="A pessoa ainda não completou os dados pessoais no portal"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              Cadastro pendente
+            </Badge>
+          )}
+        </div>
 
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs">

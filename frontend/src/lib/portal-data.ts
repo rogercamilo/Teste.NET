@@ -4,6 +4,7 @@ import { REQUISITOS_ETAPAS } from "@/types";
 import type { EstadoCivil, NivelFormativo, TipoFormacao } from "@/types";
 import type { PortalAudiencia } from "@/lib/portal-routes";
 import { R2_ENABLED, getImageR2Url, readLocalFile } from "@/lib/storage";
+import { camposFaltantes } from "@/lib/perfil-completude";
 
 /**
  * Resolve o campo `foto` do formando (base64 legado, key R2 ou key local) em um
@@ -64,6 +65,11 @@ export interface PortalDashboardData {
     /** Foto do formando resolvida para uso direto no portal (ou undefined). */
     fotoUrl?: string;
     grupoFormacao: { id: string; nome: string } | null;
+    /**
+     * Rótulos dos dados pessoais ainda não preenchidos pela pessoa (Fase 3 do
+     * cadastro mínimo). Vazio = perfil completo. Alimenta o nudge do portal.
+     */
+    perfilCamposFaltantes: string[];
   };
   presenca: {
     percentual: number;
@@ -628,6 +634,13 @@ export async function getPortalDashboardData(
       nivelFormativo: true,
       grupoFormacaoId: true,
       grupoFormacao: { select: { id: true, nome: true } },
+      // Campos pessoais — só para medir a completude do cadastro (Fase 3).
+      dataNascimento: true,
+      telefone: true,
+      nacionalidade: true,
+      rg: true,
+      orgaoEmissor: true,
+      cep: true,
     },
   });
 
@@ -747,6 +760,14 @@ export async function getPortalDashboardData(
       grupoFormacao: formando.grupoFormacao
         ? { id: formando.grupoFormacao.id, nome: formando.grupoFormacao.nome }
         : null,
+      perfilCamposFaltantes: camposFaltantes({
+        dataNascimento: formando.dataNascimento ? "x" : null,
+        telefone: formando.telefone,
+        nacionalidade: formando.nacionalidade,
+        rg: formando.rg,
+        orgaoEmissor: formando.orgaoEmissor,
+        cep: formando.cep,
+      }),
     },
     presenca: {
       percentual,

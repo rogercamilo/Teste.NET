@@ -107,6 +107,10 @@ export default function DashboardClient({
   const router = useRouter();
   const { formando, presenca, proximosEncontros, progresso, vocacional } = data;
   const [loggingOut, setLoggingOut] = useState(false);
+  // Nudge de completude do cadastro (Fase 3): some sozinho quando a pessoa
+  // preenche os dados; dispensável por sessão para não incomodar quem já sabe.
+  const camposFaltantes = formando.perfilCamposFaltantes;
+  const [nudgeDispensado, setNudgeDispensado] = useState(false);
   const [solicitando, setSolicitando] = useState(false);
   const [solicitado, setSolicitado] = useState(vocacional?.solicitacaoPendente ?? false);
 
@@ -233,6 +237,39 @@ export default function DashboardClient({
             </p>
           </div>
         </div>
+
+        {/* Nudge de completude — convida a pessoa a assumir os próprios dados.
+            Some quando não falta nada ou quando dispensado nesta sessão. */}
+        {camposFaltantes.length > 0 && !nudgeDispensado && (
+          <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground">
+                Complete seu perfil
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {camposFaltantes.length === 1
+                  ? `Falta informar: ${camposFaltantes[0]}.`
+                  : `Faltam ${camposFaltantes.length} dados: ${camposFaltantes.join(", ")}.`}
+              </p>
+              <Link
+                href="/portal/perfil"
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                <UserRound className="h-4 w-4" />
+                Completar meu perfil
+              </Link>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNudgeDispensado(true)}
+              aria-label="Dispensar"
+              className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {/* Faixa de status (cards compactos lado a lado, mesma altura no desktop) */}
         <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
