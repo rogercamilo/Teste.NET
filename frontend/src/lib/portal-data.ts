@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { REQUISITOS_ETAPAS } from "@/types";
-import type { NivelFormativo, TipoFormacao } from "@/types";
+import type { EstadoCivil, NivelFormativo, TipoFormacao } from "@/types";
 import type { PortalAudiencia } from "@/lib/portal-routes";
 import { R2_ENABLED, getImageR2Url, readLocalFile } from "@/lib/storage";
 
@@ -533,6 +533,81 @@ export async function getPortalAudiencia(
     select: { id: true },
   });
   return participacao ? "vocacional" : "formando";
+}
+
+/**
+ * Dados pessoais editáveis pela própria pessoa em /portal/perfil. Traz só os
+ * campos da fronteira "pessoa" (nunca dado formativo nem sigiloso de
+ * acompanhamento) + a identidade de exibição (nome/nível/grupo, read-only). A
+ * `dataNascimento` volta como YYYY-MM-DD via componentes UTC — datas date-only
+ * são gravadas à meia-noite UTC (ver feedback-date-only-timezone); usar o fuso
+ * local no split rolaria o dia. `null` quando o formando não existe/está inativo.
+ */
+export interface PortalPerfil {
+  nome: string;
+  nivelFormativo: NivelFormativo;
+  grupoNome: string | null;
+  /** Valor cru da foto (key R2/local ou base64) — só para saber se há imagem. */
+  foto: string | null;
+  /** Foto resolvida para preview direto no portal (ou undefined). */
+  fotoUrl?: string;
+  dataNascimento: string | null; // YYYY-MM-DD
+  estadoCivil: EstadoCivil;
+  telefone: string;
+  nomeSocial: string | null;
+  nacionalidade: string | null;
+  rg: string | null;
+  orgaoEmissor: string | null;
+  cep: string | null;
+  paroquiaReferencia: string | null;
+  numFilhos: number | null;
+}
+
+export async function getPortalPerfil(
+  formandoId: string,
+  organizacaoId: string
+): Promise<PortalPerfil | null> {
+  const f = await prisma.formando.findFirst({
+    where: { id: formandoId, organizacaoId, ativo: true, deletedAt: null },
+    select: {
+      nome: true,
+      nivelFormativo: true,
+      foto: true,
+      dataNascimento: true,
+      estadoCivil: true,
+      telefone: true,
+      nomeSocial: true,
+      nacionalidade: true,
+      rg: true,
+      orgaoEmissor: true,
+      cep: true,
+      paroquiaReferencia: true,
+      numFilhos: true,
+      grupoFormacao: { select: { nome: true } },
+    },
+  });
+  if (!f) return null;
+
+  const fotoUrl = await resolvePortalFoto(f.foto);
+  return {
+    nome: f.nome,
+    nivelFormativo: f.nivelFormativo as NivelFormativo,
+    grupoNome: f.grupoFormacao?.nome ?? null,
+    foto: f.foto,
+    fotoUrl,
+    dataNascimento: f.dataNascimento
+      ? f.dataNascimento.toISOString().split("T")[0]
+      : null,
+    estadoCivil: f.estadoCivil as EstadoCivil,
+    telefone: f.telefone,
+    nomeSocial: f.nomeSocial,
+    nacionalidade: f.nacionalidade,
+    rg: f.rg,
+    orgaoEmissor: f.orgaoEmissor,
+    cep: f.cep,
+    paroquiaReferencia: f.paroquiaReferencia,
+    numFilhos: f.numFilhos,
+  };
 }
 
 /**

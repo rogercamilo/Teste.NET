@@ -124,6 +124,27 @@ export const CreateFormandoSchema = z.object({
 
 export const UpdateFormandoSchema = CreateFormandoSchema.partial();
 
+// Perfil self-service no Portal (a própria pessoa edita seus DADOS PESSOAIS em
+// /portal/perfil). Whitelist RÍGIDA: `.strict()` faz o zod REJEITAR qualquer
+// campo formativo (nivelFormativo, grupoFormacaoId, modalidade, dataIngresso,
+// ativo, totalFormacoes…) — a fronteira de responsabilidade formador×pessoa é
+// imposta aqui, não só na rota. Ver project-cadastro-minimo-perfil.
+export const PerfilPortalSchema = z
+  .object({
+    dataNascimento: isoDate.nullable().optional(),
+    estadoCivil: EstadoCivilEnum.optional(),
+    telefone: z.string().max(30).optional(),
+    foto: z.string().max(2_000_000).nullable().optional(),
+    nomeSocial: optionalString(255).nullable(),
+    nacionalidade: optionalString(100).nullable(),
+    rg: optionalString(30).nullable(),
+    orgaoEmissor: optionalString(50).nullable(),
+    cep: optionalString(10).nullable(),
+    paroquiaReferencia: optionalString(255).nullable(),
+    numFilhos: z.number().int().min(0).nullable().optional(),
+  })
+  .strict();
+
 // ── Morada ────────────────────────────────────────────────────────────────────
 
 export const CreateGrupoFormacaoSchema = z.object({

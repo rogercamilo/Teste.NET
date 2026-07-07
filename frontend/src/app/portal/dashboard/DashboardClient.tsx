@@ -22,6 +22,7 @@ import {
   ChevronDown,
   Eye,
   Cake,
+  UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -185,17 +186,26 @@ export default function DashboardClient({
               <span className="truncate text-xs text-muted-foreground">{portalLabel}</span>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            disabled={loggingOut}
-            aria-label="Sair"
-            className="gap-1.5 text-muted-foreground"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sair</span>
-          </Button>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/portal/perfil"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <UserRound className="h-4 w-4" />
+              <span className="hidden sm:inline">Meu perfil</span>
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              aria-label="Sair"
+              className="gap-1.5 text-muted-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sair</span>
+            </Button>
+          </div>
         </div>
       </header>
 
