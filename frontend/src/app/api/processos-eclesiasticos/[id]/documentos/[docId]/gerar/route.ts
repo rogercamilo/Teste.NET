@@ -82,6 +82,15 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
 
     // Monta dados para o template
     const f = processo.formando;
+    // Documento canônico exige data de nascimento. No cadastro mínimo ela pode
+    // estar pendente (o formando completa no portal) — bloqueia a geração com
+    // orientação clara em vez de emitir um documento incompleto.
+    if (!f.dataNascimento) {
+      return NextResponse.json(
+        { error: "Complete a data de nascimento do formando (no cadastro ou pelo portal) antes de gerar este documento." },
+        { status: 422 }
+      );
+    }
     const org = processo.organizacao;
     const agora = new Date();
     const geradoEm = format(agora, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });

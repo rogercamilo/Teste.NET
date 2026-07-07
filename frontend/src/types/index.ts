@@ -82,7 +82,12 @@ export interface Usuario {
 export interface Formando {
   id: string;
   nome: string;
-  dataNascimento: string;
+  /**
+   * Data de nascimento (YYYY-MM-DD). Opcional: no cadastro mínimo o formador
+   * informa só nome + e-mail + nível + grupo; o próprio formando/vocacionado
+   * completa os dados pessoais no portal (/portal/perfil).
+   */
+  dataNascimento?: string;
   estadoCivil: EstadoCivil;
   modalidade: Modalidade;
   nivelFormativo: NivelFormativo;

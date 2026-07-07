@@ -25,7 +25,8 @@ export function primeiroNome(nome: string | null | undefined): string {
 export interface PessoaAniversario {
   id: string;
   nome: string;
-  dataNascimento: Date;
+  /** Pode ser null quando o cadastro ainda não foi completado no portal. */
+  dataNascimento: Date | null;
 }
 
 export interface Aniversariante {
@@ -59,6 +60,7 @@ export function aniversariantesNaJanela(
 
   for (const p of pessoas) {
     const nasc = p.dataNascimento;
+    if (!nasc) continue; // sem data de nascimento → não entra na janela
     // Próxima ocorrência do aniversário a partir de hoje (mesmo ano ou próximo).
     let prox = meioDia(base.getFullYear(), nasc.getMonth(), nasc.getDate());
     if (prox.getTime() < base.getTime()) {

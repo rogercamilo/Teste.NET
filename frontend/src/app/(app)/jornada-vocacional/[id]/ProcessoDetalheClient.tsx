@@ -55,7 +55,7 @@ import {
 interface FormandoDetalhe {
   id: string;
   nome: string;
-  dataNascimento: string;
+  dataNascimento: string | null;
   estadoCivil: string;
   telefone: string;
   email: string;

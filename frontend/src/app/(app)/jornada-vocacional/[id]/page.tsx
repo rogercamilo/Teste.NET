@@ -79,7 +79,7 @@ export default async function ProcessoDetalhePage({
         formando: {
           id: processo.formando.id,
           nome: processo.formando.nome,
-          dataNascimento: processo.formando.dataNascimento.toISOString(),
+          dataNascimento: processo.formando.dataNascimento?.toISOString() ?? null,
           estadoCivil: processo.formando.estadoCivil,
           telefone: processo.formando.telefone,
           email: processo.formando.email,

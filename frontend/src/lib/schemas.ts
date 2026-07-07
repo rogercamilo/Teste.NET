@@ -87,7 +87,7 @@ export const UpdateUserSchema = z.object({
 
 export const CreateFormandoSchema = z.object({
   nome: nonEmptyString(255),
-  dataNascimento: isoDate,
+  dataNascimento: isoDate.optional(),
   estadoCivil: EstadoCivilEnum.optional(),
   modalidade: ModalidadeEnum.optional(),
   nivelFormativo: NivelFormativoEnum.optional(),

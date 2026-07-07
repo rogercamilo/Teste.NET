@@ -67,7 +67,7 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
       formando: {
         id: processo.formando.id,
         nome: processo.formando.nome,
-        dataNascimento: processo.formando.dataNascimento.toISOString(),
+        dataNascimento: processo.formando.dataNascimento?.toISOString() ?? null,
         estadoCivil: processo.formando.estadoCivil,
         telefone: processo.formando.telefone,
         email: processo.formando.email,
@@ -198,6 +198,14 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
 
       // Ao iniciar processo (rascunho → em_andamento): inicializa DocumentoEclesiastico se ainda não existem
       if (transicaoValida.para === "em_andamento") {
+        // A data de nascimento define se há trâmite de menor de idade e alimenta
+        // os documentos canônicos — exigida para iniciar o processo.
+        if (!processo.formando.dataNascimento) {
+          return NextResponse.json(
+            { error: "Complete a data de nascimento do formando (no cadastro ou pelo portal) antes de iniciar o processo." },
+            { status: 422 }
+          );
+        }
         const menorDeIdade = eraMenorDeIdade(
           processo.formando.dataNascimento,
           processo.criadoEm

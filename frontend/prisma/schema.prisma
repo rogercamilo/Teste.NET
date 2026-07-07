@@ -400,7 +400,7 @@ model Formando {
   id                  String          @id @default(cuid())
   organizacaoId       String
   nome                String
-  dataNascimento      DateTime
+  dataNascimento      DateTime?
   estadoCivil         String // solteiro | casado | divorciado | viuvo
   modalidade          String // presencial | online | hibrida
   nivelFormativo      String // NivelFormativo

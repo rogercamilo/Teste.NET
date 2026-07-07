@@ -434,7 +434,7 @@ export default function GrupoFormacaoDetail({
     setEditingFormando(f);
     setFormandoForm({
       nome: f.nome,
-      dataNascimento: f.dataNascimento,
+      dataNascimento: f.dataNascimento ?? "",
       estadoCivil: f.estadoCivil,
       modalidade: f.modalidade,
       dataIngresso: f.dataIngresso,
@@ -972,7 +972,9 @@ export default function GrupoFormacaoDetail({
                 const progresso = formando.totalFormacoes > 0 ? Math.round((formando.formacoesRealizadas / formando.totalFormacoes) * 100) : 0;
                 const { total, presentes: pres, pct } = calcPresencaFormando(formando.id);
                 const initials = formando.nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
-                const idade = differenceInYears(new Date(), parseISO(formando.dataNascimento));
+                const idade = formando.dataNascimento
+                  ? differenceInYears(new Date(), parseISO(formando.dataNascimento))
+                  : null;
 
                 return (
                   <Card key={formando.id} className="border-0 shadow-sm hover:shadow-md transition-all group">
@@ -1009,7 +1011,7 @@ export default function GrupoFormacaoDetail({
                             </DropdownMenu>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {idade} anos · {MODALIDADE_LABELS[formando.modalidade]}
+                            {idade !== null ? `${idade} anos · ` : ""}{MODALIDADE_LABELS[formando.modalidade]}
                             {total > 0 && ` · ${pres}/${total} presenças`}
                           </p>
                         </div>

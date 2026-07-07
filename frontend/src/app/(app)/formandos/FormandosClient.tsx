@@ -182,7 +182,7 @@ export default function FormandosClient({
     setEditing(f);
     setForm({
       nome: f.nome,
-      dataNascimento: f.dataNascimento,
+      dataNascimento: f.dataNascimento ?? "",
       estadoCivil: f.estadoCivil,
       modalidade: f.modalidade,
       nivelFormativo: f.nivelFormativo,
@@ -753,7 +753,9 @@ function FormandoCard({
   const progresso = Math.round(
     (formando.formacoesRealizadas / formando.totalFormacoes) * 100
   );
-  const idade = differenceInYears(new Date(), parseISO(formando.dataNascimento));
+  const idade = formando.dataNascimento
+    ? differenceInYears(new Date(), parseISO(formando.dataNascimento))
+    : null;
 
   async function handleFotoSave(imageData: string) {
     const res = await fetch(`/api/formandos/${formando.id}`, {
@@ -805,7 +807,7 @@ function FormandoCard({
                 </p>
               </Link>
               <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {idade} anos · {MODALIDADE_LABELS[formando.modalidade]}
+                {idade !== null ? `${idade} anos · ` : ""}{MODALIDADE_LABELS[formando.modalidade]}
               </p>
             </div>
           </div>

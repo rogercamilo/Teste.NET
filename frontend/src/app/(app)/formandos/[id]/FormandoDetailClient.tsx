@@ -392,7 +392,9 @@ export default function FormandoDetailClient({
     .map((n) => n[0])
     .join("")
     .toUpperCase();
-  const idade = differenceInYears(new Date(), parseISO(formando.dataNascimento));
+  const idade = formando.dataNascimento
+    ? differenceInYears(new Date(), parseISO(formando.dataNascimento))
+    : null;
 
   const progAtual = (formando.progressoEtapas ?? []).find(
     (p) => p.nivel === formando.nivelFormativo
@@ -844,7 +846,7 @@ export default function FormandoDetailClient({
               onClick={() => {
                 setEditForm({
                   nome: formando.nome,
-                  dataNascimento: formando.dataNascimento,
+                  dataNascimento: formando.dataNascimento ?? "",
                   estadoCivil: formando.estadoCivil,
                   modalidade: formando.modalidade,
                   nivelFormativo: formando.nivelFormativo,
@@ -2178,8 +2180,14 @@ export default function FormandoDetailClient({
                 <div>
                   <p className="text-xs text-muted-foreground">Data de nascimento</p>
                   <p className="text-sm font-medium text-foreground mt-0.5">
-                    {format(parseISO(formando.dataNascimento), "dd/MM/yyyy")}
-                    <span className="text-muted-foreground font-normal ml-1.5">({idade} anos)</span>
+                    {formando.dataNascimento ? (
+                      <>
+                        {format(parseISO(formando.dataNascimento), "dd/MM/yyyy")}
+                        <span className="text-muted-foreground font-normal ml-1.5">({idade} anos)</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground font-normal">Não informada</span>
+                    )}
                   </p>
                 </div>
                 <div>

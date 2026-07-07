@@ -132,7 +132,7 @@ export async function POST(request: Request) {
       data: {
         organizacaoId: user.organizacaoId,
         nome: body.nome,
-        dataNascimento: new Date(body.dataNascimento),
+        dataNascimento: body.dataNascimento ? new Date(body.dataNascimento) : null,
         estadoCivil: body.estadoCivil ?? "solteiro",
         modalidade: body.modalidade ?? "presencial",
         nivelFormativo: body.nivelFormativo ?? "pre-discipulado",

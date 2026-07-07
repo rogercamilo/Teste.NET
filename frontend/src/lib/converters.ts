@@ -56,7 +56,7 @@ export type PrismaFormacao = {
 };
 
 export type PrismaFormando = {
-  id: string; organizacaoId: string; nome: string; dataNascimento: Date; estadoCivil: string;
+  id: string; organizacaoId: string; nome: string; dataNascimento: Date | null; estadoCivil: string;
   modalidade: string; nivelFormativo: string; dataIngresso: Date; telefone: string; email: string;
   ativo: boolean; motivoInatividade: string | null; foto?: string | null; turmaId: string | null;
   grupoFormacaoId: string | null; totalFormacoes: number; formacoesRealizadas: number;
@@ -192,7 +192,7 @@ export function toFormacao(f: PrismaFormacao): Formacao {
 export function toFormando(f: PrismaFormando): Formando {
   return {
     id: f.id, nome: f.nome,
-    dataNascimento: f.dataNascimento.toISOString().split("T")[0],
+    dataNascimento: f.dataNascimento ? f.dataNascimento.toISOString().split("T")[0] : undefined,
     estadoCivil: f.estadoCivil as Formando["estadoCivil"],
     modalidade: f.modalidade as Formando["modalidade"],
     nivelFormativo: f.nivelFormativo as Formando["nivelFormativo"],

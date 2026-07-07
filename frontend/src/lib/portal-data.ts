@@ -235,7 +235,7 @@ export async function getPortalAniversariantes(
   const diaHoje = Number(partes.find((p) => p.type === "day")?.value);
 
   return membros
-    .filter((m) => m.dataNascimento != null)
+    .filter((m): m is typeof m & { dataNascimento: Date } => m.dataNascimento != null)
     .map((m) => ({
       nome: m.nome,
       mes: m.dataNascimento.getUTCMonth() + 1,
