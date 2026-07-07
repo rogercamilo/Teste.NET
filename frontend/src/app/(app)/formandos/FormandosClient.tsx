@@ -72,11 +72,11 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { format, parseISO, differenceInYears } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
-import { applyPhoneMask, stripPhone, resolveImageSrc } from "@/lib/utils";
+import { applyPhoneMask, stripPhone, resolveImageSrc, idadeEmAnos } from "@/lib/utils";
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
@@ -753,9 +753,7 @@ function FormandoCard({
   const progresso = Math.round(
     (formando.formacoesRealizadas / formando.totalFormacoes) * 100
   );
-  const idade = formando.dataNascimento
-    ? differenceInYears(new Date(), parseISO(formando.dataNascimento))
-    : null;
+  const idade = idadeEmAnos(formando.dataNascimento);
 
   async function handleFotoSave(imageData: string) {
     const res = await fetch(`/api/formandos/${formando.id}`, {

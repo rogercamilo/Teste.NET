@@ -69,4 +69,11 @@ describe("aniversariantesNaJanela", () => {
     );
     expect(r.map((x) => x.id)).toEqual(["near", "far"]);
   });
+
+  it("ignora quem não tem data de nascimento (cadastro mínimo)", () => {
+    const hoje = new Date(2026, 6, 2, 9, 0);
+    const semData: PessoaAniversario = { id: "x", nome: "Sem Data", dataNascimento: null };
+    const r = aniversariantesNaJanela([semData, pessoa("a", "Ana", 6, 2)], hoje, 7);
+    expect(r.map((x) => x.id)).toEqual(["a"]);
+  });
 });

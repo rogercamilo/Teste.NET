@@ -49,7 +49,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cn, formatPhone, applyPhoneMask, stripPhone, resolveImageSrc } from "@/lib/utils";
+import { cn, formatPhone, applyPhoneMask, stripPhone, resolveImageSrc, idadeEmAnos } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -102,7 +102,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { format, parseISO, differenceInYears, differenceInDays } from "date-fns";
+import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -392,9 +392,7 @@ export default function FormandoDetailClient({
     .map((n) => n[0])
     .join("")
     .toUpperCase();
-  const idade = formando.dataNascimento
-    ? differenceInYears(new Date(), parseISO(formando.dataNascimento))
-    : null;
+  const idade = idadeEmAnos(formando.dataNascimento);
 
   const progAtual = (formando.progressoEtapas ?? []).find(
     (p) => p.nivel === formando.nivelFormativo

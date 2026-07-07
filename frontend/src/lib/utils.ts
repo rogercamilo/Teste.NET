@@ -1,8 +1,19 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { differenceInYears, parseISO } from "date-fns"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+/**
+ * Idade em anos a partir de uma data YYYY-MM-DD, ou `null` quando não informada.
+ * Centraliza o cálculo usado nos cards/detalhe do formando — `dataNascimento` é
+ * opcional desde o cadastro mínimo (o formando completa no portal).
+ */
+export function idadeEmAnos(dataNascimento?: string | null): number | null {
+  if (!dataNascimento) return null;
+  return differenceInYears(new Date(), parseISO(dataNascimento));
 }
 
 /** Remove todos os não-dígitos — use antes de salvar no banco. */

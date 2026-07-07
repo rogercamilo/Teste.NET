@@ -107,8 +107,8 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, resolveImageSrc } from "@/lib/utils";
-import { format, parseISO, differenceInYears } from "date-fns";
+import { cn, resolveImageSrc, idadeEmAnos } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -972,9 +972,7 @@ export default function GrupoFormacaoDetail({
                 const progresso = formando.totalFormacoes > 0 ? Math.round((formando.formacoesRealizadas / formando.totalFormacoes) * 100) : 0;
                 const { total, presentes: pres, pct } = calcPresencaFormando(formando.id);
                 const initials = formando.nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
-                const idade = formando.dataNascimento
-                  ? differenceInYears(new Date(), parseISO(formando.dataNascimento))
-                  : null;
+                const idade = idadeEmAnos(formando.dataNascimento);
 
                 return (
                   <Card key={formando.id} className="border-0 shadow-sm hover:shadow-md transition-all group">
