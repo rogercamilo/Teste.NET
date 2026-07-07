@@ -761,7 +761,7 @@ export async function getPortalDashboardData(
         ? { id: formando.grupoFormacao.id, nome: formando.grupoFormacao.nome }
         : null,
       perfilCamposFaltantes: camposFaltantes({
-        dataNascimento: formando.dataNascimento ? "x" : null,
+        dataNascimento: formando.dataNascimento?.toISOString() ?? null,
         telefone: formando.telefone,
         nacionalidade: formando.nacionalidade,
         rg: formando.rg,
