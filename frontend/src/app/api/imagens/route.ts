@@ -1,20 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { uploadFile } from "@/lib/storage";
 import { limiters } from "@/lib/rate-limit";
 import { logError, logAction, getClientIp } from "@/lib/audit-log";
-import { assinaturaConfere } from "@/lib/file-signature";
-import { scanUpload } from "@/lib/av-scan";
+import { processImageUpload } from "@/lib/image-upload";
 import { SessionUser as SU } from "@/lib/auth-helpers";
-
-const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
-const EXT_MAP: Record<string, string> = {
-  "image/jpeg": ".jpg",
-  "image/jpg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp",
-};
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -28,37 +17,15 @@ export async function POST(request: Request) {
 
   try {
     const formData = await request.formData();
-    const file = formData.get("file");
-
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Campo 'file' ausente ou inválido." }, { status: 400 });
+    // Validação (magic bytes + AV) e persistência compartilhadas com o portal.
+    const result = await processImageUpload(formData.get("file"), user.organizacaoId);
+    if (!result.ok) {
+      if (result.malwareReason) {
+        logAction("upload_rejected_malware", user.id, getClientIp(request), { motivo: result.malwareReason }, user.organizacaoId);
+      }
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return NextResponse.json({ error: "Tipo de arquivo não suportado. Use JPEG, PNG ou WebP." }, { status: 400 });
-    }
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: "Imagem muito grande. Máximo 5 MB." }, { status: 400 });
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    // Valida a assinatura real do arquivo (magic bytes) — impede spoofing de MIME
-    // type: o `file.type` é controlado pelo cliente e sozinho não garante nada.
-    if (!assinaturaConfere(buffer, file.type)) {
-      return NextResponse.json({ error: "Conteúdo do arquivo não corresponde a uma imagem válida." }, { status: 400 });
-    }
-
-    // Filtro heurístico de malware (EICAR) antes de persistir.
-    const scan = await scanUpload(buffer, file.type);
-    if (!scan.clean) {
-      logAction("upload_rejected_malware", user.id, getClientIp(request), { motivo: scan.reason }, user.organizacaoId);
-      return NextResponse.json({ error: "Arquivo rejeitado por suspeita de conteúdo malicioso." }, { status: 400 });
-    }
-
-    const ext = EXT_MAP[file.type] ?? ".jpg";
-    const key = await uploadFile(user.organizacaoId, "imagens", buffer, ext, file.type);
-
-    return NextResponse.json({ key }, { status: 201 });
+    return NextResponse.json({ key: result.key }, { status: 201 });
   } catch (err) {
     logError("imagens POST", err);
     return NextResponse.json({ error: "Falha ao fazer upload da imagem." }, { status: 500 });
