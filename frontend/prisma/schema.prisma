@@ -1429,3 +1429,39 @@ model AcaoLeitura {
   @@index([leituraId])
   @@index([formandoId, leituraId])
 }
+
+// ==========================================================
+// NEWSLETTER / CAPTURA DE LEADS — ímã digital (eBook) na landing
+// ==========================================================
+
+enum NewsletterLeadStatus {
+  pendente // aguardando confirmação (double opt-in)
+  confirmado // e-mail confirmado, recebeu o material
+  descadastrado // pediu unsubscribe ou hard bounce/reclamação
+}
+
+/// Lead de marketing capturado na landing page (público, sem organização).
+/// Fluxo: cadastro -> e-mail de confirmação (double opt-in) -> confirmado ->
+/// entrega do eBook + upsell do canal WhatsApp. Sem vínculo de tenant: é da
+/// plataforma. O `token` (segredo) autoriza confirmar E descadastrar em 1 clique.
+model NewsletterLead {
+  id             String               @id @default(cuid())
+  nome           String
+  email          String               @unique // sempre normalizado em minúsculas
+  telefone       String? // WhatsApp opcional (E.164 ou como digitado)
+  status         NewsletterLeadStatus @default(pendente)
+  origem         String               @default("landing") // ponto de captura (landing, obrigado, etc.)
+  token          String               @unique // segredo p/ confirmar/descadastrar em 1 clique
+  // Consentimento LGPD (base legal: consentimento, Art. 7º I / 8º)
+  consentLGPD    Boolean              @default(false)
+  consentEm      DateTime?
+  consentVersao  String? // versão do texto de consentimento aceito
+  whatsappOptIn  Boolean              @default(false) // marcou interesse no canal WhatsApp
+  ipAnon         String? // IP anonimizado no cadastro (auditoria anti-abuso)
+  criadoEm       DateTime             @default(now())
+  confirmadoEm   DateTime?
+  descadastradoEm DateTime?
+
+  @@index([status])
+  @@index([criadoEm])
+}

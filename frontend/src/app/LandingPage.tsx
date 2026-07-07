@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Users, BookOpen, Calendar,
   Check, ChevronDown, ChevronRight, Menu, X, ArrowRight,
   Lock, Shield, Zap, Globe, Star,
-  Bell, BellOff, CheckCircle2, Loader2,
+  CheckCircle2, Loader2, Sparkles,
   Archive, FileWarning, Network, MessageSquare,
   FileText, Compass, BellRing, Building2, Heart, BookMarked, GraduationCap,
 } from "lucide-react";
-import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
@@ -920,80 +919,191 @@ function FAQ() {
   );
 }
 
-// ── Push Subscribe ────────────────────────────────────────────────────────────
+// ── Lead Magnet (captura de leads — ímã eBook) ────────────────────────────────
 
-function PushSubscribeSection() {
-  const [mounted, setMounted] = useState(false);
-  const { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
-    usePushSubscription();
+const EBOOK_TITULO = "Organizando a formação da sua comunidade";
 
-  useEffect(() => setMounted(true), []);
+function LeadMagnetSection() {
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const [website, setWebsite] = useState(""); // honeypot
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  if (!mounted || !isSupported) return null;
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    if (!consent) {
+      setErro("É preciso aceitar para continuar.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/leads/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome,
+          email,
+          telefone: telefone || undefined,
+          whatsappOptIn,
+          consent: true,
+          website,
+        }),
+      });
+      if (res.status === 429) {
+        setErro("Muitas tentativas. Aguarde alguns minutos e tente novamente.");
+        return;
+      }
+      if (!res.ok) {
+        setErro("Não foi possível enviar. Verifique os dados e tente novamente.");
+        return;
+      }
+      setDone(true);
+    } catch {
+      setErro("Erro de conexão. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <section id="notificacoes" className="bg-slate-900 border-t border-white/5 py-20">
-      <div className="max-w-2xl mx-auto px-4 text-center">
-        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 mb-6">
-          <Bell className="h-6 w-6 text-primary" />
+    <section id="materiais" className="bg-slate-900 border-t border-white/5 py-20">
+      <div className="max-w-5xl mx-auto px-4 grid md:grid-cols-2 gap-10 items-center">
+        {/* Coluna do ímã */}
+        <div>
+          <p className="inline-flex items-center gap-2 text-sm font-medium text-primary uppercase tracking-widest mb-4">
+            <Sparkles className="h-4 w-4" /> Material gratuito
+          </p>
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-tight">
+            eBook: “{EBOOK_TITULO}”
+          </h2>
+          <p className="text-slate-400 mb-6 text-sm leading-relaxed">
+            Um guia prático para estruturar a jornada formativa da sua comunidade — da
+            memória institucional à governança de dados e comunitária. Conteúdo de valor,
+            direto ao ponto.
+          </p>
+          <ul className="space-y-2.5">
+            {[
+              "Como organizar etapas e a jornada de cada formando",
+              "Governança de dados e conformidade (LGPD) na prática",
+              "O que registrar para não perder a memória da comunidade",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2.5 text-sm text-slate-300">
+                <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3">
-          Notificações
-        </p>
-        <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-          Fique por dentro dos encontros da sua comunidade
-        </h2>
-        <p className="text-slate-400 mb-8 max-w-lg mx-auto text-sm leading-relaxed">
-          Ative as notificações e receba avisos diretamente no seu celular sobre formações,
-          datas e comunicados — mesmo com o navegador fechado, sem instalar nenhum aplicativo.
-        </p>
-
-        {isSubscribed ? (
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              <CheckCircle2 className="h-5 w-5 shrink-0" />
-              <span className="text-sm font-medium">Notificações ativas neste dispositivo</span>
+        {/* Coluna do formulário */}
+        <div className="rounded-2xl border border-white/10 bg-slate-800/40 p-6 md:p-8">
+          {done ? (
+            <div className="text-center py-6">
+              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-5">
+                <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Falta só confirmar!</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Enviamos um e-mail para <strong className="text-slate-200">{email}</strong>.
+                Abra a mensagem e clique em <strong className="text-slate-200">confirmar</strong> para
+                receber o material. Não esqueça de olhar o spam.
+              </p>
             </div>
-            <div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">Receba o eBook grátis</h3>
+
+              {/* Honeypot — invisível para humanos */}
+              <div className="absolute w-0 h-0 overflow-hidden" aria-hidden="true">
+                <label htmlFor="website">Não preencha este campo</label>
+                <input
+                  id="website" name="website" type="text" tabIndex={-1} autoComplete="off"
+                  value={website} onChange={(e) => setWebsite(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="lead-nome" className="block text-xs font-medium text-slate-400 mb-1.5">
+                  Nome*
+                </label>
+                <input
+                  id="lead-nome" type="text" required value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-slate-900/60 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Seu nome"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="lead-email" className="block text-xs font-medium text-slate-400 mb-1.5">
+                  E-mail*
+                </label>
+                <input
+                  id="lead-email" type="email" required value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-slate-900/60 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="voce@comunidade.org"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="lead-tel" className="block text-xs font-medium text-slate-400 mb-1.5">
+                  Telefone / WhatsApp <span className="text-slate-600">(opcional)</span>
+                </label>
+                <input
+                  id="lead-tel" type="tel" value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-slate-900/60 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="(11) 90000-0000"
+                />
+                <p className="mt-1 text-[11px] text-slate-600">Para novidades e suporte pelo WhatsApp.</p>
+              </div>
+
+              <label className="flex items-start gap-2.5 text-xs text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox" checked={whatsappOptIn}
+                  onChange={(e) => setWhatsappOptIn(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-white/20 bg-slate-900 accent-primary"
+                />
+                Quero receber dicas e novidades pelo Canal do WhatsApp.
+              </label>
+
+              <label className="flex items-start gap-2.5 text-xs text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox" checked={consent} required
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-white/20 bg-slate-900 accent-primary"
+                />
+                <span>
+                  Autorizo o contato por e-mail e concordo com a{" "}
+                  <Link href="/privacidade" className="text-primary hover:underline" target="_blank">
+                    Política de Privacidade
+                  </Link>.
+                </span>
+              </label>
+
+              {erro && <p className="text-xs text-red-400">{erro}</p>}
+
               <button
-                onClick={unsubscribe}
-                disabled={isLoading}
-                className="inline-flex items-center gap-2 text-xs text-slate-500 hover:text-slate-400 transition-colors mt-1"
+                type="submit" disabled={loading}
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors text-sm"
               >
-                {isLoading
-                  ? <Loader2 className="h-3 w-3 animate-spin" />
-                  : <BellOff className="h-3 w-3" />
-                }
-                Desativar notificações neste dispositivo
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
+                {loading ? "Enviando…" : "Quero o eBook gratuito"}
               </button>
-            </div>
-          </div>
-        ) : permission === "denied" ? (
-          <div className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-slate-800 border border-white/10 text-slate-400">
-            <BellOff className="h-5 w-5 shrink-0" />
-            <span className="text-sm">
-              Notificações bloqueadas. Ative nas configurações do navegador.
-            </span>
-          </div>
-        ) : (
-          <button
-            onClick={subscribe}
-            disabled={isLoading}
-            className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors text-sm"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Bell className="h-4 w-4" />
-            )}
-            {isLoading ? "Ativando…" : "Ativar notificações"}
-          </button>
-        )}
 
-        <p className="mt-6 text-xs text-slate-600">
-          Sem spam. Apenas avisos da sua comunidade. Cancele a qualquer momento.
-        </p>
+              <p className="text-[11px] text-slate-600 text-center">
+                Sem spam. Cancele a inscrição quando quiser.
+              </p>
+            </form>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -1053,6 +1163,7 @@ export default function LandingPage({ isNewOrg }: { isNewOrg: boolean }) {
       <HowItWorks />
       <Pricing />
       <FAQ />
+      <LeadMagnetSection />
       <FinalCTA isNewOrg={isNewOrg} />
       <MarketingFooter />
     </div>

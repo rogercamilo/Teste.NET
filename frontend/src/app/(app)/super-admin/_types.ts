@@ -153,4 +153,24 @@ export type Tab =
   | "cortesias"
   | "infraestrutura"
   | "seguranca"
-  | "lgpd";
+  | "lgpd"
+  | "leads";
+
+export interface LeadRow {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  status: "pendente" | "confirmado" | "descadastrado";
+  origem: string;
+  whatsappOptIn: boolean;
+  criadoEm: string;
+  confirmadoEm: string | null;
+  descadastradoEm: string | null;
+}
+
+export interface LeadsData {
+  leads: LeadRow[];
+  total: number;
+  counts: { pendente: number; confirmado: number; descadastrado: number };
+}

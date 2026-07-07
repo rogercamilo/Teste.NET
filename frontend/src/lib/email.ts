@@ -24,6 +24,12 @@ import { prisma } from "./prisma";
 import { assertPublicHost } from "./ssrf";
 import { buildEventIcs, icsFileName, type CalendarEvent } from "./ics";
 import { formatDataBr } from "./utils";
+import {
+  PLATFORM_ORG_ID,
+  EBOOK_URL,
+  EBOOK_TITULO,
+  WHATSAPP_CHANNEL_URL,
+} from "./leads-config";
 
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 /** URL absoluta do badge da marca para o cabeçalho dos e-mails. */
@@ -1003,4 +1009,107 @@ export async function sendFormandosEmRiscoEmail({
     `${n} ${termoFormando}${plural ? "s" : ""} da ${grupoNome} ${plural ? "precisam" : "precisa"} de atenção`,
     html
   );
+}
+
+/** Torna a URL do eBook absoluta (aceita path relativo ou URL completa). */
+function ebookAbsoluteUrl(): string {
+  if (/^https?:\/\//i.test(EBOOK_URL)) return EBOOK_URL;
+  return `${APP_URL.replace(/\/+$/, "")}${EBOOK_URL.startsWith("/") ? "" : "/"}${EBOOK_URL}`;
+}
+
+/** Rodapé de descadastro 1-clique (obrigatório em e-mails de marketing). */
+function unsubscribeFooter(unsubscribeUrl: string): string {
+  return `Você recebeu este e-mail porque solicitou nosso material no site da Formattio. <a href="${safeUrl(unsubscribeUrl)}" style="color:#847A6F;text-decoration:underline;">Cancelar inscrição</a>.`;
+}
+
+/**
+ * E-mail de confirmação (double opt-in) da captura de leads. Enviado logo após
+ * o cadastro na landing; o eBook só é liberado ao confirmar. Stream de
+ * marketing, identidade da plataforma. A suppression list é aplicada em `send()`.
+ */
+export async function sendLeadOptInEmail({
+  nome,
+  email,
+  confirmUrl,
+  unsubscribeUrl,
+}: {
+  nome: string;
+  email: string;
+  confirmUrl: string;
+  unsubscribeUrl: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const conteudo = [
+    heading(`Falta só um passo, ${escapeHtml(nome)}!`),
+    paragraph(
+      `Confirme seu e-mail para receber o material gratuito <strong>“${escapeHtml(EBOOK_TITULO)}”</strong> e as próximas dicas de formação e governança comunitária da Formattio.`
+    ),
+    button("Confirmar e receber o material", confirmUrl),
+    linkFallback(confirmUrl),
+    callout(
+      "info",
+      "Se você não pediu este material, pode ignorar este e-mail — nada será enviado sem a sua confirmação."
+    ),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Confirme seu e-mail — Formattio",
+    preheader: `Confirme para receber “${escapeHtml(EBOOK_TITULO)}”.`,
+    eyebrow: "Material Gratuito",
+    conteudo,
+    logoUrl: LOGO_URL,
+    notaRodape: unsubscribeFooter(unsubscribeUrl),
+  });
+  return send(PLATFORM_ORG_ID, email, "Confirme seu e-mail para receber o material — Formattio", html, {
+    stream: "marketing",
+    brandAsOrg: false,
+    replyTo: "contato@formattio.com.br",
+  });
+}
+
+/**
+ * E-mail de boas-vindas/entrega enviado após a confirmação — traz o link do
+ * eBook (cópia durável da página de obrigado) e, quando configurado, o convite
+ * para o Canal do WhatsApp. Stream de marketing, identidade da plataforma.
+ */
+export async function sendLeadWelcomeEmail({
+  nome,
+  email,
+  unsubscribeUrl,
+}: {
+  nome: string;
+  email: string;
+  unsubscribeUrl: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const conteudo = [
+    heading(`Seu material está pronto, ${escapeHtml(nome)}!`),
+    paragraph(
+      `Obrigado por confirmar. Clique abaixo para baixar <strong>“${escapeHtml(EBOOK_TITULO)}”</strong> — um guia prático de organização e governança da formação comunitária.`
+    ),
+    button("Baixar o eBook", ebookAbsoluteUrl()),
+    ...(WHATSAPP_CHANNEL_URL
+      ? [
+          sectionLabel("Bônus: entre no nosso canal"),
+          paragraph(
+            "Receba dicas de formação, governança de dados e comunitária, e avisos de eventos direto no WhatsApp — sem spam, só conteúdo de valor."
+          ),
+          button("Entrar no Canal do WhatsApp", WHATSAPP_CHANNEL_URL),
+        ]
+      : []),
+    callout(
+      "info",
+      `Quer conhecer a plataforma por dentro? Você pode experimentar o Formattio por 30 dias, sem cartão. <a href="${safeUrl(`${APP_URL.replace(/\/+$/, "")}/registro`)}" style="color:inherit;">Começar meu período de experiência</a>.`
+    ),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Seu material chegou — Formattio",
+    preheader: `Baixe “${escapeHtml(EBOOK_TITULO)}” e conheça a Formattio.`,
+    eyebrow: "Material Gratuito",
+    conteudo,
+    logoUrl: LOGO_URL,
+    notaRodape: unsubscribeFooter(unsubscribeUrl),
+  });
+  return send(PLATFORM_ORG_ID, email, `Seu material chegou: ${EBOOK_TITULO} — Formattio`, html, {
+    stream: "marketing",
+    brandAsOrg: false,
+    replyTo: "contato@formattio.com.br",
+  });
 }

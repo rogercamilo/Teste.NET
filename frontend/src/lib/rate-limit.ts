@@ -161,4 +161,10 @@ export const limiters = {
 
   /** 10 tentativas de ativação/definição de senha por IP por hora — portal. */
   portalAtivacao: (ip: string) => rateLimit(`portal_ativacao:${ip}`, 10, 60 * 60 * 1000),
+
+  /** 5 cadastros de lead por IP por hora — captura na landing (anti-abuso). */
+  leadSubscribeIp: (ip: string) => rateLimit(`lead_sub_ip:${ip}`, 5, 60 * 60 * 1000),
+
+  /** 3 cadastros por e-mail por hora — segunda camada, evita reenvio em massa. */
+  leadSubscribeEmail: (email: string) => rateLimit(`lead_sub_email:${email.toLowerCase()}`, 3, 60 * 60 * 1000),
 };

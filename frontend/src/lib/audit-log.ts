@@ -155,7 +155,11 @@ export type AuditAction =
   | "bulk_action_applied"
   | "db_pool_alert"
   | "email_suppressed"
-  | "email_send_skipped_suppressed";
+  | "email_send_skipped_suppressed"
+  | "lead_subscribed"
+  | "lead_confirmed"
+  | "lead_unsubscribed"
+  | "leads_exportados";
 
 export interface AuditEntry {
   timestamp: string;

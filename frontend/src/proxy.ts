@@ -110,6 +110,9 @@ export default auth(async function proxy(req) {
     "/para-quem-e",
     "/precos",
     "/faq",
+    // Captura de leads (ímã eBook) — página de obrigado, PDF do eBook e endpoints públicos
+    "/materiais",
+    "/api/leads/",
     "/.well-known/",
     "/api/og",
     "/api/health",

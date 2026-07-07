@@ -14,7 +14,7 @@ import {
 import {
   Building2, RefreshCw, Gift, Ban, BadgeCheck, DollarSign, Activity, Lock,
   Shield, Server, Clock, Scale, AlertTriangle, TrendingUp, CalendarPlus,
-  Loader2, Mail, CircleAlert, LayoutDashboard,
+  Loader2, Mail, CircleAlert, LayoutDashboard, Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { STORAGE_LIMITS } from "./_utils";
@@ -25,8 +25,9 @@ import { TabCortesias } from "./_tabs/TabCortesias";
 import { TabInfraestrutura } from "./_tabs/TabInfraestrutura";
 import { TabSeguranca } from "./_tabs/TabSeguranca";
 import { TabLgpd } from "./_tabs/TabLgpd";
+import { TabLeads } from "./_tabs/TabLeads";
 import type {
-  OrgRow, Metricas, LgpdData, ServicosData, SegurancaData, DialogAcao, Tab,
+  OrgRow, Metricas, LgpdData, ServicosData, SegurancaData, LeadsData, DialogAcao, Tab,
 } from "./_types";
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
   { id: "infraestrutura", label: "Infraestrutura",Icon: Server },
   { id: "seguranca",      label: "Segurança",     Icon: Lock },
   { id: "lgpd",           label: "LGPD",          Icon: Shield },
+  { id: "leads",          label: "Leads",         Icon: Sparkles },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -65,6 +67,8 @@ export default function SuperAdminClient() {
   const [servicosLoaded, setServicosLoaded] = useState(false);
   const [seguranca, setSeguranca] = useState<SegurancaData | null>(null);
   const [segurancaLoaded, setSegurancaLoaded] = useState(false);
+  const [leads, setLeads] = useState<LeadsData | null>(null);
+  const [leadsLoaded, setLeadsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [metricasError, setMetricasError] = useState<string | null>(null);
@@ -157,10 +161,20 @@ export default function SuperAdminClient() {
     } catch { toast.error("Erro de rede."); }
   }, []);
 
+  const loadLeads = useCallback(async () => {
+    try {
+      const res = await fetch("/api/super-admin/leads");
+      if (!res.ok) { toast.error("Falha ao carregar leads."); return; }
+      setLeads(await res.json() as LeadsData);
+      setLeadsLoaded(true);
+    } catch { toast.error("Erro de rede."); }
+  }, []);
+
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (tab === "lgpd" && !lgpdLoaded) void loadLgpd(); }, [tab, lgpdLoaded, loadLgpd]);
   useEffect(() => { if (tab === "infraestrutura" && !servicosLoaded) void loadServicos(); }, [tab, servicosLoaded, loadServicos]);
   useEffect(() => { if (tab === "seguranca" && !segurancaLoaded) void loadSeguranca(); }, [tab, segurancaLoaded, loadSeguranca]);
+  useEffect(() => { if (tab === "leads" && !leadsLoaded) void loadLeads(); }, [tab, leadsLoaded, loadLeads]);
 
   // ── Dialog helpers ─────────────────────────────────────────────────────────
 
@@ -377,6 +391,7 @@ export default function SuperAdminClient() {
           if (servicosLoaded) void loadServicos();
           if (segurancaLoaded) void loadSeguranca();
           if (lgpdLoaded) void loadLgpd();
+          if (leadsLoaded) void loadLeads();
         }} className="gap-1.5">
           <RefreshCw className="h-4 w-4" />Atualizar
         </Button>
@@ -524,6 +539,10 @@ export default function SuperAdminClient() {
 
       {tab === "lgpd" && (
         <TabLgpd lgpd={lgpd} orgs={orgs} onReload={loadLgpd} />
+      )}
+
+      {tab === "leads" && (
+        <TabLeads leads={leads} />
       )}
 
       {/* ── Shared Dialogs ─────────────────────────────────────────────────── */}
