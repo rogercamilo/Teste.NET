@@ -59,6 +59,7 @@ import {
 import {
   AlertTriangle,
   Camera,
+  ChevronDown,
   Filter,
   LayoutGrid,
   Link2,
@@ -154,6 +155,7 @@ export default function FormandosClient({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editing, setEditing] = useState<Formando | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [showOptional, setShowOptional] = useState(false);
   const [saving, setSaving] = useState(false);
   const [linkGradeState, setLinkGradeState] = useState<{ grupoFormacaoId: string; nivelFormativo: NivelFormativo } | null>(null);
   const [selectedGradeId, setSelectedGradeId] = useState("");
@@ -173,6 +175,7 @@ export default function FormandosClient({
   function openCreate() {
     setEditing(null);
     setForm({ ...EMPTY_FORM, grupoFormacaoId: "" });
+    setShowOptional(false);
     setDialogOpen(true);
   }
 
@@ -191,6 +194,7 @@ export default function FormandosClient({
       email: f.email,
       grupoFormacaoId: f.grupoFormacaoId ?? "",
     });
+    setShowOptional(true);
     setDialogOpen(true);
   }
 
@@ -204,11 +208,10 @@ export default function FormandosClient({
   async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório.");
     if (!form.email.trim()) return toast.error("E-mail é obrigatório.");
-    if (!form.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
-    if (!form.dataIngresso) return toast.error("Data de ingresso é obrigatória.");
 
     const grupoFormacao = initialGruposFormacao.find((m) => m.id === form.grupoFormacaoId);
     const nivelFormativo = grupoFormacao?.nivelFormativo ?? form.nivelFormativo;
+    const dataIngresso = form.dataIngresso || new Date().toISOString().split("T")[0];
 
     const progressoEtapas: ProgressoEtapa[] = editing?.progressoEtapas ?? [
       {
@@ -216,17 +219,17 @@ export default function FormandosClient({
         formacoesComunitariasRealizadas: 0,
         retirosComunitariosRealizados: 0,
         retirosPessoaisRealizados: 0,
-        iniciouEm: form.dataIngresso,
+        iniciouEm: dataIngresso,
       },
     ];
 
     const payload = {
       nome: form.nome.trim(),
-      dataNascimento: form.dataNascimento,
+      dataNascimento: form.dataNascimento || undefined,
       estadoCivil: form.estadoCivil,
       modalidade: form.modalidade,
       nivelFormativo,
-      dataIngresso: form.dataIngresso,
+      dataIngresso,
       telefone: stripPhone(form.telefone),
       email: form.email.trim(),
       ativo: editing?.ativo ?? true,
@@ -535,60 +538,14 @@ export default function FormandosClient({
               <Label>Nome completo <span className="text-destructive">*</span></Label>
               <Input value={form.nome} onChange={(e) => set("nome")(e.target.value)} placeholder="Nome Sobrenome" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Data de nascimento <span className="text-destructive">*</span></Label>
-                <Input type="date" value={form.dataNascimento} onChange={(e) => set("dataNascimento")(e.target.value)} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Estado civil</Label>
-                <Select value={form.estadoCivil} onValueChange={(v) => v && set("estadoCivil")(v)}>
-                  <SelectTrigger>
-                    <SelectValue>{ESTADO_CIVIL_LABELS[form.estadoCivil]}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(ESTADO_CIVIL_LABELS).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>E-mail <span className="text-destructive">*</span></Label>
-                <Input type="email" value={form.email} onChange={(e) => set("email")(e.target.value)} placeholder="email@exemplo.com" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Telefone</Label>
-                <Input
-                  type="tel"
-                  inputMode="numeric"
-                  value={form.telefone}
-                  onChange={(e) => set("telefone")(applyPhoneMask(e.target.value))}
-                  placeholder="(xx) xxxxx-xxxx"
-                  maxLength={15}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Modalidade</Label>
-                <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)}>
-                  <SelectTrigger>
-                    <SelectValue>{MODALIDADE_LABELS[form.modalidade]}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="presencial">Presencial</SelectItem>
-                    <SelectItem value="online">Online</SelectItem>
-                    <SelectItem value="hibrida">Híbrida</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Data de ingresso <span className="text-destructive">*</span></Label>
-                <Input type="date" value={form.dataIngresso} onChange={(e) => set("dataIngresso")(e.target.value)} />
-              </div>
+            <div className="grid gap-1.5">
+              <Label>E-mail <span className="text-destructive">*</span></Label>
+              <Input type="email" value={form.email} onChange={(e) => set("email")(e.target.value)} placeholder="email@exemplo.com" />
+              {!editing && (
+                <p className="text-xs text-muted-foreground">
+                  Usado para enviar o convite de primeiro acesso ao portal.
+                </p>
+              )}
             </div>
             <div className="grid gap-1.5">
               <Label>{termoGrupoFormacao}</Label>
@@ -643,6 +600,74 @@ export default function FormandosClient({
                 </p>
               )}
             </div>
+
+            {showOptional ? (
+              <div className="grid gap-4 border-t border-border/60 pt-4">
+                {!editing && (
+                  <p className="text-xs text-muted-foreground -mt-1">
+                    Dados pessoais. Você pode deixar em branco — o próprio {termoFormando.toLowerCase()} completa no portal.
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Data de nascimento</Label>
+                    <Input type="date" value={form.dataNascimento} onChange={(e) => set("dataNascimento")(e.target.value)} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Estado civil</Label>
+                    <Select value={form.estadoCivil} onValueChange={(v) => v && set("estadoCivil")(v)}>
+                      <SelectTrigger>
+                        <SelectValue>{ESTADO_CIVIL_LABELS[form.estadoCivil]}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(ESTADO_CIVIL_LABELS).map(([k, v]) => (
+                          <SelectItem key={k} value={k}>{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Telefone</Label>
+                    <Input
+                      type="tel"
+                      inputMode="numeric"
+                      value={form.telefone}
+                      onChange={(e) => set("telefone")(applyPhoneMask(e.target.value))}
+                      placeholder="(xx) xxxxx-xxxx"
+                      maxLength={15}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Modalidade</Label>
+                    <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)}>
+                      <SelectTrigger>
+                        <SelectValue>{MODALIDADE_LABELS[form.modalidade]}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="presencial">Presencial</SelectItem>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="hibrida">Híbrida</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Data de ingresso</Label>
+                  <Input type="date" value={form.dataIngresso} onChange={(e) => set("dataIngresso")(e.target.value)} />
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowOptional(true)}
+                className="flex items-center gap-1.5 text-sm text-primary hover:underline w-fit"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+                Completar agora (opcional)
+              </button>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancelar</Button>
