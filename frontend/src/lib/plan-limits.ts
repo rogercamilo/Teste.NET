@@ -39,13 +39,16 @@ type OrgAccess =
 async function fetchOrgForLimits(orgId: string): Promise<OrgAccess> {
   const org = await prisma.organizacao.findUnique({
     where: { id: orgId },
-    select: { planoAssinatura: true, status: true, trialExpiresAt: true },
+    select: { planoAssinatura: true, status: true, trialExpiresAt: true, cortesia: true, cortesiaExpiresAt: true },
   });
   if (!org) return { ok: false, reason: "Organização não encontrada" };
   if (org.status === "SUSPENSO" || org.status === "CANCELADO") {
     return { ok: false, reason: "Conta suspensa ou cancelada" };
   }
-  if (org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt < new Date()) {
+  // Cortesia vigente concede acesso ativo (limites do tier concedido) — nunca é
+  // tratada como avaliação, então o bloqueio de trial expirado não se aplica.
+  const cortesiaVigente = org.cortesia && (!org.cortesiaExpiresAt || org.cortesiaExpiresAt > new Date());
+  if (!cortesiaVigente && org.status === "TRIAL" && org.trialExpiresAt && org.trialExpiresAt < new Date()) {
     return { ok: false, reason: "Período de avaliação expirado" };
   }
   return { ok: true, planoAssinatura: org.planoAssinatura };

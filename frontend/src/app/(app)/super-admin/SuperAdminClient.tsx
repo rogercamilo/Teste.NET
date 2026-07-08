@@ -86,6 +86,7 @@ export default function SuperAdminClient() {
   const [novoPlano, setNovoPlano] = useState<string>("");
   const [cortesiaMotivo, setCortesiaMotivo] = useState("");
   const [cortesiaExpiry, setCortesiaExpiry] = useState("");
+  const [cortesiaPlano, setCortesiaPlano] = useState("BASICO");
   const [trialDays, setTrialDays] = useState("30");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -183,12 +184,18 @@ export default function SuperAdminClient() {
     setSelectedOrg(null);
     setCortesiaMotivo("");
     setCortesiaExpiry("");
+    setCortesiaPlano("BASICO");
     setTrialDays("30");
   }
 
   function handleAction(org: OrgRow, acao: DialogAcao) {
     setSelectedOrg(org);
     if (acao === "plano") setNovoPlano(org.planoAssinatura);
+    if (acao === "cortesia") {
+      setCortesiaMotivo(org.cortesiaMotivo ?? "");
+      setCortesiaExpiry(org.cortesiaExpiresAt ? org.cortesiaExpiresAt.slice(0, 10) : "");
+      setCortesiaPlano(org.planoAssinatura === "GRATUITO" ? "BASICO" : org.planoAssinatura);
+    }
     if (acao === "estender-trial") setTrialDays("30");
     setDialogAcao(acao);
   }
@@ -598,10 +605,27 @@ export default function SuperAdminClient() {
               Conceder cortesia — {selectedOrg?.nome}
             </DialogTitle>
             <DialogDescription>
-              A organização ficará isenta de pagamento enquanto a cortesia estiver ativa.
+              A organização fica <strong>ativa e isenta de pagamento</strong> enquanto a cortesia estiver vigente — não conta como avaliação nem entra na receita (MRR).
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Plano concedido</label>
+              <Select value={cortesiaPlano} onValueChange={(v) => v && setCortesiaPlano(v)}>
+                <SelectTrigger>
+                  <SelectValue>
+                    {{ BASICO: "Básico — até 60 usuários", INTERMEDIARIO: "Intermediário — até 140 usuários", AVANCADO: "Avançado — até 350 usuários", PERSONALIZADO: "Personalizado — ilimitado" }[cortesiaPlano] ?? cortesiaPlano}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BASICO">Básico — até 60 usuários</SelectItem>
+                  <SelectItem value="INTERMEDIARIO">Intermediário — até 140 usuários</SelectItem>
+                  <SelectItem value="AVANCADO">Avançado — até 350 usuários</SelectItem>
+                  <SelectItem value="PERSONALIZADO">Personalizado — ilimitado</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Define os limites de uso da organização durante a cortesia.</p>
+            </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Motivo <span className="text-muted-foreground font-normal">(opcional)</span></label>
               <textarea
@@ -631,6 +655,7 @@ export default function SuperAdminClient() {
               onClick={() => selectedOrg && void executeAction(selectedOrg.id, "cortesia", {
                 cortesiaMotivo: cortesiaMotivo || undefined,
                 cortesiaExpiresAt: cortesiaExpiry || null,
+                cortesiaPlano,
               })}
             >
               <Gift className="h-4 w-4 mr-1.5" />Conceder Cortesia

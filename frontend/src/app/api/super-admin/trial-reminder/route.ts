@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const orgsExpirando = await prisma.organizacao.findMany({
       where: {
         status: "TRIAL",
+        cortesia: false,
         trialExpiresAt: { gte: agora, lte: limite },
       },
       include: {

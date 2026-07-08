@@ -29,6 +29,7 @@ export async function PATCH(request: Request, { params }: Params) {
       plano?: string;
       cortesiaExpiresAt?: string | null;
       cortesiaMotivo?: string;
+      cortesiaPlano?: string;
       justificativa?: string;
       usuarioId?: string;
       trialDays?: number;
@@ -52,19 +53,30 @@ export async function PATCH(request: Request, { params }: Params) {
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
     // ── Cortesia ─────────────────────────────────────────────────────────────
+    // Cortesia = acesso ativo concedido a R$ 0, NÃO um período de avaliação.
+    // Sai do TRIAL para ATIVO, zera o relógio de trial e aplica o tier concedido
+    // (limites reais daquele plano). A org não entra na MRR (métricas filtram
+    // cortesia: true das agregações de receita).
     if (acao === "cortesia") {
       const expiresAt = body.cortesiaExpiresAt ? new Date(body.cortesiaExpiresAt) : null;
+      const cortesiaPlano = body.cortesiaPlano as PlanoAssinatura | undefined;
+      if (cortesiaPlano && !validPlanos.includes(cortesiaPlano)) {
+        return NextResponse.json({ error: "Plano de cortesia inválido" }, { status: 400 });
+      }
       await prisma.organizacao.update({
         where: { id },
         data: {
           cortesia: true,
           cortesiaExpiresAt: expiresAt,
           cortesiaMotivo: body.cortesiaMotivo?.trim() ?? null,
-          status: org.status === "SUSPENSO" || org.status === "CANCELADO" ? "ATIVO" : org.status,
+          status: "ATIVO",
+          trialExpiresAt: null,
+          canceladoEm: null,
+          ...(cortesiaPlano ? { planoAssinatura: cortesiaPlano } : {}),
         },
       });
       logAction("organizacao_cortesia_concedida", user.id ?? undefined, getClientIp(request),
-        { orgId: id, expiresAt: expiresAt?.toISOString(), motivo: body.cortesiaMotivo }, id);
+        { orgId: id, expiresAt: expiresAt?.toISOString(), motivo: body.cortesiaMotivo, plano: cortesiaPlano }, id);
       return NextResponse.json({ ok: true });
     }
 

@@ -19,6 +19,9 @@ export async function GET() {
     // Exclui a org de plataforma (host do super_admin) de toda contagem/agregação:
     // ela não é um tenant cliente e inflaria totais, breakdown de plano e MRR.
     const notPlatform = { id: { not: PLATFORM_ORG_ID } };
+    // Orgs de cortesia pagam R$ 0 — nunca entram nas agregações de receita
+    // (MRR estimado, breakdown de plano pago, ARR, ticket médio, receita em risco).
+    const pagante = { ...notPlatform, cortesia: false };
 
     const [
       totalOrgs,
@@ -47,17 +50,17 @@ export async function GET() {
       prisma.formando.count(),
       prisma.grupoFormacao.count(),
       prisma.usuario.count({ where: { deletedAt: null, perfil: { not: "super_admin" } } }),
-      prisma.organizacao.groupBy({ by: ["planoAssinatura"], _count: { id: true }, where: notPlatform }),
+      prisma.organizacao.groupBy({ by: ["planoAssinatura"], _count: { id: true }, where: pagante }),
       prisma.organizacao.count({ where: { ...notPlatform, criadoEm: { gte: inicio30d } } }),
       prisma.organizacao.count({ where: { ...notPlatform, criadoEm: { gte: inicio60d, lt: inicio30d } } }),
       prisma.deletionRequest.count({ where: { status: "pendente" } }),
       prisma.organizacao.count({ where: { ...notPlatform, canceladoEm: { gte: inicio30d } } }),
       prisma.organizacao.findMany({
-        where: { ...notPlatform, status: "SUSPENSO", stripeSubscriptionId: { not: null } },
+        where: { ...pagante, status: "SUSPENSO", stripeSubscriptionId: { not: null } },
         select: { id: true, nome: true, planoAssinatura: true },
       }),
       prisma.organizacao.findMany({
-        where: notPlatform,
+        where: pagante,
         select: { criadoEm: true, canceladoEm: true, planoAssinatura: true },
       }),
     ]);
