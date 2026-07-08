@@ -59,6 +59,9 @@ const PUBLIC = new Set<string>([
   "portal/recuperar/route.ts", // pede reset por e-mail (anti-enumeração, não vaza existência)
   "portal/recuperar/[token]/route.ts", // reset: valida o próprio token e define a senha
   "portal/logout/route.ts", // só apaga o cookie de sessão do portal (sem dados/DB)
+  "leads/subscribe/route.ts", // captura pública de lead (ímã eBook): honeypot + rate-limit por IP/e-mail + double opt-in; anti-enumeração (sempre 200)
+  "leads/confirm/route.ts", // double opt-in via token opaco (GET 1-clique)
+  "leads/unsubscribe/route.ts", // opt-out via token opaco (GET 1-clique)
 ]);
 
 // Detecta escrita no banco.
