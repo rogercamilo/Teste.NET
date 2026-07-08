@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Organizando a formação da sua comunidade — Formattio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --clay: #B25433;
+    --clay-light: #D4754C;
+    --clay-dark: #8F3F24;
+    --ink: #2A2018;
+    --body: #4A4038;
+    --muted: #8B8178;
+    --cream: #FBF6F2;
+    --cream-2: #F3E9E1;
+    --line: #E9DDD3;
+    --paper: #FFFFFF;
+    --dark-1: #2E2019;
+    --dark-2: #1E140E;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  body {
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    color: var(--body);
+    font-size: 10.5pt;
+    line-height: 1.62;
+    background: #ccc;
+  }
+
+  h1, h2, h3, h4, .display, .num { font-family: 'Geist', 'Inter', system-ui, sans-serif; }
+
+  /* ── Página base A4 ─────────────────────────────────────────────── */
+  .page {
+    position: relative;
+    width: 210mm;
+    height: 297mm;
+    background: var(--paper);
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+  .pad {
+    position: absolute;
+    inset: 0;
+    padding: 20mm 22mm 18mm;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Marca d'água de símbolo */
+  .watermark {
+    position: absolute;
+    right: -18mm; bottom: -18mm;
+    width: 120mm; height: 120mm;
+    opacity: 0.035;
+    pointer-events: none;
+  }
+  .ghost-num {
+    position: absolute;
+    top: 12mm; right: 16mm;
+    font-family: 'Geist', sans-serif;
+    font-weight: 800;
+    font-size: 120pt;
+    line-height: 1;
+    color: var(--cream-2);
+    opacity: 0.55;
+    z-index: 0;
+    letter-spacing: -0.03em;
+  }
+
+  /* Rodapé de página */
+  .foot {
+    position: absolute;
+    left: 22mm; right: 22mm; bottom: 11mm;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 7.5pt; letter-spacing: 0.06em; color: var(--muted);
+    border-top: 1px solid var(--line); padding-top: 3mm;
+    z-index: 3;
+  }
+  .foot .fbrand { color: var(--clay); font-weight: 600; font-family: 'Geist', sans-serif; letter-spacing: 0.02em; }
+  .foot .fnum { font-family: 'Geist', sans-serif; font-variant-numeric: tabular-nums; }
+
+  .content { position: relative; z-index: 2; flex: 1; }
+
+  /* ── CAPA ───────────────────────────────────────────────────────── */
+  .cover { background: radial-gradient(130% 90% at 50% -10%, #3A2A20 0%, var(--dark-1) 45%, var(--dark-2) 100%); }
+  .cover .pad { padding: 26mm 24mm 20mm; }
+  .cover .watermark { opacity: 0.06; right: -12mm; bottom: -6mm; width: 130mm; height: 130mm; }
+  .cover-logo { width: 104mm; height: auto; margin-bottom: 30mm; }
+  .cover-kicker {
+    font-size: 9.5pt; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--clay-light); font-weight: 600; margin-bottom: 9mm;
+  }
+  .cover h1 {
+    font-size: 34pt; font-weight: 800; line-height: 1.06; letter-spacing: -0.018em;
+    color: #FFFFFF; margin-bottom: 9mm; max-width: 158mm;
+  }
+  .cover .divider { width: 40mm; height: 3px; background: var(--clay); border-radius: 2px; margin-bottom: 9mm; }
+  .cover .sub { font-size: 13pt; line-height: 1.5; color: #D8C7BB; max-width: 140mm; }
+  .cover-foot {
+    margin-top: auto; display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid rgba(255,255,255,0.14); padding-top: 7mm;
+    font-size: 9pt; color: #B2A093; letter-spacing: 0.04em;
+  }
+  .cover-foot strong { color: var(--clay-light); font-weight: 600; }
+
+  /* ── Elementos editoriais ───────────────────────────────────────── */
+  .eyebrow {
+    display: inline-block; font-size: 8pt; letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--clay); font-weight: 700; margin-bottom: 4mm;
+  }
+  h2.sec { font-size: 23pt; font-weight: 700; color: var(--ink); line-height: 1.1; letter-spacing: -0.012em; margin-bottom: 5mm; }
+  .rule { width: 42mm; height: 3px; background: var(--clay); border-radius: 2px; margin-bottom: 7mm; }
+
+  h3 { font-size: 12pt; font-weight: 600; color: var(--clay-dark); margin: 6mm 0 2mm; }
+  h3.tag-h { font-size: 9pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--clay); margin: 6mm 0 2.5mm; }
+
+  p { margin-bottom: 3mm; }
+  p.lead { font-size: 12pt; line-height: 1.5; color: var(--ink); margin-bottom: 4.5mm; }
+  strong { color: var(--ink); font-weight: 600; }
+  em { color: var(--clay-dark); font-style: italic; }
+  .part-label { font-size: 9pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 5mm; }
+
+  /* Lista "na prática" */
+  ul.practice { list-style: none; margin: 3mm 0 2mm; }
+  ul.practice li { position: relative; padding-left: 8mm; margin-bottom: 2.6mm; line-height: 1.5; }
+  ul.practice li::before {
+    content: ""; position: absolute; left: 0; top: 1.9mm;
+    width: 3mm; height: 3mm; border-radius: 50%; background: var(--clay);
+    box-shadow: 0 0 0 2px var(--cream-2);
+  }
+
+  /* Callout */
+  .callout { background: var(--cream); border-left: 3px solid var(--clay); border-radius: 0 9px 9px 0; padding: 5.5mm 7mm; margin: 6mm 0; }
+  .callout .ctag { font-size: 7.5pt; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; color: var(--clay); display: block; margin-bottom: 1.6mm; }
+  .callout p { margin: 0; color: var(--ink); font-size: 10.5pt; line-height: 1.5; }
+
+  /* Framework list (visão geral) */
+  .fw-item { display: flex; gap: 6mm; padding: 5.5mm 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  .fw-item:last-of-type { border-bottom: none; }
+  .fw-num {
+    flex-shrink: 0; width: 11mm; height: 11mm; border-radius: 50%;
+    background: var(--clay); color: #fff; font-family: 'Geist', sans-serif; font-weight: 700; font-size: 14pt;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fw-item h4 { font-size: 12.5pt; color: var(--ink); font-weight: 600; margin-bottom: 1mm; }
+  .fw-item p { margin: 0; font-size: 10pt; color: var(--body); }
+
+  /* Cabeçalho de fundamento */
+  .f-head { display: flex; align-items: center; gap: 5mm; margin-bottom: 6mm; position: relative; z-index: 2; }
+  .f-badge {
+    width: 15mm; height: 15mm; border-radius: 13px;
+    background: linear-gradient(150deg, var(--clay), var(--clay-dark));
+    color: #fff; font-family: 'Geist', sans-serif; font-weight: 800; font-size: 18pt;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(178,84,51,0.25);
+  }
+  .f-kicker { font-size: 8pt; letter-spacing: 0.22em; text-transform: uppercase; color: var(--clay); font-weight: 700; margin-bottom: 1mm; }
+  .f-head h2 { font-size: 20pt; font-weight: 700; color: var(--ink); line-height: 1.06; letter-spacing: -0.01em; }
+
+  /* Dimensões H/E/C */
+  .dims { display: flex; gap: 4mm; margin: 5mm 0; }
+  .dim { flex: 1; background: var(--cream); border: 1px solid var(--line); border-radius: 11px; padding: 5mm 4.5mm; }
+  .dim .letter { font-family: 'Geist', sans-serif; font-weight: 800; font-size: 19pt; color: var(--clay); line-height: 1; }
+  .dim .name { font-weight: 600; color: var(--ink); font-size: 10pt; margin: 2mm 0 1mm; }
+  .dim .desc { font-size: 8.5pt; color: var(--muted); line-height: 1.4; }
+
+  /* Perguntas-espelho */
+  .q-item { display: flex; gap: 6mm; padding: 5mm 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  .q-item:last-of-type { border-bottom: none; }
+  .q-num { font-family: 'Geist', sans-serif; font-weight: 800; font-size: 22pt; color: var(--clay-light); line-height: 1; flex-shrink: 0; width: 12mm; }
+  .q-item p { margin: 0; font-size: 11.5pt; color: var(--ink); line-height: 1.45; }
+
+  /* Checklist */
+  .check-group { margin-bottom: 5mm; }
+  .cg-title { display: flex; align-items: center; gap: 3mm; margin-bottom: 2.5mm; }
+  .cg-num { width: 6.5mm; height: 6.5mm; border-radius: 50%; background: var(--clay); color: #fff; font-size: 8.5pt; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist', sans-serif; }
+  .cg-title span.t { font-family: 'Geist', sans-serif; font-weight: 600; font-size: 11.5pt; color: var(--ink); }
+  .check { display: flex; align-items: flex-start; gap: 3.5mm; margin-bottom: 2mm; padding-left: 9.5mm; }
+  .check .box { flex-shrink: 0; width: 4mm; height: 4mm; margin-top: 0.5mm; border: 1.5px solid var(--clay); border-radius: 3px; }
+  .check span.tx { font-size: 10pt; color: var(--body); line-height: 1.4; }
+
+  /* CTA */
+  .cta { background: radial-gradient(130% 90% at 50% 110%, #3A2A20 0%, var(--dark-1) 45%, var(--dark-2) 100%); }
+  .cta .pad { padding: 30mm 24mm 20mm; }
+  .cta .watermark { opacity: 0.06; }
+  .cta .eyebrow { color: var(--clay-light); }
+  .cta h2 { font-size: 27pt; font-weight: 800; color: #fff; line-height: 1.1; margin-bottom: 5mm; max-width: 150mm; letter-spacing: -0.01em; }
+  .cta .intro { color: #D8C7BB; font-size: 11.5pt; max-width: 148mm; }
+  .cta-box { margin-top: 8mm; background: rgba(255,255,255,0.045); border: 1px solid rgba(212,117,76,0.3); border-radius: 15px; padding: 8mm 9mm; }
+  .cta-box .big { font-family: 'Geist', sans-serif; font-size: 13.5pt; font-weight: 700; color: #fff; margin-bottom: 4mm; }
+  .cta-box ul { list-style: none; }
+  .cta-box li { padding-left: 7mm; position: relative; margin-bottom: 2.4mm; color: #E2D4C8; font-size: 10pt; }
+  .cta-box li::before { content: "→"; position: absolute; left: 0; color: var(--clay-light); font-weight: 700; }
+  .cta-url { margin-top: 8mm; display: inline-block; background: var(--clay); color: #fff; font-weight: 600; font-size: 12pt; padding: 4.5mm 9mm; border-radius: 11px; align-self: flex-start; font-family: 'Geist', sans-serif; box-shadow: 0 6px 20px rgba(178,84,51,0.3); }
+  .cta-note { font-size: 9pt; color: #B2A093; margin-top: 3.5mm; }
+  .cta-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.14); padding-top: 7mm; }
+  .cta-foot img { width: 38mm; }
+  .cta-foot span { font-size: 8.5pt; color: #B2A093; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ CAPA ═══════════ -->
+<section class="page cover">
+  <img class="watermark" src="../frontend/public/brand/formatio-symbol-on-dark.svg" alt="">
+  <div class="pad">
+    <img class="cover-logo" src="../frontend/public/brand/formatio-horizontal-on-dark.svg" alt="Formattio">
+    <div class="cover-kicker">Guia prático · Formação comunitária</div>
+    <h1>Organizando a formação da sua comunidade</h1>
+    <div class="divider"></div>
+    <p class="sub">Um guia em quatro fundamentos — da estrutura da jornada à governança de dados e comunitária.</p>
+    <div class="cover-foot">
+      <span>Um guia <strong>Formattio</strong></span>
+      <span>www.formattio.com.br</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ INTRODUÇÃO ═══════════ -->
+<section class="page">
+  <div class="pad">
+    <div class="content">
+      <span class="eyebrow">Introdução</span>
+      <h2 class="sec">O que não se organiza, se perde</h2>
+      <div class="rule"></div>
+
+      <p class="lead">Ninguém entra na formação comunitária pela organização em si. Entra pelo essencial: ajudar cada formando a <strong>conhecer, amar, defender e propagar</strong> o carisma da comunidade e a fé da Igreja.</p>
+
+      <p>Organizar tudo isso vem depois — quase sem avisar, no dia em que a comunidade cresce mais do que a memória de quem a conduz consegue abarcar. São muitos nomes, muitos encontros, muitos caminhos formativos em andamento ao mesmo tempo. E aquilo que sustentava o acompanhamento — a atenção dedicada de uma ou duas pessoas — começa a escapar entre os dedos.</p>
+
+      <p>Quem está em qual etapa? O que foi conversado com aquele formando no último encontro? Onde ficou o registro daquela partilha que revelou um passo importante? Quando a resposta depende de <em>lembrar</em> — ou de garimpar em conversas de WhatsApp e planilhas espalhadas — a formação comunitária já começou a se perder. Não por falta de zelo; por falta de estrutura em que o zelo se apoie.</p>
+
+      <p>Há um receio legítimo por trás da resistência a "organizar": o medo de burocratizar o que é vivo, de reduzir o acompanhamento a formulário. Vale ouvir esse receio. Mas organizar bem faz o contrário do que se teme — <strong>libera</strong> tempo e atenção para o que só o encontro humano realiza, e confia à estrutura apenas aquilo que ela guarda melhor do que a memória.</p>
+
+      <p>E convém dizer, desde já, o que este guia — e uma boa organização — <strong>não</strong> pretende tocar: o foro íntimo. A formação pessoal, o acompanhamento sob sigilo do caminho interior de cada um, tem um lugar próprio, e é um lugar selado. Aqui falamos do que a comunidade legitimamente <strong>observa para caminhar</strong> com o formando: sua vida na etapa, sua presença, os frutos partilhados, seu crescimento no carisma e na fé.</p>
+
+      <div class="callout">
+        <span class="ctag">A ideia central</span>
+        <p>Uma comunidade madura não é a que controla mais. É a que <em>cuida melhor</em> — e cuidar bem, quando se é muitos, pede método.</p>
+      </div>
+
+      <p>Nas páginas a seguir reunimos, em <strong>quatro fundamentos</strong>, o que vemos nas comunidades que crescem sem perder três coisas preciosas: a <strong>memória</strong> do que já caminharam, o <strong>cuidado</strong> com cada formando e a <strong>integridade</strong> de como tratam o que lhes foi confiado.</p>
+    </div>
+  </div>
+  <div class="foot"><span class="fbrand">FORMATTIO</span><span class="fnum"></span></div>
+</section>
+
+<!-- ═══════════ QUATRO PERGUNTAS ═══════════ -->
+<section class="page">
+  <div class="pad">
+    <div class="content">
+      <span class="eyebrow">Antes de continuar</span>
+      <h2 class="sec">Quatro perguntas</h2>
+      <div class="rule"></div>
+      <p class="lead">Não é um teste, e não há resposta certa. É um espelho. Leia devagar, pensando na sua comunidade <em>hoje</em> — não na que você gostaria que fosse.</p>
+
+      <div style="margin-top:4mm">
+        <div class="q-item"><div class="q-num">1</div><p>Se o coordenador da formação precisasse se afastar — pedir licença, ser remanejado de missão —, o que a comunidade perderia com essa saída?</p></div>
+        <div class="q-item"><div class="q-num">2</div><p>Você conseguiria dizer, agora, sem consultar ninguém, <strong>quem está precisando de atenção</strong> neste momento — e por quê?</p></div>
+        <div class="q-item"><div class="q-num">3</div><p>Os dados das pessoas que confiaram sua história à sua comunidade — nomes, contatos, caminhos pessoais — estão guardados de um jeito que você chamaria de <strong>cuidadoso</strong>?</p></div>
+        <div class="q-item"><div class="q-num">4</div><p>Se um formando pedisse hoje para ver tudo o que vocês registraram sobre ele, <strong>quanto tempo</strong> levaria para reunir essas informações?</p></div>
+      </div>
+
+      <div class="callout" style="margin-top:8mm">
+        <span class="ctag">Se deu um leve desconforto</span>
+        <p>Você está no lugar certo. Não é sinal de descuido — é sinal de uma comunidade que <em>cresceu</em>. E é exatamente isso que os próximos quatro fundamentos ajudam a organizar.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="fbrand">FORMATTIO</span><span class="fnum"></span></div>
+</section>
+
+<!-- ═══════════ VISÃO GERAL ═══════════ -->
+<section class="page">
+  <div class="pad">
+    <div class="content">
+      <span class="eyebrow">Visão geral</span>
+      <h2 class="sec">Os quatro fundamentos</h2>
+      <div class="rule"></div>
+      <p class="lead">Cada fundamento responde a uma pergunta que toda formação, cedo ou tarde, precisa encarar. Juntos, formam a base de uma comunidade organizada.</p>
+
+      <div style="margin-top:5mm">
+        <div class="fw-item"><div class="fw-num">1</div><div><h4>Estrutura — dê forma à jornada</h4><p>O plano, a grade e as formações que se aplicam nos grupos — e os compromissos que sustentam cada etapa.</p></div></div>
+        <div class="fw-item"><div class="fw-num">2</div><div><h4>Acompanhamento — enxergue cada pessoa</h4><p>Como cada formando vive o chamado e cresce — humana, espiritual e comunitariamente — e quem precisa de atenção agora.</p></div></div>
+        <div class="fw-item"><div class="fw-num">3</div><div><h4>Governança — cuide dos dados e da comunidade</h4><p>Quem acessa o quê, com que autoridade, e como se protege o que foi confiado.</p></div></div>
+        <div class="fw-item"><div class="fw-num">4</div><div><h4>Comunicação e memória — sustente o vínculo</h4><p>Avisos que chegam a tempo e uma memória que sobrevive à troca de quem conduz.</p></div></div>
+      </div>
+
+      <div class="callout" style="margin-top:7mm">
+        <span class="ctag">Como usar</span>
+        <p>Leia pensando na sua comunidade hoje. Ao final, um checklist ajuda a ver onde você já está firme — e por onde começar.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="fbrand">FORMATTIO</span><span class="fnum"></span></div>
+</section>
+
+<!-- ═══════════ FUNDAMENTO 1 ═══════════ -->
+<section class="page">
+  <div class="ghost-num">01</div>
+  <div class="pad">
+    <div class="content">
+      <div class="f-head">
+        <div class="f-badge">1</div>
+        <div><div class="f-kicker">Fundamento um</div><h2>Estrutura: dê forma à jornada</h2></div>
+      </div>
+
+      <p class="lead">A formação comunitária tem um caminho — e caminho se percorre por <strong>etapas formativas</strong>. É a jornada do formando: cada etapa com seus conteúdos, suas vivências e seus compromissos. Sem esse desenho visível, o tempo passa, mas não se sabe se houve caminhada.</p>
+
+      <p>Uma formação bem estruturada costuma se organizar em <strong>três níveis que se encaixam</strong>:</p>
+      <ul class="practice">
+        <li><strong>Plano Formativo</strong> — o desenho do caminho: o que se pretende formar ao longo da jornada.</li>
+        <li><strong>Grade Formativa</strong> — como esse plano se distribui em conteúdos organizados, etapa a etapa.</li>
+        <li><strong>Formações</strong> — os encontros concretos onde tudo isso, enfim, acontece.</li>
+      </ul>
+
+      <p>Esse conjunto é aplicado nos <strong>grupos de formação</strong>, que acolhem os formandos. E é ali, ao longo das <strong>etapas formativas</strong>, que cada formando vivencia as formações e as <strong>ações formativas</strong> que desdobram o caminho — os retiros, as vigílias, as missões. Não são eventos soltos: fazem parte do plano e pedem o mesmo cuidado de organização e governança dos conteúdos. E há um fio que atravessa tudo: os <strong>compromissos comunitários</strong>. Entrar numa etapa é, em boa medida, rearranjar a vida — hábitos, horários, presenças —, e torná-los explícitos é o que faz a formação ensinável e verificável.</p>
+
+      <h3 class="tag-h">Na prática</h3>
+      <ul class="practice">
+        <li>Desenhe o <strong>plano formativo</strong> e distribua-o em uma <strong>grade</strong> por etapa — do ingresso ao compromisso.</li>
+        <li>Organize os <strong>grupos de formação</strong>, cada um com um formador comunitário responsável, e defina os <strong>compromissos</strong> de cada etapa.</li>
+        <li>Preveja as <strong>ações formativas</strong> — retiros, vigílias, missões — como parte da formação, e não à margem dela.</li>
+      </ul>
+
+      <div class="callout">
+        <span class="ctag">Armadilha comum</span>
+        <p>Etapa não se mede por tempo de casa nem por idade. Mede-se por <em>maturidade</em> — a vivência real dos compromissos e das formações daquela etapa. Sem critérios, a passagem vira mera passagem do tempo, e o discernimento se perde.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="fbrand">FORMATTIO</span><span class="fnum"></span></div>
+</section>
+
+<!-- ═══════════ FUNDAMENTO 2 ═══════════ -->
+<section class="page">
+  <div class="ghost-num">02</div>
+  <div class="pad">
+    <div class="content">
+      <div class="f-head">
+        <div class="f-badge">2</div>
+        <div><div class="f-kicker">Fundamento dois</div><h2>Acompanhamento: enxergue cada pessoa</h2></div>
+      </div>
+
+      <p class="lead">A estrutura dá o mapa; o acompanhamento é a caminhada ao lado. E aqui vale uma distinção que a boa formação conhece bem: existe o <strong>acompanhamento pessoal</strong> — reservado, selado, que ajuda o formando a ler os caminhos de Deus na sua vida — e existe o <strong>acompanhamento comunitário</strong>, que é <em>da</em> comunidade e <em>para</em> a comunidade. Este guia trata do segundo.</p>
+
+      <p>O formador comunitário é um <strong>recurso da comunidade</strong>: acompanha de perto a vivência comunitária do formando e tem a responsabilidade de, quando é o caso, emitir um <strong>parecer</strong> — uma leitura de como aquela pessoa está caminhando. Não é vigilância; é cuidado com responsabilidade. E onde se observa tudo isso? Na vida concreta: nas <strong>formações</strong>, nos encontros, nos <strong>retiros</strong>, nas <strong>vigílias</strong> e nas <strong>missões</strong>. É o que o formando <em>vive</em> que se torna a matéria do acompanhamento — é ali, na experiência real, que o formador lê o caminho e o traduz em parecer.</p>
+
+      <p>E o que se observa? Boa parte das comunidades lê o crescimento por <strong>três dimensões</strong> complementares:</p>
+
+      <div class="dims">
+        <div class="dim"><div class="letter">H</div><div class="name">Humana</div><div class="desc">Maturidade afetiva, autoconhecimento, crescimento integral.</div></div>
+        <div class="dim"><div class="letter">E</div><div class="name">Espiritual</div><div class="desc">Vida de oração, fidelidade, vida sacramental.</div></div>
+        <div class="dim"><div class="letter">C</div><div class="name">Comunitária</div><div class="desc">Comunhão, serviço e a vivência dos compromissos e da missão.</div></div>
+      </div>
+
+      <h3 class="tag-h">Na prática</h3>
+      <ul class="practice">
+        <li>Acompanhe a <strong>vivência dos compromissos</strong> e a <strong>presença</strong> nos encontros — não para controlar, mas para perceber, a tempo, quem está se afastando.</li>
+        <li>Registre a <strong>evolução nas três dimensões</strong> ao longo das etapas — como leitura orante do caminho e base dos pareceres, nunca como nota.</li>
+        <li>Trate esses registros com <strong>discrição</strong>: são de quem acompanha, não de todos.</li>
+      </ul>
+
+      <div class="callout">
+        <span class="ctag">O sinal mais precoce</span>
+        <p>O primeiro sintoma de que alguém precisa de atenção quase nunca é dito em voz alta. Costuma ser <em>a ausência silenciosa</em> — a presença que rareia sem que ninguém perceba a tempo.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="fbrand">FORMATTIO</span><span class="fnum"></span></div>
+</section>
+
+<!-- ═══════════ FUNDAMENTO 3 — PARTE A ═══════════ -->
+<section class="page">
+  <div class="ghost-num">03</div>
+  <div class="pad">
+    <div class="content">
+      <div class="f-head">
+        <div class="f-badge">3</div>
+        <div><div class="f-kicker">Fundamento três</div><h2>Governança: dados e comunidade</h2></div>
+      </div>
+      <div class="part-label">Parte A — Os dados</div>
+
+      <p class="lead">Aqui está o que quase ninguém comenta — e o que distingue uma comunidade madura de uma <strong>em amadurecimento</strong>. Governança é o cuidado com a informação e com a autoridade: quem pode ver o quê, e quem responde por quê.</p>
+
+      <p>Sua comunidade guarda nomes, contatos, a jornada de cada formando, os <strong>pareceres</strong> do acompanhamento comunitário. Isso é <strong>dado pessoal</strong> — e a Lei Geral de Proteção de Dados (Lei 13.709/2018) se aplica à sua realidade, mesmo sem qualquer fim lucrativo. Não como ameaça: como um chamado a cuidar bem do que lhe foi confiado.</p>
+
+      <h3 class="tag-h">Na prática</h3>
+      <ul class="practice">
+        <li><strong>Base legal e consentimento:</strong> saiba <em>por que</em> guarda cada dado, e tenha o aceite de quem o confiou à comunidade.</li>
+        <li><strong>Acesso por discrição:</strong> o formador comunitário acessa o que a sua missão de acompanhar exige, e os pareceres reservados ficam com quem tem a responsabilidade de lê-los. Acesso segue responsabilidade — não é todos vendo tudo.</li>
+        <li><strong>Direito de acesso e de exclusão:</strong> a pessoa pode pedir para ver o que a comunidade registrou sobre ela. Já o apagamento não é absoluto: enquanto mantém seus compromissos formais, a comunidade tem base legítima para conservar os registros; o pedido de exclusão vale sobretudo no desligamento — e, mesmo aí, guarda-se o mínimo necessário para comprovar a relação e cumprir a lei.</li>
+        <li><strong>Trilha e segurança:</strong> registro de quem acessou, criptografia e backups não são luxo. São a forma técnica de um cuidado que já é vocação.</li>
+      </ul>
+
+      <div class="callout">
+        <span class="ctag">O ponto que importa</span>
+        <p>Conformidade não nasce do medo de multa. Nasce do <em>respeito pela pessoa</em> que confiou à comunidade a sua história.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="fbrand">FORMATTIO</span><span class="fnum"></span></div>
+</section>
+
+<!-- ═══════════ FUNDAMENTO 3 — PARTE B ═══════════ -->
+<section class="page">
+  <div class="pad">
+    <div class="content">
+      <div class="part-label" style="margin-top:2mm">Fundamento três · Governança — Parte B: A comunidade e o que ela ensina</div>
+
+      <p class="lead">A outra face da governança é a <strong>autoridade</strong>. Na formação comunitária, o formador comunitário tem autoridade reconhecida <strong>no nível da estrutura da comunidade</strong> — e, com ela, a responsabilidade de acompanhar, emitir pareceres e zelar pelo caminho de cada formando.</p>
+
+      <p>Papéis bem definidos evitam os dois extremos que adoecem uma comunidade:</p>
+      <ul class="practice">
+        <li><strong>O vácuo</strong> — vários participam do processo formativo e ninguém é responsável; com isso, as coisas simplesmente deixam de ser feitas.</li>
+        <li><strong>A dependência</strong> — uma única pessoa sabe tudo e, quando se afasta, a comunidade fica cega.</li>
+      </ul>
+
+      <p>E há uma fronteira que a boa governança sabe manter — inclusive tecnicamente: o <strong>acompanhamento pessoal é selado</strong>. O que ali se confia é foro íntimo, sob sigilo absoluto, e não pertence aos registros da comunidade. Cuidar bem é, também, saber o que <strong>não</strong> se guarda.</p>
+
+      <h3>Governança dos conteúdos e das ações</h3>
+      <p>O plano, a grade, as formações e as ações formativas — retiros, vigílias, missões — também pedem governança: quem os define, quem autoriza mudanças, como se mantém coerência entre os grupos. Sem isso, a formação se fragmenta: cada grupo caminha por conta, e o carisma perde unidade.</p>
+
+      <h3>Memória e conformidade</h3>
+      <p>Uma dúvida que pouquíssimas comunidades sabem responder: <em>por quanto tempo guardar os registros?</em> A lei não dá um número — dá um princípio: guardar <strong>pelo tempo da finalidade</strong> e, depois, apenas o <strong>mínimo necessário</strong> para cumprir obrigações e comprovar a relação. Enquanto o membro mantém seus compromissos formais, há base legítima para conservar o que a formação exige; no desligamento, guarda-se o essencial para evidenciar sua condição de membro e o cumprimento dos compromissos. Para novas comunidades e institutos soma-se a <strong>dimensão canônica</strong>: os registros de percurso seguem o direito próprio e as normas de arquivo, com guarda de longo prazo e acesso restrito. Na prática: <strong>tenha uma política de retenção escrita</strong>, com prazos por tipo de registro.</p>
+
+      <div class="callout">
+        <span class="ctag">Pergunta-teste da memória</span>
+        <p>Se a coordenação atual se afastasse amanhã, o que a comunidade perderia? Tudo o que responder a essa pergunta precisa estar <em>fora de uma só cabeça</em>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="fbrand">FORMATTIO</span><span class="fnum"></span></div>
+</section>
+
+<!-- ═══════════ FUNDAMENTO 4 ═══════════ -->
+<section class="page">
+  <div class="ghost-num">04</div>
+  <div class="pad">
+    <div class="content">
+      <div class="f-head">
+        <div class="f-badge">4</div>
+        <div><div class="f-kicker">Fundamento quatro</div><h2>Comunicação e memória</h2></div>
+      </div>
+
+      <p class="lead">A comunidade se sustenta no <strong>vínculo</strong> — e o vínculo se alimenta de presença e de comunicação. Ao mesmo tempo, o que se vive precisa deixar rastro, ou a memória se apaga a cada troca de quem conduz. Este último fundamento cuida das duas coisas: <strong>comunicar a tempo</strong> e <strong>registrar para durar</strong>.</p>
+
+      <h3 class="tag-h">Na prática</h3>
+      <ul class="practice">
+        <li><strong>Avise com antecedência e proatividade:</strong> encontros, retiros, vigílias e missões comunicados a tempo cuidam da <strong>presença</strong> antes que ela falhe. Boa parte do afastamento começa num aviso que não chegou.</li>
+        <li><strong>Não confunda conversa com registro:</strong> o WhatsApp aproxima, mas mensagem some e não organiza nada. A comunicação de governança — convocações, decisões, combinados — precisa ficar registrada onde se possa reencontrar.</li>
+        <li><strong>Preserve a memória institucional:</strong> decisões, documentos e histórico que sobrevivem à saída de quem os viveu. A comunidade não pode recomeçar do zero a cada mudança de coordenação.</li>
+        <li><strong>Guarde os documentos formais</strong> quando necessário — <strong>cartas, solicitações, declarações e termos</strong> — no lugar onde serão encontrados anos depois, e não numa gaveta que ninguém mais abre.</li>
+      </ul>
+
+      <div class="callout">
+        <span class="ctag">O vínculo se cuida</span>
+        <p>Uma mensagem no momento certo — um lembrete, um "senti sua falta no encontro" — muitas vezes é o que devolve alguém ao caminho. Cuidar do vínculo é acompanhamento, não formalidade.</p>
+      </div>
+
+      <p>Comunicar bem e registrar bem parecem tarefas menores no dia a dia. São elas, porém, que fazem a diferença entre uma comunidade que <strong>acumula</strong> o que viveu e uma que recomeça, cansada, a cada ano.</p>
+    </div>
+  </div>
+  <div class="foot"><span class="fbrand">FORMATTIO</span><span class="fnum"></span></div>
+</section>
+
+<!-- ═══════════ CHECKLIST ═══════════ -->
+<section class="page">
+  <div class="pad">
+    <div class="content">
+      <span class="eyebrow">Autoavaliação</span>
+      <h2 class="sec">Sua formação está organizada?</h2>
+      <div class="rule"></div>
+      <p style="margin-bottom:6mm">Não é um teste — é um mapa. Marque o que já é verdade na sua comunidade <strong>hoje</strong>. Sem culpa: quase toda comunidade começa com poucas caixas marcadas.</p>
+
+      <div class="check-group">
+        <div class="cg-title"><span class="cg-num">1</span><span class="t">Estrutura</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Etapas formativas definidas, com critérios de passagem e compromissos explícitos.</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Plano, grade e formações organizados e aplicados nos grupos.</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Ações formativas (retiros, vigílias, missões) previstas como parte do plano.</span></div>
+      </div>
+
+      <div class="check-group">
+        <div class="cg-title"><span class="cg-num">2</span><span class="t">Acompanhamento</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Vivência dos compromissos e presença acompanhadas ao longo do tempo.</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Evolução nas três dimensões (Humana · Espiritual · Comunitária) registrada como base dos pareceres.</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Fronteira do foro íntimo respeitada — o acompanhamento pessoal fica fora dos registros da comunidade.</span></div>
+      </div>
+
+      <div class="check-group">
+        <div class="cg-title"><span class="cg-num">3</span><span class="t">Governança</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Sei quais dados guardo e por quê (base legal e consentimento).</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Acesso por discrição: papéis definidos, cada um acessa o que lhe cabe.</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Consigo atender pedidos de acesso/exclusão, tenho política de retenção e backups.</span></div>
+      </div>
+
+      <div class="check-group">
+        <div class="cg-title"><span class="cg-num">4</span><span class="t">Comunicação e memória</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Avisos proativos de encontros e ações formativas.</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Comunicação de governança registrada — não só perdida no WhatsApp.</span></div>
+        <div class="check"><span class="box"></span><span class="tx">Memória e documentos formais sobrevivem à troca de liderança.</span></div>
+      </div>
+
+      <div class="callout" style="margin-top:5mm">
+        <span class="ctag">Marcou menos da metade?</span>
+        <p>Você não está sozinho — a maioria das comunidades começa assim. O bom é que dá para organizar <em>um fundamento de cada vez</em>, sem virar tudo de cabeça para baixo.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="fbrand">FORMATTIO</span><span class="fnum"></span></div>
+</section>
+
+<!-- ═══════════ CTA ═══════════ -->
+<section class="page cta">
+  <img class="watermark" src="../frontend/public/brand/formatio-symbol-on-dark.svg" alt="">
+  <div class="pad">
+    <div class="content" style="display:flex;flex-direction:column;height:100%">
+      <span class="eyebrow">Do papel à prática</span>
+      <h2>Os quatro fundamentos, funcionando juntos</h2>
+      <p class="intro">Este guia mostra o <strong style="color:#fff">caminho</strong>. Colocá-lo em prática, dia após dia, com muitos formandos e vários grupos, é outra história — e foi exatamente para isso que o <strong style="color:#fff">Formattio</strong> nasceu.</p>
+
+      <div class="cta-box">
+        <div class="big">Tudo o que você leu aqui, numa só plataforma</div>
+        <ul>
+          <li>Plano, grade e formações, com grupos e etapas formativas</li>
+          <li>Acompanhamento nas três dimensões, presença e pareceres</li>
+          <li>Governança de dados (LGPD), acesso por discrição e trilha de auditoria</li>
+          <li>Ações formativas, documentos e memória institucional que não se perde</li>
+        </ul>
+      </div>
+
+      <div class="cta-url">Experimente 30 dias · www.formattio.com.br</div>
+      <p class="cta-note">Período de experiência com acesso completo, sem cartão de crédito.</p>
+
+      <div class="cta-foot">
+        <img src="../frontend/public/brand/formatio-horizontal-on-dark.svg" alt="Formattio">
+        <span>Organizando a formação da sua comunidade</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Numeração automática das páginas (rodapé), pulando capa e CTA.
+  (function () {
+    var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
+    var total = pages.length;
+    pages.forEach(function (pg, i) {
+      var fnum = pg.querySelector('.foot .fnum');
+      if (fnum) {
+        var n = (i + 1).toString().padStart(2, '0');
+        fnum.textContent = n + ' / ' + total.toString().padStart(2, '0');
+      }
+    });
+  })();
+</script>
+</body>
+</html>
