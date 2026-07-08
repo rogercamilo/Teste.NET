@@ -977,15 +977,16 @@ function LeadMagnetSection() {
         {/* Coluna do ímã */}
         <div>
           <p className="inline-flex items-center gap-2 text-sm font-medium text-primary uppercase tracking-widest mb-4">
-            <Sparkles className="h-4 w-4" /> Material gratuito
+            <Sparkles className="h-4 w-4" /> Ainda não é a hora de começar?
           </p>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-tight">
-            eBook: “{EBOOK_TITULO}”
+            Leve o conhecimento primeiro
           </h2>
           <p className="text-slate-400 mb-6 text-sm leading-relaxed">
-            Um guia prático para estruturar a jornada formativa da sua comunidade — da
-            memória institucional à governança de dados e comunitária. Conteúdo de valor,
-            direto ao ponto.
+            Sem pressa. Baixe o eBook gratuito <strong className="text-slate-300">“{EBOOK_TITULO}”</strong> — um
+            guia prático para estruturar a jornada formativa da sua comunidade, da memória
+            institucional à governança de dados e comunitária — e conheça a fundo antes de
+            experimentar a plataforma.
           </p>
           <ul className="space-y-2.5">
             {[
@@ -1163,8 +1164,8 @@ export default function LandingPage({ isNewOrg }: { isNewOrg: boolean }) {
       <HowItWorks />
       <Pricing />
       <FAQ />
-      <LeadMagnetSection />
       <FinalCTA isNewOrg={isNewOrg} />
+      <LeadMagnetSection />
       <MarketingFooter />
     </div>
   );
