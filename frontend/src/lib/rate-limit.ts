@@ -63,6 +63,12 @@ function getUpstashLimiter(configKey: string, limit: number, windowMs: number): 
       redis = new Redis({
         url: process.env.UPSTASH_REDIS_REST_URL!,
         token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+        // O cliente re-tenta 5x com backoff exponencial por padrão. Numa
+        // indisponibilidade/latência do Upstash, esses retries empilhavam até
+        // dezenas de segundos e travavam a requisição do usuário (CPU ociosa,
+        // esperando I/O). Uma única tentativa curta basta — o rate-limit é
+        // best-effort e degrada para o in-memory abaixo.
+        retry: { retries: 1, backoff: () => 200 },
       });
     }
     const seconds = Math.ceil(windowMs / 1000);
@@ -72,6 +78,10 @@ function getUpstashLimiter(configKey: string, limit: number, windowMs: number): 
         redis,
         limiter: Ratelimit.slidingWindow(limit, `${seconds} s`),
         prefix: "Formattio:rl",
+        // Rede lenta NUNCA pode bloquear a resposta: se o Upstash não responder
+        // em 1s, o Ratelimit resolve como sucesso (fail-open). Proteção de abuso
+        // é secundária à disponibilidade do produto.
+        timeout: 1000,
       })
     );
   }
@@ -89,14 +99,20 @@ export async function rateLimit(
     return inMemoryLimit(key, limit, windowMs);
   }
 
-  const configKey = `${limit}:${windowMs}`;
-  const limiter = getUpstashLimiter(configKey, limit, windowMs);
-  const result = await limiter.limit(key);
-  return {
-    allowed: result.success,
-    remaining: result.remaining,
-    resetInMs: Math.max(0, result.reset - Date.now()),
-  };
+  try {
+    const configKey = `${limit}:${windowMs}`;
+    const limiter = getUpstashLimiter(configKey, limit, windowMs);
+    const result = await limiter.limit(key);
+    return {
+      allowed: result.success,
+      remaining: result.remaining,
+      resetInMs: Math.max(0, result.reset - Date.now()),
+    };
+  } catch {
+    // Qualquer falha do Upstash (erro/timeout) degrada para o limitador
+    // in-memory desta instância — nunca lança nem trava a requisição.
+    return inMemoryLimit(key, limit, windowMs);
+  }
 }
 
 export const limiters = {

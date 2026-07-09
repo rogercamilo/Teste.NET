@@ -152,6 +152,12 @@ function createTransporter(config: SmtpConfig) {
     port: config.port,
     secure: config.secure,
     auth: { user: config.user, pass: config.pass },
+    // Timeouts curtos: o SMTP é do tenant e pode estar lento/inacessível. Sem
+    // isto, os defaults do nodemailer (~2min de connectionTimeout) travavam a
+    // requisição do botão que dispara o e-mail. Falha rápido → erro tratado.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
 }
 
