@@ -49,7 +49,7 @@ async function canRead(
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -59,15 +59,25 @@ export async function GET(
   const { id } = await params;
   if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
+  // Modo `?url=1`: retorna a URL de acesso em JSON em vez de redirecionar. O
+  // visualizador aponta o <iframe> DIRETO para o R2 (que serve o PDF com range
+  // nativo), tirando o app do caminho de transferência e eliminando a indireção
+  // de redirect que atrapalhava o streaming progressivo do pdf.js.
+  const wantsJson = request.nextUrl.searchParams.get("url") === "1";
+
   try {
     const arquivo = await prisma.arquivo.findFirst({
       where: { id, organizacaoId: user.organizacaoId },
+      select: {
+        id: true, storageKey: true, tipo: true, nome: true,
+        uploadedById: true, entityType: true, entityId: true,
+      },
     });
 
     if (!arquivo) return new Response("Arquivo não encontrado", { status: 404 });
     if (!(await canRead(arquivo, user))) return new Response("Acesso negado", { status: 403 });
 
-    // R2: redireciona para pre-signed URL gerada em tempo real
+    // R2: gera pre-signed URL em tempo real (assinatura local, sem rede)
     if (
       process.env.R2_ACCOUNT_ID &&
       process.env.R2_ACCESS_KEY_ID &&
@@ -80,10 +90,16 @@ export async function GET(
       if (!url.startsWith(expectedPrefix)) {
         return new Response("URL de redirecionamento inválida", { status: 500 });
       }
+      if (wantsJson) {
+        return Response.json({ url }, { headers: { "Cache-Control": "private, no-store" } });
+      }
       return Response.redirect(url, 302);
     }
 
     // Local: serve o arquivo diretamente do disco
+    if (wantsJson) {
+      return Response.json({ url: `/api/arquivos/${arquivo.id}` }, { headers: { "Cache-Control": "private, no-store" } });
+    }
     if (!await localFileExists(arquivo.storageKey)) {
       return new Response("Arquivo não encontrado no servidor", { status: 404 });
     }
