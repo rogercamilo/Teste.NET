@@ -193,16 +193,16 @@ export default function TermosDeUsoPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     {
-                      label: "Trial",
-                      badge: "14 dias grátis",
+                      label: "Período de experiência",
+                      badge: "30 dias grátis",
                       badgeClass: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
-                      desc: "Acesso ao plano Essencial sem necessidade de cartão de crédito. Contas em período de avaliação podem possuir limitações funcionais, ausência de SLA e disponibilidade reduzida de suporte técnico, a exclusivo critério da Formattio.",
+                      desc: "Acesso ao plano Intermediário sem necessidade de cartão de crédito. Contas em período de experiência podem possuir limitações funcionais, ausência de SLA e disponibilidade reduzida de suporte técnico, a exclusivo critério da Formattio.",
                     },
                     {
                       label: "Planos Pagos",
-                      badge: "Essencial · Profissional",
+                      badge: "Básico · Intermediário · Avançado",
                       badgeClass: "bg-primary/10 text-primary",
-                      desc: "Cobrança mensal via Stripe. Os valores estão detalhados na página de planos e podem ser alterados mediante aviso prévio de 30 dias.",
+                      desc: "Cobrança mensal ou anual via Stripe. Os valores estão detalhados na página de planos e podem ser alterados mediante aviso prévio de 30 dias.",
                     },
                     {
                       label: "Cancelamento",

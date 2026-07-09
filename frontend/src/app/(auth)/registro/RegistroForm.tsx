@@ -113,7 +113,7 @@ export default function RegistroForm() {
           <div className="mb-2">
             <h2 className="text-xl font-bold text-foreground">Criar conta</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Registre sua organização — é grátis por 14 dias.
+              Registre sua organização — é grátis por 30 dias.
             </p>
           </div>
 
