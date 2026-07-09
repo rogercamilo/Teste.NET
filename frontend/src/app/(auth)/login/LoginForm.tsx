@@ -105,7 +105,7 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
           </div>
           <h1 className="text-3xl font-bold leading-tight mb-3">{communityName}</h1>
           <p className="text-sm text-white/60 leading-relaxed mt-2">
-            Plataforma de gestão formativa comunitária.
+            Plataforma de gestão da formação comunitária.
           </p>
         </div>
 
