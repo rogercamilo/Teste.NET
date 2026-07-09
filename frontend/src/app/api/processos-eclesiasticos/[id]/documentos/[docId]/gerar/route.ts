@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { getUserName } from "@/lib/current-user";
 import type { SessionUser } from "@/lib/auth-helpers";
 import { renderTemplate } from "@/lib/documentos-eclesiasticos/templates";
 import type { DadosTemplate } from "@/lib/documentos-eclesiasticos/templates/types";
@@ -168,7 +169,7 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
           extensao: ".pdf",
           storageKey,
           uploadedById: user.id,
-          uploadedByNome: user.name ?? undefined,
+          uploadedByNome: (await getUserName(user.id)) ?? user.name ?? undefined,
         },
       });
 

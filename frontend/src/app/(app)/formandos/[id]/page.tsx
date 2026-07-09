@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getOrgBranding } from "@/lib/org-cache";
 import { toFormando, toComentario, toEvento, toPresenca, toAgendamento, toGrupoFormacao } from "@/lib/converters";
 import type { SessionUser } from "@/lib/auth-helpers";
+import { getUserName } from "@/lib/current-user";
 import type { DocumentoAnexo, NivelFormativo } from "@/types";
 import { hasCanonicalAccess } from "@/types";
 import FormandoDetailClient from "./FormandoDetailClient";
@@ -134,7 +135,7 @@ export default async function FormandoDetailPage({
       morada={grupoFormacaoRow ? toGrupoFormacao(grupoFormacaoRow) : null}
       todasMoradas={todosGruposFormacaoRows}
       userId={user.id ?? ""}
-      userName={session?.user?.name ?? "Formador"}
+      userName={(await getUserName(user.id)) ?? session?.user?.name ?? "Formador"}
       userRole={user.role ?? "formador_comunitario"}
       userGrupoFormacaoId={user.grupoFormacaoId ?? null}
       termoFormando={org?.termoFormando?.trim() || "Formando"}

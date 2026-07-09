@@ -9,6 +9,7 @@ import type { ComentarioFormando } from "@/types";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toComentario } from "@/lib/converters";
+import { getUserName } from "@/lib/current-user";
 import { CreateComentarioSchema, parseJson } from "@/lib/schemas";
 
 export async function GET(request: Request) {
@@ -56,7 +57,10 @@ export async function POST(request: Request) {
   try {
     const parsedBody = await parseJson(request, CreateComentarioSchema);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
-    const { formandoId, texto, tipo, formadorNome } = parsedBody.data;
+    const { formandoId, texto, tipo } = parsedBody.data;
+    // Autor carimbado pelo banco (fonte da verdade) — nunca pelo nome enviado
+    // no corpo, que vem do JWT do cliente e fica defasado após edição do perfil.
+    const formadorNome = await getUserName(user.id);
 
     const grupoFormacaoFilter = user.role === "formador_comunitario" ? { grupoFormacaoId: user.grupoFormacaoId ?? null } : {};
     const formando = await prisma.formando.findFirst({

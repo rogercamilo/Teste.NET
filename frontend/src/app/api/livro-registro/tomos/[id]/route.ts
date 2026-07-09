@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { getUserName } from "@/lib/current-user";
 import { assinaturaConfere } from "@/lib/file-signature";
 import { scanUpload } from "@/lib/av-scan";
 import { canUpload } from "@/lib/plan-limits";
@@ -81,7 +82,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
           extensao: ".pdf",
           storageKey,
           uploadedById: user.id,
-          uploadedByNome: user.name ?? undefined,
+          uploadedByNome: (await getUserName(user.id)) ?? user.name ?? undefined,
         },
       });
       await prisma.livroRegistroTomo.update({

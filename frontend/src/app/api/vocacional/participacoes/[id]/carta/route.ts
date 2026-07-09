@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
+import { getUserName } from "@/lib/current-user";
 import { uploadFile } from "@/lib/storage";
 import { limiters } from "@/lib/rate-limit";
 import { isGestao } from "@/lib/auth-helpers";
@@ -82,7 +83,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         extensao: ext,
         storageKey,
         uploadedById: user.id,
-        uploadedByNome: user.name ?? undefined,
+        uploadedByNome: (await getUserName(user.id)) ?? user.name ?? undefined,
         formandoId: participacao.formandoId,
         formandoNome: participacao.formando.nome,
         tipoEvento: "carta_vocacional",

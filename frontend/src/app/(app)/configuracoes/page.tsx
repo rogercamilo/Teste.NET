@@ -5,6 +5,7 @@ import { toGrupoFormacao } from "@/lib/converters";
 import { getBillingInfo } from "@/lib/billing-data";
 import { getUsage } from "@/lib/plan-limits";
 import { SessionUser } from "@/lib/auth-helpers";
+import { getUserName } from "@/lib/current-user";
 import ConfiguracoesClient from "./ConfiguracoesClient";
 
 export default async function ConfiguracoesPage() {
@@ -29,7 +30,7 @@ export default async function ConfiguracoesPage() {
   return (
     <ConfiguracoesClient
       userId={user.id ?? ""}
-      userName={session?.user?.name ?? "Usuário"}
+      userName={(await getUserName(user.id)) ?? session?.user?.name ?? "Usuário"}
       userEmail={session?.user?.email ?? ""}
       userRole={user.role ?? "formador_comunitario"}
       userGrupoFormacaoId={user.grupoFormacaoId ?? null}

@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { DashboardClient } from "./DashboardClient";
 import { toAgendamento } from "@/lib/converters";
 import { SessionUser } from "@/lib/auth-helpers";
+import { getUserName } from "@/lib/current-user";
 import { aniversariantesNaJanela } from "@/lib/dashboard-semana";
 import { totalRequerido } from "@/types";
 import type { DashboardStats, NivelFormativo, NotaAdesao, PerfilUsuario } from "@/types";
@@ -296,15 +297,18 @@ export default async function DashboardPage() {
   const grupoFormacaoId = isFormadorComunitario ? (user.grupoFormacaoId ?? null) : null;
   const semMorada = isFormadorComunitario && !grupoFormacaoId;
 
-  const [grupoFormacao, stats] = await Promise.all([
+  const [grupoFormacao, stats, nomeBanco] = await Promise.all([
     grupoFormacaoId
       ? prisma.grupoFormacao.findUnique({ where: { id: grupoFormacaoId, organizacaoId: user.organizacaoId }, select: { nome: true } })
       : Promise.resolve(null),
     semMorada
       ? Promise.resolve(null)
       : getDashboardData(user.organizacaoId, grupoFormacaoId, user.id ?? null, perfil).catch(() => null),
+    // Nome do banco (fonte da verdade) — o JWT não reflete edições do perfil.
+    getUserName(user.id),
   ]);
   const grupoFormacaoNome = grupoFormacao?.nome ?? null;
+  const nomeUsuario = nomeBanco ?? user.name ?? null;
 
-  return <DashboardClient stats={stats} perfil={perfil} grupoFormacaoNome={grupoFormacaoNome} semMorada={semMorada} nomeUsuario={user.name ?? null} />;
+  return <DashboardClient stats={stats} perfil={perfil} grupoFormacaoNome={grupoFormacaoNome} semMorada={semMorada} nomeUsuario={nomeUsuario} />;
 }

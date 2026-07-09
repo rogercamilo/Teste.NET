@@ -1,6 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getOrgBranding } from "@/lib/org-cache";
+import { getUserName } from "@/lib/current-user";
 import { isGestao, type ComunidadeConfig, type TipoOrganizacao } from "@/types";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
@@ -61,7 +62,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const user = {
-    name: sessionUser.name ?? "Usuário",
+    // Nome do banco (fonte da verdade) — o JWT não reflete edições de perfil.
+    name: (await getUserName(sessionUser.id)) ?? sessionUser.name ?? "Usuário",
     email: sessionUser.email ?? "",
     role: sessionUser.role ?? "formador_comunitario",
     grupoFormacaoId: sessionUser.grupoFormacaoId ?? null,

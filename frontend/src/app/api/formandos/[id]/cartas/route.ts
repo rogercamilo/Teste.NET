@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
+import { getUserName } from "@/lib/current-user";
 import { uploadFile } from "@/lib/storage";
 import { limiters } from "@/lib/rate-limit";
 import { canUpload, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
@@ -88,7 +89,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         extensao: ext,
         storageKey,
         uploadedById: user.id,
-        uploadedByNome: user.name ?? undefined,
+        uploadedByNome: (await getUserName(user.id)) ?? user.name ?? undefined,
         formandoId: formando.id,
         formandoNome: formando.nome,
         // Etapa codificada no tipoEvento — sem coluna nova no schema.

@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { uploadFile, deleteFile } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
+import { getUserName } from "@/lib/current-user";
 import { limiters } from "@/lib/rate-limit";
 import { assinaturaConfere, sanitizeFilename } from "@/lib/file-signature";
 import { scanUpload } from "@/lib/av-scan";
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
         extensao,
         storageKey,
         uploadedById: user.id,
-        uploadedByNome: user.name ?? null,
+        uploadedByNome: (await getUserName(user.id)) ?? user.name ?? null,
         eventoId,
         formandoId,
         formandoNome,
