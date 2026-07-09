@@ -13,7 +13,6 @@ import {
   type EixoPlano,
   type Formacao,
   type PlanoFormativo,
-  type Usuario,
   type Modalidade,
 } from "@/types";
 
@@ -75,7 +74,6 @@ type FormacaoInput = {
   tema: string;
   objetivo: string;
   descricao: string;
-  formadorId: string;
   cargaHoraria: string;
   modalidade: Modalidade;
   observacoesFormador: string;
@@ -108,7 +106,6 @@ function emptyFormacao(): FormacaoInput {
     tema: "",
     objetivo: "",
     descricao: "",
-    formadorId: "",
     cargaHoraria: "2",
     modalidade: "presencial",
     observacoesFormador: "",
@@ -121,7 +118,6 @@ interface GradeFormPageProps {
   initialGrade?: GradeFormativa;
   initialFormacoes?: Formacao[];
   initialPlanos?: PlanoFormativo[];
-  initialUsuarios?: Usuario[];
 }
 
 export default function GradeFormPage({
@@ -130,7 +126,6 @@ export default function GradeFormPage({
   initialGrade,
   initialFormacoes = [],
   initialPlanos = [],
-  initialUsuarios = [],
 }: GradeFormPageProps) {
   const router = useRouter();
   const canManageFormacoes = isGestao(role);
@@ -174,7 +169,6 @@ export default function GradeFormPage({
           tema: f.tema,
           objetivo: f.objetivo,
           descricao: f.descricao,
-          formadorId: f.formadorId,
           cargaHoraria: String(f.cargaHoraria),
           modalidade: f.modalidade,
           observacoesFormador: f.observacoesFormador ?? "",
@@ -328,8 +322,10 @@ export default function GradeFormPage({
                   nivelFormativo,
                   eixoId: eixoMap.get(ec.eixoPlano.id) || undefined,
                   eixoNome: ec.eixoPlano.nome,
-                  formadorId: f.formadorId || undefined,
-                  formadorNome: initialUsuarios.find((u) => u.id === f.formadorId)?.nome ?? "",
+                  // Formador NÃO é vinculado na grade (template estrutural). O
+                  // relacionamento grade→formadores (1:N) se realiza no grupo de
+                  // formação (formador responsável + grade escolhida pelo FC).
+                  formadorNome: "",
                   cargaHoraria: Number(f.cargaHoraria) || 2,
                   modalidade: f.modalidade,
                   tipoFormacao: "comunitaria",
@@ -761,7 +757,7 @@ export default function GradeFormPage({
                           />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                           <div className="grid gap-1.5">
                             <Label className="text-xs">Carga (h)</Label>
                             <Input
@@ -800,29 +796,6 @@ export default function GradeFormPage({
                             </Select>
                           </div>
 
-                          <div className="grid gap-1.5">
-                            <Label className="text-xs">Formador</Label>
-                            <Select
-                              value={formacao.formadorId}
-                              onValueChange={(v) =>
-                                v && updateFormacao(eixoIdx, formacao.tempId, "formadorId", v)
-                              }
-                              items={Object.fromEntries(initialUsuarios.filter((u) => u.ativo).map((u) => [u.id, u.nome]))}
-                            >
-                              <SelectTrigger className="h-9 text-sm">
-                                <SelectValue placeholder="Selecionar..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {initialUsuarios
-                                  .filter((u) => u.ativo)
-                                  .map((u) => (
-                                    <SelectItem key={u.id} value={u.id}>
-                                      {u.nome}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
                         </div>
                       </div>
                     </div>

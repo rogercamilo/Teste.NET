@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toGrade, toFormacao, toPlano } from "@/lib/converters";
 import GradeFormPage from "../../GradeFormPage";
-import type { PerfilUsuario, Usuario } from "@/types";
 
 export default async function EditarGradePage({
   params,
@@ -28,7 +27,7 @@ export default async function EditarGradePage({
 
   if (!grade) redirect("/grades");
 
-  const [planos, formacoes, usuarios] = await Promise.all([
+  const [planos, formacoes] = await Promise.all([
     prisma.planoFormativo.findMany({
       where: { OR: [{ organizacaoId: orgId }, { isGlobal: true }], status: { not: "arquivado" } },
       include: { eixos: { orderBy: { ordem: "asc" } }, retiros: true },
@@ -38,17 +37,7 @@ export default async function EditarGradePage({
       where: { gradeId: id, OR: [{ organizacaoId: orgId }, { isGlobal: true }], deletedAt: null },
       orderBy: { numero: "asc" },
     }),
-    prisma.usuario.findMany({
-      where: { organizacaoId: orgId, ativo: true, deletedAt: null },
-      orderBy: { nome: "asc" },
-    }),
   ]);
-
-  const initialUsuarios: Usuario[] = usuarios.map((u) => ({
-    id: u.id, nome: u.nome, email: u.email,
-    perfil: u.perfil as PerfilUsuario,
-    ativo: u.ativo, criadoEm: u.criadoEm.toISOString(),
-  }));
 
   return (
     <GradeFormPage
@@ -57,7 +46,6 @@ export default async function EditarGradePage({
       initialGrade={toGrade(grade)}
       initialFormacoes={formacoes.map(toFormacao)}
       initialPlanos={planos.map(toPlano)}
-      initialUsuarios={initialUsuarios}
     />
   );
 }
