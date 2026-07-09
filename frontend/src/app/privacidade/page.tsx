@@ -109,6 +109,13 @@ export default function PoliticaPrivacidadePage() {
                     <em>formandos cadastrados pelas organizações</em> assinantes, a Formattio trata os dados
                     segundo as instruções de cada organização, que é a Controladora desses dados.
                   </li>
+                  <li>
+                    <strong>Controladora</strong> — também em relação aos dados de{" "}
+                    <em>visitantes que se inscrevem voluntariamente</em> na newsletter e nos materiais
+                    gratuitos oferecidos na página inicial (nome, e-mail e, opcionalmente,
+                    telefone/WhatsApp), tratados para comunicação de marketing mediante consentimento
+                    (ver seções 4.3 e 7).
+                  </li>
                 </ul>
                 <p>
                   Essa distinção é regulada pelos arts. 5º, VI e VII, e 39 da LGPD. O Acordo de Processamento
@@ -232,7 +239,39 @@ export default function PoliticaPrivacidadePage() {
                     (anonimizado), versão da Política e preferências selecionadas — armazenados para fins
                     de conformidade legal.
                   </li>
+                  <li>
+                    <strong>Inscrição de notificações (Web Push):</strong> quando você autoriza receber
+                    notificações, o navegador gera um endereço de inscrição (token) que armazenamos para
+                    entregar avisos da plataforma. Pode ser revogado a qualquer momento nas configurações
+                    do navegador ou da plataforma.
+                  </li>
                 </ul>
+                <h3>4.3 Dados de leads e comunicações de marketing</h3>
+                <ul>
+                  <li>
+                    <strong>Inscrição na newsletter / materiais (página inicial):</strong> nome, e-mail e,
+                    opcionalmente, telefone/WhatsApp, informados <em>voluntariamente</em> por visitantes
+                    para receber conteúdos, novidades e materiais gratuitos. A inscrição é confirmada por{" "}
+                    <strong>duplo opt-in</strong> (e-mail de confirmação) e pode ser cancelada a qualquer
+                    momento pelo link de descadastramento presente em todos os e-mails.
+                  </li>
+                  <li>
+                    <strong>Registro de consentimento de marketing:</strong> data e hora, endereço IP
+                    anonimizado, versão do texto de consentimento e a indicação de interesse no canal de
+                    WhatsApp (quando marcada) — armazenados como comprovação da base legal (consentimento).
+                  </li>
+                  <li>
+                    <strong>Lista de supressão de e-mail:</strong> endereços com falha permanente de
+                    entrega (<em>hard bounce</em>) ou reclamação de spam são registrados para{" "}
+                    <strong>impedir novos envios</strong>, protegendo a reputação de entrega e o próprio
+                    titular.
+                  </li>
+                </ul>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Os dados de leads/newsletter <strong>não têm vínculo com nenhuma organização assinante</strong>
+                  {" "}e são tratados exclusivamente pela Formattio, na condição de Controladora, para fins de
+                  relacionamento e marketing. Não são utilizados para outra finalidade sem nova base legal.
+                </p>
               </div>
             </section>
 
@@ -323,6 +362,10 @@ export default function PoliticaPrivacidadePage() {
                       ["Logs de auditoria e conformidade legal", "Cumprimento de obrigação legal (art. 7º, II)"],
                       ["Métricas de performance e melhoria do serviço (dados agregados e anonimizados)", "Legítimo interesse (art. 7º, IX)"],
                       ["Cookies analíticos e de marketing", "Consentimento explícito (art. 7º, I)"],
+                      ["Newsletter e comunicações de marketing (novidades, materiais, dicas)", "Consentimento (art. 7º, I)"],
+                      ["Canal de relacionamento por WhatsApp (mediante opt-in específico)", "Consentimento (art. 7º, I)"],
+                      ["Confirmação de inscrição (duplo opt-in) e gestão de descadastramento", "Consentimento / Legítimo interesse (art. 7º, I e IX)"],
+                      ["Prevenção a reenvios indevidos (lista de supressão de e-mail)", "Legítimo interesse (art. 7º, IX)"],
                     ].map(([fin, base], i) => (
                       <tr key={i} className={i % 2 === 1 ? "bg-muted/20" : ""}>
                         <td className="px-4 py-3 text-foreground">{fin}</td>
@@ -366,6 +409,8 @@ export default function PoliticaPrivacidadePage() {
                         ["Backups de banco de dados", "30 dias", "Excluídos automaticamente (política do provedor)"],
                         ["Registros de consentimento de cookies", "5 anos (prazo legal)", "Hard delete após o prazo"],
                         ["Dados de cobrança (Stripe)", "5 anos (obrigação fiscal/contábil)", "Conforme política do Stripe e legislação fiscal brasileira"],
+                        ["Dados de leads / newsletter (inscritos)", "Até a retirada do consentimento (descadastramento) ou inatividade prolongada", "Hard delete a pedido; registro mínimo de descadastramento mantido para evitar reenvio"],
+                        ["Lista de supressão de e-mail (bounces / reclamações)", "Enquanto necessário para proteger a reputação de envio", "Mantida como salvaguarda anti-reenvio"],
                       ].map(([cat, prazo, tipo], i) => (
                         <tr key={i} className={i % 2 === 1 ? "bg-muted/20" : ""}>
                           <td className="px-4 py-3 text-foreground font-medium">{cat}</td>
@@ -533,7 +578,8 @@ export default function PoliticaPrivacidadePage() {
                         ["Railway", "EUA / UE", "Data Processing Agreement (DPA); cláusulas contratuais padrão"],
                         ["Cloudflare R2", "EUA / múltiplas regiões", "DPA Cloudflare v6.3; Cláusulas Contratuais Padrão da UE (EU SCCs — Módulo 2); Estrutura de Privacidade de Dados UE–EUA (Data Privacy Framework); ISO 27001; SOC 2 Tipo II; PCI DSS Nível 1. Armazena documentos (PDF/DOCX) e imagens de formandos com acesso autenticado e isolamento por organização"],
                         ["Stripe", "EUA", "DPA Stripe; certificação PCI-DSS Level 1; cláusulas padrão UE"],
-                        ["Resend", "EUA", "DPA Resend; dados limitados a e-mail transacional"],
+                        ["Resend", "EUA", "DPA Resend; envio de e-mails transacionais e de marketing (newsletter)"],
+                        ["Upstash (Redis)", "EUA / Global", "DPA Upstash; usado para limitação de taxa (rate limiting) e proteção anti-abuso. Armazena apenas identificadores técnicos transitórios (chaves derivadas de IP/e-mail/ID de usuário), sem conteúdo de dados de formandos"],
                         ["Sentry", "EUA", "DPA Sentry; sendDefaultPii: false (sem PII em erros)"],
                       ].map(([sp, loc, salv], i) => (
                         <tr key={i} className={i % 2 === 1 ? "bg-muted/20" : ""}>
@@ -636,7 +682,7 @@ export default function PoliticaPrivacidadePage() {
                     ["Anonimização, bloqueio ou eliminação", "Solicitar anonimização ou exclusão de dados desnecessários ou tratados em desconformidade."],
                     ["Portabilidade", "Receber seus dados em formato estruturado e legível por máquina."],
                     ["Eliminação por consentimento", "Solicitar exclusão de dados tratados com base em consentimento, ressalvadas as hipóteses legais."],
-                    ["Revogação do consentimento", "Retirar consentimento de cookies analíticos/marketing a qualquer momento."],
+                    ["Revogação do consentimento", "Retirar o consentimento de cookies analíticos/marketing e cancelar a inscrição na newsletter (descadastramento em 1 clique) a qualquer momento."],
                     ["Informação", "Ser informado sobre com quem seus dados são compartilhados."],
                     ["Oposição", "Opor-se ao tratamento em caso de descumprimento da LGPD."],
                     ["Revisão automatizada", "Solicitar revisão de decisões tomadas unicamente com base em tratamento automatizado."],
