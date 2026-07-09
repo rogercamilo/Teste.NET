@@ -27,6 +27,8 @@ const brandingSelect = {
   termoVocacional: true,
   termoAcompanhamentoVocacional: true,
   vocacionalDuracaoPadraoMeses: true,
+  instagramHandle: true,
+  youtubeUrl: true,
 } as const;
 
 // React.cache deduplicates calls within the same render (request-level memoization).

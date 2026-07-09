@@ -142,6 +142,19 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+// YouTube: no banco guardamos a URL completa (schema exige http(s)://, e o link
+// é usado na evangelização da Travessia). Na UI o prefixo é fixo e o usuário
+// digita só o @handle — estas duas funções convertem entre as representações.
+const YOUTUBE_PREFIX = "https://youtube.com/";
+function youtubeHandleFromUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  return url.replace(/^https?:\/\/(www\.)?youtube\.com\//i, "").replace(/^\/+/, "");
+}
+function youtubeUrlFromHandle(handle: string): string {
+  const clean = handle.replace(/\s+/g, "");
+  return clean ? YOUTUBE_PREFIX + clean : "";
+}
+
 export default function ConfiguracoesClient({
   userId,
   userName,
@@ -1882,13 +1895,19 @@ function ComunidadeTab() {
             </div>
             <div className="grid gap-1.5">
               <Label>YouTube</Label>
-              <Input
-                value={form.youtubeUrl ?? ""}
-                onChange={(e) => handleChange("youtubeUrl", e.target.value)}
-                placeholder="https://youtube.com/@suacomunidade"
-              />
+              <div className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent text-base transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 md:text-sm dark:bg-input/30">
+                <span className="select-none whitespace-nowrap pl-2.5 pr-1 text-muted-foreground">
+                  {YOUTUBE_PREFIX}
+                </span>
+                <input
+                  value={youtubeHandleFromUrl(form.youtubeUrl)}
+                  onChange={(e) => handleChange("youtubeUrl", youtubeUrlFromHandle(e.target.value))}
+                  placeholder="@suacomunidade"
+                  className="h-full min-w-0 flex-1 bg-transparent pr-2.5 py-1 outline-none placeholder:text-muted-foreground"
+                />
+              </div>
               <p className="text-xs text-muted-foreground">
-                Canal da comunidade (usado na evangelização da Travessia).
+                Informe só o @ do canal — o endereço completo é montado automaticamente.
               </p>
             </div>
           </div>
