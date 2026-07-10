@@ -9,7 +9,6 @@ import {
   isGestao,
   type NivelFormativo,
   type GradeFormativa,
-  type Eixo,
   type EixoPlano,
   type Formacao,
   type PlanoFormativo,
@@ -84,21 +83,6 @@ type EixoComFormacoes = {
   formacoes: FormacaoInput[];
   expanded: boolean;
 };
-
-function parseEixos(raw: string, gradeId: string): Eixo[] {
-  return raw
-    .split(";")
-    .map((n) => n.trim())
-    .filter(Boolean)
-    .map((nome, i) => ({
-      id: `e${Date.now()}-${i}`,
-      nome,
-      descricao: "",
-      gradeId,
-      ordem: i + 1,
-      cor: EIXO_HEX[i % EIXO_HEX.length],
-    }));
-}
 
 function emptyFormacao(): FormacaoInput {
   return {
@@ -266,6 +250,11 @@ export default function GradeFormPage({
     if (!form.planoId) return toast.error("Selecione o plano formativo.");
     if (!form.vigenciaInicio || !form.vigenciaFim)
       return toast.error("Datas de vigência são obrigatórias.");
+    const formacoesFlat = eixosComFormacoes.flatMap((ec) => ec.formacoes);
+    if (formacoesFlat.some((f) => !f.tema.trim()))
+      return toast.error(
+        "Toda formação precisa de um tema. Preencha ou remova as formações em branco antes de salvar."
+      );
     setSaving(true);
     const JSON_H = { "Content-Type": "application/json" };
     try {
@@ -289,6 +278,28 @@ export default function GradeFormPage({
             cor: EIXO_HEX[i % EIXO_HEX.length],
           }));
 
+      // Formações enviadas EM LOTE junto da grade — persistidas atomicamente no
+      // servidor (uma transação). O `eixoId` real e o `numero` são resolvidos lá.
+      // Só incluímos `formacoes` quando o plano fornece eixos e o usuário gerencia
+      // formações; caso contrário o campo é omitido para não tocar nas existentes.
+      const managesFormacoes = canManageFormacoes && eixosComFormacoes.length > 0;
+      const formacoesField = managesFormacoes
+        ? {
+            formacoes: eixosComFormacoes.flatMap((ec) =>
+              ec.formacoes.map((f) => ({
+                eixoPlanoId: ec.eixoPlano.id,
+                eixoNome: ec.eixoPlano.nome,
+                tema: f.tema.trim(),
+                objetivo: f.objetivo.trim() || undefined,
+                descricao: f.descricao.trim() || undefined,
+                cargaHoraria: Number(f.cargaHoraria) || 2,
+                modalidade: f.modalidade,
+                observacoesFormador: f.observacoesFormador.trim() || undefined,
+              }))
+            ),
+          }
+        : {};
+
       const basePayload = {
         nome: form.nome.trim(),
         planoId: form.planoId,
@@ -303,44 +314,6 @@ export default function GradeFormPage({
         ativo: true,
         eixos: eixosPayload,
       };
-
-      // Cria formações vinculadas à grade com IDs reais
-      async function criarFormacoes(gradeId: string, gradeEixos: Array<{ id: string; eixoPlanoId?: string }>) {
-        const eixoMap = new Map(gradeEixos.map((e) => [e.eixoPlanoId, e.id]));
-        let seq = 0;
-        const results = await Promise.all(
-          eixosComFormacoes.flatMap((ec) =>
-            ec.formacoes.map(async (f) => {
-              seq++;
-              const res = await fetch("/api/formacoes", {
-                method: "POST",
-                headers: JSON_H,
-                body: JSON.stringify({
-                  tema: f.tema.trim(),
-                  objetivo: f.objetivo.trim() || undefined,
-                  descricao: f.descricao.trim() || undefined,
-                  nivelFormativo,
-                  eixoId: eixoMap.get(ec.eixoPlano.id) || undefined,
-                  eixoNome: ec.eixoPlano.nome,
-                  // Formador NÃO é vinculado na grade (template estrutural). O
-                  // relacionamento grade→formadores (1:N) se realiza no grupo de
-                  // formação (formador responsável + grade escolhida pelo FC).
-                  formadorNome: "",
-                  cargaHoraria: Number(f.cargaHoraria) || 2,
-                  modalidade: f.modalidade,
-                  tipoFormacao: "comunitaria",
-                  gradeId,
-                  gradeNome: form.nome.trim(),
-                  numero: seq,
-                  observacoesFormador: f.observacoesFormador.trim() || undefined,
-                }),
-              });
-              return res.ok ? res.json() : null;
-            })
-          )
-        );
-        return results.filter(Boolean);
-      }
 
       if (isEditing && id) {
         // ── EDIÇÃO ──────────────────────────────────────────────────────
@@ -373,25 +346,12 @@ export default function GradeFormPage({
         const putRes = await fetch(`/api/grades/${id}`, {
           method: "PUT",
           headers: JSON_H,
-          body: JSON.stringify({ ...basePayload, documentoAnexo, documentoAnexoId }),
+          body: JSON.stringify({ ...basePayload, ...formacoesField, documentoAnexo, documentoAnexoId }),
         });
         if (!putRes.ok) {
           const err = await putRes.json().catch(() => ({}));
           toast.error((err as { error?: string }).error || "Erro ao atualizar grade");
           return;
-        }
-        const updated = await putRes.json();
-
-        if (canManageFormacoes && eixosComFormacoes.length > 0) {
-          // Remove formações antigas e recria com IDs reais
-          const existingForms = initialFormacoes.filter((f) => f.gradeId === id);
-          await Promise.all(
-            existingForms.map((f) =>
-              fetch(`/api/formacoes/${f.id}`, { method: "DELETE" }).catch(() => null)
-            )
-          );
-          const novas = await criarFormacoes(id, updated.eixos);
-          void novas;
         }
 
         toast.success("Grade atualizada com sucesso!");
@@ -402,7 +362,7 @@ export default function GradeFormPage({
         const createRes = await fetch("/api/grades", {
           method: "POST",
           headers: JSON_H,
-          body: JSON.stringify(basePayload),
+          body: JSON.stringify({ ...basePayload, ...formacoesField }),
         });
         if (!createRes.ok) {
           const err = await createRes.json().catch(() => ({}));
@@ -411,11 +371,8 @@ export default function GradeFormPage({
         }
         let created = await createRes.json();
 
-        if (canManageFormacoes && eixosComFormacoes.length > 0) {
-          const novas = await criarFormacoes(created.id, created.eixos);
-          void novas;
-        }
-
+        // O documento é anexado num PUT de acompanhamento SEM reenviar `formacoes`
+        // (elas já foram persistidas no POST), evitando recriá-las à toa.
         if (documentoFile) {
           const fd = new FormData();
           fd.append("file", documentoFile);

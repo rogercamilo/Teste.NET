@@ -4,12 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
-import type { GradeFormativa, Eixo, Etapa } from "@/types";
 
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toGrade } from "@/lib/converters";
 import { CreateGradeSchema, parseJson } from "@/lib/schemas";
+import { replaceGradeFormacoes } from "@/lib/grade-formacoes";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -90,6 +90,17 @@ export async function POST(request: Request) {
           return tx.etapa.create({ data: { eixoId: newEixoId, nome: etapa.nome, descricao: etapa.descricao, ordem: etapa.ordem, cargaHoraria: etapa.cargaHoraria } });
         })
       );
+
+      // Formações em LOTE na mesma transação — nunca em N requisições separadas.
+      if (body.formacoes !== undefined) {
+        await replaceGradeFormacoes(tx, {
+          gradeId: created.id,
+          gradeNome: created.nome,
+          organizacaoId: user.organizacaoId!,
+          nivelFormativo: created.nivelFormativo,
+          formacoes: body.formacoes,
+        });
+      }
 
       return tx.gradeFormativa.findUniqueOrThrow({
         where: { id: created.id },

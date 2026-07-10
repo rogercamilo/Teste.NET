@@ -616,6 +616,22 @@ const EtapaGradeSchema = z.object({
   cargaHoraria: z.number().int().min(0),
 });
 
+// Formações da grade enviadas EM LOTE junto do payload da grade — persistidas
+// atomicamente no servidor (uma transação), em vez de N POSTs disparados pelo
+// navegador (que estouravam o rate-limit de mutação e perdiam dados). O `eixoId`
+// real é resolvido no servidor a partir do `eixoPlanoId`; `numero` é atribuído
+// sequencialmente na ordem recebida.
+export const GradeFormacaoInputSchema = z.object({
+  eixoPlanoId: z.string().optional().nullable(),
+  eixoNome: optionalString(255).nullable(),
+  tema: nonEmptyString(500),
+  objetivo: optionalString(2000),
+  descricao: optionalString(2000),
+  cargaHoraria: z.number().int().min(0).default(2),
+  modalidade: ModalidadeEnum.default("presencial"),
+  observacoesFormador: optionalString(5000).nullable(),
+});
+
 export const CreateGradeSchema = z.object({
   planoId: z.string().min(1, "planoId obrigatório"),
   nome: nonEmptyString(500),
@@ -632,6 +648,7 @@ export const CreateGradeSchema = z.object({
   ativo: z.boolean().optional(),
   eixos: z.array(EixoGradeSchema).optional(),
   etapas: z.array(EtapaGradeSchema).optional(),
+  formacoes: z.array(GradeFormacaoInputSchema).max(500).optional(),
 });
 
 export const UpdateGradeSchema = CreateGradeSchema.partial();

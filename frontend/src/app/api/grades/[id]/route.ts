@@ -4,13 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isValidId, UpdateGradeSchema, parseJson } from "@/lib/schemas";
-import type { GradeFormativa, Eixo, Etapa } from "@/types";
 
 const MAX_EIXOS = 50;
 const MAX_ETAPAS = 200;
 
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 import { criarNotificacoes, formadoresDaGrade } from "@/lib/notificacoes";
+import { replaceGradeFormacoes } from "@/lib/grade-formacoes";
 type Params = { params: Promise<{ id: string }> };
 
 import { toGrade } from "@/lib/converters";
@@ -78,6 +78,19 @@ export async function PUT(request: Request, { params }: Params) {
             return tx.etapa.create({ data: { eixoId: newEixoId, nome: etapa.nome, descricao: etapa.descricao, ordem: etapa.ordem, cargaHoraria: etapa.cargaHoraria } });
           })
         );
+      }
+
+      // Substitui as formações da grade EM LOTE, na mesma transação — antes o
+      // cliente apagava as antigas e recriava via N POSTs, e o rate-limit fazia
+      // parte falhar em silêncio, apagando dados. Agora é all-or-nothing.
+      if (body.formacoes !== undefined) {
+        await replaceGradeFormacoes(tx, {
+          gradeId: id,
+          gradeNome: body.nome ?? existing.nome,
+          organizacaoId: user.organizacaoId!,
+          nivelFormativo: body.nivelFormativo ?? existing.nivelFormativo,
+          formacoes: body.formacoes,
+        });
       }
 
       return tx.gradeFormativa.findUniqueOrThrow({ where: { id }, include: { eixos: { include: { etapas: true } } } });
