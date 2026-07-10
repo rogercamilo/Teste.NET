@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
 import argon2 from "argon2";
 import { encryptField, decryptField } from "@/lib/crypto";
-import type { PerfilUsuario } from "@prisma/client";
+import type { PerfilUsuario, Prisma } from "@prisma/client";
 
 export interface UserAuth {
   id: string;
@@ -243,6 +243,51 @@ export async function authenticateGlobal(
 // Escrita
 // ----------------------------------------------------------------
 
+/**
+ * Mantém a sincronia bidirecional `Usuario.grupoFormacaoId` ↔ `GrupoFormacao.formadorId`
+ * a partir do lado do USUÁRIO — espelha o que `/api/grupos-formacao` faz do lado do grupo.
+ * Ao designar um formador comunitário a um grupo (na criação/edição do usuário), esse FC
+ * passa a ser o formador responsável (`formadorId`) do grupo, para o card refletir o vínculo.
+ * Preserva o invariante 1 FC : 1 grupo (desvincula o formador anterior do grupo e o grupo
+ * anterior deste FC). Tudo escopado por org.
+ */
+async function syncGrupoFormador(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  orgId: string,
+  perfil: string | undefined,
+  newGrupoId: string | null | undefined,
+  prevGrupoId: string | null,
+): Promise<void> {
+  if (newGrupoId === undefined || newGrupoId === prevGrupoId) return;
+
+  // Este usuário deixou de ser o formador do grupo anterior → limpa lá.
+  if (prevGrupoId) {
+    const prev = await tx.grupoFormacao.findFirst({
+      where: { id: prevGrupoId, organizacaoId: orgId },
+      select: { formadorId: true },
+    });
+    if (prev?.formadorId === userId) {
+      await tx.grupoFormacao.update({ where: { id: prevGrupoId }, data: { formadorId: null } });
+    }
+  }
+
+  // Apenas formador comunitário ocupa a posição de responsável do grupo.
+  if (newGrupoId && perfil === "formador_comunitario") {
+    const grp = await tx.grupoFormacao.findFirst({
+      where: { id: newGrupoId, organizacaoId: orgId },
+      select: { formadorId: true },
+    });
+    if (grp) {
+      // Desvincula o formador anterior do grupo (mantém 1 FC : 1 grupo).
+      if (grp.formadorId && grp.formadorId !== userId) {
+        await tx.usuario.update({ where: { id: grp.formadorId }, data: { grupoFormacaoId: null } });
+      }
+      await tx.grupoFormacao.update({ where: { id: newGrupoId }, data: { formadorId: userId } });
+    }
+  }
+}
+
 export async function createUser(
   data: Omit<UserAuth, "id" | "criadoEm" | "passwordHash" | "organizacaoId"> & {
     password?: string;
@@ -278,14 +323,20 @@ export async function createUser(
     select: { id: true },
   });
 
-  const created = softDeleted
-    ? await prisma.usuario.update({
-        where: { id: softDeleted.id },
-        data: { ...commonData, deletedAt: null },
-      })
-    : await prisma.usuario.create({
-        data: { organizacaoId: orgId, ...commonData },
-      });
+  const created = await prisma.$transaction(async (tx) => {
+    const u = softDeleted
+      ? await tx.usuario.update({
+          where: { id: softDeleted.id },
+          data: { ...commonData, deletedAt: null },
+        })
+      : await tx.usuario.create({
+          data: { organizacaoId: orgId, ...commonData },
+        });
+    // Propaga o vínculo para o grupo (formadorId), senão o card do grupo não
+    // reflete o formador recém-designado.
+    await syncGrupoFormador(tx, u.id, orgId, data.perfil, data.grupoFormacaoId ?? null, null);
+    return u;
+  });
 
   return { user: toUserAuth(created), tempPassword };
 }
@@ -330,22 +381,27 @@ export async function updateUser(
   }
   const newPasswordHash = password ? await hashPassword(password) : undefined;
 
-  const updated = await prisma.usuario.update({
-    where: { id, organizacaoId: orgId },
-    data: {
-      ...(rest.nome !== undefined && { nome: rest.nome }),
-      ...(rest.email !== undefined && { email: rest.email }),
-      ...(rest.perfil !== undefined && { perfil: rest.perfil as PerfilUsuario }),
-      ...(rest.grupoFormacaoId !== undefined && { grupoFormacaoId: rest.grupoFormacaoId ?? null }),
-      ...(rest.ativo !== undefined && { ativo: rest.ativo }),
-      ...(rest.primeiroAcesso !== undefined && { primeiroAcesso: rest.primeiroAcesso }),
-      ...(rest.mfaEnabled !== undefined && { mfaEnabled: rest.mfaEnabled }),
-      ...(rest.mfaSecret !== undefined && {
-        mfaSecret: rest.mfaSecret ? encryptField(rest.mfaSecret) : null,
-      }),
-      ...("mfaSecretExpiresAt" in data && { mfaSecretExpiresAt: data.mfaSecretExpiresAt ?? null }),
-      ...(newPasswordHash ? { passwordHash: newPasswordHash, passwordChangedAt: new Date() } : {}),
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const u = await tx.usuario.update({
+      where: { id, organizacaoId: orgId },
+      data: {
+        ...(rest.nome !== undefined && { nome: rest.nome }),
+        ...(rest.email !== undefined && { email: rest.email }),
+        ...(rest.perfil !== undefined && { perfil: rest.perfil as PerfilUsuario }),
+        ...(rest.grupoFormacaoId !== undefined && { grupoFormacaoId: rest.grupoFormacaoId ?? null }),
+        ...(rest.ativo !== undefined && { ativo: rest.ativo }),
+        ...(rest.primeiroAcesso !== undefined && { primeiroAcesso: rest.primeiroAcesso }),
+        ...(rest.mfaEnabled !== undefined && { mfaEnabled: rest.mfaEnabled }),
+        ...(rest.mfaSecret !== undefined && {
+          mfaSecret: rest.mfaSecret ? encryptField(rest.mfaSecret) : null,
+        }),
+        ...("mfaSecretExpiresAt" in data && { mfaSecretExpiresAt: data.mfaSecretExpiresAt ?? null }),
+        ...(newPasswordHash ? { passwordHash: newPasswordHash, passwordChangedAt: new Date() } : {}),
+      },
+    });
+    // Propaga alterações de grupo/perfil para GrupoFormacao.formadorId (bidirecional).
+    await syncGrupoFormador(tx, u.id, orgId, rest.perfil ?? exists.perfil, rest.grupoFormacaoId, exists.grupoFormacaoId);
+    return u;
   });
   return toUserAuth(updated);
 }
