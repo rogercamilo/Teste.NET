@@ -33,50 +33,70 @@ export default async function FormandoDetailPage({
 
   if (!formandoRow) redirect("/formandos");
 
-  const processosEclesiasticosRows =
+  // Uma única rodada paralela após carregar formando+org: processos (condicional
+  // ao tipo de org), coleções do formando e cartas de etapa não dependem entre si.
+  // Antes eram 3 idas sequenciais ao banco. `vocacionalHabilitado` já vem do
+  // getOrgBranding (cacheado), então a query dedicada `orgVocacional` foi removida.
+  //
+  // Cartas de etapa (recorrentes) — reaproveitam Arquivo; a etapa é codificada
+  // no tipoEvento (`carta_etapa:{nivel}`); cartas vocacionais legadas entram como
+  // nível "vocacional". O flag habilita a aba Documentos em orgs não-canônicas.
+  const [
+    processosEclesiasticosRows,
+    comentariosRows,
+    eventosRows,
+    presencasRows,
+    grupoFormacaoRow,
+    todosGruposFormacaoRows,
+    agendamentosRows,
+    cartasRows,
+  ] = await Promise.all([
     hasCanonicalAccess(org?.tipoOrganizacao)
-      ? await prisma.processoEclesiastico.findMany({
+      ? prisma.processoEclesiastico.findMany({
           where: { formandoId: id, organizacaoId: user.organizacaoId },
           include: { documentos: { select: { id: true, tipo: true, status: true, versao: true } } },
           orderBy: { criadoEm: "desc" },
         })
-      : [];
+      : Promise.resolve([]),
+    prisma.comentarioFormando.findMany({
+      where: { formandoId: id, organizacaoId: user.organizacaoId },
+      orderBy: { criadoEm: "desc" },
+    }),
+    prisma.eventoFormando.findMany({
+      where: { formandoId: id, organizacaoId: user.organizacaoId },
+      orderBy: { criadoEm: "desc" },
+      include: { documentos: true },
+    }),
+    prisma.presencaFormacao.findMany({
+      where: { formandoId: id, organizacaoId: user.organizacaoId },
+      orderBy: { data: "desc" },
+    }),
+    formandoRow.grupoFormacaoId
+      ? prisma.grupoFormacao.findFirst({ where: { id: formandoRow.grupoFormacaoId, organizacaoId: user.organizacaoId } })
+      : Promise.resolve(null),
+    prisma.grupoFormacao.findMany({
+      where: { organizacaoId: user.organizacaoId, ativo: true },
+      select: { id: true, nome: true, nivelFormativo: true },
+      orderBy: { nome: "asc" },
+    }),
+    prisma.agendamento.findMany({
+      where: {
+        organizacaoId: user.organizacaoId,
+        nivelFormativo: formandoRow.nivelFormativo,
+        ...(formandoRow.grupoFormacaoId ? { grupoFormacaoId: formandoRow.grupoFormacaoId } : {}),
+        deletedAt: null,
+      },
+      orderBy: { dataInicio: "desc" },
+    }),
+    prisma.arquivo.findMany({
+      where: { formandoId: id, organizacaoId: user.organizacaoId, tipoEvento: { startsWith: "carta_" } },
+      orderBy: { criadoEm: "desc" },
+      select: { id: true, nome: true, tipoEvento: true, extensao: true, tamanho: true, criadoEm: true },
+    }),
+  ]);
 
-  const [comentariosRows, eventosRows, presencasRows, grupoFormacaoRow, todosGruposFormacaoRows, agendamentosRows] =
-    await Promise.all([
-      prisma.comentarioFormando.findMany({
-        where: { formandoId: id, organizacaoId: user.organizacaoId },
-        orderBy: { criadoEm: "desc" },
-      }),
-      prisma.eventoFormando.findMany({
-        where: { formandoId: id, organizacaoId: user.organizacaoId },
-        orderBy: { criadoEm: "desc" },
-        include: { documentos: true },
-      }),
-      prisma.presencaFormacao.findMany({
-        where: { formandoId: id, organizacaoId: user.organizacaoId },
-        orderBy: { data: "desc" },
-      }),
-      formandoRow.grupoFormacaoId
-        ? prisma.grupoFormacao.findFirst({ where: { id: formandoRow.grupoFormacaoId, organizacaoId: user.organizacaoId } })
-        : Promise.resolve(null),
-      prisma.grupoFormacao.findMany({
-        where: { organizacaoId: user.organizacaoId, ativo: true },
-        select: { id: true, nome: true, nivelFormativo: true },
-        orderBy: { nome: "asc" },
-      }),
-      prisma.agendamento.findMany({
-        where: {
-          organizacaoId: user.organizacaoId,
-          nivelFormativo: formandoRow.nivelFormativo,
-          ...(formandoRow.grupoFormacaoId ? { grupoFormacaoId: formandoRow.grupoFormacaoId } : {}),
-          deletedAt: null,
-        },
-        orderBy: { dataInicio: "desc" },
-      }),
-    ]);
-
-  // Grade total from the formando's morada grade
+  // Grade total from the formando's morada grade — depende da grade da morada,
+  // resolvida na rodada acima; fica de fora do batch por essa dependência.
   let gradeTotal: number | null = null;
   if (grupoFormacaoRow?.gradeId) {
     const grade = await prisma.gradeFormativa.findUnique({
@@ -85,18 +105,6 @@ export default async function FormandoDetailPage({
     });
     gradeTotal = grade?.totalFormacoes ?? null;
   }
-
-  // Cartas de etapa (recorrentes) — reaproveitam Arquivo; a etapa é codificada
-  // no tipoEvento (`carta_etapa:{nivel}`); cartas vocacionais legadas entram como
-  // nível "vocacional". O flag habilita a aba Documentos em orgs não-canônicas.
-  const [cartasRows, orgVocacional] = await Promise.all([
-    prisma.arquivo.findMany({
-      where: { formandoId: id, organizacaoId: user.organizacaoId, tipoEvento: { startsWith: "carta_" } },
-      orderBy: { criadoEm: "desc" },
-      select: { id: true, nome: true, tipoEvento: true, extensao: true, tamanho: true, criadoEm: true },
-    }),
-    prisma.organizacao.findUnique({ where: { id: user.organizacaoId }, select: { vocacionalHabilitado: true } }),
-  ]);
 
   const parseNivelCarta = (t: string | null): NivelFormativo =>
     t?.startsWith("carta_etapa:") ? (t.slice("carta_etapa:".length) as NivelFormativo) : "vocacional";
@@ -141,7 +149,7 @@ export default async function FormandoDetailPage({
       termoFormando={org?.termoFormando?.trim() || "Formando"}
       termoFormador={org?.termoFormador?.trim() || "Formador Comunitário"}
       tipoOrganizacao={org?.tipoOrganizacao ?? null}
-      vocacionalHabilitado={orgVocacional?.vocacionalHabilitado ?? false}
+      vocacionalHabilitado={org?.vocacionalHabilitado ?? false}
       cartasEtapa={cartasEtapa}
       processosEclesiasticos={processosEclesiasticosRows.map((p) => ({
         id: p.id,
