@@ -389,6 +389,8 @@ model GrupoFormacao {
 
   @@index([organizacaoId])
   @@index([formadorId])
+  // Busca textual (Cmd-K) — GIN trigram para ILIKE '%q%'.
+  @@index([nome(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("morada")
 }
 
@@ -455,6 +457,11 @@ model Formando {
   @@index([grupoFormacaoId])
   @@index([organizacaoId, ativo])
   @@index([deletedAt])
+  // Cobre a listagem universal `where { organizacaoId, deletedAt: null } orderBy nome`
+  // com index scan já ordenado (evita sort em memória em orgs grandes).
+  @@index([organizacaoId, deletedAt, nome])
+  // Busca textual (Cmd-K) usa ILIKE '%q%' — GIN trigram evita seq scan.
+  @@index([nome(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 // ==========================================================
@@ -529,6 +536,8 @@ model PlanoFormativo {
   retiros          RetiroPlano[]
 
   @@index([organizacaoId])
+  // Busca textual (Cmd-K) — GIN trigram para ILIKE '%q%'.
+  @@index([nome(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 // ==========================================================
@@ -605,6 +614,8 @@ model GradeFormativa {
 
   @@index([organizacaoId])
   @@index([planoId])
+  // Busca textual (Cmd-K) — GIN trigram para ILIKE '%q%'.
+  @@index([nome(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 // ==========================================================
@@ -685,6 +696,8 @@ model Formacao {
 
   @@index([organizacaoId])
   @@index([deletedAt])
+  // Busca textual (Cmd-K) usa ILIKE '%q%' sobre `tema` — GIN trigram evita seq scan.
+  @@index([tema(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 // ==========================================================
