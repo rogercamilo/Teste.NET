@@ -234,25 +234,33 @@ async function getDashboardData(
         prisma.usuario.count({
           where: { organizacaoId, perfil: "formador_comunitario", ativo: true, grupoFormacaoId: null },
         }),
-        // Taxa de presença por morada nos últimos 90 dias (via formando)
-        prisma.presencaFormacao.findMany({
-          where: { organizacaoId, data: { gte: threeMonthsAgo, lte: now } },
-          select: { presente: true, formando: { select: { grupoFormacaoId: true } } },
-        }),
+        // Taxa de presença por morada nos últimos 90 dias. A agregação roda no
+        // Postgres (COUNT/FILTER + GROUP BY), devolvendo UMA linha por morada em
+        // vez de trazer todas as presenças da org para agregar em memória —
+        // groupBy do Prisma não agrupa por campo de relação (morada fica em Formando).
+        prisma.$queryRaw<{ grupoFormacaoId: string; total: number; presentes: number }[]>`
+          SELECT f.morada_id AS "grupoFormacaoId",
+                 COUNT(*)::int AS total,
+                 COUNT(*) FILTER (WHERE p.presente)::int AS presentes
+          FROM "PresencaFormacao" p
+          JOIN "Formando" f ON f.id = p."formandoId"
+          WHERE p."organizacaoId" = ${organizacaoId}
+            AND p.data >= ${threeMonthsAgo}
+            AND p.data <= ${now}
+            AND f.morada_id IS NOT NULL
+          GROUP BY f.morada_id
+        `,
       ]);
 
     const ativosMap = new Map(formandosAtivosGrp.map((g) => [g.grupoFormacaoId!, g._count.id]));
 
-    // Agrega presença por morada em memória
-    const presencaGrupoFormacaoMap = new Map<string, { total: number; presentes: number }>();
-    for (const p of presencasPorGrupoFormacao) {
-      const mid = p.formando?.grupoFormacaoId;
-      if (!mid) continue;
-      const e = presencaGrupoFormacaoMap.get(mid) ?? { total: 0, presentes: 0 };
-      e.total++;
-      if (p.presente) e.presentes++;
-      presencaGrupoFormacaoMap.set(mid, e);
-    }
+    // Presença por morada já vem agregada do banco (uma linha por morada).
+    const presencaGrupoFormacaoMap = new Map(
+      presencasPorGrupoFormacao.map((r) => [
+        r.grupoFormacaoId,
+        { total: Number(r.total), presentes: Number(r.presentes) },
+      ])
+    );
 
     return {
       ...baseStats,
