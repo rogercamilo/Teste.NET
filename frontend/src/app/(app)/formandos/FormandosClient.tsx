@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   useEtapaLabels,
@@ -150,6 +150,17 @@ interface FormandosClientProps {
   initialGrades: GradeFormativa[];
   role: string;
   grupoFormacaoId: string | null;
+  /** Total que casa com os filtros atuais (para a paginação). */
+  total: number;
+  /** Ativos da organização, sem filtros (cabeçalho). */
+  ativosCount: number;
+  /** Página atual (1-based), derivada da URL. */
+  page: number;
+  pageSize: number;
+  /** Busca textual atual refletida pelo servidor. */
+  query: string;
+  /** Filtro de nível atual ("todos" quando ausente). */
+  nivel: string;
 }
 
 export default function FormandosClient({
@@ -158,6 +169,12 @@ export default function FormandosClient({
   initialGrades,
   role,
   grupoFormacaoId: userGrupoFormacaoId,
+  total,
+  ativosCount,
+  page,
+  pageSize,
+  query,
+  nivel,
 }: FormandosClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -166,11 +183,8 @@ export default function FormandosClient({
   const etapaLabels = useEtapaLabels();
   const { formando: termoFormando, grupoFormacao: termoGrupoFormacao } = useTermos();
 
-  const PAGE_SIZE = 10;
-  const [search, setSearch] = useState("");
-  const [nivelFilter, setNivelFilter] = useState<string>("todos");
+  const [search, setSearch] = useState(query);
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editing, setEditing] = useState<Formando | null>(null);
@@ -184,13 +198,33 @@ export default function FormandosClient({
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const filtered = initialFormandos.filter((f) => {
-    const matchSearch =
-      f.nome.toLowerCase().includes(search.toLowerCase()) ||
-      f.email.toLowerCase().includes(search.toLowerCase());
-    const matchNivel = nivelFilter === "todos" || f.nivelFormativo === nivelFilter;
-    return matchSearch && matchNivel;
-  });
+  // Busca, filtro e paginação são server-side: o estado vive na URL
+  // (?q=&nivel=&page=) e cada mudança navega, refazendo a query paginada no
+  // servidor. Evita carregar a organização inteira no cliente.
+  const pushParams = useCallback(
+    (next: { q?: string; nivel?: string; page?: number }) => {
+      const q = next.q ?? query;
+      const nv = next.nivel ?? nivel;
+      const pg = next.page ?? page;
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      if (nv && nv !== "todos") params.set("nivel", nv);
+      if (pg > 1) params.set("page", String(pg));
+      const qs = params.toString();
+      startTransition(() => router.push(qs ? `/formandos?${qs}` : "/formandos"));
+    },
+    [query, nivel, page, router]
+  );
+
+  // Debounce da busca textual → URL (350ms). Só navega quando o texto diverge
+  // do que o servidor já refletiu — evita push no mount e loops de navegação.
+  useEffect(() => {
+    if (search === query) return;
+    const t = setTimeout(() => pushParams({ q: search, page: 1 }), 350);
+    return () => clearTimeout(t);
+  }, [search, query, pushParams]);
+
+  const semFiltros = !query && nivel === "todos";
 
   function openCreate() {
     setEditing(null);
@@ -337,7 +371,7 @@ export default function FormandosClient({
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{termoFormando}s</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {initialFormandos.filter((f) => f.ativo).length} {termoFormando.toLowerCase()}s ativos
+            {ativosCount} {termoFormando.toLowerCase()}s ativos
           </p>
         </div>
         <Button size="sm" onClick={openCreate}>
@@ -352,11 +386,11 @@ export default function FormandosClient({
           <Input
             placeholder="Buscar por nome ou e-mail..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-9 text-sm"
           />
         </div>
-        <Select value={nivelFilter} onValueChange={(v) => { setNivelFilter(v ?? "todos"); setPage(1); }}>
+        <Select value={nivel} onValueChange={(v) => pushParams({ nivel: v ?? "todos", page: 1 })}>
           <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
             <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue placeholder="Etapa formativa" />
@@ -391,8 +425,8 @@ export default function FormandosClient({
         </div>
       )}
 
-      {filtered.length === 0 && !isPending && (
-        initialFormandos.length === 0 ? (
+      {initialFormandos.length === 0 && !isPending && (
+        semFiltros ? (
           <EmptyState
             icon={Users}
             title={`Nenhum ${termoFormando.toLowerCase()} cadastrado`}
@@ -415,7 +449,7 @@ export default function FormandosClient({
                 variant="outline"
                 onClick={() => {
                   setSearch("");
-                  setNivelFilter("todos");
+                  pushParams({ q: "", nivel: "todos", page: 1 });
                 }}
               >
                 Limpar filtros
@@ -425,9 +459,9 @@ export default function FormandosClient({
         )
       )}
 
-      {view === "grid" && filtered.length > 0 && (
+      {view === "grid" && initialFormandos.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((formando) => {
+          {initialFormandos.map((formando) => {
             const grupoFormacao = formando.grupoFormacaoId ? initialGruposFormacao.find((m) => m.id === formando.grupoFormacaoId) : null;
             const semGrade = !!formando.grupoFormacaoId && !grupoFormacao?.gradeId;
             return (
@@ -445,12 +479,12 @@ export default function FormandosClient({
             );
           })}
           <div className="col-span-full">
-            <Pagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
+            <Pagination total={total} page={page} pageSize={pageSize} onPageChange={(p) => pushParams({ page: p })} />
           </div>
         </div>
       )}
 
-      {view === "list" && filtered.length > 0 && (
+      {view === "list" && initialFormandos.length > 0 && (
         <Card className="border-0 shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
@@ -464,7 +498,7 @@ export default function FormandosClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((formando) => {
+              {initialFormandos.map((formando) => {
                 const progresso = Math.round(
                   (formando.formacoesRealizadas / formando.totalFormacoes) * 100
                 );
@@ -547,7 +581,7 @@ export default function FormandosClient({
             </TableBody>
           </Table>
           <div className="p-3">
-            <Pagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
+            <Pagination total={total} page={page} pageSize={pageSize} onPageChange={(p) => pushParams({ page: p })} />
           </div>
         </Card>
       )}
