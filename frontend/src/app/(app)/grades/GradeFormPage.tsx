@@ -47,7 +47,6 @@ type FormState = {
   vigenciaInicio: string;
   vigenciaFim: string;
   versao: string;
-  eixos: string;
   objetivos: string;
   fundamentacao: string;
   documentoNome: string;
@@ -61,7 +60,6 @@ const EMPTY_FORM: FormState = {
   vigenciaInicio: "",
   vigenciaFim: "",
   versao: "1.0",
-  eixos: "",
   objetivos: "",
   fundamentacao: "",
   documentoNome: "",
@@ -69,7 +67,8 @@ const EMPTY_FORM: FormState = {
 };
 
 type FormacaoInput = {
-  tempId: string;
+  tempId: string; // chave estável de UI
+  id?: string; // id real da formação (existente) — ausente em formações novas
   tema: string;
   objetivo: string;
   descricao: string;
@@ -78,8 +77,12 @@ type FormacaoInput = {
   observacoesFormador: string;
 };
 
-type EixoComFormacoes = {
-  eixoPlano: EixoPlano;
+// Um grupo de formações. `eixoPlano` vem SEMPRE do plano formativo (a grade
+// nunca cria eixos). `eixoPlano: null` = bucket de formações avulsas (grade sem
+// eixos) ou órfãs (formações de um eixo que o plano deixou de ter) — sempre
+// visível e sempre enviado, para nada sumir em silêncio.
+type Grupo = {
+  eixoPlano: EixoPlano | null;
   formacoes: FormacaoInput[];
   expanded: boolean;
 };
@@ -94,6 +97,65 @@ function emptyFormacao(): FormacaoInput {
     modalidade: "presencial",
     observacoesFormador: "",
   };
+}
+
+function formacaoToInput(f: Formacao): FormacaoInput {
+  return {
+    tempId: f.id,
+    id: f.id,
+    tema: f.tema,
+    objetivo: f.objetivo,
+    descricao: f.descricao,
+    cargaHoraria: String(f.cargaHoraria),
+    modalidade: f.modalidade,
+    observacoesFormador: f.observacoesFormador ?? "",
+  };
+}
+
+/**
+ * Monta os grupos da tela a partir do plano (fonte dos eixos) e das formações
+ * existentes, ancorando cada formação ao eixo do plano por `eixoPlanoId`
+ * (derivado do `eixoId` via os eixos da grade) — nunca por nome. Formações sem
+ * eixo resolvível caem no bucket de avulsas/órfãs.
+ */
+function buildGrupos(
+  plano: PlanoFormativo | undefined,
+  grade: GradeFormativa | undefined,
+  existentes: Formacao[],
+): Grupo[] {
+  const eixosPlano = plano?.eixos ?? [];
+
+  // eixoId (da grade) → eixoPlanoId (do plano)
+  const eixoIdToPlanoId = new Map(
+    (grade?.eixos ?? []).map((e) => [e.id, e.eixoPlanoId]),
+  );
+  const planoIds = new Set(eixosPlano.map((e) => e.id));
+
+  const porPlano = new Map<string, FormacaoInput[]>();
+  const avulsas: FormacaoInput[] = [];
+  for (const f of existentes) {
+    const epId = f.eixoId ? eixoIdToPlanoId.get(f.eixoId) : undefined;
+    if (epId && planoIds.has(epId)) {
+      const arr = porPlano.get(epId) ?? [];
+      arr.push(formacaoToInput(f));
+      porPlano.set(epId, arr);
+    } else {
+      avulsas.push(formacaoToInput(f));
+    }
+  }
+
+  const grupos: Grupo[] = eixosPlano.map((ep) => ({
+    eixoPlano: ep,
+    formacoes: porPlano.get(ep.id) ?? [],
+    expanded: true,
+  }));
+
+  // Bucket de avulsas/órfãs: sempre presente quando o plano não tem eixos
+  // (grade "solta"), ou quando há formações órfãs a preservar.
+  if (eixosPlano.length === 0 || avulsas.length > 0) {
+    grupos.push({ eixoPlano: null, formacoes: avulsas, expanded: true });
+  }
+  return grupos;
 }
 
 interface GradeFormPageProps {
@@ -127,7 +189,6 @@ export default function GradeFormPage({
         vigenciaInicio: g.vigenciaInicio,
         vigenciaFim: g.vigenciaFim,
         versao: g.versao,
-        eixos: g.eixos.map((e) => e.nome).join("; "),
         objetivos: g.objetivos ?? "",
         fundamentacao: g.fundamentacao ?? "",
         documentoNome: g.documentoAnexo ?? "",
@@ -137,28 +198,12 @@ export default function GradeFormPage({
     return EMPTY_FORM;
   });
 
-  const [eixosComFormacoes, setEixosComFormacoes] = useState<EixoComFormacoes[]>(() => {
+  const [grupos, setGrupos] = useState<Grupo[]>(() => {
     const g = initialGrade;
     if (!g || !canManageFormacoes) return [];
     const plano = initialPlanos.find((p) => p.id === g.planoId);
-    if (!plano || plano.eixos.length === 0) return [];
-    const existingFormacoes = initialFormacoes.filter((f) => f.gradeId === id);
-    return plano.eixos.map((ep) => ({
-      eixoPlano: ep,
-      formacoes: existingFormacoes
-        .filter((f) => f.eixoNome === ep.nome)
-        .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999))
-        .map((f) => ({
-          tempId: f.id,
-          tema: f.tema,
-          objetivo: f.objetivo,
-          descricao: f.descricao,
-          cargaHoraria: String(f.cargaHoraria),
-          modalidade: f.modalidade,
-          observacoesFormador: f.observacoesFormador ?? "",
-        })),
-      expanded: true,
-    }));
+    const existentes = initialFormacoes.filter((f) => f.gradeId === id);
+    return buildGrupos(plano, g, existentes);
   });
 
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
@@ -175,60 +220,69 @@ export default function GradeFormPage({
       planoId,
       nivelFormativo: plano?.nivelFormativo ?? prev.nivelFormativo,
     }));
-    if (canManageFormacoes && plano && plano.eixos.length > 0) {
-      setEixosComFormacoes(
-        plano.eixos.map((ep) => ({
-          eixoPlano: ep,
-          formacoes: [],
-          expanded: true,
-        }))
-      );
-    } else {
-      setEixosComFormacoes([]);
+    if (!canManageFormacoes || !plano) {
+      setGrupos([]);
+      return;
     }
+    // Ao trocar de plano, os grupos são remontados a partir dos eixos do NOVO
+    // plano. Formações já digitadas NÃO são descartadas: como os eixos do novo
+    // plano não têm correspondência com o anterior, elas vão para o bucket de
+    // avulsas (preservadas, com seu id) para o usuário refiliá-las.
+    setGrupos((prev) => {
+      const existentes = prev.flatMap((g) => g.formacoes);
+      const novos: Grupo[] = (plano.eixos ?? []).map((ep) => ({
+        eixoPlano: ep,
+        formacoes: [],
+        expanded: true,
+      }));
+      if ((plano.eixos ?? []).length === 0 || existentes.length > 0) {
+        novos.push({ eixoPlano: null, formacoes: existentes, expanded: true });
+      }
+      return novos;
+    });
   }
 
-  function toggleEixo(idx: number) {
-    setEixosComFormacoes((prev) =>
-      prev.map((ec, i) => (i === idx ? { ...ec, expanded: !ec.expanded } : ec))
+  function toggleGrupo(idx: number) {
+    setGrupos((prev) =>
+      prev.map((g, i) => (i === idx ? { ...g, expanded: !g.expanded } : g)),
     );
   }
 
-  function addFormacao(eixoIdx: number) {
-    setEixosComFormacoes((prev) =>
-      prev.map((ec, i) =>
-        i === eixoIdx ? { ...ec, formacoes: [...ec.formacoes, emptyFormacao()] } : ec
-      )
+  function addFormacao(grupoIdx: number) {
+    setGrupos((prev) =>
+      prev.map((g, i) =>
+        i === grupoIdx ? { ...g, formacoes: [...g.formacoes, emptyFormacao()] } : g,
+      ),
     );
   }
 
-  function removeFormacao(eixoIdx: number, tempId: string) {
-    setEixosComFormacoes((prev) =>
-      prev.map((ec, i) =>
-        i === eixoIdx
-          ? { ...ec, formacoes: ec.formacoes.filter((f) => f.tempId !== tempId) }
-          : ec
-      )
+  function removeFormacao(grupoIdx: number, tempId: string) {
+    setGrupos((prev) =>
+      prev.map((g, i) =>
+        i === grupoIdx
+          ? { ...g, formacoes: g.formacoes.filter((f) => f.tempId !== tempId) }
+          : g,
+      ),
     );
   }
 
   function updateFormacao(
-    eixoIdx: number,
+    grupoIdx: number,
     tempId: string,
     field: keyof FormacaoInput,
-    value: string
+    value: string,
   ) {
-    setEixosComFormacoes((prev) =>
-      prev.map((ec, i) =>
-        i === eixoIdx
+    setGrupos((prev) =>
+      prev.map((g, i) =>
+        i === grupoIdx
           ? {
-              ...ec,
-              formacoes: ec.formacoes.map((f) =>
-                f.tempId === tempId ? { ...f, [field]: value } : f
+              ...g,
+              formacoes: g.formacoes.map((f) =>
+                f.tempId === tempId ? { ...f, [field]: value } : f,
               ),
             }
-          : ec
-      )
+          : g,
+      ),
     );
   }
 
@@ -250,10 +304,10 @@ export default function GradeFormPage({
     if (!form.planoId) return toast.error("Selecione o plano formativo.");
     if (!form.vigenciaInicio || !form.vigenciaFim)
       return toast.error("Datas de vigência são obrigatórias.");
-    const formacoesFlat = eixosComFormacoes.flatMap((ec) => ec.formacoes);
+    const formacoesFlat = grupos.flatMap((g) => g.formacoes);
     if (formacoesFlat.some((f) => !f.tema.trim()))
       return toast.error(
-        "Toda formação precisa de um tema. Preencha ou remova as formações em branco antes de salvar."
+        "Toda formação precisa de um tema. Preencha ou remova as formações em branco antes de salvar.",
       );
     setSaving(true);
     const JSON_H = { "Content-Type": "application/json" };
@@ -261,41 +315,25 @@ export default function GradeFormPage({
       const plano = initialPlanos.find((p) => p.id === form.planoId);
       const nivelFormativo = plano?.nivelFormativo ?? form.nivelFormativo;
 
-      const eixosPayload = eixosComFormacoes.length > 0
-        ? eixosComFormacoes.map((ec, idx) => ({
-            id: `e-${idx}`,
-            nome: ec.eixoPlano.nome,
-            descricao: ec.eixoPlano.objetivo ?? "",
-            ordem: idx + 1,
-            cor: EIXO_HEX[idx % EIXO_HEX.length],
-            eixoPlanoId: ec.eixoPlano.id,
-          }))
-        : form.eixos.split(";").map((n) => n.trim()).filter(Boolean).map((nome, i) => ({
-            id: `e-${i}`,
-            nome,
-            descricao: "",
-            ordem: i + 1,
-            cor: EIXO_HEX[i % EIXO_HEX.length],
-          }));
-
-      // Formações enviadas EM LOTE junto da grade — persistidas atomicamente no
-      // servidor (uma transação). O `eixoId` real e o `numero` são resolvidos lá.
-      // Só incluímos `formacoes` quando o plano fornece eixos e o usuário gerencia
-      // formações; caso contrário o campo é omitido para não tocar nas existentes.
-      const managesFormacoes = canManageFormacoes && eixosComFormacoes.length > 0;
+      // Formações enviadas EM LOTE junto da grade. Cada uma carrega seu `id`
+      // (quando existente) e o `eixoPlanoId` do grupo — o servidor reconcilia
+      // pelo id e resolve o eixo real a partir do plano. Eixos NÃO são enviados:
+      // são projeção estável do plano, sincronizada no servidor.
+      const managesFormacoes = canManageFormacoes && !!form.planoId;
       const formacoesField = managesFormacoes
         ? {
-            formacoes: eixosComFormacoes.flatMap((ec) =>
-              ec.formacoes.map((f) => ({
-                eixoPlanoId: ec.eixoPlano.id,
-                eixoNome: ec.eixoPlano.nome,
+            formacoes: grupos.flatMap((g) =>
+              g.formacoes.map((f) => ({
+                id: f.id,
+                eixoPlanoId: g.eixoPlano?.id ?? null,
+                eixoNome: g.eixoPlano?.nome ?? null,
                 tema: f.tema.trim(),
                 objetivo: f.objetivo.trim() || undefined,
                 descricao: f.descricao.trim() || undefined,
                 cargaHoraria: Number(f.cargaHoraria) || 2,
                 modalidade: f.modalidade,
                 observacoesFormador: f.observacoesFormador.trim() || undefined,
-              }))
+              })),
             ),
           }
         : {};
@@ -308,11 +346,10 @@ export default function GradeFormPage({
         vigenciaInicio: form.vigenciaInicio,
         vigenciaFim: form.vigenciaFim,
         versao: form.versao || "1.0",
-        totalFormacoes: eixosComFormacoes.reduce((s, ec) => s + ec.formacoes.length, 0),
+        totalFormacoes: formacoesFlat.length,
         objetivos: form.objetivos.trim() || undefined,
         fundamentacao: form.fundamentacao.trim() || undefined,
         ativo: true,
-        eixos: eixosPayload,
       };
 
       if (isEditing && id) {
@@ -331,7 +368,7 @@ export default function GradeFormPage({
             toast.error(`Erro ao enviar documento: ${await uploadRes.text()}`);
             return;
           }
-          const uploaded = await uploadRes.json() as { id: string; nome: string };
+          const uploaded = (await uploadRes.json()) as { id: string; nome: string };
           if (existing?.documentoAnexoId) {
             fetch(`/api/arquivos/${existing.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
           }
@@ -371,8 +408,9 @@ export default function GradeFormPage({
         }
         let created = await createRes.json();
 
-        // O documento é anexado num PUT de acompanhamento SEM reenviar `formacoes`
-        // (elas já foram persistidas no POST), evitando recriá-las à toa.
+        // O documento é anexado num PUT de acompanhamento SEM reenviar
+        // `formacoes` (elas já foram persistidas no POST), evitando reconciliar
+        // à toa.
         if (documentoFile) {
           const fd = new FormData();
           fd.append("file", documentoFile);
@@ -380,7 +418,7 @@ export default function GradeFormPage({
           fd.append("entityId", created.id);
           const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
           if (uploadRes.ok) {
-            const uploaded = await uploadRes.json() as { id: string; nome: string };
+            const uploaded = (await uploadRes.json()) as { id: string; nome: string };
             const updateRes = await fetch(`/api/grades/${created.id}`, {
               method: "PUT",
               headers: JSON_H,
@@ -403,10 +441,8 @@ export default function GradeFormPage({
     }
   }
 
-  const totalFormacoesCadastradas = eixosComFormacoes.reduce(
-    (s, ec) => s + ec.formacoes.length,
-    0
-  );
+  const totalFormacoesCadastradas = grupos.reduce((s, g) => s + g.formacoes.length, 0);
+  const planoTemEixos = grupos.some((g) => g.eixoPlano !== null);
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -455,6 +491,10 @@ export default function GradeFormPage({
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Os eixos formativos vêm do plano selecionado — cadastre-os no plano.
+              Aqui você apenas indica as formações da grade.
+            </p>
           </div>
 
           <div className="grid gap-1.5">
@@ -537,21 +577,6 @@ export default function GradeFormPage({
             />
           </div>
 
-          {/* Campo de eixos manual — apenas quando o plano não fornece eixos */}
-          {eixosComFormacoes.length === 0 && (
-            <div className="grid gap-1.5">
-              <Label>Eixos Pedagógicos</Label>
-              <Input
-                value={form.eixos}
-                onChange={(e) => set("eixos")(e.target.value)}
-                placeholder="Identidade; Oração; Comunidade; Missão"
-              />
-              <p className="text-xs text-muted-foreground">
-                Separe os eixos com ponto e vírgula (;)
-              </p>
-            </div>
-          )}
-
           <div className="grid gap-1.5">
             <Label>Documento da grade</Label>
             {form.documentoNome ? (
@@ -587,192 +612,206 @@ export default function GradeFormPage({
         </div>
       </div>
 
-      {/* ── Eixos e Formações (card separado) ── */}
-      {canManageFormacoes && eixosComFormacoes.length > 0 && (
+      {/* ── Formações da grade (card separado) ── */}
+      {canManageFormacoes && !form.planoId && (
+        <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6">
+          <p className="text-sm text-muted-foreground text-center">
+            Selecione um plano formativo para indicar as formações da grade.
+          </p>
+        </div>
+      )}
+
+      {canManageFormacoes && grupos.length > 0 && (
         <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6 space-y-4">
           <div>
-            <p className="text-base font-semibold text-foreground">Eixos Formativos e Formações</p>
+            <p className="text-base font-semibold text-foreground">
+              {planoTemEixos ? "Eixos Formativos e Formações" : "Formações da grade"}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {eixosComFormacoes.length} eixos · {totalFormacoesCadastradas} formação
+              {planoTemEixos && `${grupos.filter((g) => g.eixoPlano).length} eixos · `}
+              {totalFormacoesCadastradas} formação
               {totalFormacoesCadastradas !== 1 ? "ões" : ""} cadastrada
               {totalFormacoesCadastradas !== 1 ? "s" : ""}
             </p>
           </div>
 
-          {eixosComFormacoes.map((ec, eixoIdx) => (
-            <div key={ec.eixoPlano.id} className="rounded-xl border border-border overflow-hidden">
-              <button
-                type="button"
-                onClick={() => toggleEixo(eixoIdx)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+          {grupos.map((grupo, grupoIdx) => {
+            const ep = grupo.eixoPlano;
+            const titulo = ep
+              ? ep.nomeEtapa ?? ep.nome
+              : planoTemEixos
+                ? "Formações avulsas (sem eixo)"
+                : "Formações";
+            return (
+              <div
+                key={ep?.id ?? "__avulsas__"}
+                className="rounded-xl border border-border overflow-hidden"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className="h-2.5 w-2.5 rounded-full shrink-0"
-                    style={{ background: EIXO_HEX[eixoIdx % EIXO_HEX.length] }}
-                  />
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {ec.eixoPlano.nomeEtapa ?? ec.eixoPlano.nome}
-                  </span>
-                  {ec.eixoPlano.nomeEtapa && ec.eixoPlano.nome !== ec.eixoPlano.nomeEtapa && (
-                    <span className="text-xs text-muted-foreground hidden sm:block truncate">
-                      {ec.eixoPlano.nome}
-                    </span>
-                  )}
-                  {!ec.eixoPlano.nomeEtapa && ec.eixoPlano.objetivo && (
-                    <span className="text-xs text-muted-foreground hidden sm:block truncate">
-                      — {ec.eixoPlano.objetivo}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <span className="text-xs text-muted-foreground">
-                    {ec.formacoes.length} formação{ec.formacoes.length !== 1 ? "ões" : ""}
-                  </span>
-                  {ec.expanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </div>
-              </button>
-
-              {ec.expanded && (
-                <div className="p-4 space-y-3 bg-muted/10">
-                  {ec.formacoes.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-2">
-                      Nenhuma formação cadastrada para este eixo.
-                    </p>
-                  )}
-
-                  {ec.formacoes.map((formacao, fIdx) => {
-                    const globalNum =
-                      eixosComFormacoes
-                        .slice(0, eixoIdx)
-                        .reduce((s, e) => s + e.formacoes.length, 0) +
-                      fIdx +
-                      1;
-                    return (
+                <button
+                  type="button"
+                  onClick={() => toggleGrupo(grupoIdx)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                      key={formacao.tempId}
-                      className="rounded-lg border border-border/60 bg-card p-4 space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                            #{globalNum}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {ec.eixoPlano.nomeEtapa ?? ec.eixoPlano.nome}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeFormacao(eixoIdx, formacao.tempId)}
-                          className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
+                      className="h-2.5 w-2.5 rounded-full shrink-0"
+                      style={{ background: ep ? EIXO_HEX[grupoIdx % EIXO_HEX.length] : "#9CA3AF" }}
+                    />
+                    <span className="text-sm font-medium text-foreground truncate">{titulo}</span>
+                    {ep && ep.nomeEtapa && ep.nome !== ep.nomeEtapa && (
+                      <span className="text-xs text-muted-foreground hidden sm:block truncate">
+                        {ep.nome}
+                      </span>
+                    )}
+                    {ep && !ep.nomeEtapa && ep.objetivo && (
+                      <span className="text-xs text-muted-foreground hidden sm:block truncate">
+                        — {ep.objetivo}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className="text-xs text-muted-foreground">
+                      {grupo.formacoes.length} formação{grupo.formacoes.length !== 1 ? "ões" : ""}
+                    </span>
+                    {grupo.expanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
+
+                {grupo.expanded && (
+                  <div className="p-4 space-y-3 bg-muted/10">
+                    {grupo.formacoes.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-2">
+                        {ep
+                          ? "Nenhuma formação cadastrada para este eixo."
+                          : "Nenhuma formação cadastrada."}
+                      </p>
+                    )}
+
+                    {grupo.formacoes.map((formacao, fIdx) => {
+                      const globalNum =
+                        grupos
+                          .slice(0, grupoIdx)
+                          .reduce((s, g) => s + g.formacoes.length, 0) +
+                        fIdx +
+                        1;
+                      return (
+                        <div
+                          key={formacao.tempId}
+                          className="rounded-lg border border-border/60 bg-card p-4 space-y-3"
                         >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-
-                      <div className="grid gap-3">
-                        <div className="grid gap-1.5">
-                          <Label className="text-xs">
-                            Tema <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            value={formacao.tema}
-                            onChange={(e) =>
-                              updateFormacao(eixoIdx, formacao.tempId, "tema", e.target.value)
-                            }
-                            placeholder="Tema da formação"
-                            className="h-9 text-sm"
-                          />
-                        </div>
-
-                        <div className="grid gap-1.5">
-                          <Label className="text-xs">Objetivo resumido</Label>
-                          <Textarea
-                            value={formacao.objetivo}
-                            onChange={(e) =>
-                              updateFormacao(eixoIdx, formacao.tempId, "objetivo", e.target.value)
-                            }
-                            placeholder="Objetivo desta formação..."
-                            className="min-h-[60px] text-sm resize-none"
-                          />
-                        </div>
-
-                        <div className="grid gap-1.5">
-                          <Label className="text-xs">Observações do formador</Label>
-                          <Textarea
-                            value={formacao.observacoesFormador}
-                            onChange={(e) =>
-                              updateFormacao(eixoIdx, formacao.tempId, "observacoesFormador", e.target.value)
-                            }
-                            placeholder="Observações, contexto ou instruções para o formador..."
-                            className="min-h-[56px] text-sm resize-none"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="grid gap-1.5">
-                            <Label className="text-xs">Carga (h)</Label>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={formacao.cargaHoraria}
-                              onChange={(e) =>
-                                updateFormacao(
-                                  eixoIdx,
-                                  formacao.tempId,
-                                  "cargaHoraria",
-                                  e.target.value
-                                )
-                              }
-                              className="h-9 text-sm"
-                            />
-                          </div>
-
-                          <div className="grid gap-1.5">
-                            <Label className="text-xs">Modalidade</Label>
-                            <Select
-                              value={formacao.modalidade}
-                              onValueChange={(v) =>
-                                v && updateFormacao(eixoIdx, formacao.tempId, "modalidade", v)
-                              }
-                              items={MODALIDADE_LABELS}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                #{globalNum}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{titulo}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeFormacao(grupoIdx, formacao.tempId)}
+                              className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
                             >
-                              <SelectTrigger className="h-9 text-sm">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="presencial">Presencial</SelectItem>
-                                <SelectItem value="online">Online</SelectItem>
-                                <SelectItem value="hibrida">Híbrida</SelectItem>
-                              </SelectContent>
-                            </Select>
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
 
-                        </div>
-                      </div>
-                    </div>
-                  );
-                  })}
+                          <div className="grid gap-3">
+                            <div className="grid gap-1.5">
+                              <Label className="text-xs">
+                                Tema <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                value={formacao.tema}
+                                onChange={(e) =>
+                                  updateFormacao(grupoIdx, formacao.tempId, "tema", e.target.value)
+                                }
+                                placeholder="Tema da formação"
+                                className="h-9 text-sm"
+                              />
+                            </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addFormacao(eixoIdx)}
-                    className="w-full h-9 gap-1.5 text-xs border-dashed"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Adicionar formação ao eixo
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
+                            <div className="grid gap-1.5">
+                              <Label className="text-xs">Objetivo resumido</Label>
+                              <Textarea
+                                value={formacao.objetivo}
+                                onChange={(e) =>
+                                  updateFormacao(grupoIdx, formacao.tempId, "objetivo", e.target.value)
+                                }
+                                placeholder="Objetivo desta formação..."
+                                className="min-h-[60px] text-sm resize-none"
+                              />
+                            </div>
+
+                            <div className="grid gap-1.5">
+                              <Label className="text-xs">Observações do formador</Label>
+                              <Textarea
+                                value={formacao.observacoesFormador}
+                                onChange={(e) =>
+                                  updateFormacao(grupoIdx, formacao.tempId, "observacoesFormador", e.target.value)
+                                }
+                                placeholder="Observações, contexto ou instruções para o formador..."
+                                className="min-h-[56px] text-sm resize-none"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="grid gap-1.5">
+                                <Label className="text-xs">Carga (h)</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={formacao.cargaHoraria}
+                                  onChange={(e) =>
+                                    updateFormacao(grupoIdx, formacao.tempId, "cargaHoraria", e.target.value)
+                                  }
+                                  className="h-9 text-sm"
+                                />
+                              </div>
+
+                              <div className="grid gap-1.5">
+                                <Label className="text-xs">Modalidade</Label>
+                                <Select
+                                  value={formacao.modalidade}
+                                  onValueChange={(v) =>
+                                    v && updateFormacao(grupoIdx, formacao.tempId, "modalidade", v)
+                                  }
+                                  items={MODALIDADE_LABELS}
+                                >
+                                  <SelectTrigger className="h-9 text-sm">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="presencial">Presencial</SelectItem>
+                                    <SelectItem value="online">Online</SelectItem>
+                                    <SelectItem value="hibrida">Híbrida</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addFormacao(grupoIdx)}
+                      className="w-full h-9 gap-1.5 text-xs border-dashed"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      {ep ? "Adicionar formação ao eixo" : "Adicionar formação"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
