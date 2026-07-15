@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { HardDrive, Database, Cloud, CloudOff, Mail, Bell, Loader2 } from "lucide-react";
+import { HardDrive, Database, Cloud, CloudOff, Mail, Bell, Loader2, Gauge } from "lucide-react";
 import { formatBytes, StorageSparkline } from "../_utils";
 import type { ServicosData } from "../_types";
 
@@ -160,6 +160,54 @@ export function TabInfraestrutura({ servicos }: Props) {
                   </div>
                 ))}
               </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {servicos.slowQueries && (
+        <Card>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Gauge className="h-4 w-4 text-muted-foreground" />
+              Queries mais custosas
+              <span className="ml-1 text-[11px] font-normal text-muted-foreground">pg_stat_statements · por tempo total</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {!servicos.slowQueries.available ? (
+              <p className="px-4 pb-4 pt-1 text-xs text-muted-foreground">
+                Extensão <code className="text-[11px]">pg_stat_statements</code> não está pré-carregada nesta base.
+                Adicione <code className="text-[11px]">shared_preload_libraries=pg_stat_statements</code> à
+                configuração do PostgreSQL (exige restart) para habilitar este diagnóstico.
+              </p>
+            ) : servicos.slowQueries.queries.length === 0 ? (
+              <p className="px-4 pb-4 pt-1 text-xs text-muted-foreground">
+                Sem estatísticas ainda — as queries aparecem conforme a aplicação recebe tráfego.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Query</TableHead>
+                    <TableHead className="text-right">Chamadas</TableHead>
+                    <TableHead className="text-right">Média (ms)</TableHead>
+                    <TableHead className="text-right">Total (ms)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {servicos.slowQueries.queries.map((q, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="max-w-md truncate font-mono text-[11px] text-muted-foreground" title={q.query}>
+                        {q.query}
+                      </TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{q.calls.toLocaleString("pt-BR")}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{q.meanMs.toLocaleString("pt-BR")}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums font-semibold">{q.totalMs.toLocaleString("pt-BR")}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>

@@ -2,6 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    # Pré-carrega pg_stat_statements (exige restart do servidor) para paridade
+    # com produção: o painel de infraestrutura do super-admin lista as queries
+    # mais custosas a partir dessa extensão.
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "pg_stat_statements.track=all"
     environment:
       POSTGRES_USER: formativo
       POSTGRES_PASSWORD: formativo_dev

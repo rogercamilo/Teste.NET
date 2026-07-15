@@ -84,6 +84,11 @@ export interface ServicosData {
     max: number;
     percentUso: number;
   } | null;
+  // Queries mais custosas (pg_stat_statements). available=false se não pré-carregado.
+  slowQueries?: {
+    available: boolean;
+    queries: { query: string; calls: number; meanMs: number; totalMs: number; rows: number }[];
+  };
   recentUploads: {
     id: string;
     nome: string;

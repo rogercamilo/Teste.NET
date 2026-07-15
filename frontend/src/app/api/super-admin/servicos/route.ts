@@ -2,7 +2,7 @@
 import { logError } from "@/lib/audit-log";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getDbConnectionStats } from "@/lib/db-health";
+import { getDbConnectionStats, getTopSlowQueries } from "@/lib/db-health";
 import { excludePlatformOrgWhere } from "@/lib/tenant-context";
 
 export async function GET() {
@@ -100,7 +100,11 @@ export async function GET() {
 
     // Saúde do pool de conexões do PostgreSQL (helper compartilhado com o cron de alerta).
     // Retorna null se a query falhar, sem derrubar o painel de infraestrutura.
+    // Queries mais custosas (pg_stat_statements) — diagnóstico; degrada gracioso
+    // se a extensão não estiver pré-carregada. Sequenciais após o batch para não
+    // competir por conexões do pool com as agregações acima.
     const conexoes = await getDbConnectionStats();
+    const slowQueries = await getTopSlowQueries();
 
     const totalBytes = storageAggregate._sum.tamanho ?? 0;
     const hasR2 = !!(process.env.R2_BUCKET_NAME && process.env.R2_ACCOUNT_ID);
@@ -141,6 +145,7 @@ export async function GET() {
         arquivos: arquivosCount,
       },
       conexoes,
+      slowQueries,
       recentUploads: recentUploads.map((a) => ({
         id: a.id,
         nome: a.nome,

@@ -13,6 +13,21 @@ export interface DbConnectionStats {
   percentUso: number;
 }
 
+export interface SlowQuery {
+  /** Texto normalizado da query (literais já viram $1… — sem PII). Truncado. */
+  query: string;
+  calls: number;
+  meanMs: number;
+  totalMs: number;
+  rows: number;
+}
+
+export interface SlowQueriesResult {
+  /** false quando pg_stat_statements não está disponível (não pré-carregado). */
+  available: boolean;
+  queries: SlowQuery[];
+}
+
 /** Limiar (%) a partir do qual o pool é considerado em risco e dispara alerta/aviso de pooler. */
 export const DB_POOL_ALERT_THRESHOLD = 80;
 
@@ -46,5 +61,51 @@ export async function getDbConnectionStats(): Promise<DbConnectionStats | null> 
   } catch (err) {
     logError("db-health/getDbConnectionStats", err);
     return null;
+  }
+}
+
+/**
+ * Top queries por custo agregado (pg_stat_statements). Ferramenta de
+ * diagnóstico do super-admin para transformar suposições de lentidão em
+ * números — casa com as spans de query do Prisma no Sentry.
+ *
+ * A extensão precisa estar em `shared_preload_libraries` (config do servidor).
+ * Se não estiver, `CREATE EXTENSION` falha e devolvemos `available: false` sem
+ * quebrar o painel. As queries vêm normalizadas (literais → $1), sem PII.
+ */
+export async function getTopSlowQueries(limit = 12): Promise<SlowQueriesResult> {
+  const run = () =>
+    prisma.$queryRaw<
+      { query: string; calls: number; meanMs: number; totalMs: number; rows: number }[]
+    >`
+      SELECT
+        left(query, 200)                       AS query,
+        calls::int                             AS calls,
+        round(mean_exec_time::numeric, 2)::float8  AS "meanMs",
+        round(total_exec_time::numeric, 2)::float8 AS "totalMs",
+        rows::int                              AS rows
+      FROM pg_stat_statements
+      WHERE query NOT ILIKE '%pg_stat_statements%'
+        AND query NOT ILIKE '%pg_stat_activity%'
+        AND query NOT ILIKE 'SET %'
+        AND query NOT ILIKE 'SHOW %'
+        AND query NOT ILIKE 'COMMIT%'
+        AND query NOT ILIKE 'BEGIN%'
+      ORDER BY total_exec_time DESC
+      LIMIT ${limit}
+    `;
+
+  try {
+    return { available: true, queries: await run() };
+  } catch {
+    // Talvez a extensão ainda não exista nesta base — tenta criar (idempotente).
+    try {
+      await prisma.$executeRawUnsafe("CREATE EXTENSION IF NOT EXISTS pg_stat_statements");
+      return { available: true, queries: await run() };
+    } catch (err) {
+      // Não pré-carregado em shared_preload_libraries (ou sem privilégio).
+      logError("db-health/getTopSlowQueries", err);
+      return { available: false, queries: [] };
+    }
   }
 }
