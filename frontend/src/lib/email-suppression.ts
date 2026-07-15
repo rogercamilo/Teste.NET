@@ -9,6 +9,63 @@ export function normalizeEmail(email: string): string {
 }
 
 /**
+ * Mascara o endereço para exibição no cockpit: preserva os 2 primeiros
+ * caracteres e o domínio (útil para triagem de deliverability) sem expor o
+ * endereço completo de terceiros — alinhado à postura LGPD da plataforma.
+ */
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain || !local) return "***";
+  const head = local.slice(0, 2);
+  return `${head}${"*".repeat(Math.max(1, local.length - 2))}@${domain}`;
+}
+
+export interface SuppressionStats {
+  total: number;
+  bounces: number;
+  complaints: number;
+  recent: { email: string; motivo: SuppressionMotivo; criadoEm: string }[];
+}
+
+/**
+ * Saúde de entrega de e-mail (Resend): total de endereços suprimidos e quebra
+ * por motivo (hard bounce × reclamação), mais os últimos eventos com endereço
+ * mascarado. Alimenta o painel de infraestrutura do super-admin. Retorna null
+ * se a query falhar — o painel degrada sem quebrar.
+ */
+export async function getEmailSuppressionStats(recentLimit = 8): Promise<SuppressionStats | null> {
+  try {
+    const [grouped, recentRows] = await Promise.all([
+      prisma.emailSuppression.groupBy({ by: ["motivo"], _count: { id: true } }),
+      prisma.emailSuppression.findMany({
+        orderBy: { criadoEm: "desc" },
+        take: recentLimit,
+        select: { email: true, motivo: true, criadoEm: true },
+      }),
+    ]);
+
+    const countOf = (m: SuppressionMotivo) =>
+      grouped.find((g) => g.motivo === m)?._count.id ?? 0;
+    const bounces = countOf("BOUNCE");
+    const complaints = countOf("COMPLAINT");
+
+    return {
+      total: bounces + complaints,
+      bounces,
+      complaints,
+      recent: recentRows.map((r) => ({
+        email: maskEmail(r.email),
+        motivo: r.motivo as SuppressionMotivo,
+        criadoEm: r.criadoEm.toISOString(),
+      })),
+    };
+  } catch (err) {
+    logError("email/suppression-stats", err);
+    return null;
+  }
+}
+
+/**
  * Verifica se um endereço está na lista de supressão. Falha de forma segura:
  * em caso de erro de banco, retorna `false` para não bloquear envios legítimos.
  */

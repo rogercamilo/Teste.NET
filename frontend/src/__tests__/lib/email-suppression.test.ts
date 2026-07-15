@@ -21,10 +21,26 @@ import {
   normalizeEmail,
   isEmailSuppressed,
   suppressEmail,
+  maskEmail,
 } from "@/lib/email-suppression";
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe("maskEmail", () => {
+  it("preserva 2 primeiros caracteres e o domínio, mascara o resto", () => {
+    expect(maskEmail("joao.silva@gmail.com")).toBe("jo********@gmail.com");
+  });
+
+  it("nunca expõe o local inteiro em endereços curtos", () => {
+    expect(maskEmail("ab@x.com")).toBe("ab*@x.com");
+    expect(maskEmail("a@x.com")).toBe("a*@x.com");
+  });
+
+  it("degrada com segurança para entrada malformada", () => {
+    expect(maskEmail("semarroba")).toBe("***");
+  });
 });
 
 describe("normalizeEmail", () => {

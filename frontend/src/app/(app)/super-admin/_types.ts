@@ -103,6 +103,13 @@ export interface ServicosData {
     totalOrgs: number;
     pushTotal: number;
     topOrgsPush: { organizacaoId: string; nome: string; count: number }[];
+    // Deliverability (Resend): lista de supressão por bounce/reclamação. Null se indisponível.
+    emailSuppression?: {
+      total: number;
+      bounces: number;
+      complaints: number;
+      recent: { email: string; motivo: "BOUNCE" | "COMPLAINT"; criadoEm: string }[];
+    } | null;
   };
   storageTrend?: { label: string; bytes: number }[];
 }

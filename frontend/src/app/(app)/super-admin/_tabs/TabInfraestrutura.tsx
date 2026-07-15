@@ -161,6 +161,49 @@ export function TabInfraestrutura({ servicos }: Props) {
                 ))}
               </div>
             )}
+
+            {servicos.comunicacao.emailSuppression && (() => {
+              const sup = servicos.comunicacao.emailSuppression!;
+              return (
+                <div className="mt-3 pt-3 border-t space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                      Deliverability (Resend)
+                    </span>
+                    <span className={`text-xs font-semibold tabular-nums ${sup.total > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                      {sup.total} suprimido{sup.total !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md bg-muted/40 px-2.5 py-1.5">
+                      <p className="text-[11px] text-muted-foreground">Hard bounces</p>
+                      <p className="text-sm font-semibold tabular-nums">{sup.bounces}</p>
+                    </div>
+                    <div className="rounded-md bg-muted/40 px-2.5 py-1.5">
+                      <p className="text-[11px] text-muted-foreground">Reclamações</p>
+                      <p className="text-sm font-semibold tabular-nums">{sup.complaints}</p>
+                    </div>
+                  </div>
+                  {sup.recent.length > 0 && (
+                    <div className="space-y-1">
+                      {sup.recent.map((r, i) => (
+                        <div key={i} className="flex items-center gap-2 text-[11px]">
+                          <span className={`px-1.5 py-0.5 rounded-full font-medium ${
+                            r.motivo === "COMPLAINT" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                          }`}>
+                            {r.motivo === "COMPLAINT" ? "reclamação" : "bounce"}
+                          </span>
+                          <span className="flex-1 truncate font-mono text-muted-foreground">{r.email}</span>
+                          <span className="text-muted-foreground tabular-nums">
+                            {new Date(r.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       )}

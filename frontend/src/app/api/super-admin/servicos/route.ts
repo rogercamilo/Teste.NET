@@ -3,6 +3,7 @@ import { logError } from "@/lib/audit-log";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDbConnectionStats, getTopSlowQueries } from "@/lib/db-health";
+import { getEmailSuppressionStats } from "@/lib/email-suppression";
 import { excludePlatformOrgWhere } from "@/lib/tenant-context";
 
 export async function GET() {
@@ -105,6 +106,9 @@ export async function GET() {
     // competir por conexões do pool com as agregações acima.
     const conexoes = await getDbConnectionStats();
     const slowQueries = await getTopSlowQueries();
+    // Deliverability de e-mail (Resend): lista de supressão alimentada pelo
+    // webhook de bounce/complaint. Dado já reside no banco; só faltava exibir.
+    const emailSuppression = await getEmailSuppressionStats();
 
     const totalBytes = storageAggregate._sum.tamanho ?? 0;
     const hasR2 = !!(process.env.R2_BUCKET_NAME && process.env.R2_ACCOUNT_ID);
@@ -132,6 +136,7 @@ export async function GET() {
           nome: orgNomeMap[p.organizacaoId] ?? "—",
           count: p._count.id,
         })),
+        emailSuppression,
       },
       storageTrend,
       db: {
