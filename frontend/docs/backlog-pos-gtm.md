@@ -8,7 +8,7 @@
 > mecânica fácil**; **encantar** o usuário; **zero código inútil** (código reservado para etapa
 > futura planejada NÃO é código morto — mantém-se).
 
-Última atualização: 2026-07-01.
+Última atualização: 2026-07-15.
 
 ---
 
@@ -81,6 +81,23 @@ Status 2026-07-01: `lib/mock-data.ts` (protótipo órfão) **removido**. Reserva
 Comunicação em massa por segmento; biblioteca de recursos formativos; PWA instalável mais completo;
 portal do formador comunitário enriquecido. **Só entram com sinal de cliente pagante.**
 
+## Tema 6 — Observabilidade & Operação *(telemetria da plataforma)*
+
+Contexto (auditoria de performance, jul/2026): a instrumentação central **já está pronta** — Sentry
+Performance com spans de query Prisma, painel de **queries lentas** (`pg_stat_statements`) e card de
+**deliverability de e-mail** (Resend) no cockpit super-admin → Infraestrutura. Lacuna restante:
+telemetria de **runtime/erros** vive nos dashboards dos fornecedores (Sentry, Railway, Upstash), fora
+do cockpit. Não é bloqueador; é conveniência de operação.
+
+| # | Item | Ganho | Esforço | Skill |
+|---|---|---|---|---|
+| 6.1 | **Atalhos p/ Sentry + Railway no cockpit** (aba Infra) — *link-only*, `target="_blank"` + `rel="noopener noreferrer"`, URLs vindas de env opcionais (`SENTRY_DASHBOARD_URL`/`RAILWAY_DASHBOARD_URL`); bloco só aparece se setado. **Segurança avaliada: neutro** (só super_admin vê; URL não é segredo; sem mudança de CSP; sem fetch). NÃO fazer via `<iframe>` (abriria `frame-src`/clickjacking) nem via API (introduziria token = segredo a proteger) | Acesso rápido às telas de runtime/erros que faltam | P | `frontend-design` |
+| 6.2 | **Monitor de uptime externo** apontando p/ `/api/health` (UptimeRobot/BetterStack) — fecha o "o site está no ar?" que hoje ninguém vigia ativamente (só o healthcheck interno do Railway) | Detecção proativa de indisponibilidade | P | — (config externa) |
+| 6.3 | *(só se pedido)* **Tile "erros nas últimas 24h"** puxado da API do Sentry — **tem custo de segurança:** exige token read-only de escopo mínimo, cifrado com `APP_ENCRYPTION_KEY`. Avaliar o trade-off antes; o link (6.1) entrega 80% do valor sem o segredo | Erro em números dentro do cockpit | M | `Plan` → `security-review` |
+
+> Prioridade: **sprint futura, não bloqueante.** 6.1 é o quick-win (P, risco nulo). 6.2 é config de
+> fornecedor externo (sem código). 6.3 fica reservado e só entra com decisão explícita por causa do token.
+
 ---
 
 ## Sequência recomendada
@@ -88,6 +105,7 @@ portal do formador comunitário enriquecido. **Só entram com sinal de cliente p
 - **Onda 1 (quick wins de retenção):** 1.1 → 1.2 → 2.1 → 2.2 (+ 0.1 sempre ligada).
 - **Onda 2:** 3.1 → 3.3 → 1.3 → 1.6 → 1.5 (fecham o ciclo governança ↔ engajamento, e-mail opt-in e a agenda do formador).
 - **Onda 3 (demanda/receita):** 4.1 WhatsApp, 1.4 Google 2-vias.
+- **Observabilidade (sprint futura, não bloqueante):** 6.1 atalhos Sentry/Railway → 6.2 uptime externo.
 
 **Em execução agora:** 1.1 (seguro para entrar antes mesmo do go-live).
 
