@@ -599,29 +599,18 @@ export const UpdateEventoSchema = CreateEventoSchema.omit({ formandoId: true }).
 
 // ── Grade Formativa ───────────────────────────────────────────────────────────
 
-const EixoGradeSchema = z.object({
-  id: z.string(),
-  nome: nonEmptyString(500),
-  descricao: optionalString(2000).default(""),
-  ordem: z.number().int().min(0),
-  cor: optionalString(50).nullable(),
-  eixoPlanoId: z.string().optional().nullable(),
-});
-
-const EtapaGradeSchema = z.object({
-  eixoId: z.string(),
-  nome: nonEmptyString(500),
-  descricao: optionalString(2000).default(""),
-  ordem: z.number().int().min(0),
-  cargaHoraria: z.number().int().min(0),
-});
-
 // Formações da grade enviadas EM LOTE junto do payload da grade — persistidas
 // atomicamente no servidor (uma transação), em vez de N POSTs disparados pelo
-// navegador (que estouravam o rate-limit de mutação e perdiam dados). O `eixoId`
-// real é resolvido no servidor a partir do `eixoPlanoId`; `numero` é atribuído
-// sequencialmente na ordem recebida.
+// navegador (que estouravam o rate-limit de mutação e perdiam dados).
+//
+// `id` (quando presente) é o id de uma formação já existente: o servidor
+// reconcilia PELO id (update), nunca "apaga tudo e recria pelo nome" — assim
+// renomear/remover um eixo no plano jamais faz uma formação sumir em silêncio.
+// `eixoPlanoId` é apenas o eixo (do PLANO) onde a formação está indicada; o
+// `eixoId` real é resolvido no servidor a partir dele. Formação sem
+// `eixoPlanoId` é avulsa (grade sem eixos). `numero` é sequencial na ordem.
 export const GradeFormacaoInputSchema = z.object({
+  id: z.string().optional(),
   eixoPlanoId: z.string().optional().nullable(),
   eixoNome: optionalString(255).nullable(),
   tema: nonEmptyString(500),
@@ -646,8 +635,9 @@ export const CreateGradeSchema = z.object({
   documentoAnexo: optionalString(500).nullable(),
   documentoAnexoId: optionalString(255).nullable(),
   ativo: z.boolean().optional(),
-  eixos: z.array(EixoGradeSchema).optional(),
-  etapas: z.array(EtapaGradeSchema).optional(),
+  // NB: a grade NÃO recebe eixos do cliente. Eixos são projeção estável do
+  // plano formativo (sincronizados no servidor por `eixoPlanoId`). O único dado
+  // que o usuário insere na grade são as formações.
   formacoes: z.array(GradeFormacaoInputSchema).max(500).optional(),
 });
 

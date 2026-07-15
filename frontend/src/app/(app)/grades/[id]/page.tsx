@@ -30,7 +30,7 @@ export default async function GradeDetalhePage({
 
   const [linkedFormacoes, plano] = await Promise.all([
     prisma.formacao.findMany({
-      where: { gradeId: id, OR: [{ organizacaoId: orgId }, { isGlobal: true }] },
+      where: { gradeId: id, deletedAt: null, OR: [{ organizacaoId: orgId }, { isGlobal: true }] },
       orderBy: { numero: "asc" },
     }),
     grade.planoId
