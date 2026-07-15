@@ -5,12 +5,9 @@ import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isValidId, UpdateGradeSchema, parseJson } from "@/lib/schemas";
 
-const MAX_EIXOS = 50;
-const MAX_ETAPAS = 200;
-
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 import { criarNotificacoes, formadoresDaGrade } from "@/lib/notificacoes";
-import { replaceGradeFormacoes } from "@/lib/grade-formacoes";
+import { syncGradeEixos, reconcileGradeFormacoes } from "@/lib/grade-formacoes";
 type Params = { params: Promise<{ id: string }> };
 
 import { toGrade } from "@/lib/converters";
@@ -47,54 +44,39 @@ export async function PUT(request: Request, { params }: Params) {
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const body = parsedBody.data;
 
-    if ((body.eixos?.length ?? 0) > MAX_EIXOS) {
-      return NextResponse.json({ error: `Máximo de ${MAX_EIXOS} eixos permitidos` }, { status: 400 });
-    }
-    if ((body.etapas?.length ?? 0) > MAX_ETAPAS) {
-      return NextResponse.json({ error: `Máximo de ${MAX_ETAPAS} etapas permitidas` }, { status: 400 });
-    }
+    // O plano é a fonte dos eixos — o efetivo é o enviado (se trocou) ou o atual.
+    const planoId = body.planoId ?? existing.planoId;
+    const plano = await prisma.planoFormativo.findFirst({
+      where: { id: planoId, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      select: { id: true },
+    });
+    if (!plano) return NextResponse.json({ error: "Plano formativo inválido" }, { status: 400 });
 
     const updated = await prisma.$transaction(async (tx) => {
       await tx.gradeFormativa.update({
         where: { id },
-        data: { nome: body.nome ?? existing.nome, planoId: body.planoId, planoNome: body.planoNome, nivelFormativo: body.nivelFormativo, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : undefined, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : undefined, versao: body.versao, totalFormacoes: body.totalFormacoes, objetivos: body.objetivos || null, fundamentacao: body.fundamentacao || null, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null, ativo: body.ativo },
+        data: { nome: body.nome ?? existing.nome, planoId: plano.id, planoNome: body.planoNome, nivelFormativo: body.nivelFormativo, vigenciaInicio: body.vigenciaInicio ? new Date(body.vigenciaInicio) : undefined, vigenciaFim: body.vigenciaFim ? new Date(body.vigenciaFim) : undefined, versao: body.versao, totalFormacoes: body.totalFormacoes, objetivos: body.objetivos || null, fundamentacao: body.fundamentacao || null, documentoAnexo: body.documentoAnexo || null, documentoAnexoId: body.documentoAnexoId || null, ativo: body.ativo },
       });
 
-      if (body.eixos !== undefined) {
-        // Rebuild eixos+etapas only when explicitly provided
-        await tx.eixo.deleteMany({ where: { gradeId: id } });
-        const eixoEntries = await Promise.all(
-          body.eixos.map((eixo) =>
-            tx.eixo
-              .create({ data: { gradeId: id, nome: eixo.nome, descricao: eixo.descricao, ordem: eixo.ordem, cor: eixo.cor || null, eixoPlanoId: eixo.eixoPlanoId || null }, select: { id: true } })
-              .then((e) => [eixo.id, e.id] as [string, string])
-          )
-        );
-        const eixoIdMap = new Map(eixoEntries);
-        await Promise.all(
-          (body.etapas ?? []).map((etapa) => {
-            const newEixoId = eixoIdMap.get(etapa.eixoId);
-            if (!newEixoId) return Promise.resolve(null);
-            return tx.etapa.create({ data: { eixoId: newEixoId, nome: etapa.nome, descricao: etapa.descricao, ordem: etapa.ordem, cargaHoraria: etapa.cargaHoraria } });
-          })
-        );
-      }
+      // Eixos são projeção estável do plano — sincronizados por eixoPlanoId
+      // (upsert), preservando ids. O cliente nunca cria/edita eixos.
+      const eixoByPlano = await syncGradeEixos(tx, { gradeId: id, planoId: plano.id });
 
-      // Substitui as formações da grade EM LOTE, na mesma transação — antes o
-      // cliente apagava as antigas e recriava via N POSTs, e o rate-limit fazia
-      // parte falhar em silêncio, apagando dados. Agora é all-or-nothing.
+      // Reconcilia as formações PELO id na mesma transação — só o que o usuário
+      // removeu na tela é soft-deletado; renomear eixo não faz nada sumir.
       if (body.formacoes !== undefined) {
-        await replaceGradeFormacoes(tx, {
+        await reconcileGradeFormacoes(tx, {
           gradeId: id,
           gradeNome: body.nome ?? existing.nome,
           organizacaoId: user.organizacaoId!,
           nivelFormativo: body.nivelFormativo ?? existing.nivelFormativo,
           formacoes: body.formacoes,
+          eixoByPlano,
         });
       }
 
       return tx.gradeFormativa.findUniqueOrThrow({ where: { id }, include: { eixos: { include: { etapas: true } } } });
-    });
+    }, { timeout: 20000 });
 
     logAction("grade_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
 
