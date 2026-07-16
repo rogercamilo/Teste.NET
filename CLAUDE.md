@@ -151,7 +151,7 @@ GOOGLE_CLIENT_SECRET=
 # Optional — Email (Resend tem prioridade sobre SMTP quando RESEND_API_KEY está setado)
 RESEND_API_KEY=
 RESEND_FROM=contato@formattio.com.br             # transacional — domínio apex verificado no Resend
-RESEND_FROM_MARKETING=novidades@news.formattio.com.br  # marketing/ciclo de vida (domínio news. no Resend); cai no RESEND_FROM se vazio
+RESEND_FROM_MARKETING=novidades@formattio.com.br # marketing/ciclo de vida — MESMO domínio apex, local-part distinto; cai no RESEND_FROM se vazio
 RESEND_WEBHOOK_SECRET=  # segredo de assinatura (whsec_…) do endpoint de webhook no painel Resend
 
 # Optional — Email (SMTP por tenant, fallback / enterprise)
@@ -168,17 +168,20 @@ SMTP_FROM=
 > `RESEND_WEBHOOK_SECRET`. Hard bounces (`type: Permanent`) e reclamações entram
 > automaticamente na lista de supressão (`EmailSuppression`), bloqueando reenvios.
 
-> **Segmentação de reputação (Resend):** transacionais saem do apex
-> `formattio.com.br` (`RESEND_FROM` — já verificado: DKIM `resend._domainkey`,
-> envelope/SPF no subdomínio `send`) e os de marketing/ciclo de vida de
-> `news.formattio.com.br` (`RESEND_FROM_MARKETING`), que deve ser **adicionado
-> como um domínio próprio no Resend** (gera DKIM `resend._domainkey.news`,
-> MX/SPF em `send.news`). No código, `send(..., { stream: "marketing" })` escolhe
-> o remetente; o padrão é `"transactional"`, e marketing cai no transacional
-> enquanto `news.` não estiver verificado. **DMARC** fica no apex
-> (`_dmarc.formattio.com.br`) com `sp=` cobrindo os subdomínios. DNS é gerenciado
-> na **Hostinger** (hPanel → Zona DNS); o `send.` é envelope auto-gerido do apex,
-> não uma identidade de From.
+> **Remetentes (Resend — plano grátis, 1 domínio):** transacionais e marketing
+> saem do **mesmo domínio apex** `formattio.com.br`, já verificado (DKIM
+> `resend._domainkey`, envelope/SPF no subdomínio `send`), mudando só o
+> local-part: `contato@` (`RESEND_FROM`, transacional) e `novidades@`
+> (`RESEND_FROM_MARKETING`, marketing). No código, `send(..., { stream:
+> "marketing" })` escolhe o remetente; o padrão é `"transactional"`, e marketing
+> cai no transacional se `RESEND_FROM_MARKETING` estiver vazio. Um domínio
+> verificado envia de qualquer endereço @ ele — **não** é preciso comprar caixas
+> para os endereços de envio, nem adicionar subdomínio no Resend. **DMARC** fica
+> no apex (`_dmarc.formattio.com.br`). DNS é gerenciado na **Hostinger** (hPanel →
+> Zona DNS); o `send.` é envelope auto-gerido do apex, não uma identidade de From.
+> **Descartado:** subdomínio dedicado `news.formattio.com.br` para isolar
+> reputação — contaria como 2º domínio e exigiria o plano Pro ($20). É otimização
+> de alto volume; reavaliar só se o marketing escalar muito.
 
 > `APP_ENCRYPTION_KEY` encrypts sensitive DB fields at rest (e.g. SMTP password).
 > Without it the app runs but credentials are stored in plaintext.

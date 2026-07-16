@@ -40,15 +40,19 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 /** Endereço de envio transacional — domínio apex verificado no Resend. */
 const RESEND_FROM = process.env.RESEND_FROM ?? "contato@formattio.com.br";
 /**
- * Endereço de envio de marketing/ciclo de vida — subdomínio próprio (domínio
- * separado no Resend) para não contaminar a reputação dos transacionais. Cai no
- * transacional quando não configurado (seguro até `news.` ser verificado).
+ * Endereço de envio de marketing/ciclo de vida. Usa um local-part distinto
+ * (`novidades@`) do MESMO domínio apex já verificado — o plano grátis do Resend
+ * só permite 1 domínio, então um subdomínio dedicado (`news.`) exigiria o plano
+ * pago e foi descartado. Um domínio verificado envia de qualquer endereço @ ele,
+ * sem DNS extra. A separação de reputação por subdomínio é uma otimização de
+ * alto volume; só vale reintroduzir se o volume de marketing crescer muito.
+ * Cai no transacional quando não configurado.
  */
 const RESEND_FROM_MARKETING = process.env.RESEND_FROM_MARKETING ?? RESEND_FROM;
 /** Nome exibido padrão quando o e-mail não é "da comunidade" (e-mails de plataforma). */
 const PLATFORM_FROM_NAME = "Formattio";
 
-/** Fluxo de envio — define o subdomínio/reputação usado pelo Resend. */
+/** Fluxo de envio — escolhe o endereço de remetente (reputação) no Resend. */
 type EmailStream = "transactional" | "marketing";
 
 /** Anexo de e-mail — `content` em base64 (ex.: um `.ics` de lembrete de agenda). */
@@ -74,8 +78,9 @@ interface SendOptions extends Sender {
    */
   brandAsOrg?: boolean;
   /**
-   * Fluxo de envio: `"transactional"` (padrão) usa o subdomínio transacional;
-   * `"marketing"` usa o subdomínio dedicado de marketing para isolar reputação.
+   * Fluxo de envio: `"transactional"` (padrão) sai de `RESEND_FROM`;
+   * `"marketing"` sai de `RESEND_FROM_MARKETING` (mesmo domínio, local-part
+   * `novidades@`) para separar as duas caudas de e-mail.
    */
   stream?: EmailStream;
   /** Anexos opcionais (ex.: `.ics` de lembrete de agenda). */
