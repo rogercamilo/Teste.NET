@@ -118,7 +118,7 @@ describe("syncGradeEixos — eixos como projeção estável do plano", () => {
 describe("reconcileGradeFormacoes — reconciliação por id (nunca apaga pelo nome)", () => {
   const baseOpts = {
     gradeId: "g1",
-    gradeNome: "Grade 2025",
+    planoId: "p1",
     organizacaoId: "org1",
     nivelFormativo: "pre-discipulado",
     eixoByPlano: new Map([["ep1", "eixoA"]]),
@@ -161,6 +161,9 @@ describe("reconcileGradeFormacoes — reconciliação por id (nunca apaga pelo n
     const [comEixo, avulsa] = calls.formacaoCreateMany;
     expect(comEixo.eixoId).toBe("eixoA");
     expect(avulsa.eixoId).toBeNull();
+    // planoId é a FK do caminho (fonte de verdade), gravada em toda formação da grade
+    expect(comEixo.planoId).toBe("p1");
+    expect(avulsa.planoId).toBe("p1");
     // numeração sequencial na ordem recebida
     expect(comEixo.numero).toBe(1);
     expect(avulsa.numero).toBe(2);

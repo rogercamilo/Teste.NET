@@ -20,6 +20,12 @@ export async function GET(_req: Request, { params }: Params) {
   try {
     const row = await prisma.formacao.findFirst({
       where: { id, deletedAt: null, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] },
+      include: {
+        plano: { select: { nome: true } },
+        grade: { select: { nome: true } },
+        eixo: { select: { nome: true } },
+        _count: { select: { agendamentos: { where: { deletedAt: null } } } },
+      },
     });
     if (!row) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     return NextResponse.json(toFormacao(row));
@@ -41,7 +47,41 @@ export async function PUT(request: Request, { params }: Params) {
     const parsed = await parseJson(request, UpdateFormacaoSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
-    const updated = await prisma.formacao.update({ where: { id }, data: { tema: body.tema, objetivo: body.objetivo, descricao: body.descricao, nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao, eixoId: body.eixoId ?? null, eixoNome: body.eixoNome ?? null, etapaId: body.etapaId ?? null, etapaNome: body.etapaNome ?? null, formadorNome: body.formadorNome, cargaHoraria: body.cargaHoraria, modalidade: body.modalidade, materialApoio: body.materialApoio ?? null, documentoAnexo: body.documentoAnexo ?? null, documentoAnexoId: body.documentoAnexoId ?? null, gradeId: body.gradeId ?? null, gradeNome: body.gradeNome ?? null, numero: body.numero !== undefined ? (body.numero ?? null) : undefined, observacoesFormador: body.observacoesFormador !== undefined ? (body.observacoesFormador || null) : undefined, vezesUtilizada: body.vezesUtilizada } });
+
+    // Governança da origem (G4): ao virar "complementar", carimba autor/momento;
+    // ao voltar para "prevista", limpa. Só mexe se `origem` veio no payload.
+    let origemFields: { origem?: string; origemPor?: string | null; origemEm?: Date | null } = {};
+    if (body.origem !== undefined && body.origem !== existing.origem) {
+      origemFields = body.origem === "complementar"
+        ? { origem: "complementar", origemPor: user.id ?? null, origemEm: new Date() }
+        : { origem: "prevista", origemPor: null, origemEm: null };
+    }
+
+    const updated = await prisma.formacao.update({
+      where: { id },
+      data: {
+        tema: body.tema, objetivo: body.objetivo, descricao: body.descricao,
+        nivelFormativo: body.nivelFormativo, tipoFormacao: body.tipoFormacao,
+        planoId: body.planoId ?? null, gradeId: body.gradeId ?? null, eixoId: body.eixoId ?? null,
+        numero: body.numero !== undefined ? (body.numero ?? null) : undefined,
+        ...origemFields,
+        codigo: body.codigo !== undefined ? (body.codigo || null) : undefined,
+        responsavelInstitucional: body.responsavelInstitucional !== undefined ? (body.responsavelInstitucional || null) : undefined,
+        dataRealizacao: body.dataRealizacao !== undefined ? (body.dataRealizacao ? new Date(body.dataRealizacao) : null) : undefined,
+        contextoRealizacao: body.contextoRealizacao !== undefined ? (body.contextoRealizacao || null) : undefined,
+        statusRealizacao: body.statusRealizacao,
+        cargaHoraria: body.cargaHoraria, modalidade: body.modalidade,
+        materialApoio: body.materialApoio ?? null,
+        documentoAnexo: body.documentoAnexo ?? null, documentoAnexoId: body.documentoAnexoId ?? null,
+        observacoesFormador: body.observacoesFormador !== undefined ? (body.observacoesFormador || null) : undefined,
+      },
+      include: {
+        plano: { select: { nome: true } },
+        grade: { select: { nome: true } },
+        eixo: { select: { nome: true } },
+        _count: { select: { agendamentos: { where: { deletedAt: null } } } },
+      },
+    });
     logAction("formacao_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
     return NextResponse.json(toFormacao(updated));
   } catch (err) { logError("formacoes/:id PUT", err); return NextResponse.json({ error: "Falha ao atualizar formação" }, { status: 500 }); }

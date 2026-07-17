@@ -416,27 +416,34 @@ export const UpdateCompromissoSchema = CreateCompromissoSchema.partial();
 
 // ── Formação ──────────────────────────────────────────────────────────────────
 
+export const OrigemFormacaoEnum = z.enum(["prevista", "complementar"]);
+export const StatusRealizacaoEnum = z.enum(["registrada", "realizada"]);
+
 export const UpdateFormacaoSchema = z.object({
   tema: nonEmptyString(500).optional(),
   objetivo: optionalString(2000),
   descricao: optionalString(2000),
   nivelFormativo: NivelFormativoEnum.optional(),
   tipoFormacao: TipoFormacaoEnum.optional(),
+  // Vínculo com o caminho (FK; nomes não são mais enviados — resolvidos na leitura)
+  planoId: z.string().optional().nullable(),
+  gradeId: z.string().optional().nullable(),
   eixoId: z.string().optional().nullable(),
-  eixoNome: optionalString(255).nullable(),
-  etapaId: z.string().optional().nullable(),
-  etapaNome: optionalString(255).nullable(),
-  formadorNome: optionalString(255),
+  numero: z.number().int().min(1).optional().nullable(),
+  // Origem no plano (origemPor/origemEm são carimbados no servidor)
+  origem: OrigemFormacaoEnum.optional(),
+  // Governança da formação pontual
+  codigo: optionalString(50).nullable(),
+  responsavelInstitucional: optionalString(255).nullable(),
+  dataRealizacao: isoDate.optional().nullable(),
+  contextoRealizacao: optionalString(2000).nullable(),
+  statusRealizacao: StatusRealizacaoEnum.optional(),
   cargaHoraria: z.number().int().min(0).optional(),
   modalidade: ModalidadeEnum.optional(),
   materialApoio: optionalString(2000).nullable(),
   documentoAnexo: optionalString(500).nullable(),
   documentoAnexoId: optionalString(255).nullable(),
-  gradeId: z.string().optional().nullable(),
-  gradeNome: optionalString(255).nullable(),
-  numero: z.number().int().min(1).optional().nullable(),
   observacoesFormador: optionalString(5000).nullable(),
-  vezesUtilizada: z.number().int().min(0).optional(),
 });
 
 // ── Formação (criação) ────────────────────────────────────────────────────────

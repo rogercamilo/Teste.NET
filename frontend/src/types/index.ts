@@ -31,6 +31,10 @@ export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observaca
 export type PerspectivaFormativa = "humana" | "espiritual" | "comunitaria";
 export type TipoCompromisso = "reuniao" | "visita" | "formacao_pessoal" | "outro";
 export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoal" | "atividade-extra";
+/** Origem da formação no plano (G4). "prevista" = constava do plano; "complementar" = acréscimo posterior governado. */
+export type OrigemFormacao = "prevista" | "complementar";
+/** Estado de realização da formação pontual (G5/G6). */
+export type StatusRealizacao = "registrada" | "realizada";
 /** Natureza do evento coletivo na Agenda. "formacao" é amarrado a uma Formação; os demais são avulsos. */
 export type TipoEvento = "formacao" | "retiro" | "convocacao" | "reuniao" | "outro";
 
@@ -198,22 +202,33 @@ export interface Formacao {
   descricao: string;
   nivelFormativo: NivelFormativo;
   tipoFormacao: TipoFormacao;
+  // Vínculo com o caminho formativo (Plano → Grade → Eixo). FK é a fonte de
+  // verdade; os nomes chegam resolvidos por join na leitura (não persistidos).
+  planoId?: string;
+  planoNome?: string;
+  gradeId?: string;
+  gradeNome?: string;
   eixoId?: string;
   eixoNome?: string;
-  etapaId?: string;
-  etapaNome?: string;
-  formadorId: string;
-  formadorNome: string;
+  numero?: number;
+  // Origem no plano (G4): "prevista" ou "complementar" (acréscimo governado).
+  origem: OrigemFormacao;
+  origemPor?: string;
+  origemEm?: string;
+  // Governança da formação PONTUAL (G5 — fora do caminho).
+  codigo?: string;
+  responsavelInstitucional?: string;
+  dataRealizacao?: string;
+  contextoRealizacao?: string;
+  statusRealizacao: StatusRealizacao;
   cargaHoraria: number;
   modalidade: Modalidade;
   materialApoio?: string;
   documentoAnexo?: string;
   documentoAnexoId?: string;
-  gradeId?: string;
-  gradeNome?: string;
-  numero?: number;
   observacoesFormador?: string;
-  vezesUtilizada: number;
+  // Realizações derivadas de Agendamento (G6). Presente quando o read path conta.
+  realizacoes?: number;
   criadoEm: string;
 }
 
@@ -613,6 +628,29 @@ export const TIPO_FORMACAO_LABELS: Record<TipoFormacao, string> = {
   "retiro-comunitario": "Retiro Comunitário",
   "retiro-pessoal": "Retiro Pessoal",
   "atividade-extra": "Atividade Extra",
+};
+
+/** Coluna central do caminho (regra 4): a formação comunitária é a espinha; os demais tipos são auxiliares. */
+export function isColunaCentral(tipo: TipoFormacao): boolean {
+  return tipo === "comunitaria";
+}
+
+/** Cores do badge de tipo — a central (comunitária) recebe destaque; auxiliares ficam neutras. */
+export const TIPO_FORMACAO_CORES: Record<TipoFormacao, string> = {
+  comunitaria: "bg-primary/10 text-primary border-primary/20",
+  "retiro-comunitario": "bg-muted text-muted-foreground border-border",
+  "retiro-pessoal": "bg-muted text-muted-foreground border-border",
+  "atividade-extra": "bg-muted text-muted-foreground border-border",
+};
+
+export const ORIGEM_FORMACAO_LABELS: Record<OrigemFormacao, string> = {
+  prevista: "Prevista no plano",
+  complementar: "Complementar ao plano",
+};
+
+export const STATUS_REALIZACAO_LABELS: Record<StatusRealizacao, string> = {
+  registrada: "Registrada",
+  realizada: "Realizada",
 };
 
 export const REQUISITOS_ETAPAS: Record<NivelFormativo, RequisitosEtapa> = {

@@ -32,6 +32,11 @@ export default async function GradeDetalhePage({
     prisma.formacao.findMany({
       where: { gradeId: id, deletedAt: null, OR: [{ organizacaoId: orgId }, { isGlobal: true }] },
       orderBy: { numero: "asc" },
+      include: {
+        plano: { select: { nome: true } },
+        grade: { select: { nome: true } },
+        eixo: { select: { nome: true } },
+      },
     }),
     grade.planoId
       ? prisma.planoFormativo.findFirst({

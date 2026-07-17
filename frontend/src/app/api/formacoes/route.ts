@@ -21,14 +21,22 @@ export async function GET(request: Request) {
     const pagination = parsePagination(searchParams);
     const where = { deletedAt: null, OR: [{ organizacaoId: user.organizacaoId }, { isGlobal: true }] };
     const orderBy = { criadoEm: "desc" as const };
+    // Resolve nomes de Plano/Grade/Eixo por join (FK = fonte de verdade) e conta
+    // realizações via Agendamento (G6).
+    const include = {
+      plano: { select: { nome: true } },
+      grade: { select: { nome: true } },
+      eixo: { select: { nome: true } },
+      _count: { select: { agendamentos: { where: { deletedAt: null } } } },
+    } as const;
 
     if (!pagination) {
-      const rows = await prisma.formacao.findMany({ where, orderBy });
+      const rows = await prisma.formacao.findMany({ where, orderBy, include });
       return NextResponse.json(rows.map(toFormacao));
     }
 
     const [rows, total] = await Promise.all([
-      prisma.formacao.findMany({ where, orderBy, skip: pagination.skip, take: pagination.take }),
+      prisma.formacao.findMany({ where, orderBy, include, skip: pagination.skip, take: pagination.take }),
       prisma.formacao.count({ where }),
     ]);
     return NextResponse.json(rows.map(toFormacao), { headers: paginationHeaders(total, pagination) });
@@ -51,6 +59,7 @@ export async function POST(request: Request) {
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const body = parsed.data;
 
+    const origem = body.origem ?? "prevista";
     const row = await prisma.formacao.create({
       data: {
         organizacaoId: user.organizacaoId,
@@ -59,22 +68,31 @@ export async function POST(request: Request) {
         descricao: body.descricao ?? "",
         nivelFormativo: body.nivelFormativo ?? "pre-discipulado",
         tipoFormacao: body.tipoFormacao ?? "comunitaria",
+        planoId: body.planoId || null,
+        gradeId: body.gradeId || null,
         eixoId: body.eixoId || null,
-        eixoNome: body.eixoNome || null,
-        etapaId: body.etapaId || null,
-        etapaNome: body.etapaNome || null,
-        formadorId: user.id ?? null,
-        formadorNome: body.formadorNome ?? "",
+        numero: body.numero ?? null,
+        // Governança do acréscimo (G4): carimba autor/momento quando complementar.
+        origem,
+        origemPor: origem === "complementar" ? (user.id ?? null) : null,
+        origemEm: origem === "complementar" ? new Date() : null,
+        codigo: body.codigo || null,
+        responsavelInstitucional: body.responsavelInstitucional || null,
+        dataRealizacao: body.dataRealizacao ? new Date(body.dataRealizacao) : null,
+        contextoRealizacao: body.contextoRealizacao || null,
+        statusRealizacao: body.statusRealizacao ?? "registrada",
         cargaHoraria: body.cargaHoraria ?? 1,
         modalidade: body.modalidade ?? "presencial",
         materialApoio: body.materialApoio || null,
         documentoAnexo: body.documentoAnexo || null,
         documentoAnexoId: body.documentoAnexoId || null,
-        gradeId: body.gradeId || null,
-        gradeNome: body.gradeNome || null,
-        numero: body.numero ?? null,
         observacoesFormador: body.observacoesFormador || null,
-        vezesUtilizada: body.vezesUtilizada ?? 0,
+      },
+      include: {
+        plano: { select: { nome: true } },
+        grade: { select: { nome: true } },
+        eixo: { select: { nome: true } },
+        _count: { select: { agendamentos: { where: { deletedAt: null } } } },
       },
     });
     logAction("formacao_created", user.id, getClientIp(request), { tema: body.tema }, user.organizacaoId);

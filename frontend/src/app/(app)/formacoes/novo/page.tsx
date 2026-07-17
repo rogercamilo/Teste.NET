@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toGrade, toPlano } from "@/lib/converters";
 import FormacaoFormPage from "../FormacaoFormPage";
-import type { PerfilUsuario, Usuario } from "@/types";
 
 export default async function NovaFormacaoPage() {
   const session = await auth();
@@ -12,7 +11,7 @@ export default async function NovaFormacaoPage() {
   if (!user.organizacaoId) redirect("/login");
   const orgId = user.organizacaoId;
 
-  const [planos, grades, usuarios] = await Promise.all([
+  const [planos, grades] = await Promise.all([
     prisma.planoFormativo.findMany({
       where: { OR: [{ organizacaoId: orgId }, { isGlobal: true }], status: { not: "arquivado" } },
       include: { eixos: { orderBy: { ordem: "asc" } }, retiros: true },
@@ -28,23 +27,12 @@ export default async function NovaFormacaoPage() {
       },
       orderBy: { nome: "asc" },
     }),
-    prisma.usuario.findMany({
-      where: { organizacaoId: orgId, ativo: true, deletedAt: null },
-      orderBy: { nome: "asc" },
-    }),
   ]);
-
-  const initialUsuarios: Usuario[] = usuarios.map((u) => ({
-    id: u.id, nome: u.nome, email: u.email,
-    perfil: u.perfil as PerfilUsuario,
-    ativo: u.ativo, criadoEm: u.criadoEm.toISOString(),
-  }));
 
   return (
     <FormacaoFormPage
       initialGrades={grades.map(toGrade)}
       initialPlanos={planos.map(toPlano)}
-      initialUsuarios={initialUsuarios}
     />
   );
 }

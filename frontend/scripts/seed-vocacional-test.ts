@@ -348,7 +348,6 @@ async function main() {
         materialApoio: f.materialApoio,
         nivelFormativo: NIVEL,
         tipoFormacao: f.tipoFormacao,
-        formadorNome: "Carlos Mendes",
         cargaHoraria: f.tipoFormacao === "retiro-comunitario" ? 16 : 2,
         modalidade: "presencial",
         ...(f.anexo ? { documentoAnexo: ANEXO_NOME, documentoAnexoId: ARQUIVO_ID } : {}),

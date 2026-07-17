@@ -310,7 +310,6 @@ model Usuario {
   comentarios                    ComentarioFormando[]
   eventos                        EventoFormando[]
   compromissos                   Compromisso[]
-  formacoesCriadas               Formacao[]
   agendamentos                   Agendamento[]
   privacyAcceptances             PrivacyAcceptance[]
   convitesEnviados               ConviteUsuario[]
@@ -534,6 +533,7 @@ model PlanoFormativo {
   gradesFormativas GradeFormativa[]
   gruposFormacao   GrupoFormacao[]
   retiros          RetiroPlano[]
+  formacoes        Formacao[]
 
   @@index([organizacaoId])
   // Busca textual (Cmd-K) — GIN trigram para ILIKE '%q%'.
@@ -611,6 +611,7 @@ model GradeFormativa {
   plano          PlanoFormativo  @relation(fields: [planoId], references: [id])
   eixos          Eixo[]
   gruposFormacao GrupoFormacao[]
+  formacoes      Formacao[]
 
   @@index([organizacaoId])
   @@index([planoId])
@@ -634,6 +635,7 @@ model Eixo {
   grade     GradeFormativa @relation(fields: [gradeId], references: [id], onDelete: Cascade)
   eixoPlano EixoPlano?     @relation(fields: [eixoPlanoId], references: [id], onDelete: SetNull)
   etapas    Etapa[]
+  formacoes Formacao[]
 
   @@index([gradeId])
   @@index([eixoPlanoId])
@@ -662,40 +664,56 @@ model Etapa {
 // ==========================================================
 
 model Formacao {
-  id                  String    @id @default(cuid())
-  organizacaoId       String?
-  isGlobal            Boolean   @default(false)
-  tema                String
-  objetivo            String
-  descricao           String
-  nivelFormativo      String // NivelFormativo
-  tipoFormacao        String // TipoFormacao
-  eixoId              String?
-  eixoNome            String?
-  etapaId             String?
-  etapaNome           String?
-  formadorId          String?
-  formadorNome        String
+  id            String  @id @default(cuid())
+  organizacaoId String?
+  isGlobal      Boolean @default(false)
+  tema          String
+  objetivo      String
+  descricao     String
+  nivelFormativo String // NivelFormativo
+  tipoFormacao   String // TipoFormacao
+
+  // Vínculo com o caminho formativo (Plano → Grade → Eixo). FK como fonte de
+  // verdade; nomes são resolvidos por join na leitura (sem denormalização).
+  planoId String?
+  gradeId String?
+  eixoId  String?
+  numero  Int? // posição na grade (só quando vinculada)
+
+  // Origem no plano (regra 5). "prevista" = estava no plano; "complementar" =
+  // acréscimo posterior — carimba quem/quando para governança do acréscimo.
+  origem    String    @default("prevista") // OrigemFormacao: prevista | complementar
+  origemPor String?
+  origemEm  DateTime?
+
+  // Governança da formação PONTUAL (fora do caminho — regra 6).
+  codigo                  String? // identificador próprio (não gated pela grade)
+  responsavelInstitucional String? // ≠ formador que ministra (definido no grupo)
+  dataRealizacao          DateTime?
+  contextoRealizacao      String?
+  statusRealizacao        String    @default("registrada") // StatusRealizacao: registrada | realizada
+
   cargaHoraria        Int
   modalidade          String // Modalidade
   materialApoio       String?
   documentoAnexo      String?
   documentoAnexoId    String?
-  gradeId             String?
-  gradeNome           String?
-  numero              Int?
   observacoesFormador String?
-  vezesUtilizada      Int       @default(0)
   deletedAt           DateTime?
   criadoEm            DateTime  @default(now())
   atualizadoEm        DateTime  @updatedAt
 
-  organizacao  Organizacao?  @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formador     Usuario?      @relation(fields: [formadorId], references: [id])
+  organizacao  Organizacao?    @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  plano        PlanoFormativo? @relation(fields: [planoId], references: [id], onDelete: SetNull)
+  grade        GradeFormativa? @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  eixo         Eixo?           @relation(fields: [eixoId], references: [id], onDelete: SetNull)
   agendamentos Agendamento[]
 
   @@index([organizacaoId])
   @@index([deletedAt])
+  @@index([planoId])
+  @@index([gradeId])
+  @@index([eixoId])
   // Busca textual (Cmd-K) usa ILIKE '%q%' sobre `tema` — GIN trigram evita seq scan.
   @@index([tema(ops: raw("gin_trgm_ops"))], type: Gin)
 }

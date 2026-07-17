@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       if (body.formacoes !== undefined) {
         await reconcileGradeFormacoes(tx, {
           gradeId: created.id,
-          gradeNome: created.nome,
+          planoId: plano.id,
           organizacaoId: user.organizacaoId!,
           nivelFormativo: created.nivelFormativo,
           formacoes: body.formacoes,

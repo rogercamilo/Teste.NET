@@ -6,6 +6,9 @@ import { useEtapaLabels } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   MODALIDADE_LABELS,
+  TIPO_FORMACAO_LABELS,
+  TIPO_FORMACAO_CORES,
+  isColunaCentral,
   temPermissao,
   type Formacao,
   type GradeFormativa,
@@ -52,7 +55,6 @@ import {
   Plus,
   Search,
   Trash2,
-  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
@@ -109,8 +111,7 @@ export default function FormacoesClient({
 
   const filtered = baseFormacoes.filter((f) => {
     const matchSearch =
-      f.tema.toLowerCase().includes(search.toLowerCase()) ||
-      f.formadorNome.toLowerCase().includes(search.toLowerCase());
+      f.tema.toLowerCase().includes(search.toLowerCase());
     const matchGrade =
       gradeFilter === "todas" ? true
       : gradeFilter === "sem-grade" ? !f.gradeId
@@ -201,7 +202,7 @@ export default function FormacoesClient({
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Buscar por tema ou formador..."
+            placeholder="Buscar por tema..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-9 text-sm"
@@ -403,15 +404,23 @@ function FormacaoCard({ formacao, canEdit, onView, onEdit, onViewDoc, onDelete }
             </div>
             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{formacao.objetivo}</p>
             <div className="flex flex-wrap gap-1.5 mt-2.5">
+              <Badge variant="outline" className={`text-xs ${TIPO_FORMACAO_CORES[formacao.tipoFormacao]}`}>
+                {isColunaCentral(formacao.tipoFormacao) ? "Central" : "Auxiliar"} · {TIPO_FORMACAO_LABELS[formacao.tipoFormacao]}
+              </Badge>
               {formacao.eixoNome && (
                 <Badge variant="outline" className="text-xs bg-accent text-accent-foreground border-0">
                   {formacao.eixoNome}
                 </Badge>
               )}
-              {formacao.gradeNome && (
+              {formacao.gradeNome ? (
                 <Badge variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200 gap-1">
                   <GitBranch className="h-2.5 w-2.5" />
                   {formacao.gradeNome}
+                  {formacao.origem === "complementar" && <span className="ml-0.5">· extra</span>}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                  Pontual
                 </Badge>
               )}
               {formacao.documentoAnexo && (
@@ -424,16 +433,12 @@ function FormacaoCard({ formacao, canEdit, onView, onEdit, onViewDoc, onDelete }
             <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border/60">
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  {formacao.formadorNome}
-                </span>
-                <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {formacao.cargaHoraria}h
                 </span>
               </div>
               <span className="text-xs text-muted-foreground">
-                {MODALIDADE_LABELS[formacao.modalidade]} · {formacao.vezesUtilizada}× utilizada
+                {MODALIDADE_LABELS[formacao.modalidade]} · {formacao.realizacoes ?? 0}× realizada
               </span>
             </div>
           </div>

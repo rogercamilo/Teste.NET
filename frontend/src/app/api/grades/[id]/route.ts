@@ -67,7 +67,7 @@ export async function PUT(request: Request, { params }: Params) {
       if (body.formacoes !== undefined) {
         await reconcileGradeFormacoes(tx, {
           gradeId: id,
-          gradeNome: body.nome ?? existing.nome,
+          planoId: plano.id,
           organizacaoId: user.organizacaoId!,
           nivelFormativo: body.nivelFormativo ?? existing.nivelFormativo,
           formacoes: body.formacoes,

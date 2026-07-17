@@ -3,14 +3,18 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEtapaLabels } from "@/lib/data-store";
-import type { PlanoFormativo, GradeFormativa, Usuario } from "@/types";
+import type { PlanoFormativo, GradeFormativa } from "@/types";
 import {
   MODALIDADE_LABELS,
   TIPO_FORMACAO_LABELS,
+  ORIGEM_FORMACAO_LABELS,
+  STATUS_REALIZACAO_LABELS,
   type Formacao,
   type NivelFormativo,
   type Modalidade,
   type TipoFormacao,
+  type OrigemFormacao,
+  type StatusRealizacao,
 } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,17 +36,22 @@ type FormState = {
   descricao: string;
   nivelFormativo: NivelFormativo;
   tipoFormacao: TipoFormacao;
-  formadorId: string;
   cargaHoraria: string;
   modalidade: Modalidade;
   gradeId: string;
   eixoId: string;
-  eixoNome: string;
   numero: string;
+  origem: OrigemFormacao;
   observacoesFormador: string;
   materialApoio: string;
   documentoNome: string;
   documentoId: string;
+  // Governança da formação pontual (fora do caminho)
+  codigo: string;
+  responsavelInstitucional: string;
+  dataRealizacao: string;
+  contextoRealizacao: string;
+  statusRealizacao: StatusRealizacao;
 };
 
 const EMPTY_FORM: FormState = {
@@ -51,17 +60,21 @@ const EMPTY_FORM: FormState = {
   descricao: "",
   nivelFormativo: "pre-discipulado",
   tipoFormacao: "comunitaria",
-  formadorId: "",
   cargaHoraria: "2",
   modalidade: "presencial",
   gradeId: "",
   eixoId: "",
-  eixoNome: "",
   numero: "",
+  origem: "prevista",
   observacoesFormador: "",
   materialApoio: "",
   documentoNome: "",
   documentoId: "",
+  codigo: "",
+  responsavelInstitucional: "",
+  dataRealizacao: "",
+  contextoRealizacao: "",
+  statusRealizacao: "registrada",
 };
 
 interface FormacaoFormPageProps {
@@ -69,7 +82,6 @@ interface FormacaoFormPageProps {
   initialFormacao?: Formacao;
   initialGrades?: GradeFormativa[];
   initialPlanos?: PlanoFormativo[];
-  initialUsuarios?: Usuario[];
 }
 
 export default function FormacaoFormPage({
@@ -77,10 +89,8 @@ export default function FormacaoFormPage({
   initialFormacao,
   initialGrades = [],
   initialPlanos = [],
-  initialUsuarios = [],
 }: FormacaoFormPageProps) {
   const router = useRouter();
-  const formadores = initialUsuarios.filter((u) => u.ativo);
   const etapaLabels = useEtapaLabels();
   const isEditing = !!id;
 
@@ -92,17 +102,21 @@ export default function FormacaoFormPage({
         descricao: initialFormacao.descricao,
         nivelFormativo: initialFormacao.nivelFormativo,
         tipoFormacao: initialFormacao.tipoFormacao,
-        formadorId: initialFormacao.formadorId,
         cargaHoraria: String(initialFormacao.cargaHoraria),
         modalidade: initialFormacao.modalidade,
         gradeId: initialFormacao.gradeId ?? "",
         eixoId: initialFormacao.eixoId ?? "",
-        eixoNome: initialFormacao.eixoNome ?? "",
         numero: initialFormacao.numero ? String(initialFormacao.numero) : "",
+        origem: initialFormacao.origem ?? "prevista",
         observacoesFormador: initialFormacao.observacoesFormador ?? "",
         materialApoio: initialFormacao.materialApoio ?? "",
         documentoNome: initialFormacao.documentoAnexo ?? "",
         documentoId: initialFormacao.documentoAnexoId ?? "",
+        codigo: initialFormacao.codigo ?? "",
+        responsavelInstitucional: initialFormacao.responsavelInstitucional ?? "",
+        dataRealizacao: initialFormacao.dataRealizacao ?? "",
+        contextoRealizacao: initialFormacao.contextoRealizacao ?? "",
+        statusRealizacao: initialFormacao.statusRealizacao ?? "registrada",
       };
     }
     return EMPTY_FORM;
@@ -117,6 +131,7 @@ export default function FormacaoFormPage({
     const ep = planoAtual?.eixos.find((ep) => ep.id === e.eixoPlanoId);
     return { id: e.id, nome: e.nome, label: ep?.nomeEtapa ?? e.nome };
   }) ?? [];
+  const isPontual = !form.gradeId;
 
   const set = (field: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -127,15 +142,9 @@ export default function FormacaoFormPage({
       ...prev,
       gradeId,
       eixoId: "",
-      eixoNome: "",
       numero: prev.numero || "1",
       nivelFormativo: (grade?.nivelFormativo as NivelFormativo) ?? prev.nivelFormativo,
     }));
-  }
-
-  function handleEixoChange(eixoId: string) {
-    const eixo = eixosDaGrade.find((e) => e.id === eixoId);
-    setForm((prev) => ({ ...prev, eixoId, eixoNome: eixo?.nome ?? "" }));
   }
 
   function handleDocumentoInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -153,13 +162,11 @@ export default function FormacaoFormPage({
 
   async function handleSave() {
     if (!form.tema.trim()) return toast.error("Tema é obrigatório.");
-    if (!form.formadorId) return toast.error("Selecione um formador.");
     const horas = Number(form.cargaHoraria);
     if (!horas || horas <= 0) return toast.error("Carga horária inválida.");
 
     setSaving(true);
     try {
-      const formador = formadores.find((u) => u.id === form.formadorId);
       const gradeVinculada = initialGrades.find((g) => g.id === form.gradeId);
       const JSON_H = { "Content-Type": "application/json" };
 
@@ -169,17 +176,23 @@ export default function FormacaoFormPage({
         descricao: form.descricao.trim(),
         nivelFormativo: form.nivelFormativo,
         tipoFormacao: form.tipoFormacao,
-        formadorId: form.formadorId,
-        formadorNome: formador?.nome ?? "",
         cargaHoraria: horas,
         modalidade: form.modalidade,
+        // Vínculo com o caminho: planoId derivado da grade (FK = fonte de verdade)
+        planoId: gradeVinculada?.planoId || undefined,
         gradeId: form.gradeId || undefined,
-        gradeNome: gradeVinculada?.nome || undefined,
         eixoId: form.eixoId || undefined,
-        eixoNome: form.eixoNome.trim() || undefined,
-        numero: form.numero ? Number(form.numero) : undefined,
+        numero: form.gradeId && form.numero ? Number(form.numero) : undefined,
+        // Origem só faz sentido dentro de um plano (grade vinculada)
+        origem: form.gradeId ? form.origem : "prevista",
         observacoesFormador: form.observacoesFormador.trim() || undefined,
         materialApoio: form.materialApoio.trim() || undefined,
+        // Governança da pontual (só quando fora do caminho)
+        codigo: isPontual ? form.codigo.trim() || undefined : undefined,
+        responsavelInstitucional: isPontual ? form.responsavelInstitucional.trim() || undefined : undefined,
+        dataRealizacao: isPontual ? form.dataRealizacao || undefined : undefined,
+        contextoRealizacao: isPontual ? form.contextoRealizacao.trim() || undefined : undefined,
+        statusRealizacao: isPontual ? form.statusRealizacao : undefined,
       };
 
       if (isEditing && id) {
@@ -305,6 +318,11 @@ export default function FormacaoFormPage({
                   ))}
                 </SelectContent>
               </Select>
+              {form.tipoFormacao === "comunitaria" ? (
+                <p className="text-xs text-muted-foreground">Coluna central do caminho formativo.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Auxiliar à coluna central.</p>
+              )}
             </div>
             <div className="grid gap-1.5">
               <Label>Etapa Formativa <span className="text-destructive">*</span></Label>
@@ -317,18 +335,6 @@ export default function FormacaoFormPage({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label>Formador <span className="text-destructive">*</span></Label>
-            <Select value={form.formadorId} onValueChange={(v) => v && set("formadorId")(v)} items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}>
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                {formadores.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -349,9 +355,9 @@ export default function FormacaoFormPage({
             </div>
           </div>
 
-          {/* ── Vínculo com grade formativa ── */}
+          {/* ── Vínculo com o caminho formativo (Plano → Grade → Eixo) ── */}
           <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vínculo com grade formativa</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vínculo com o caminho formativo</p>
 
             <div className="grid gap-1.5">
               <Label>Grade formativa</Label>
@@ -372,55 +378,74 @@ export default function FormacaoFormPage({
                   ))}
                 </SelectContent>
               </Select>
+              {form.gradeId && planoAtual && (
+                <p className="text-xs text-muted-foreground">
+                  Plano: <span className="font-medium text-foreground">{planoAtual.nome}</span>
+                </p>
+              )}
               {form.gradeId && (
                 <button
                   type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, gradeId: "", eixoId: "", eixoNome: "", numero: "" }))}
+                  onClick={() => setForm((prev) => ({ ...prev, gradeId: "", eixoId: "", numero: "", origem: "prevista" }))}
                   className="text-xs text-muted-foreground hover:text-destructive text-left"
                 >
-                  Remover vínculo com grade
+                  Remover vínculo — tornar formação pontual
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Etapa (eixo)</Label>
-                {eixosDaGrade.length > 0 ? (
-                  <Select
-                    value={form.eixoId}
-                    onValueChange={(v) => v && handleEixoChange(v)}
-                    items={Object.fromEntries(eixosDaGrade.map((e) => [e.id, e.label]))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar etapa..." />
-                    </SelectTrigger>
+            {form.gradeId && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Etapa (eixo)</Label>
+                    {eixosDaGrade.length > 0 ? (
+                      <Select
+                        value={form.eixoId}
+                        onValueChange={(v) => v && set("eixoId")(v)}
+                        items={Object.fromEntries(eixosDaGrade.map((e) => [e.id, e.label]))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar etapa..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eixosDaGrade.map((e) => (
+                            <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-xs text-muted-foreground pt-2">Esta grade ainda não tem eixos.</p>
+                    )}
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>N° na grade</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={form.numero}
+                      onChange={(e) => set("numero")(e.target.value)}
+                      placeholder="—"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-1.5">
+                  <Label>Origem no plano</Label>
+                  <Select value={form.origem} onValueChange={(v) => v && set("origem")(v)} items={ORIGEM_FORMACAO_LABELS}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {eixosDaGrade.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>
+                      {(Object.keys(ORIGEM_FORMACAO_LABELS) as OrigemFormacao[]).map((o) => (
+                        <SelectItem key={o} value={o}>{ORIGEM_FORMACAO_LABELS[o]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                ) : (
-                  <Input
-                    value={form.eixoNome}
-                    onChange={(e) => set("eixoNome")(e.target.value)}
-                    placeholder="Ex.: Identidade"
-                  />
-                )}
-              </div>
-              <div className="grid gap-1.5">
-                <Label>N° na grade</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={form.numero}
-                  onChange={(e) => set("numero")(e.target.value)}
-                  placeholder="—"
-                  disabled={!form.gradeId}
-                />
-              </div>
-            </div>
+                  {form.origem === "complementar" && (
+                    <p className="text-xs text-muted-foreground">Acréscimo além do previsto — será registrado quem e quando marcou.</p>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="grid gap-1.5">
               <Label>Observações do formador</Label>
@@ -432,6 +457,55 @@ export default function FormacaoFormPage({
               />
             </div>
           </div>
+
+          {/* ── Governança da formação pontual (fora do caminho) ── */}
+          {isPontual && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 space-y-3">
+              <div>
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Formação pontual</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Sem vínculo com grade — identifique e registre a realização para auditoria.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>Identificador</Label>
+                  <Input value={form.codigo} onChange={(e) => set("codigo")(e.target.value)} placeholder="Ex.: PONT-2026-01" />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Responsável institucional</Label>
+                  <Input value={form.responsavelInstitucional} onChange={(e) => set("responsavelInstitucional")(e.target.value)} placeholder="Quem responde pela formação" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>Data de realização</Label>
+                  <Input type="date" value={form.dataRealizacao} onChange={(e) => set("dataRealizacao")(e.target.value)} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Status</Label>
+                  <Select value={form.statusRealizacao} onValueChange={(v) => v && set("statusRealizacao")(v)} items={STATUS_REALIZACAO_LABELS}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(STATUS_REALIZACAO_LABELS) as StatusRealizacao[]).map((s) => (
+                        <SelectItem key={s} value={s}>{STATUS_REALIZACAO_LABELS[s]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label>Contexto</Label>
+                <Textarea
+                  value={form.contextoRealizacao}
+                  onChange={(e) => set("contextoRealizacao")(e.target.value)}
+                  placeholder="Em que contexto esta formação foi/será realizada..."
+                  className="min-h-[60px] resize-none text-sm"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-1.5">
             <Label>Material de apoio</Label>

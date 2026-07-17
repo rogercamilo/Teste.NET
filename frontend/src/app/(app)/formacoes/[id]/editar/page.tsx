@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toFormacao, toGrade, toPlano } from "@/lib/converters";
 import FormacaoFormPage from "../../FormacaoFormPage";
-import type { PerfilUsuario, Usuario } from "@/types";
 
 export default async function EditarFormacaoPage({
   params,
@@ -16,9 +15,15 @@ export default async function EditarFormacaoPage({
   if (!user.organizacaoId) redirect("/login");
   const orgId = user.organizacaoId;
 
-  const [formacao, planos, grades, usuarios] = await Promise.all([
+  const [formacao, planos, grades] = await Promise.all([
     prisma.formacao.findFirst({
       where: { id, OR: [{ organizacaoId: orgId }, { isGlobal: true }], deletedAt: null },
+      include: {
+        plano: { select: { nome: true } },
+        grade: { select: { nome: true } },
+        eixo: { select: { nome: true } },
+        _count: { select: { agendamentos: { where: { deletedAt: null } } } },
+      },
     }),
     prisma.planoFormativo.findMany({
       where: { OR: [{ organizacaoId: orgId }, { isGlobal: true }], status: { not: "arquivado" } },
@@ -35,19 +40,9 @@ export default async function EditarFormacaoPage({
       },
       orderBy: { nome: "asc" },
     }),
-    prisma.usuario.findMany({
-      where: { organizacaoId: orgId, ativo: true, deletedAt: null },
-      orderBy: { nome: "asc" },
-    }),
   ]);
 
   if (!formacao) redirect("/formacoes");
-
-  const initialUsuarios: Usuario[] = usuarios.map((u) => ({
-    id: u.id, nome: u.nome, email: u.email,
-    perfil: u.perfil as PerfilUsuario,
-    ativo: u.ativo, criadoEm: u.criadoEm.toISOString(),
-  }));
 
   return (
     <FormacaoFormPage
@@ -55,7 +50,6 @@ export default async function EditarFormacaoPage({
       initialFormacao={toFormacao(formacao)}
       initialGrades={grades.map(toGrade)}
       initialPlanos={planos.map(toPlano)}
-      initialUsuarios={initialUsuarios}
     />
   );
 }

@@ -7,6 +7,10 @@ import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   MODALIDADE_LABELS,
+  TIPO_FORMACAO_LABELS,
+  TIPO_FORMACAO_CORES,
+  STATUS_REALIZACAO_LABELS,
+  isColunaCentral,
 } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft,
+  CalendarCheck,
   Clock,
   Eye,
   FileText,
@@ -27,10 +32,19 @@ import {
   Link,
   Paperclip,
   Pencil,
+  Route,
   Trash2,
   User,
 } from "lucide-react";
 import { toast } from "sonner";
+
+export type Realizacao = {
+  id: string;
+  data: string; // YYYY-MM-DD
+  status: string;
+  formadorNome: string;
+  participantes: number;
+};
 
 const MODALIDADE_ICON: Record<string, string> = {
   presencial: "🏛️",
@@ -38,29 +52,25 @@ const MODALIDADE_ICON: Record<string, string> = {
   hibrida: "🔄",
 };
 
+/** Exibe YYYY-MM-DD como dd/MM/yyyy sem cruzar fuso (data-only). */
+function fmtData(d: string): string {
+  return d.split("-").reverse().join("/");
+}
+
 export default function FormacaoDetalheClient({
   formacao,
+  realizacoes,
   canEdit,
 }: {
   formacao: Formacao;
+  realizacoes: Realizacao[];
   canEdit: boolean;
 }) {
   const router = useRouter();
   const id = formacao.id;
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  if (!formacao) {
-    return (
-      <div className="flex flex-col items-center py-20 text-center">
-        <FileText className="h-12 w-12 text-muted-foreground/30 mb-3" />
-        <p className="font-medium text-foreground">Formação não encontrada</p>
-        <Button variant="outline" className="mt-4" onClick={() => router.push("/formacoes")}>
-          <ArrowLeft className="h-4 w-4 mr-1.5" />
-          Voltar às formações
-        </Button>
-      </div>
-    );
-  }
+  const isPontual = !formacao.gradeId;
 
   async function handleDelete() {
     if (formacao.documentoAnexoId) {
@@ -94,6 +104,9 @@ export default function FormacaoDetalheClient({
             <div>
               <h1 className="text-xl font-semibold text-foreground">{formacao.tema}</h1>
               <div className="flex flex-wrap gap-1.5 mt-1.5">
+                <Badge variant="outline" className={`text-xs ${TIPO_FORMACAO_CORES[formacao.tipoFormacao]}`}>
+                  {isColunaCentral(formacao.tipoFormacao) ? "Central" : "Auxiliar"} · {TIPO_FORMACAO_LABELS[formacao.tipoFormacao]}
+                </Badge>
                 <Badge variant="outline" className={`text-xs ${NIVEL_CORES[formacao.nivelFormativo]}`}>
                   {NIVEL_FORMATIVO_LABELS[formacao.nivelFormativo]}
                 </Badge>
@@ -105,11 +118,20 @@ export default function FormacaoDetalheClient({
                     {formacao.eixoNome}
                   </Badge>
                 )}
-                {formacao.gradeNome && (
+                {formacao.gradeNome ? (
                   <Badge variant="outline" className="text-xs gap-1">
                     <Layers className="h-3 w-3" />
                     {formacao.gradeNome}
                     {formacao.numero && <span className="ml-0.5 font-mono">#{formacao.numero}</span>}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                    Formação pontual
+                  </Badge>
+                )}
+                {formacao.gradeNome && formacao.origem === "complementar" && (
+                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                    Complementar ao plano
                   </Badge>
                 )}
               </div>
@@ -131,11 +153,15 @@ export default function FormacaoDetalheClient({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="rounded-lg bg-muted/40 p-3">
-            <p className="text-xs text-muted-foreground mb-0.5">Formador responsável</p>
-            <p className="text-sm font-medium flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5 text-muted-foreground" />
-              {formacao.formadorNome}
-            </p>
+            <p className="text-xs text-muted-foreground mb-0.5">Caminho formativo</p>
+            {formacao.gradeNome ? (
+              <p className="text-sm font-medium flex items-center gap-1.5">
+                <Route className="h-3.5 w-3.5 text-muted-foreground" />
+                {formacao.planoNome ? `${formacao.planoNome} → ` : ""}{formacao.gradeNome}
+              </p>
+            ) : (
+              <p className="text-sm font-medium text-muted-foreground">Pontual (fora do caminho)</p>
+            )}
           </div>
           <div className="rounded-lg bg-muted/40 p-3">
             <p className="text-xs text-muted-foreground mb-0.5">Carga horária</p>
@@ -184,6 +210,37 @@ export default function FormacaoDetalheClient({
           </div>
         )}
 
+        {/* ── Governança da formação pontual (G5) ── */}
+        {isPontual && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3 space-y-2">
+            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Registro & realização</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Identificador</p>
+                <p className="font-medium">{formacao.codigo || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Responsável institucional</p>
+                <p className="font-medium">{formacao.responsavelInstitucional || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Data de realização</p>
+                <p className="font-medium">{formacao.dataRealizacao ? fmtData(formacao.dataRealizacao) : "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Status</p>
+                <p className="font-medium">{STATUS_REALIZACAO_LABELS[formacao.statusRealizacao]}</p>
+              </div>
+            </div>
+            {formacao.contextoRealizacao && (
+              <div>
+                <p className="text-xs text-muted-foreground">Contexto</p>
+                <p className="text-sm whitespace-pre-line">{formacao.contextoRealizacao}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {formacao.materialApoio && (
           <div className="space-y-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Material de apoio</p>
@@ -212,8 +269,44 @@ export default function FormacaoDetalheClient({
           </div>
         )}
 
-        <div className="pt-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Utilizada {formacao.vezesUtilizada}× em agendamentos</span>
+        {/* ── Realizações auditáveis (G6) ── */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+            <CalendarCheck className="h-3.5 w-3.5" />
+            Realizações — {realizacoes.length} agendamento{realizacoes.length !== 1 ? "s" : ""}
+          </p>
+          {realizacoes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Ainda não foi agendada na agenda.</p>
+          ) : (
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 border-b border-border">
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-28">Data</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Ministrante</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-24">Presentes</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-28">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {realizacoes.map((r) => (
+                    <tr key={r.id} className="border-b border-border/40 last:border-0">
+                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">{fmtData(r.data)}</td>
+                      <td className="px-3 py-2 text-sm flex items-center gap-1.5">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        {r.formadorNome}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-muted-foreground">{r.participantes}</td>
+                      <td className="px-3 py-2 text-xs capitalize text-muted-foreground">{r.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-4 border-t border-border/60 flex items-center justify-end text-xs text-muted-foreground">
           <span>Cadastrada em {formacao.criadoEm}</span>
         </div>
       </div>

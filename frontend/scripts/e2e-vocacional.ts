@@ -146,7 +146,7 @@ async function main() {
 
   // ── [7] Gatilho do último retiro ────────────────────────────────────────────
   console.log("\n[7] Gatilho do último retiro");
-  const formacao = await prisma.formacao.create({ data: { organizacaoId: org.id, tema: "Retiro", objetivo: "—", descricao: "—", formadorNome: admin.nome, cargaHoraria: 8, modalidade: "presencial", nivelFormativo: "pre-discipulado", tipoFormacao: "retiro-comunitario" } });
+  const formacao = await prisma.formacao.create({ data: { organizacaoId: org.id, tema: "Retiro", objetivo: "—", descricao: "—", cargaHoraria: 8, modalidade: "presencial", nivelFormativo: "pre-discipulado", tipoFormacao: "retiro-comunitario" } });
   await prisma.agendamento.create({ data: { organizacaoId: org.id, formacaoId: formacao.id, formacaoTema: "Retiro", nivelFormativo: "pre-discipulado", tipoFormacao: "retiro-comunitario", formadorId: admin.id, formadorNome: admin.nome, grupoFormacaoId: turma.id, dataInicio: new Date(), dataFim: new Date(), status: "realizada" } });
   const f4 = await mkFormando("Retiro");
   const part4 = await inscrever(org.id, turma.id, admin.id, f4, admin.id);

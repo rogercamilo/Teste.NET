@@ -45,6 +45,7 @@ export default async function AgendaPage() {
         deletedAt: null,
       },
       orderBy: { tema: "asc" },
+      include: { eixo: { select: { nome: true } } },
     }),
     prisma.grupoFormacao.findMany({
       where: { organizacaoId: user.organizacaoId, ativo: true },

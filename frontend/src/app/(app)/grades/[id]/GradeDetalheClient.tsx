@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GradeFormativa, Formacao, PlanoFormativo } from "@/types";
-import { NIVEL_FORMATIVO_LABELS, NIVEL_CORES, EIXO_COLORS } from "@/types";
+import { NIVEL_FORMATIVO_LABELS, NIVEL_CORES, EIXO_COLORS, TIPO_FORMACAO_LABELS, isColunaCentral } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +51,68 @@ export default function GradeDetalheClient({
     const ep = plano?.eixos.find((ep) => ep.id === e.eixoPlanoId);
     eixoNomeToEtapaMap.set(e.nome, ep?.nomeEtapa ?? e.nome);
   });
+
+  function renderTabelaFormacoes(titulo: string, items: Formacao[], showTipo = false) {
+    if (items.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          {titulo} — {items.length} formação{items.length !== 1 ? "ões" : ""}
+        </p>
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-muted/50 border-b border-border">
+                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-10">N°</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-32">Etapa</th>
+                {showTipo && <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-32">Tipo</th>}
+                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Tema</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground hidden md:table-cell w-56">Objetivo</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground hidden lg:table-cell w-56">Obs. do formador</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...items]
+                .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999))
+                .map((f, idx) => (
+                  <tr
+                    key={f.id}
+                    className="border-b border-border/40 last:border-0 hover:bg-muted/20 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/formacoes/${f.id}`)}
+                  >
+                    <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground">
+                      {f.numero ?? idx + 1}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className="text-xs font-medium text-foreground">
+                        {eixoNomeToEtapaMap.get(f.eixoNome ?? "") ?? f.eixoNome ?? "—"}
+                      </span>
+                    </td>
+                    {showTipo && (
+                      <td className="px-3 py-2.5">
+                        <span className="text-xs text-muted-foreground">{TIPO_FORMACAO_LABELS[f.tipoFormacao]}</span>
+                      </td>
+                    )}
+                    <td className="px-3 py-2.5 font-medium text-foreground text-sm">
+                      {f.tema}
+                      {f.origem === "complementar" && (
+                        <span className="ml-1.5 text-xs text-amber-600">· complementar</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 hidden md:table-cell">
+                      <p className="text-xs text-muted-foreground line-clamp-2">{f.objetivo || "—"}</p>
+                    </td>
+                    <td className="px-3 py-2.5 hidden lg:table-cell">
+                      <p className="text-xs text-muted-foreground line-clamp-2">{f.observacoesFormador || "—"}</p>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   async function handleDelete() {
     if (grade.documentoAnexoId) {
@@ -187,50 +249,18 @@ export default function GradeDetalheClient({
         )}
 
         {linkedFormacoes.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Grade Formativa — {linkedFormacoes.length} formação{linkedFormacoes.length !== 1 ? "ões" : ""}
-            </p>
-            <div className="rounded-lg border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted/50 border-b border-border">
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-10">N°</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-32">Etapa</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Tema</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground hidden md:table-cell w-56">Objetivo</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground hidden lg:table-cell w-56">Obs. do formador</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...linkedFormacoes]
-                    .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999))
-                    .map((f, idx) => (
-                      <tr
-                        key={f.id}
-                        className="border-b border-border/40 last:border-0 hover:bg-muted/20 cursor-pointer transition-colors"
-                        onClick={() => router.push(`/formacoes/${f.id}`)}
-                      >
-                        <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground">
-                          {f.numero ?? idx + 1}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <span className="text-xs font-medium text-foreground">
-                            {eixoNomeToEtapaMap.get(f.eixoNome ?? "") ?? f.eixoNome ?? "—"}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 font-medium text-foreground text-sm">{f.tema}</td>
-                        <td className="px-3 py-2.5 hidden md:table-cell">
-                          <p className="text-xs text-muted-foreground line-clamp-2">{f.objetivo || "—"}</p>
-                        </td>
-                        <td className="px-3 py-2.5 hidden lg:table-cell">
-                          <p className="text-xs text-muted-foreground line-clamp-2">{f.observacoesFormador || "—"}</p>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="space-y-4">
+            {/* Espinha do caminho (regra 4): formações comunitárias = coluna central */}
+            {renderTabelaFormacoes(
+              "Espinha do caminho — Formações Comunitárias",
+              linkedFormacoes.filter((f) => isColunaCentral(f.tipoFormacao)),
+            )}
+            {/* Auxiliares à coluna central: retiros e atividades extras */}
+            {renderTabelaFormacoes(
+              "Auxiliares — Retiros & atividades",
+              linkedFormacoes.filter((f) => !isColunaCentral(f.tipoFormacao)),
+              true,
+            )}
           </div>
         )}
 

@@ -51,7 +51,12 @@ export async function GET(request: Request) {
         }),
         prisma.formacao.findMany({
           where: { organizacaoId: orgId },
-          select: { id: true, tema: true, tipoFormacao: true, eixoNome: true, etapaNome: true, criadoEm: true },
+          select: {
+            id: true, tema: true, tipoFormacao: true, numero: true, origem: true, criadoEm: true,
+            plano: { select: { nome: true } },
+            grade: { select: { nome: true } },
+            eixo: { select: { nome: true } },
+          },
           orderBy: { criadoEm: "asc" },
           take: 5000,
         }),
@@ -88,7 +93,12 @@ export async function GET(request: Request) {
       usuarios,
       grupos,
       formandos,
-      formacoes,
+      formacoes: formacoes.map(({ plano, grade, eixo, ...f }) => ({
+        ...f,
+        planoNome: plano?.nome ?? null,
+        gradeNome: grade?.nome ?? null,
+        eixoNome: eixo?.nome ?? null,
+      })),
       agendamentos,
       presencas,
       comentarios,

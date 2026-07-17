@@ -46,13 +46,20 @@ export type PrismaEvento = {
 
 export type PrismaFormacao = {
   id: string; organizacaoId: string | null; tema: string; objetivo: string; descricao: string;
-  nivelFormativo: string; tipoFormacao: string; eixoId: string | null; eixoNome: string | null;
-  etapaId: string | null; etapaNome: string | null; formadorId: string | null; formadorNome: string;
+  nivelFormativo: string; tipoFormacao: string;
+  planoId: string | null; gradeId: string | null; eixoId: string | null; numero: number | null;
+  origem: string; origemPor: string | null; origemEm: Date | null;
+  codigo: string | null; responsavelInstitucional: string | null;
+  dataRealizacao: Date | null; contextoRealizacao: string | null; statusRealizacao: string;
   cargaHoraria: number; modalidade: string; materialApoio: string | null;
   documentoAnexo: string | null; documentoAnexoId: string | null;
-  gradeId: string | null; gradeNome: string | null;
-  numero: number | null; observacoesFormador: string | null;
-  vezesUtilizada: number; criadoEm: Date;
+  observacoesFormador: string | null; criadoEm: Date;
+  // Relações resolvidas por join (nome vem da FK, não denormalizado).
+  plano?: { nome: string } | null;
+  grade?: { nome: string } | null;
+  eixo?: { nome: string } | null;
+  // Contagem de realizações (Agendamento), quando o read path inclui _count.
+  _count?: { agendamentos: number };
 };
 
 export type PrismaFormando = {
@@ -177,15 +184,24 @@ export function toFormacao(f: PrismaFormacao): Formacao {
     id: f.id, tema: f.tema, objetivo: f.objetivo, descricao: f.descricao,
     nivelFormativo: f.nivelFormativo as Formacao["nivelFormativo"],
     tipoFormacao: f.tipoFormacao as Formacao["tipoFormacao"],
-    eixoId: f.eixoId ?? undefined, eixoNome: f.eixoNome ?? undefined,
-    etapaId: f.etapaId ?? undefined, etapaNome: f.etapaNome ?? undefined,
-    formadorId: f.formadorId ?? "", formadorNome: f.formadorNome,
+    planoId: f.planoId ?? undefined, planoNome: f.plano?.nome ?? undefined,
+    gradeId: f.gradeId ?? undefined, gradeNome: f.grade?.nome ?? undefined,
+    eixoId: f.eixoId ?? undefined, eixoNome: f.eixo?.nome ?? undefined,
+    numero: f.numero ?? undefined,
+    origem: f.origem as Formacao["origem"],
+    origemPor: f.origemPor ?? undefined,
+    origemEm: f.origemEm?.toISOString(),
+    codigo: f.codigo ?? undefined,
+    responsavelInstitucional: f.responsavelInstitucional ?? undefined,
+    dataRealizacao: f.dataRealizacao?.toISOString().split("T")[0],
+    contextoRealizacao: f.contextoRealizacao ?? undefined,
+    statusRealizacao: f.statusRealizacao as Formacao["statusRealizacao"],
     cargaHoraria: f.cargaHoraria, modalidade: f.modalidade as Formacao["modalidade"],
     materialApoio: f.materialApoio ?? undefined, documentoAnexo: f.documentoAnexo ?? undefined,
     documentoAnexoId: f.documentoAnexoId ?? undefined,
-    gradeId: f.gradeId ?? undefined, gradeNome: f.gradeNome ?? undefined,
-    numero: f.numero ?? undefined, observacoesFormador: f.observacoesFormador ?? undefined,
-    vezesUtilizada: f.vezesUtilizada, criadoEm: f.criadoEm.toISOString(),
+    observacoesFormador: f.observacoesFormador ?? undefined,
+    realizacoes: f._count?.agendamentos,
+    criadoEm: f.criadoEm.toISOString(),
   };
 }
 

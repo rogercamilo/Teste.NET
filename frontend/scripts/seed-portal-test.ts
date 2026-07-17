@@ -153,7 +153,6 @@ async function main() {
         "Leitura recomendada: Evangelho de João, cap. 15.\nLink de apoio: https://exemplo.org/vida-comunitaria",
       nivelFormativo: NIVEL,
       tipoFormacao: "comunitaria",
-      formadorNome: "Carlos Mendes",
       cargaHoraria: 2,
       modalidade: "presencial",
     },

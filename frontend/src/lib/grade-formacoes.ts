@@ -86,14 +86,14 @@ export async function reconcileGradeFormacoes(
   tx: Prisma.TransactionClient,
   opts: {
     gradeId: string;
-    gradeNome: string;
+    planoId: string;
     organizacaoId: string;
     nivelFormativo: string;
     formacoes: GradeFormacaoInput[];
     eixoByPlano: Map<string, string>;
   },
 ): Promise<void> {
-  const { gradeId, gradeNome, organizacaoId, nivelFormativo, formacoes, eixoByPlano } = opts;
+  const { gradeId, planoId, organizacaoId, nivelFormativo, formacoes, eixoByPlano } = opts;
 
   const existing = await tx.formacao.findMany({
     where: { gradeId, organizacaoId, deletedAt: null },
@@ -105,17 +105,17 @@ export async function reconcileGradeFormacoes(
 
   for (const [i, f] of formacoes.entries()) {
     const eixoId = f.eixoPlanoId ? eixoByPlano.get(f.eixoPlanoId) ?? null : null;
-    // Campos que espelham o estado atual da grade (propaga rename de grade/nível)
+    // Espelha o estado atual da grade. planoId é a FK do caminho (fonte de
+    // verdade); nomes de grade/eixo NÃO são denormalizados — resolvidos na leitura.
     const content = {
       tema: f.tema.trim(),
       objetivo: f.objetivo?.trim() ?? "",
       descricao: f.descricao?.trim() ?? "",
       nivelFormativo,
+      planoId,
       eixoId,
-      eixoNome: f.eixoNome ?? null,
       cargaHoraria: f.cargaHoraria ?? 2,
       modalidade: f.modalidade ?? "presencial",
-      gradeNome,
       numero: i + 1,
       observacoesFormador: f.observacoesFormador?.trim() || null,
     };
@@ -126,7 +126,6 @@ export async function reconcileGradeFormacoes(
       toCreate.push({
         organizacaoId,
         tipoFormacao: "comunitaria",
-        formadorNome: "",
         gradeId,
         ...content,
       });
