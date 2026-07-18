@@ -584,19 +584,23 @@ function FormacaoCard({ formacao, canEdit, onView, onEdit, onViewDoc, onDelete }
                   Pontual
                 </Badge>
               )}
-              {formacao.documentoAnexo && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200" title="Material para o formando (também no Portal)">
-                  <Paperclip className="h-2.5 w-2.5 mr-1" />
-                  Formando
-                </Badge>
-              )}
-              {formacao.materialFormadorAnexo && (
-                <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-600 border-indigo-200" title="Material para o formador (uso interno)">
-                  <Paperclip className="h-2.5 w-2.5 mr-1" />
-                  Formador
-                </Badge>
-              )}
             </div>
+            {(formacao.materialFormadorAnexo || formacao.documentoAnexo) && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {formacao.materialFormadorAnexo && (
+                  <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-600 border-indigo-200" title="Material para o formador (uso interno)">
+                    <Paperclip className="h-2.5 w-2.5 mr-1" />
+                    Formador
+                  </Badge>
+                )}
+                {formacao.documentoAnexo && (
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200" title="Material para o formando (também no Portal)">
+                    <Paperclip className="h-2.5 w-2.5 mr-1" />
+                    Formando
+                  </Badge>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border/60">
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
@@ -680,14 +684,14 @@ function FormacaoRow({ formacao, canEdit, showNivel, nivelLabel, onView, onEdit,
               <p className="text-xs text-muted-foreground truncate">{formacao.objetivo}</p>
             )}
           </div>
-          {formacao.documentoAnexo && (
-            <span className="shrink-0 inline-flex" title="Material para o formando (também no Portal)" aria-label="Material para o formando">
-              <Paperclip className="h-3 w-3 text-blue-500" />
-            </span>
-          )}
           {formacao.materialFormadorAnexo && (
             <span className="shrink-0 inline-flex" title="Material para o formador (uso interno)" aria-label="Material para o formador">
               <Paperclip className="h-3 w-3 text-indigo-500" />
+            </span>
+          )}
+          {formacao.documentoAnexo && (
+            <span className="shrink-0 inline-flex" title="Material para o formando (também no Portal)" aria-label="Material para o formando">
+              <Paperclip className="h-3 w-3 text-blue-500" />
             </span>
           )}
         </div>
