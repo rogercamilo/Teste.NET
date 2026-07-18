@@ -20,6 +20,12 @@ export default async function FormacoesPage() {
         ],
         deletedAt: null,
       },
+      include: {
+        plano: { select: { nome: true } },
+        grade: { select: { nome: true } },
+        eixo: { select: { nome: true } },
+        _count: { select: { agendamentos: { where: { deletedAt: null } } } },
+      },
       orderBy: { criadoEm: "desc" },
     }),
     prisma.gradeFormativa.findMany({

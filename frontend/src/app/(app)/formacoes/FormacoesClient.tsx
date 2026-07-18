@@ -89,13 +89,23 @@ const PAGE_SIZE = 10;
 const LIST_PAGE_SIZE = 20;
 
 type ViewMode = "cartoes" | "lista";
-type SortKey = "tema" | "nivel" | "tipo" | "grade" | "carga" | "realizacoes" | "modalidade" | "criadoEm";
+type SortKey = "ordem" | "tema" | "nivel" | "tipo" | "grade" | "carga" | "realizacoes" | "modalidade" | "criadoEm";
 type SortDir = "asc" | "desc";
 
 const NIVEL_INDEX: Record<NivelFormativo, number> = NIVEIS_ORDEM.reduce(
   (acc, nivel, i) => ({ ...acc, [nivel]: i }),
   {} as Record<NivelFormativo, number>,
 );
+
+// Chave da "ordem de execução" definida na grade: nível → grade → nº na grade.
+// Espelha a sequência que a grade formativa determina. Formações sem posição
+// (pontuais / sem grade) caem ao fim de cada recorte (número alto + grade "￿").
+function execOrderKey(f: Formacao): string {
+  const nivel = String(NIVEL_INDEX[f.nivelFormativo] ?? 99).padStart(2, "0");
+  const grade = (f.gradeNome ?? "￿").toLowerCase();
+  const num = String(f.numero ?? 99999).padStart(5, "0");
+  return `${nivel}|${grade}|${num}`;
+}
 
 interface FormacoesClientProps {
   initialFormacoes: Formacao[];
@@ -128,8 +138,8 @@ export default function FormacoesClient({
   const [toDelete, setToDelete] = useState<Formacao | null>(null);
   const [pagesByNivel, setPagesByNivel] = useState<Partial<Record<NivelFormativo, number>>>({});
   const [viewMode, setViewMode] = useState<ViewMode>("cartoes");
-  const [sortKey, setSortKey] = useState<SortKey>("criadoEm");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortKey, setSortKey] = useState<SortKey>("ordem");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [listPage, setListPage] = useState(1);
 
   const baseFormacoes = isFormadorComunitario && myNivel
@@ -153,7 +163,10 @@ export default function FormacoesClient({
   const grouped = niveisVisiveis
     .filter((nivel) => nivelFilter === "todos" || nivel === nivelFilter)
     .reduce<Partial<Record<NivelFormativo, Formacao[]>>>((acc, nivel) => {
-      acc[nivel] = filtered.filter((f) => f.nivelFormativo === nivel);
+      acc[nivel] = filtered
+        .filter((f) => f.nivelFormativo === nivel)
+        // Segue a ordem de execução da grade (grade → nº); pontuais ao fim.
+        .sort((a, b) => execOrderKey(a).localeCompare(execOrderKey(b), "pt-BR"));
       return acc;
     }, {});
 
@@ -168,6 +181,7 @@ export default function FormacoesClient({
   );
 
   const sortComparators: Record<SortKey, (f: Formacao) => string | number> = {
+    ordem: execOrderKey,
     tema: (f) => f.tema.toLowerCase(),
     nivel: (f) => NIVEL_INDEX[f.nivelFormativo] ?? 99,
     tipo: (f) => `${isColunaCentral(f.tipoFormacao) ? 0 : 1}-${TIPO_FORMACAO_LABELS[f.tipoFormacao]}`,
@@ -196,8 +210,8 @@ export default function FormacoesClient({
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      // padrões sensatos: texto asc; números/datas desc (mais recente/maior primeiro)
-      setSortDir(key === "tema" || key === "grade" || key === "modalidade" || key === "nivel" ? "asc" : "desc");
+      // padrões sensatos: ordem/texto asc; números/datas desc (mais recente/maior primeiro)
+      setSortDir(key === "ordem" || key === "tema" || key === "grade" || key === "modalidade" || key === "nivel" ? "asc" : "desc");
     }
     setListPage(1);
   }
@@ -426,6 +440,7 @@ export default function FormacoesClient({
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <SortHeader label="Ordem" sortKey="ordem" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
                 <SortHeader label="Formação" sortKey="tema" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
                 {!isFormadorComunitario && (
                   <SortHeader label="Etapa" sortKey="nivel" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
@@ -560,6 +575,7 @@ function FormacaoCard({ formacao, canEdit, onView, onEdit, onViewDoc, onDelete }
               {formacao.gradeNome ? (
                 <Badge variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200 gap-1">
                   <GitBranch className="h-2.5 w-2.5" />
+                  {formacao.numero != null && <span className="font-semibold">nº {formacao.numero} ·</span>}
                   {formacao.gradeNome}
                   {formacao.origem === "complementar" && <span className="ml-0.5">· extra</span>}
                 </Badge>
@@ -638,6 +654,15 @@ interface FormacaoRowProps {
 function FormacaoRow({ formacao, canEdit, showNivel, nivelLabel, onView, onEdit, onViewDoc, onDelete }: FormacaoRowProps) {
   return (
     <TableRow className="group cursor-pointer" onClick={onView}>
+      <TableCell>
+        {formacao.numero != null ? (
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-violet-50 px-1.5 text-xs font-semibold text-violet-700 tabular-nums">
+            {formacao.numero}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </TableCell>
       <TableCell className="max-w-xs">
         <div className="flex items-center gap-2.5">
           <span className="text-base shrink-0">{MODALIDADE_ICON[formacao.modalidade]}</span>
