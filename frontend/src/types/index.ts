@@ -224,8 +224,12 @@ export interface Formacao {
   cargaHoraria: number;
   modalidade: Modalidade;
   materialApoio?: string;
+  // Anexo para o FORMANDO — também exibido no Portal do Formando.
   documentoAnexo?: string;
   documentoAnexoId?: string;
+  // Anexo para o FORMADOR — só na aplicação.
+  materialFormadorAnexo?: string;
+  materialFormadorAnexoId?: string;
   observacoesFormador?: string;
   // Realizações derivadas de Agendamento (G6). Presente quando o read path conta.
   realizacoes?: number;

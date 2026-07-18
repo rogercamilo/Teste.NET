@@ -443,6 +443,8 @@ export const UpdateFormacaoSchema = z.object({
   materialApoio: optionalString(2000).nullable(),
   documentoAnexo: optionalString(500).nullable(),
   documentoAnexoId: optionalString(255).nullable(),
+  materialFormadorAnexo: optionalString(500).nullable(),
+  materialFormadorAnexoId: optionalString(255).nullable(),
   observacoesFormador: optionalString(5000).nullable(),
 });
 

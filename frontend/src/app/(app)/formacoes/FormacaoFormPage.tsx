@@ -46,6 +46,8 @@ type FormState = {
   materialApoio: string;
   documentoNome: string;
   documentoId: string;
+  materialFormadorNome: string;
+  materialFormadorId: string;
   // Governança da formação pontual (fora do caminho)
   codigo: string;
   responsavelInstitucional: string;
@@ -70,6 +72,8 @@ const EMPTY_FORM: FormState = {
   materialApoio: "",
   documentoNome: "",
   documentoId: "",
+  materialFormadorNome: "",
+  materialFormadorId: "",
   codigo: "",
   responsavelInstitucional: "",
   dataRealizacao: "",
@@ -112,6 +116,8 @@ export default function FormacaoFormPage({
         materialApoio: initialFormacao.materialApoio ?? "",
         documentoNome: initialFormacao.documentoAnexo ?? "",
         documentoId: initialFormacao.documentoAnexoId ?? "",
+        materialFormadorNome: initialFormacao.materialFormadorAnexo ?? "",
+        materialFormadorId: initialFormacao.materialFormadorAnexoId ?? "",
         codigo: initialFormacao.codigo ?? "",
         responsavelInstitucional: initialFormacao.responsavelInstitucional ?? "",
         dataRealizacao: initialFormacao.dataRealizacao ?? "",
@@ -122,6 +128,7 @@ export default function FormacaoFormPage({
     return EMPTY_FORM;
   });
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
+  const [materialFormadorFile, setMaterialFormadorFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Eixos da grade selecionada, com nomeEtapa resolvido
@@ -152,12 +159,25 @@ export default function FormacaoFormPage({
     if (!file) return;
     setDocumentoFile(file);
     setForm((prev) => ({ ...prev, documentoNome: file.name, documentoId: "" }));
-    toast.success("Documento selecionado. Será salvo ao confirmar.");
+    toast.success("Material do formando selecionado. Será salvo ao confirmar.");
   }
 
   function removerDocumento() {
     setDocumentoFile(null);
     setForm((prev) => ({ ...prev, documentoNome: "", documentoId: "" }));
+  }
+
+  function handleMaterialFormadorInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMaterialFormadorFile(file);
+    setForm((prev) => ({ ...prev, materialFormadorNome: file.name, materialFormadorId: "" }));
+    toast.success("Material do formador selecionado. Será salvo ao confirmar.");
+  }
+
+  function removerMaterialFormador() {
+    setMaterialFormadorFile(null);
+    setForm((prev) => ({ ...prev, materialFormadorNome: "", materialFormadorId: "" }));
   }
 
   async function handleSave() {
@@ -195,78 +215,73 @@ export default function FormacaoFormPage({
         statusRealizacao: isPontual ? form.statusRealizacao : undefined,
       };
 
-      if (isEditing && id) {
-        // EDIT: entity already exists — upload document first, then PUT
-        let documentoAnexo = form.documentoNome || undefined;
-        let documentoAnexoId = form.documentoId || undefined;
-
-        if (documentoFile) {
+      // Envia o arquivo pendente (se houver) e remove o antigo substituído/limpo.
+      // Retorna o par {nome,id} final a persistir. Serve os dois anexos com a
+      // mesma lógica — o entityType "formacao" é genérico (o vínculo real é a FK
+      // documento*Id / materialFormador*Id na Formação, não o entityType).
+      const resolveAnexo = async (
+        formacaoId: string,
+        pendingFile: File | null,
+        currentNome: string,
+        currentId: string,
+        originalId?: string,
+      ): Promise<{ nome?: string; id?: string }> => {
+        if (pendingFile) {
           const fd = new FormData();
-          fd.append("file", documentoFile);
+          fd.append("file", pendingFile);
           fd.append("entityType", "formacao");
-          fd.append("entityId", id);
+          fd.append("entityId", formacaoId);
           const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
-          if (!uploadRes.ok) { toast.error(`Erro ao enviar documento: ${await uploadRes.text()}`); return; }
+          if (!uploadRes.ok) throw new Error(`Erro ao enviar arquivo: ${await uploadRes.text()}`);
           const uploaded = await uploadRes.json() as { id: string; nome: string };
-          if (initialFormacao?.documentoAnexoId) {
-            fetch(`/api/arquivos/${initialFormacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-          }
-          documentoAnexo = uploaded.nome;
-          documentoAnexoId = uploaded.id;
-        } else if (!form.documentoNome && initialFormacao?.documentoAnexoId) {
-          fetch(`/api/arquivos/${initialFormacao.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-          documentoAnexo = undefined;
-          documentoAnexoId = undefined;
+          if (originalId) fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          return { nome: uploaded.nome, id: uploaded.id };
         }
+        // Havia anexo e o usuário o removeu → apaga o arquivo antigo.
+        if (!currentNome && originalId) {
+          fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          return { nome: undefined, id: undefined };
+        }
+        return { nome: currentNome || undefined, id: currentId || undefined };
+      };
 
-        const res = await fetch(`/api/formacoes/${id}`, {
-          method: "PUT",
-          headers: JSON_H,
-          body: JSON.stringify({ ...basePayload, documentoAnexo, documentoAnexoId }),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(err.error ?? "Falha ao atualizar formação");
-        }
-        toast.success("Formação atualizada com sucesso!");
-        router.push(`/formacoes/${id}`);
-        router.refresh();
-      } else {
-        // CREATE: create first to get real ID, then upload document
-        const createRes = await fetch("/api/formacoes", {
-          method: "POST",
-          headers: JSON_H,
-          body: JSON.stringify(basePayload),
-        });
+      // 1) Garante a formação com id real (cria no fluxo novo).
+      let formacaoId = id ?? "";
+      if (!isEditing) {
+        const createRes = await fetch("/api/formacoes", { method: "POST", headers: JSON_H, body: JSON.stringify(basePayload) });
         if (!createRes.ok) {
           const err = await createRes.json().catch(() => ({})) as { error?: string };
           throw new Error(err.error ?? "Falha ao criar formação");
         }
-        let created = await createRes.json() as { id: string };
-
-        if (documentoFile) {
-          const fd = new FormData();
-          fd.append("file", documentoFile);
-          fd.append("entityType", "formacao");
-          fd.append("entityId", created.id);
-          const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
-          if (uploadRes.ok) {
-            const uploaded = await uploadRes.json() as { id: string; nome: string };
-            const updateRes = await fetch(`/api/formacoes/${created.id}`, {
-              method: "PUT",
-              headers: JSON_H,
-              body: JSON.stringify({ ...basePayload, documentoAnexo: uploaded.nome, documentoAnexoId: uploaded.id }),
-            });
-            if (updateRes.ok) created = await updateRes.json();
-          } else {
-            toast.warning("Formação criada, mas o documento não pôde ser anexado.");
-          }
-        }
-
-        toast.success("Formação criada com sucesso!");
-        router.push(`/formacoes/${created.id}`);
-        router.refresh();
+        formacaoId = (await createRes.json() as { id: string }).id;
       }
+
+      // 2) Resolve os dois anexos (formando = portal; formador = só app).
+      const formando = await resolveAnexo(formacaoId, documentoFile, form.documentoNome, form.documentoId, initialFormacao?.documentoAnexoId);
+      const formador = await resolveAnexo(formacaoId, materialFormadorFile, form.materialFormadorNome, form.materialFormadorId, initialFormacao?.materialFormadorAnexoId);
+
+      // 3) Persiste. No create sem anexos a formação já está completa (pula PUT).
+      if (isEditing || documentoFile || materialFormadorFile) {
+        const res = await fetch(`/api/formacoes/${formacaoId}`, {
+          method: "PUT",
+          headers: JSON_H,
+          body: JSON.stringify({
+            ...basePayload,
+            documentoAnexo: formando.nome,
+            documentoAnexoId: formando.id,
+            materialFormadorAnexo: formador.nome,
+            materialFormadorAnexoId: formador.id,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(err.error ?? "Falha ao salvar formação");
+        }
+      }
+
+      toast.success(isEditing ? "Formação atualizada com sucesso!" : "Formação criada com sucesso!");
+      router.push(`/formacoes/${formacaoId}`);
+      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
@@ -512,26 +527,59 @@ export default function FormacaoFormPage({
             <Input value={form.materialApoio} onChange={(e) => set("materialApoio")(e.target.value)} placeholder="Link ou referência" />
           </div>
 
-          <div className="grid gap-1.5">
-            <Label>Documento da formação</Label>
-            {form.documentoNome ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/40">
-                <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-sm truncate flex-1">{form.documentoNome}</span>
-                {documentoFile && (
-                  <span className="text-xs text-amber-600 shrink-0">pendente de salvar</span>
-                )}
-                <button type="button" onClick={removerDocumento} className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors">
-                <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
-                <input type="file" accept=".pdf,.docx,.doc" className="hidden" onChange={handleDocumentoInput} />
-              </label>
-            )}
+          {/* ── Materiais formativos (2 anexos opcionais) ── */}
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Materiais formativos (opcionais)</p>
+
+            <div className="grid gap-1.5">
+              <Label>Material formativo para o formando</Label>
+              <p className="text-xs text-muted-foreground -mt-0.5">
+                Também fica disponível para o formando no Portal, na formação correspondente.
+              </p>
+              {form.documentoNome ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card">
+                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm truncate flex-1">{form.documentoNome}</span>
+                  {documentoFile && (
+                    <span className="text-xs text-amber-600 shrink-0">pendente de salvar</span>
+                  )}
+                  <button type="button" onClick={removerDocumento} className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-card cursor-pointer hover:bg-muted/40 transition-colors">
+                  <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
+                  <input type="file" accept=".pdf,.docx,.doc" className="hidden" onChange={handleDocumentoInput} />
+                </label>
+              )}
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label>Material formativo para o formador</Label>
+              <p className="text-xs text-muted-foreground -mt-0.5">
+                Uso interno de quem ministra — não é exibido ao formando.
+              </p>
+              {form.materialFormadorNome ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card">
+                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm truncate flex-1">{form.materialFormadorNome}</span>
+                  {materialFormadorFile && (
+                    <span className="text-xs text-amber-600 shrink-0">pendente de salvar</span>
+                  )}
+                  <button type="button" onClick={removerMaterialFormador} className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-card cursor-pointer hover:bg-muted/40 transition-colors">
+                  <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
+                  <input type="file" accept=".pdf,.docx,.doc" className="hidden" onChange={handleMaterialFormadorInput} />
+                </label>
+              )}
+            </div>
           </div>
         </div>
 

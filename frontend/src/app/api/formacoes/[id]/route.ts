@@ -73,6 +73,7 @@ export async function PUT(request: Request, { params }: Params) {
         cargaHoraria: body.cargaHoraria, modalidade: body.modalidade,
         materialApoio: body.materialApoio ?? null,
         documentoAnexo: body.documentoAnexo ?? null, documentoAnexoId: body.documentoAnexoId ?? null,
+        materialFormadorAnexo: body.materialFormadorAnexo ?? null, materialFormadorAnexoId: body.materialFormadorAnexoId ?? null,
         observacoesFormador: body.observacoesFormador !== undefined ? (body.observacoesFormador || null) : undefined,
       },
       include: {

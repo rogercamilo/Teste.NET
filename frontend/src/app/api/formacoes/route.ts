@@ -86,6 +86,8 @@ export async function POST(request: Request) {
         materialApoio: body.materialApoio || null,
         documentoAnexo: body.documentoAnexo || null,
         documentoAnexoId: body.documentoAnexoId || null,
+        materialFormadorAnexo: body.materialFormadorAnexo || null,
+        materialFormadorAnexoId: body.materialFormadorAnexoId || null,
         observacoesFormador: body.observacoesFormador || null,
       },
       include: {

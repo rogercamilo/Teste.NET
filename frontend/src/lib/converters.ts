@@ -53,6 +53,7 @@ export type PrismaFormacao = {
   dataRealizacao: Date | null; contextoRealizacao: string | null; statusRealizacao: string;
   cargaHoraria: number; modalidade: string; materialApoio: string | null;
   documentoAnexo: string | null; documentoAnexoId: string | null;
+  materialFormadorAnexo: string | null; materialFormadorAnexoId: string | null;
   observacoesFormador: string | null; criadoEm: Date;
   // Relações resolvidas por join (nome vem da FK, não denormalizado).
   plano?: { nome: string } | null;
@@ -199,6 +200,8 @@ export function toFormacao(f: PrismaFormacao): Formacao {
     cargaHoraria: f.cargaHoraria, modalidade: f.modalidade as Formacao["modalidade"],
     materialApoio: f.materialApoio ?? undefined, documentoAnexo: f.documentoAnexo ?? undefined,
     documentoAnexoId: f.documentoAnexoId ?? undefined,
+    materialFormadorAnexo: f.materialFormadorAnexo ?? undefined,
+    materialFormadorAnexoId: f.materialFormadorAnexoId ?? undefined,
     observacoesFormador: f.observacoesFormador ?? undefined,
     realizacoes: f._count?.agendamentos,
     criadoEm: f.criadoEm.toISOString(),

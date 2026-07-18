@@ -696,8 +696,13 @@ model Formacao {
   cargaHoraria        Int
   modalidade          String // Modalidade
   materialApoio       String?
+  // Anexo destinado ao FORMANDO — servido também no Portal do Formando (legado:
+  // era "documento da formação"; hoje é explicitamente o material do formando).
   documentoAnexo      String?
   documentoAnexoId    String?
+  // Anexo destinado ao FORMADOR — visível só na aplicação (nunca no portal).
+  materialFormadorAnexo   String?
+  materialFormadorAnexoId String?
   observacoesFormador String?
   deletedAt           DateTime?
   criadoEm            DateTime  @default(now())
