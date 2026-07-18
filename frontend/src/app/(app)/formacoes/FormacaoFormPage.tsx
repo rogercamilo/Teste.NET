@@ -532,31 +532,6 @@ export default function FormacaoFormPage({
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Materiais formativos (opcionais)</p>
 
             <div className="grid gap-1.5">
-              <Label>Material formativo para o formando</Label>
-              <p className="text-xs text-muted-foreground -mt-0.5">
-                Também fica disponível para o formando no Portal, na formação correspondente.
-              </p>
-              {form.documentoNome ? (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card">
-                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-sm truncate flex-1">{form.documentoNome}</span>
-                  {documentoFile && (
-                    <span className="text-xs text-amber-600 shrink-0">pendente de salvar</span>
-                  )}
-                  <button type="button" onClick={removerDocumento} className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-card cursor-pointer hover:bg-muted/40 transition-colors">
-                  <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-sm text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
-                  <input type="file" accept=".pdf,.docx,.doc" className="hidden" onChange={handleDocumentoInput} />
-                </label>
-              )}
-            </div>
-
-            <div className="grid gap-1.5">
               <Label>Material formativo para o formador</Label>
               <p className="text-xs text-muted-foreground -mt-0.5">
                 Uso interno de quem ministra — não é exibido ao formando.
@@ -577,6 +552,31 @@ export default function FormacaoFormPage({
                   <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <span className="text-sm text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
                   <input type="file" accept=".pdf,.docx,.doc" className="hidden" onChange={handleMaterialFormadorInput} />
+                </label>
+              )}
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label>Material formativo para o formando</Label>
+              <p className="text-xs text-muted-foreground -mt-0.5">
+                Também fica disponível para o formando no Portal, na formação correspondente.
+              </p>
+              {form.documentoNome ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card">
+                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm truncate flex-1">{form.documentoNome}</span>
+                  {documentoFile && (
+                    <span className="text-xs text-amber-600 shrink-0">pendente de salvar</span>
+                  )}
+                  <button type="button" onClick={removerDocumento} className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-card cursor-pointer hover:bg-muted/40 transition-colors">
+                  <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
+                  <input type="file" accept=".pdf,.docx,.doc" className="hidden" onChange={handleDocumentoInput} />
                 </label>
               )}
             </div>

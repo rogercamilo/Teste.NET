@@ -254,27 +254,6 @@ export default function FormacaoDetalheClient({
           </div>
         )}
 
-        {formacao.documentoAnexo && formacao.documentoAnexoId && (
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Material para o formando · disponível no Portal</p>
-            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-xs text-foreground truncate">{formacao.documentoAnexo}</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="shrink-0 ml-2 h-7 text-xs gap-1 text-primary"
-                onClick={() => router.push(`/viewer?arquivoId=${formacao.documentoAnexoId}&nome=${encodeURIComponent(formacao.documentoAnexo!)}&origem=/formacoes/${id}`)}
-              >
-                <Eye className="h-3 w-3" />
-                Ver documento
-              </Button>
-            </div>
-          </div>
-        )}
-
         {formacao.materialFormadorAnexo && formacao.materialFormadorAnexoId && (
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Material para o formador · uso interno</p>
@@ -288,6 +267,27 @@ export default function FormacaoDetalheClient({
                 size="sm"
                 className="shrink-0 ml-2 h-7 text-xs gap-1 text-primary"
                 onClick={() => router.push(`/viewer?arquivoId=${formacao.materialFormadorAnexoId}&nome=${encodeURIComponent(formacao.materialFormadorAnexo!)}&origem=/formacoes/${id}`)}
+              >
+                <Eye className="h-3 w-3" />
+                Ver documento
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {formacao.documentoAnexo && formacao.documentoAnexoId && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Material para o formando · disponível no Portal</p>
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs text-foreground truncate">{formacao.documentoAnexo}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 ml-2 h-7 text-xs gap-1 text-primary"
+                onClick={() => router.push(`/viewer?arquivoId=${formacao.documentoAnexoId}&nome=${encodeURIComponent(formacao.documentoAnexo!)}&origem=/formacoes/${id}`)}
               >
                 <Eye className="h-3 w-3" />
                 Ver documento
