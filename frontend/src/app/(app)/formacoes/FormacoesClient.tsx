@@ -43,12 +43,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   BookOpen,
   Clock,
   Eye,
   FileText,
   Filter,
   GitBranch,
+  LayoutGrid,
+  List,
   MoreHorizontal,
   Paperclip,
   Pencil,
@@ -73,6 +86,16 @@ const NIVEIS_ORDEM: NivelFormativo[] = [
 ];
 
 const PAGE_SIZE = 10;
+const LIST_PAGE_SIZE = 20;
+
+type ViewMode = "cartoes" | "lista";
+type SortKey = "tema" | "nivel" | "tipo" | "grade" | "carga" | "realizacoes" | "modalidade" | "criadoEm";
+type SortDir = "asc" | "desc";
+
+const NIVEL_INDEX: Record<NivelFormativo, number> = NIVEIS_ORDEM.reduce(
+  (acc, nivel, i) => ({ ...acc, [nivel]: i }),
+  {} as Record<NivelFormativo, number>,
+);
 
 interface FormacoesClientProps {
   initialFormacoes: Formacao[];
@@ -104,6 +127,10 @@ export default function FormacoesClient({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Formacao | null>(null);
   const [pagesByNivel, setPagesByNivel] = useState<Partial<Record<NivelFormativo, number>>>({});
+  const [viewMode, setViewMode] = useState<ViewMode>("cartoes");
+  const [sortKey, setSortKey] = useState<SortKey>("criadoEm");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [listPage, setListPage] = useState(1);
 
   const baseFormacoes = isFormadorComunitario && myNivel
     ? initialFormacoes.filter((f) => f.nivelFormativo === myNivel)
@@ -133,6 +160,47 @@ export default function FormacoesClient({
   const niveisComFormacoes = (Object.keys(grouped) as NivelFormativo[]).filter(
     (n) => (grouped[n]?.length ?? 0) > 0
   );
+
+  // Lista tabular: mesmos filtros dos cartões (busca + grade), aplicando também
+  // o filtro de nível, e ordenada pela coluna selecionada.
+  const listBase = filtered.filter(
+    (f) => nivelFilter === "todos" || f.nivelFormativo === nivelFilter
+  );
+
+  const sortComparators: Record<SortKey, (f: Formacao) => string | number> = {
+    tema: (f) => f.tema.toLowerCase(),
+    nivel: (f) => NIVEL_INDEX[f.nivelFormativo] ?? 99,
+    tipo: (f) => `${isColunaCentral(f.tipoFormacao) ? 0 : 1}-${TIPO_FORMACAO_LABELS[f.tipoFormacao]}`,
+    grade: (f) => (f.gradeNome ?? "￿").toLowerCase(),
+    carga: (f) => f.cargaHoraria,
+    realizacoes: (f) => f.realizacoes ?? 0,
+    modalidade: (f) => MODALIDADE_LABELS[f.modalidade],
+    criadoEm: (f) => f.criadoEm,
+  };
+
+  const listItems = [...listBase].sort((a, b) => {
+    const va = sortComparators[sortKey](a);
+    const vb = sortComparators[sortKey](b);
+    let cmp = 0;
+    if (typeof va === "number" && typeof vb === "number") cmp = va - vb;
+    else cmp = String(va).localeCompare(String(vb), "pt-BR");
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const pagedListItems = listItems.slice((listPage - 1) * LIST_PAGE_SIZE, listPage * LIST_PAGE_SIZE);
+
+  const noResults = viewMode === "lista" ? listItems.length === 0 : niveisComFormacoes.length === 0;
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      // padrões sensatos: texto asc; números/datas desc (mais recente/maior primeiro)
+      setSortDir(key === "tema" || key === "grade" || key === "modalidade" || key === "nivel" ? "asc" : "desc");
+    }
+    setListPage(1);
+  }
 
   function openDelete(f: Formacao, e: React.MouseEvent) {
     e.stopPropagation();
@@ -235,9 +303,39 @@ export default function FormacoesClient({
             ))}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-card p-0.5 sm:ml-auto">
+          <button
+            type="button"
+            onClick={() => setViewMode("cartoes")}
+            aria-pressed={viewMode === "cartoes"}
+            title="Ver em cartões"
+            className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors ${
+              viewMode === "cartoes"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Cartões</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("lista")}
+            aria-pressed={viewMode === "lista"}
+            title="Ver em lista"
+            className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors ${
+              viewMode === "lista"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <List className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Lista</span>
+          </button>
+        </div>
       </div>
 
-      {niveisComFormacoes.length === 0 && (
+      {noResults && (
         baseFormacoes.length === 0 ? (
           <EmptyState
             icon={BookOpen}
@@ -278,7 +376,7 @@ export default function FormacoesClient({
         )
       )}
 
-      {niveisComFormacoes.length > 0 && (
+      {viewMode === "cartoes" && niveisComFormacoes.length > 0 && (
         <div className="space-y-8">
           {niveisVisiveis
             .filter((nivel) => nivelFilter === "todos" || nivel === nivelFilter)
@@ -320,6 +418,53 @@ export default function FormacoesClient({
                 </section>
               );
             })}
+        </div>
+      )}
+
+      {viewMode === "lista" && listItems.length > 0 && (
+        <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <SortHeader label="Formação" sortKey="tema" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                {!isFormadorComunitario && (
+                  <SortHeader label="Etapa" sortKey="nivel" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                )}
+                <SortHeader label="Tipo" sortKey="tipo" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                <SortHeader label="Grade" sortKey="grade" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                <SortHeader label="Carga" sortKey="carga" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
+                <SortHeader label="Realizações" sortKey="realizacoes" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
+                <SortHeader label="Modalidade" sortKey="modalidade" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pagedListItems.map((formacao) => (
+                <FormacaoRow
+                  key={formacao.id}
+                  formacao={formacao}
+                  canEdit={canEdit}
+                  showNivel={!isFormadorComunitario}
+                  nivelLabel={etapaLabels[formacao.nivelFormativo]}
+                  onView={() => router.push(`/formacoes/${formacao.id}`)}
+                  onEdit={() => router.push(`/formacoes/${formacao.id}/editar`)}
+                  onViewDoc={() =>
+                    router.push(
+                      `/viewer?arquivoId=${formacao.documentoAnexoId}&nome=${encodeURIComponent(formacao.documentoAnexo!)}&origem=/formacoes`
+                    )
+                  }
+                  onDelete={(e) => openDelete(formacao, e)}
+                />
+              ))}
+            </TableBody>
+          </Table>
+          <Pagination
+            total={listItems.length}
+            page={listPage}
+            pageSize={LIST_PAGE_SIZE}
+            onPageChange={setListPage}
+            className="p-3 border-t border-border/60"
+          />
         </div>
       )}
 
@@ -445,5 +590,135 @@ function FormacaoCard({ formacao, canEdit, onView, onEdit, onViewDoc, onDelete }
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+interface SortHeaderProps {
+  label: string;
+  sortKey: SortKey;
+  activeKey: SortKey;
+  dir: SortDir;
+  onSort: (key: SortKey) => void;
+  align?: "left" | "right";
+}
+
+function SortHeader({ label, sortKey, activeKey, dir, onSort, align = "left" }: SortHeaderProps) {
+  const active = activeKey === sortKey;
+  const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <TableHead
+      className={align === "right" ? "text-right" : undefined}
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 text-xs font-medium transition-colors hover:text-foreground ${
+          align === "right" ? "flex-row-reverse" : ""
+        } ${active ? "text-foreground" : "text-muted-foreground"}`}
+      >
+        {label}
+        <Icon className={`h-3 w-3 ${active ? "text-primary" : "text-muted-foreground/60"}`} />
+      </button>
+    </TableHead>
+  );
+}
+
+interface FormacaoRowProps {
+  formacao: Formacao;
+  canEdit: boolean;
+  showNivel: boolean;
+  nivelLabel: string;
+  onView: () => void;
+  onEdit: () => void;
+  onViewDoc: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+}
+
+function FormacaoRow({ formacao, canEdit, showNivel, nivelLabel, onView, onEdit, onViewDoc, onDelete }: FormacaoRowProps) {
+  return (
+    <TableRow className="group cursor-pointer" onClick={onView}>
+      <TableCell className="max-w-xs">
+        <div className="flex items-center gap-2.5">
+          <span className="text-base shrink-0">{MODALIDADE_ICON[formacao.modalidade]}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+              {formacao.tema}
+            </p>
+            {formacao.objetivo && (
+              <p className="text-xs text-muted-foreground truncate">{formacao.objetivo}</p>
+            )}
+          </div>
+          {formacao.documentoAnexo && (
+            <Paperclip className="h-3 w-3 text-blue-500 shrink-0" />
+          )}
+        </div>
+      </TableCell>
+      {showNivel && (
+        <TableCell>
+          <Badge variant="outline" className={`text-xs ${NIVEL_CORES[formacao.nivelFormativo]}`}>
+            {nivelLabel}
+          </Badge>
+        </TableCell>
+      )}
+      <TableCell>
+        <Badge variant="outline" className={`text-xs ${TIPO_FORMACAO_CORES[formacao.tipoFormacao]}`}>
+          {isColunaCentral(formacao.tipoFormacao) ? "Central" : "Auxiliar"}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {formacao.gradeNome ? (
+          <span className="inline-flex items-center gap-1">
+            <GitBranch className="h-3 w-3" />
+            {formacao.gradeNome}
+            {formacao.origem === "complementar" && <span className="text-xs">· extra</span>}
+          </span>
+        ) : (
+          <span className="text-amber-600">Pontual</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
+        {formacao.cargaHoraria}h
+      </TableCell>
+      <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
+        {formacao.realizacoes ?? 0}×
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {MODALIDADE_LABELS[formacao.modalidade]}
+      </TableCell>
+      <TableCell onClick={(e) => e.stopPropagation()}>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted">
+            <MoreHorizontal className="h-4 w-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onView}>
+              <Eye className="h-4 w-4 mr-2" />
+              Visualizar
+            </DropdownMenuItem>
+            {formacao.documentoAnexo && formacao.documentoAnexoId && (
+              <DropdownMenuItem onClick={onViewDoc}>
+                <FileText className="h-4 w-4 mr-2" />
+                Ver documento
+              </DropdownMenuItem>
+            )}
+            {canEdit && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onEdit}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
   );
 }
