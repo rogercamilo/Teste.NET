@@ -13,19 +13,33 @@ import { prisma } from "@/lib/prisma";
  * `cache()` do React dedupa a consulta dentro do mesmo request — layout, página
  * e demais chamadas no mesmo render compartilham uma única query.
  */
-export const getUserName = cache(
-  async (userId: string | null | undefined): Promise<string | null> => {
+/**
+ * Nome + foto atuais do usuário, lidos direto do banco (fonte da verdade) numa
+ * única query cacheada por request. Mesma razão de `getUserName`: o JWT não
+ * reflete edições de perfil (nome/foto) até o próximo login, então o avatar do
+ * usuário logado deve ser resolvido por aqui.
+ */
+export const getUserProfile = cache(
+  async (
+    userId: string | null | undefined
+  ): Promise<{ nome: string; foto: string | null } | null> => {
     if (!userId) return null;
     try {
       const u = await prisma.usuario.findUnique({
         where: { id: userId },
-        select: { nome: true },
+        select: { nome: true, foto: true },
       });
-      return u?.nome ?? null;
+      return u ? { nome: u.nome, foto: u.foto } : null;
     } catch {
-      // Resolver o nome é acessório — uma falha de leitura nunca deve derrubar a
-      // ação em curso (upload, comentário). O chamador cai no fallback do JWT.
+      // Resolver nome/foto é acessório — uma falha de leitura nunca deve derrubar
+      // a ação em curso. O chamador cai no fallback do JWT.
       return null;
     }
   },
 );
+
+export async function getUserName(
+  userId: string | null | undefined
+): Promise<string | null> {
+  return (await getUserProfile(userId))?.nome ?? null;
+}

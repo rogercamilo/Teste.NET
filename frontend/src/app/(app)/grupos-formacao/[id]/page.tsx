@@ -114,6 +114,7 @@ export default async function GrupoFormacaoDetailPage({
     email: u.email,
     perfil: u.perfil as PerfilUsuario,
     ativo: u.ativo,
+    foto: u.foto ?? undefined,
     criadoEm: u.criadoEm.toISOString(),
     grupoFormacaoId: u.grupoFormacaoId ?? undefined,
   }));

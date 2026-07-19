@@ -1,7 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getOrgBranding } from "@/lib/org-cache";
-import { getUserName } from "@/lib/current-user";
+import { getUserProfile } from "@/lib/current-user";
 import { isGestao, type ComunidadeConfig, type TipoOrganizacao } from "@/types";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
@@ -63,12 +63,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
   }
 
+  // Nome e foto do banco (fonte da verdade) — o JWT não reflete edições de perfil.
+  const profile = await getUserProfile(sessionUser.id);
   const user = {
-    // Nome do banco (fonte da verdade) — o JWT não reflete edições de perfil.
-    name: (await getUserName(sessionUser.id)) ?? sessionUser.name ?? "Usuário",
+    name: profile?.nome ?? sessionUser.name ?? "Usuário",
     email: sessionUser.email ?? "",
     role: sessionUser.role ?? "formador_comunitario",
     grupoFormacaoId: sessionUser.grupoFormacaoId ?? null,
+    foto: profile?.foto ?? null,
   };
 
   const primeiroAcesso = sessionUser.primeiroAcesso ?? false;

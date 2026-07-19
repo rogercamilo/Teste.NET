@@ -793,6 +793,7 @@ export default function GrupoFormacaoDetail({
                 {formador ? (
                   <div className="flex items-center gap-2.5">
                     <Avatar className="h-8 w-8">
+                      {resolveImageSrc(formador.foto) && <AvatarImage src={resolveImageSrc(formador.foto)!} alt={formador.nome} />}
                       <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                         {formador.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                       </AvatarFallback>

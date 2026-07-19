@@ -78,6 +78,7 @@ export interface Usuario {
   email: string;
   perfil: PerfilUsuario;
   avatar?: string;
+  foto?: string | null;
   ativo: boolean;
   criadoEm: string;
   grupoFormacaoId?: string;

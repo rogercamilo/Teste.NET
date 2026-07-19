@@ -20,7 +20,8 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { resolveImageSrc } from "@/lib/utils";
 import { resolveNavGroups, type NavGroup } from "./nav-items";
 import { useComunidade, useTermos } from "@/lib/data-store";
 import { hasVocacionalAccess } from "@/types";
@@ -30,6 +31,7 @@ export interface AppSidebarUser {
   email: string;
   role: string;
   grupoFormacaoId?: string | null;
+  foto?: string | null;
 }
 
 interface AppSidebarProps {
@@ -159,6 +161,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton className="h-auto py-2" tooltip={user.name}>
               <Avatar className="h-6 w-6 shrink-0">
+                {resolveImageSrc(user.foto) && <AvatarImage src={resolveImageSrc(user.foto)!} alt={user.name} />}
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                   {initials}
                 </AvatarFallback>

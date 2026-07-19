@@ -479,6 +479,7 @@ function PerfilTab({
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
+              {resolveImageSrc(usuario?.foto) && <AvatarImage src={resolveImageSrc(usuario?.foto)!} alt={userName} />}
               <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
                 {getInitials(userName)}
               </AvatarFallback>
