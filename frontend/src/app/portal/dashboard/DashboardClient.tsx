@@ -32,6 +32,7 @@ import {
 } from "@/types";
 import type { PublicBranding } from "@/lib/public-branding";
 import { portalHomeFor } from "@/lib/portal-routes";
+import type { LeituraContexto } from "@/lib/leituras-termos";
 import type {
   PortalDashboardData,
   PortalProximoEncontro,
@@ -95,17 +96,19 @@ export default function DashboardClient({
   data,
   materiais,
   travessia,
+  leituraContexto,
   aniversariantes,
   branding,
 }: {
   data: PortalDashboardData;
   materiais: PortalMaterialItem[];
   travessia: PortalTravessia | null;
+  leituraContexto: LeituraContexto;
   aniversariantes: PortalAniversariante[];
   branding: PublicBranding;
 }) {
   const router = useRouter();
-  const { formando, presenca, proximosEncontros, progresso, vocacional } = data;
+  const { formando, presenca, proximosEncontros, progresso, vocacional, acompanhamentoFormativo } = data;
   const [loggingOut, setLoggingOut] = useState(false);
   // Nudge de completude do cadastro (Fase 3): some sozinho quando a pessoa
   // preenche os dados; dispensável por sessão para não incomodar quem já sabe.
@@ -113,6 +116,11 @@ export default function DashboardClient({
   const [nudgeDispensado, setNudgeDispensado] = useState(false);
   const [solicitando, setSolicitando] = useState(false);
   const [solicitado, setSolicitado] = useState(vocacional?.solicitacaoPendente ?? false);
+  // Acompanhamento formativo (Portal do Formando): estado do pedido do formando.
+  const [solicitandoFormativo, setSolicitandoFormativo] = useState(false);
+  const [solicitadoFormativo, setSolicitadoFormativo] = useState(
+    acompanhamentoFormativo?.solicitacaoPendente ?? false
+  );
 
   // Opt-in do Mural: estado ELEVADO aqui porque o controle vive junto da Missão
   // (na Travessia, embaixo) e o display vive no Mural (topo) — os dois reagem
@@ -148,6 +156,19 @@ export default function DashboardClient({
       // silencioso — botão volta a ficar disponível
     } finally {
       setSolicitando(false);
+    }
+  }
+
+  async function solicitarAcompanhamentoFormativo() {
+    setSolicitandoFormativo(true);
+    try {
+      const res = await fetch("/api/portal/acompanhamento/solicitar", { method: "POST" });
+      if (!res.ok) throw new Error();
+      setSolicitadoFormativo(true);
+    } catch {
+      // silencioso — botão volta a ficar disponível
+    } finally {
+      setSolicitandoFormativo(false);
     }
   }
 
@@ -329,6 +350,42 @@ export default function DashboardClient({
             </Card>
           )}
 
+          {/* Minha jornada formativa — EXCLUSIVO do Portal do Formando (mesma
+              posição do card vocacional; some para vocacionados). Acompanhamento
+              marcado pelo formador + pedido do próprio formando. */}
+          {acompanhamentoFormativo && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  Minha jornada formativa
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col gap-3">
+                <p className="text-sm text-muted-foreground">
+                  Você está em formação. Acompanhe seus encontros e sua caminhada.
+                </p>
+                {acompanhamentoFormativo.proximaData && (
+                  <p className="inline-flex items-center gap-1.5 text-sm text-foreground">
+                    <CalendarDays className="h-4 w-4 text-primary" />
+                    Acompanhamento marcado para {fmtData.format(new Date(acompanhamentoFormativo.proximaData))}
+                  </p>
+                )}
+                <div className="mt-auto">
+                  {solicitadoFormativo ? (
+                    <p className="inline-flex items-center gap-1.5 text-sm text-primary">
+                      <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
+                    </p>
+                  ) : (
+                    <Button size="sm" variant="outline" className="w-full" onClick={solicitarAcompanhamentoFormativo} disabled={solicitandoFormativo}>
+                      {solicitandoFormativo ? "Enviando…" : "Solicitar acompanhamento"}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* A etapa do formando virou herói de largura total abaixo (EtapaCard),
               espelhando a Travessia do vocacionado — fora da faixa compacta. */}
 
@@ -372,8 +429,9 @@ export default function DashboardClient({
           <EtapaCard progresso={progresso} nivelFormativo={formando.nivelFormativo} />
         )}
 
-        {/* Mural de Frutos da turma — informação geral coletiva, no topo */}
-        {travessia?.mural && (
+        {/* Mural de Frutos da turma — informação geral coletiva, no topo.
+            Exclusivo do contexto vocacional (mission coletiva da turma). */}
+        {leituraContexto === "vocacional" && travessia?.mural && (
           <MuralSection
             muralInicial={travessia.mural}
             meusFrutos={travessia.frutosTotal}
@@ -381,13 +439,14 @@ export default function DashboardClient({
           />
         )}
 
-        {/* Trilha da Travessia (leitura) — herói, ocupa a largura toda. O controle
-            "Aparecer no mural" é renderizado abaixo da Missão, dentro do card. */}
+        {/* Trilha de leitura — herói, ocupa a largura toda. Vocacional = "Travessia"
+            (com Mural/evangelização); formando = "Minhas leituras" (só a trilha). */}
         {travessia && (
           <TravessiaCard
             travessia={travessia}
+            contexto={leituraContexto}
             muralOptIn={
-              travessia.mural
+              leituraContexto === "vocacional" && travessia.mural
                 ? { exibir: muralExibir, salvando: muralSalvando, onToggle: alternarMural }
                 : null
             }

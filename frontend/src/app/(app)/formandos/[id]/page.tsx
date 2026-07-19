@@ -50,6 +50,8 @@ export default async function FormandoDetailPage({
     todosGruposFormacaoRows,
     agendamentosRows,
     cartasRows,
+    acompanhamentosRows,
+    solicitacoesAcompRows,
   ] = await Promise.all([
     hasCanonicalAccess(org?.tipoOrganizacao)
       ? prisma.processoEclesiastico.findMany({
@@ -92,6 +94,15 @@ export default async function FormandoDetailPage({
       where: { formandoId: id, organizacaoId: user.organizacaoId, tipoEvento: { startsWith: "carta_" } },
       orderBy: { criadoEm: "desc" },
       select: { id: true, nome: true, tipoEvento: true, extensao: true, tamanho: true, criadoEm: true },
+    }),
+    prisma.acompanhamentoFormando.findMany({
+      where: { formandoId: id, organizacaoId: user.organizacaoId },
+      orderBy: { data: "desc" },
+      include: { formador: { select: { nome: true } } },
+    }),
+    prisma.solicitacaoAcompanhamentoFormando.findMany({
+      where: { formandoId: id, organizacaoId: user.organizacaoId, status: "pendente" },
+      orderBy: { solicitadoEm: "desc" },
     }),
   ]);
 
@@ -151,6 +162,19 @@ export default async function FormandoDetailPage({
       tipoOrganizacao={org?.tipoOrganizacao ?? null}
       vocacionalHabilitado={org?.vocacionalHabilitado ?? false}
       cartasEtapa={cartasEtapa}
+      acompanhamentos={acompanhamentosRows.map((a) => ({
+        id: a.id,
+        data: a.data.toISOString(),
+        nota: a.nota,
+        formadorNome: a.formador.nome,
+        solicitadoPeloFormando: a.solicitadoPeloFormando,
+        criadoEm: a.criadoEm.toISOString(),
+      }))}
+      solicitacoesAcompanhamento={solicitacoesAcompRows.map((s) => ({
+        id: s.id,
+        solicitadoEm: s.solicitadoEm.toISOString(),
+        mensagem: s.mensagem,
+      }))}
       processosEclesiasticos={processosEclesiasticosRows.map((p) => ({
         id: p.id,
         organizacaoId: p.organizacaoId,

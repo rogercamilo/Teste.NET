@@ -56,6 +56,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  AcompanhamentoSection,
+  type AcompanhamentoFormandoItem,
+  type SolicitacaoAcompanhamentoItem,
+} from "./AcompanhamentoSection";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -160,6 +165,8 @@ interface Props {
   processosEclesiasticos: ProcessoEclesiastico[];
   vocacionalHabilitado: boolean;
   cartasEtapa: CartaEtapa[];
+  acompanhamentos: AcompanhamentoFormandoItem[];
+  solicitacoesAcompanhamento: SolicitacaoAcompanhamentoItem[];
 }
 
 export interface CartaEtapa {
@@ -189,6 +196,8 @@ export default function FormandoDetailClient({
   processosEclesiasticos,
   vocacionalHabilitado,
   cartasEtapa,
+  acompanhamentos,
+  solicitacoesAcompanhamento,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -225,6 +234,13 @@ export default function FormandoDetailClient({
     email: "",
     grupoFormacaoId: "",
     nomeSocial: "",
+    endereco: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
+    paisResidencia: "",
     nacionalidade: "",
     rg: "",
     orgaoEmissor: "",
@@ -731,6 +747,13 @@ export default function FormandoDetailClient({
           telefone: stripPhone(editForm.telefone), email: editForm.email.trim(),
           grupoFormacaoId: editForm.grupoFormacaoId || null,
           nomeSocial: editForm.nomeSocial.trim() || null,
+          endereco: editForm.endereco.trim() || null,
+          numero: editForm.numero.trim() || null,
+          complemento: editForm.complemento.trim() || null,
+          bairro: editForm.bairro.trim() || null,
+          cidade: editForm.cidade.trim() || null,
+          estado: editForm.estado.trim() || null,
+          paisResidencia: editForm.paisResidencia.trim() || null,
           nacionalidade: editForm.nacionalidade.trim() || null,
           rg: editForm.rg.trim() || null,
           orgaoEmissor: editForm.orgaoEmissor.trim() || null,
@@ -853,6 +876,13 @@ export default function FormandoDetailClient({
                   email: formando.email,
                   grupoFormacaoId: formando.grupoFormacaoId ?? "",
                   nomeSocial: formando.nomeSocial ?? "",
+                  endereco: formando.endereco ?? "",
+                  numero: formando.numero ?? "",
+                  complemento: formando.complemento ?? "",
+                  bairro: formando.bairro ?? "",
+                  cidade: formando.cidade ?? "",
+                  estado: formando.estado ?? "",
+                  paisResidencia: formando.paisResidencia ?? "",
                   nacionalidade: formando.nacionalidade ?? "",
                   rg: formando.rg ?? "",
                   orgaoEmissor: formando.orgaoEmissor ?? "",
@@ -1030,6 +1060,9 @@ export default function FormandoDetailClient({
           </TabsTrigger>
           <TabsTrigger value="comentarios" className="text-xs h-7">
             Comentários do formador
+          </TabsTrigger>
+          <TabsTrigger value="acompanhamento" className="text-xs h-7">
+            Acompanhamento
           </TabsTrigger>
           <TabsTrigger value="dados" className="text-xs h-7">
             Dados Pessoais
@@ -2154,6 +2187,18 @@ export default function FormandoDetailClient({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Acompanhamento formativo (jornada comunitária) — o formador marca
+            encontros e vê os pedidos que o formando fez pelo portal. */}
+        <TabsContent value="acompanhamento" className="mt-4">
+          <AcompanhamentoSection
+            formandoId={id}
+            termoFormando={termoFormando}
+            acompanhamentos={acompanhamentos}
+            solicitacoes={solicitacoesAcompanhamento}
+            podeGerir
+          />
         </TabsContent>
 
         {/* Dados Pessoais */}
@@ -3406,6 +3451,65 @@ export default function FormandoDetailClient({
                       value={editForm.paroquiaReferencia}
                       onChange={(e) => setEditForm((p) => ({ ...p, paroquiaReferencia: e.target.value }))}
                       placeholder="Nome da paróquia"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-[1fr_120px] gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Endereço</Label>
+                    <Input
+                      value={editForm.endereco}
+                      onChange={(e) => setEditForm((p) => ({ ...p, endereco: e.target.value }))}
+                      placeholder="Rua, avenida…"
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Número</Label>
+                    <Input
+                      value={editForm.numero}
+                      onChange={(e) => setEditForm((p) => ({ ...p, numero: e.target.value }))}
+                      placeholder="Nº"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Complemento</Label>
+                    <Input
+                      value={editForm.complemento}
+                      onChange={(e) => setEditForm((p) => ({ ...p, complemento: e.target.value }))}
+                      placeholder="Apto, bloco…"
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Bairro</Label>
+                    <Input
+                      value={editForm.bairro}
+                      onChange={(e) => setEditForm((p) => ({ ...p, bairro: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Cidade</Label>
+                    <Input
+                      value={editForm.cidade}
+                      onChange={(e) => setEditForm((p) => ({ ...p, cidade: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Estado (UF)</Label>
+                    <Input
+                      value={editForm.estado}
+                      onChange={(e) => setEditForm((p) => ({ ...p, estado: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>País de residência</Label>
+                    <Input
+                      value={editForm.paisResidencia}
+                      onChange={(e) => setEditForm((p) => ({ ...p, paisResidencia: e.target.value }))}
+                      placeholder="Brasil"
                     />
                   </div>
                 </div>
