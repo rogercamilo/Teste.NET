@@ -4,11 +4,14 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Check, Sprout, Flag, Loader2, MessageSquareText, Heart, Pencil, Trash2, X,
+  BookOpenText, ChevronDown, Target, Tag, MessagesSquare, HelpCircle, Footprints, Share2,
+  CalendarClock,
 } from "lucide-react";
 import { MARCOS_TRAVESSIA, FRUTOS_POR_ACAO } from "@/types";
 import type {
-  PortalTravessia, TravessiaLivro, TravessiaPartilha, CapituloEvangelizacao,
+  PortalTravessia, TravessiaLivro, TravessiaPartilha, CapituloEvangelizacao, CapituloMaterial,
 } from "@/lib/portal-data";
+import { leituraTermos, type LeituraContexto } from "@/lib/leituras-termos";
 import { MuralOptInToggle } from "./TravessiaMural";
 
 interface MuralOptInControle {
@@ -54,10 +57,13 @@ const MARCO_CURTO: Record<string, string> = {
 export function TravessiaCard({
   travessia,
   muralOptIn,
+  contexto = "vocacional",
 }: {
   travessia: PortalTravessia;
   muralOptIn?: MuralOptInControle | null;
+  contexto?: LeituraContexto;
 }) {
+  const t = leituraTermos(contexto);
   // Fonte da verdade da UI: capítulos lidos (otimista).
   const [lidos, setLidos] = useState<Set<string>>(
     () => new Set(travessia.livros.flatMap((l) => l.capitulos.filter((c) => c.lido).map((c) => c.id)))
@@ -249,7 +255,7 @@ export function TravessiaCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sprout className="h-4 w-4 text-primary" />
-          Minha Travessia literária
+          {t.cardTitulo}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -260,7 +266,7 @@ export function TravessiaCard({
             <div className="leading-tight">
               <div className="text-2xl font-bold tabular-nums text-foreground">{frutosTotal}</div>
               <div className="text-xs text-muted-foreground">
-                {frutosTotal === 1 ? "Fruto da Travessia" : "Frutos da Travessia"}
+                {frutosTotal === 1 ? t.frutoSingular : t.frutoPlural}
               </div>
             </div>
           </div>
@@ -288,7 +294,7 @@ export function TravessiaCard({
                   para “{MARCO_CURTO[proximoMarco.chave]}”
                 </>
               ) : (
-                <span className="font-medium text-primary">Travessia concluída! 🎉</span>
+                <span className="font-medium text-primary">{t.concluido}</span>
               )}
             </span>
           </div>
@@ -349,6 +355,7 @@ export function TravessiaCard({
               partilhas={partilhas}
               evangelizacoes={evangelizacoes}
               orgInstagram={travessia.orgInstagram}
+              mostrarEvangelizacao={t.mostrarEvangelizacao}
               onToggle={toggle}
               onSalvarPartilha={salvarPartilha}
               onRemoverPartilha={removerPartilha}
@@ -378,6 +385,7 @@ function LivroTrilha({
   partilhas,
   evangelizacoes,
   orgInstagram,
+  mostrarEvangelizacao,
   onToggle,
   onSalvarPartilha,
   onRemoverPartilha,
@@ -390,6 +398,7 @@ function LivroTrilha({
   partilhas: Map<string, TravessiaPartilha>;
   evangelizacoes: Map<string, CapituloEvangelizacao>;
   orgInstagram: string | null;
+  mostrarEvangelizacao: boolean;
   onToggle: (capituloId: string, estaLido: boolean) => void;
   onSalvarPartilha: (capituloId: string, texto: string) => Promise<void>;
   onRemoverPartilha: (capituloId: string) => void;
@@ -405,10 +414,21 @@ function LivroTrilha({
 
   return (
     <div>
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-medium text-foreground">{livro.titulo}</p>
-          {livro.autor && <p className="truncate text-xs text-muted-foreground">{livro.autor}</p>}
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          {/* Capa do livro (retrato) como identificador visual. */}
+          {livro.capaUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={livro.capaUrl}
+              alt={`Capa de ${livro.titulo}`}
+              className="h-16 w-11 shrink-0 rounded border border-border object-cover shadow-sm"
+            />
+          )}
+          <div className="min-w-0">
+            <p className="truncate font-medium text-foreground">{livro.titulo}</p>
+            {livro.autor && <p className="truncate text-xs text-muted-foreground">{livro.autor}</p>}
+          </div>
         </div>
         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
           {lidosNoLivro}/{livro.totalCapitulos}
@@ -467,31 +487,158 @@ function LivroTrilha({
                     {cap.titulo}
                   </span>
                 </button>
+                {cap.metaConclusao && <MetaConclusao meta={cap.metaConclusao} lido={estaLido} />}
+                {cap.material && <CapituloMaterialView material={cap.material} />}
                 <CapituloPartilha
                   capituloId={cap.id}
                   partilha={partilhas.get(cap.id) ?? null}
                   onSalvar={onSalvarPartilha}
                   onRemover={onRemoverPartilha}
                 />
-                <CapituloEvangelizacao
-                  capituloId={cap.id}
-                  evangelizacao={
-                    evangelizacoes.get(cap.id) ?? {
-                      instagramFeito: false,
-                      instagramUrl: null,
-                      youtubeFeito: false,
-                      youtubeUrl: null,
+                {mostrarEvangelizacao && (
+                  <CapituloEvangelizacao
+                    capituloId={cap.id}
+                    evangelizacao={
+                      evangelizacoes.get(cap.id) ?? {
+                        instagramFeito: false,
+                        instagramUrl: null,
+                        youtubeFeito: false,
+                        youtubeUrl: null,
+                      }
                     }
-                  }
-                  orgInstagram={orgInstagram}
-                  onRegistrar={onRegistrarEvangelizacao}
-                  onRemover={onRemoverEvangelizacao}
-                />
+                    orgInstagram={orgInstagram}
+                    onRegistrar={onRegistrarEvangelizacao}
+                    onRemover={onRemoverEvangelizacao}
+                  />
+                )}
               </div>
             </li>
           );
         })}
       </ol>
+    </div>
+  );
+}
+
+/** Formata YYYY-MM-DD → "27 de jul. de 2026" (ancorado ao meio-dia, sem fuso). */
+function formatarMetaData(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+/** Data de hoje (fuso local do navegador) como YYYY-MM-DD, para comparar metas. */
+function hojeIso(): string {
+  const h = new Date();
+  return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}-${String(h.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Selo da meta de conclusão do capítulo (cadência definida pelo formador). Fica
+ * discreto quando lido ou no prazo; vira alerta quando a data passou e o
+ * capítulo ainda não foi lido.
+ */
+function MetaConclusao({ meta, lido }: { meta: string; lido: boolean }) {
+  const atrasado = !lido && meta < hojeIso(); // comparação lexicográfica de YYYY-MM-DD
+  return (
+    <span
+      className={
+        "mt-1.5 flex w-fit items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] " +
+        (atrasado ? "border-destructive/40 text-destructive" : "border-border text-muted-foreground")
+      }
+    >
+      <CalendarClock className="h-3 w-3" />
+      Meta: {formatarMetaData(meta)}
+      {atrasado ? " · atrasado" : ""}
+    </span>
+  );
+}
+
+// Campos do material formativo, na ordem de exibição, com ícone e rótulo. O
+// campo é omitido quando vazio; `chips` renderiza palavras-chave como etiquetas.
+const CAMPOS_MATERIAL: {
+  chave: keyof CapituloMaterial;
+  label: string;
+  Icone: typeof Target;
+  chips?: boolean;
+  lista?: boolean;
+}[] = [
+  { chave: "objetivo", label: "Objetivo da leitura", Icone: Target },
+  { chave: "palavrasChave", label: "Palavras-chave", Icone: Tag, chips: true },
+  { chave: "comentarios", label: "Comentários formativos", Icone: MessagesSquare },
+  { chave: "perguntas", label: "Perguntas", Icone: HelpCircle, lista: true },
+  { chave: "acaoPratica", label: "Ação prática", Icone: Footprints },
+  { chave: "partilha", label: "Partilha sobre a leitura", Icone: Share2 },
+];
+
+/**
+ * Material formativo do capítulo (objetivo, perguntas, ação prática…), definido
+ * pelo formador no cadastro do livro. Read-only e recolhível para não competir
+ * com a marcação de leitura; só aparece quando há algum campo preenchido.
+ */
+function CapituloMaterialView({ material }: { material: CapituloMaterial }) {
+  const [aberto, setAberto] = useState(false);
+  const campos = CAMPOS_MATERIAL.filter(({ chave }) => material[chave]);
+  if (campos.length === 0) return null;
+
+  return (
+    <div className="mt-1.5">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        className="inline-flex items-center gap-1.5 rounded-md text-xs text-muted-foreground hover:text-primary"
+      >
+        <BookOpenText className="h-3.5 w-3.5" />
+        Material da leitura
+        <ChevronDown className={"h-3.5 w-3.5 transition-transform " + (aberto ? "rotate-180" : "")} />
+      </button>
+
+      {aberto && (
+        <div className="mt-2 grid gap-3 rounded-md border border-primary/15 bg-primary/5 px-3 py-2.5">
+          {campos.map(({ chave, label, Icone, chips, lista }) => {
+            const valor = material[chave] as string;
+            return (
+              <div key={chave} className="grid gap-1">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Icone className="h-3.5 w-3.5 text-primary" />
+                  {label}
+                </p>
+                {chips ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {valor
+                      .split(/[,\n]/)
+                      .map((p) => p.trim())
+                      .filter(Boolean)
+                      .map((p, i) => (
+                        <span
+                          key={i}
+                          className="rounded-full border border-primary/30 bg-background px-2 py-0.5 text-[11px] text-foreground"
+                        >
+                          {p}
+                        </span>
+                      ))}
+                  </div>
+                ) : lista ? (
+                  // Perguntas: uma por linha → lista numerada.
+                  <ol className="ml-4 list-decimal space-y-0.5 text-sm text-muted-foreground marker:text-primary/70">
+                    {valor
+                      .split(/\r?\n/)
+                      .map((q) => q.trim())
+                      .filter(Boolean)
+                      .map((q, i) => (
+                        <li key={i} className="pl-1">{q}</li>
+                      ))}
+                  </ol>
+                ) : (
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">{valor}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { REQUISITOS_ETAPAS } from "@/types";
-import type { EstadoCivil, NivelFormativo, TipoFormacao } from "@/types";
+import type { EstadoCivil, NivelFormativo, TipoFormacao, Modalidade } from "@/types";
 import type { PortalAudiencia } from "@/lib/portal-routes";
 import { R2_ENABLED, getImageR2Url, readLocalFile } from "@/lib/storage";
 import { camposFaltantes } from "@/lib/perfil-completude";
@@ -93,6 +93,13 @@ export interface PortalDashboardData {
     participacaoId: string;
     status: string;
     acompanhamentoOferecido: boolean;
+    solicitacaoPendente: boolean;
+  } | null;
+  // Acompanhamento formativo — EXCLUSIVO do Portal do Formando (null para
+  // vocacionados, que têm o próprio card vocacional). Próximo encontro marcado
+  // pelo formador + se o formando já tem um pedido pendente.
+  acompanhamentoFormativo: {
+    proximaData: string | null;
     solicitacaoPendente: boolean;
   } | null;
 }
@@ -272,11 +279,40 @@ export interface CapituloEvangelizacao {
   youtubeUrl: string | null;
 }
 
+/**
+ * Material formativo do capítulo, definido pelo formador no cadastro do livro e
+ * exibido (read-only) na estrutura da leitura no portal. Todos os campos são
+ * opcionais; `material` é null quando o capítulo não tem nenhum preenchido.
+ */
+export interface CapituloMaterial {
+  objetivo: string | null;
+  palavrasChave: string | null;
+  comentarios: string | null;
+  perguntas: string | null;
+  acaoPratica: string | null;
+  partilha: string | null;
+}
+
+// Monta o material do capítulo a partir das colunas; retorna null quando nenhum
+// campo está preenchido (para o portal não renderizar um bloco vazio).
+function materialDeCapitulo(c: {
+  objetivo: string | null; palavrasChave: string | null; comentarios: string | null;
+  perguntas: string | null; acaoPratica: string | null; partilha: string | null;
+}): CapituloMaterial | null {
+  const { objetivo, palavrasChave, comentarios, perguntas, acaoPratica, partilha } = c;
+  const algum = objetivo || palavrasChave || comentarios || perguntas || acaoPratica || partilha;
+  return algum ? { objetivo, palavrasChave, comentarios, perguntas, acaoPratica, partilha } : null;
+}
+
 export interface TravessiaCapitulo {
   id: string;
   numero: number;
   titulo: string;
   lido: boolean;
+  // Meta de conclusão da leitura (YYYY-MM-DD) definida pelo formador, ou null.
+  metaConclusao: string | null;
+  // Material formativo (objetivo, perguntas, ação prática…) — null se vazio.
+  material: CapituloMaterial | null;
   // Partilha do vocacionado sobre este capítulo (null quando não partilhou).
   partilha: TravessiaPartilha | null;
   // Registro de divulgação nas redes deste capítulo (Instagram/YouTube).
@@ -287,6 +323,8 @@ export interface TravessiaLivro {
   id: string;
   titulo: string;
   autor: string | null;
+  // Capa resolvida para exibição direta no portal (ou undefined se não houver).
+  capaUrl?: string;
   ordem: number;
   capitulos: TravessiaCapitulo[];
   totalCapitulos: number;
@@ -352,7 +390,14 @@ export async function getPortalTravessia(
       where: { turmaId, organizacaoId, ativo: true },
       orderBy: { ordem: "asc" },
       include: {
-        capitulos: { orderBy: { numero: "asc" }, select: { id: true, numero: true, titulo: true } },
+        capitulos: {
+          orderBy: { numero: "asc" },
+          select: {
+            id: true, numero: true, titulo: true, metaConclusao: true,
+            objetivo: true, palavrasChave: true, comentarios: true,
+            perguntas: true, acaoPratica: true, partilha: true,
+          },
+        },
       },
     }),
     // Escopado aos livros ATIVOS da turma atual (mesma régua dos `livros`
@@ -417,14 +462,20 @@ export async function getPortalTravessia(
   // Frutos = soma de todas as ações (leitura + partilha), valor fixado por linha.
   const frutosTotal = acoes.reduce((s, a) => s + a.frutos, 0);
 
+  // Capas resolvidas para o portal (pre-signed R2 ou data URL em local), na
+  // ordem dos livros — o map abaixo é síncrono, então resolvemos antes.
+  const capasLivros = await Promise.all(livros.map((l) => resolvePortalFoto(l.capaUrl)));
+
   let totalCapitulos = 0;
   let capitulosLidos = 0;
-  const livrosOut: TravessiaLivro[] = livros.map((l) => {
+  const livrosOut: TravessiaLivro[] = livros.map((l, idx) => {
     const capitulos = l.capitulos.map((c) => ({
       id: c.id,
       numero: c.numero,
       titulo: c.titulo,
       lido: lidos.has(c.id),
+      metaConclusao: c.metaConclusao,
+      material: materialDeCapitulo(c),
       partilha: partilhaPorCapitulo.get(c.id) ?? null,
       evangelizacao:
         evangelizacaoPorCapitulo.get(c.id) ??
@@ -437,6 +488,7 @@ export async function getPortalTravessia(
       id: l.id,
       titulo: l.titulo,
       autor: l.autor,
+      capaUrl: capasLivros[idx],
       ordem: l.ordem,
       capitulos,
       totalCapitulos: capitulos.length,
@@ -553,6 +605,10 @@ export interface PortalPerfil {
   nome: string;
   nivelFormativo: NivelFormativo;
   grupoNome: string | null;
+  // Campos definidos pelo responsável (read-only no portal).
+  email: string;
+  dataIngresso: string; // YYYY-MM-DD
+  modalidade: Modalidade;
   /** Valor cru da foto (key R2/local ou base64) — só para saber se há imagem. */
   foto: string | null;
   /** Foto resolvida para preview direto no portal (ou undefined). */
@@ -561,10 +617,19 @@ export interface PortalPerfil {
   estadoCivil: EstadoCivil;
   telefone: string;
   nomeSocial: string | null;
+  // Endereço residencial
+  endereco: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+  paisResidencia: string | null;
+  cep: string | null;
+  // Canônicos (documentos eclesiásticos)
   nacionalidade: string | null;
   rg: string | null;
   orgaoEmissor: string | null;
-  cep: string | null;
   paroquiaReferencia: string | null;
   numFilhos: number | null;
 }
@@ -578,15 +643,25 @@ export async function getPortalPerfil(
     select: {
       nome: true,
       nivelFormativo: true,
+      email: true,
+      dataIngresso: true,
+      modalidade: true,
       foto: true,
       dataNascimento: true,
       estadoCivil: true,
       telefone: true,
       nomeSocial: true,
+      endereco: true,
+      numero: true,
+      complemento: true,
+      bairro: true,
+      cidade: true,
+      estado: true,
+      paisResidencia: true,
+      cep: true,
       nacionalidade: true,
       rg: true,
       orgaoEmissor: true,
-      cep: true,
       paroquiaReferencia: true,
       numFilhos: true,
       grupoFormacao: { select: { nome: true } },
@@ -599,6 +674,9 @@ export async function getPortalPerfil(
     nome: f.nome,
     nivelFormativo: f.nivelFormativo as NivelFormativo,
     grupoNome: f.grupoFormacao?.nome ?? null,
+    email: f.email,
+    dataIngresso: f.dataIngresso.toISOString().split("T")[0],
+    modalidade: f.modalidade as Modalidade,
     foto: f.foto,
     fotoUrl,
     dataNascimento: f.dataNascimento
@@ -607,10 +685,17 @@ export async function getPortalPerfil(
     estadoCivil: f.estadoCivil as EstadoCivil,
     telefone: f.telefone,
     nomeSocial: f.nomeSocial,
+    endereco: f.endereco,
+    numero: f.numero,
+    complemento: f.complemento,
+    bairro: f.bairro,
+    cidade: f.cidade,
+    estado: f.estado,
+    paisResidencia: f.paisResidencia,
+    cep: f.cep,
     nacionalidade: f.nacionalidade,
     rg: f.rg,
     orgaoEmissor: f.orgaoEmissor,
-    cep: f.cep,
     paroquiaReferencia: f.paroquiaReferencia,
     numFilhos: f.numFilhos,
   };
@@ -751,6 +836,23 @@ export async function getPortalDashboardData(
   // (ele é pré-formativo): o card "Meu período vocacional" carrega o contexto.
   const requisitos = vocacionalAtivo ? null : (REQUISITOS_ETAPAS[nivel] ?? null);
 
+  // Acompanhamento formativo — SÓ para formandos não-vocacionais (Portal do
+  // Formando). Próximo encontro marcado pelo formador + pedido pendente do próprio
+  // formando. Vocacionados têm o card vocacional e não carregam isto.
+  const [proximoAcompanhamento, solicitacaoAcompPendente] = vocacionalAtivo
+    ? [null, null]
+    : await Promise.all([
+        prisma.acompanhamentoFormando.findFirst({
+          where: { formandoId, organizacaoId, data: { gte: agora } },
+          orderBy: { data: "asc" },
+          select: { data: true },
+        }),
+        prisma.solicitacaoAcompanhamentoFormando.findFirst({
+          where: { formandoId, organizacaoId, status: "pendente" },
+          select: { id: true },
+        }),
+      ]);
+
   return {
     formando: {
       id: formando.id,
@@ -763,10 +865,6 @@ export async function getPortalDashboardData(
       perfilCamposFaltantes: camposFaltantes({
         dataNascimento: formando.dataNascimento?.toISOString() ?? null,
         telefone: formando.telefone,
-        nacionalidade: formando.nacionalidade,
-        rg: formando.rg,
-        orgaoEmissor: formando.orgaoEmissor,
-        cep: formando.cep,
       }),
     },
     presenca: {
@@ -818,5 +916,11 @@ export async function getPortalDashboardData(
           solicitacaoPendente: participacaoVocacional.solicitacoes.length > 0,
         }
       : null,
+    acompanhamentoFormativo: vocacionalAtivo
+      ? null
+      : {
+          proximaData: proximoAcompanhamento?.data.toISOString() ?? null,
+          solicitacaoPendente: !!solicitacaoAcompPendente,
+        },
   };
 }

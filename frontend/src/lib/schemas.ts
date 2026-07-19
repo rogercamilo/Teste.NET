@@ -102,6 +102,13 @@ export const CreateFormandoSchema = z.object({
   totalFormacoes: z.number().int().min(0).optional(),
   formacoesRealizadas: z.number().int().min(0).optional(),
   nomeSocial: optionalString(255).nullable(),
+  endereco: optionalString(255).nullable(),
+  numero: optionalString(30).nullable(),
+  complemento: optionalString(120).nullable(),
+  bairro: optionalString(120).nullable(),
+  cidade: optionalString(120).nullable(),
+  estado: optionalString(60).nullable(),
+  paisResidencia: optionalString(60).nullable(),
   nacionalidade: optionalString(100).nullable(),
   rg: optionalString(30).nullable(),
   orgaoEmissor: optionalString(50).nullable(),
@@ -131,15 +138,27 @@ export const UpdateFormandoSchema = CreateFormandoSchema.partial();
 // imposta aqui, não só na rota. Ver project-cadastro-minimo-perfil.
 export const PerfilPortalSchema = z
   .object({
+    // Nome completo é editável pela própria pessoa (identidade). E-mail NÃO entra
+    // aqui: é o login do portal e só o responsável o altera no app.
+    nome: nonEmptyString(255).optional(),
     dataNascimento: isoDate.nullable().optional(),
     estadoCivil: EstadoCivilEnum.optional(),
     telefone: z.string().max(30).optional(),
     foto: z.string().max(2_000_000).nullable().optional(),
     nomeSocial: optionalString(255).nullable(),
+    // Endereço residencial
+    endereco: optionalString(255).nullable(),
+    numero: optionalString(30).nullable(),
+    complemento: optionalString(120).nullable(),
+    bairro: optionalString(120).nullable(),
+    cidade: optionalString(120).nullable(),
+    estado: optionalString(60).nullable(),
+    paisResidencia: optionalString(60).nullable(),
+    cep: optionalString(10).nullable(),
+    // Campos canônicos (documentos eclesiásticos) — opcionais
     nacionalidade: optionalString(100).nullable(),
     rg: optionalString(30).nullable(),
     orgaoEmissor: optionalString(50).nullable(),
-    cep: optionalString(10).nullable(),
     paroquiaReferencia: optionalString(255).nullable(),
     numFilhos: z.number().int().min(0).nullable().optional(),
   })
@@ -213,23 +232,54 @@ export const CreateAcompanhamentoVocacionalSchema = z.object({
   anotacaoEvolucao: nonEmptyString(10000),
 });
 
+// Acompanhamento do FORMANDO (jornada formativa comunitária): o formador marca a
+// data e, opcionalmente, uma nota privada. `atendeSolicitacaoId` liga o encontro
+// a um pedido pendente do formando (marca a solicitação como agendada).
+export const CreateAcompanhamentoFormandoSchema = z.object({
+  data: isoDate,
+  nota: optionalString(4000).nullable(),
+  atendeSolicitacaoId: z.string().optional(),
+});
+
 // ── Leitura Vocacional (indicações de leitura da turma) ───────────────────────
-// Os capítulos chegam como um array de títulos (um por linha no cliente); a API
-// os numera 1..N na ordem recebida.
+// Cada capítulo é um objeto: o título (obrigatório) mais os campos de material
+// formativo (todos OPCIONAIS), definidos capítulo a capítulo no cadastro do
+// livro e exibidos na estrutura da leitura no portal. A API numera 1..N na ordem
+// recebida. Strings vazias viram null no store.
+const capituloLeitura = z.object({
+  titulo: nonEmptyString(200),
+  // Meta de conclusão (YYYY-MM-DD) — define a cadência da leitura. Null = sem meta.
+  metaConclusao: isoDate.nullable().optional(),
+  objetivo: optionalString(2000).nullable(),
+  palavrasChave: optionalString(500).nullable(),
+  comentarios: optionalString(4000).nullable(),
+  // Perguntas individuais persistidas como texto (uma por linha) — teto maior
+  // para acomodar várias perguntas por capítulo.
+  perguntas: optionalString(8000).nullable(),
+  acaoPratica: optionalString(2000).nullable(),
+  partilha: optionalString(2000).nullable(),
+});
+
 const capitulosLeitura = z
-  .array(nonEmptyString(200))
+  .array(capituloLeitura)
   .min(1, "Informe ao menos um capítulo")
   .max(120, "Máximo 120 capítulos");
+
+// Capa: storageKey do upload (curta) — não é URL nem base64. optional+nullable
+// permite não enviar (mantém) ou enviar null (remove).
+const capaLeitura = optionalString(500).nullable();
 
 export const CreateLeituraSchema = z.object({
   titulo: nonEmptyString(200),
   autor: optionalString(120).nullable(),
+  capaUrl: capaLeitura,
   capitulos: capitulosLeitura,
 });
 
 export const UpdateLeituraSchema = z.object({
   titulo: nonEmptyString(200).optional(),
   autor: optionalString(120).nullable(),
+  capaUrl: capaLeitura,
   ordem: z.number().int().min(0).max(1000).optional(),
   ativo: z.boolean().optional(),
   capitulos: capitulosLeitura.optional(),

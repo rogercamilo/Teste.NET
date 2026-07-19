@@ -262,6 +262,8 @@ export default function FormandosClient({
   async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório.");
     if (!form.email.trim()) return toast.error("E-mail é obrigatório.");
+    if (!form.grupoFormacaoId) return toast.error(`${termoGrupoFormacao} é obrigatória.`);
+    if (!form.modalidade) return toast.error("Modalidade é obrigatória.");
 
     const grupoFormacao = initialGruposFormacao.find((m) => m.id === form.grupoFormacaoId);
     const nivelFormativo = grupoFormacao?.nivelFormativo ?? form.nivelFormativo;
@@ -607,7 +609,7 @@ export default function FormandosClient({
               )}
             </div>
             <div className="grid gap-1.5">
-              <Label>{termoGrupoFormacao}</Label>
+              <Label>{termoGrupoFormacao} <span className="text-destructive">*</span></Label>
               <Select
                 value={form.grupoFormacaoId}
                 onValueChange={(v) => {
@@ -626,7 +628,6 @@ export default function FormandosClient({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
                   {initialGruposFormacao.filter((m) => m.ativo).map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.nome}{m.nivelFormativo ? ` — ${etapaLabels[m.nivelFormativo]}` : ""}
@@ -660,6 +661,20 @@ export default function FormandosClient({
               )}
             </div>
 
+            <div className="grid gap-1.5">
+              <Label>Modalidade <span className="text-destructive">*</span></Label>
+              <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)}>
+                <SelectTrigger>
+                  <SelectValue>{MODALIDADE_LABELS[form.modalidade]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="presencial">Presencial</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="hibrida">Híbrida</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {showOptional ? (
               <div className="grid gap-4 border-t border-border/60 pt-4">
                 {!editing && (
@@ -686,31 +701,16 @@ export default function FormandosClient({
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="grid gap-1.5">
-                    <Label>Telefone</Label>
-                    <Input
-                      type="tel"
-                      inputMode="numeric"
-                      value={form.telefone}
-                      onChange={(e) => set("telefone")(applyPhoneMask(e.target.value))}
-                      placeholder="(xx) xxxxx-xxxx"
-                      maxLength={15}
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label>Modalidade</Label>
-                    <Select value={form.modalidade} onValueChange={(v) => v && set("modalidade")(v)}>
-                      <SelectTrigger>
-                        <SelectValue>{MODALIDADE_LABELS[form.modalidade]}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="presencial">Presencial</SelectItem>
-                        <SelectItem value="online">Online</SelectItem>
-                        <SelectItem value="hibrida">Híbrida</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="grid gap-1.5">
+                  <Label>Telefone</Label>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    value={form.telefone}
+                    onChange={(e) => set("telefone")(applyPhoneMask(e.target.value))}
+                    placeholder="(xx) xxxxx-xxxx"
+                    maxLength={15}
+                  />
                 </div>
                 <div className="grid gap-1.5">
                   <Label>Data de ingresso</Label>

@@ -114,6 +114,14 @@ export interface Formando {
   cep?: string;
   paroquiaReferencia?: string;
   numFilhos?: number;
+  // Endereço residencial (auto-declarado no portal)
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  paisResidencia?: string;
 }
 
 export interface PlanoFormativo {

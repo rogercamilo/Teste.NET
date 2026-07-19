@@ -21,13 +21,17 @@ export default async function PortalDashboardPage() {
   const [data, materiais, travessia, aniversariantes, branding] = await Promise.all([
     getPortalDashboardData(session.formandoId, session.organizacaoId),
     getPortalMateriais(session.formandoId, session.organizacaoId),
-    // Trilha de leitura é do público vocacional — pura economia p/ o formando.
-    session.audiencia === "vocacional"
-      ? getPortalTravessia(session.formandoId, session.organizacaoId)
-      : Promise.resolve(null),
+    // Acompanhamento de leitura é do GRUPO (vocacional ou de formação): retorna
+    // null quando o grupo não tem livros, então buscar sempre é barato e cobre
+    // tanto o vocacionado (Travessia) quanto o formando (leituras da formação).
+    getPortalTravessia(session.formandoId, session.organizacaoId),
     getPortalAniversariantes(session.formandoId, session.organizacaoId),
     getPublicBranding(session.organizacaoId),
   ]);
+
+  // A identidade/terminologia da leitura segue o público: vocacional mantém a
+  // "Travessia" (Frutos, evangelização, Mural); formando vê "Minhas leituras".
+  const leituraContexto = session.audiencia === "vocacional" ? "vocacional" : "formativo";
 
   // Sessão válida mas formando inexistente/inativo → encerra pela porta de
   // origem (proxy limpará o cookie no próximo acesso protegido)
@@ -38,6 +42,7 @@ export default async function PortalDashboardPage() {
       data={data}
       materiais={materiais}
       travessia={travessia}
+      leituraContexto={leituraContexto}
       aniversariantes={aniversariantes}
       branding={branding}
     />

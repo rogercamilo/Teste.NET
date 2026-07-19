@@ -16,6 +16,29 @@ describe("PerfilPortalSchema", () => {
     expect(r.success).toBe(true);
   });
 
+  it("aceita o nome completo (editável pela própria pessoa)", () => {
+    expect(PerfilPortalSchema.safeParse({ nome: "Maria Silva" }).success).toBe(true);
+    // Nome presente não pode ser vazio.
+    expect(PerfilPortalSchema.safeParse({ nome: "" }).success).toBe(false);
+  });
+
+  it("aceita os campos de endereço residencial", () => {
+    const r = PerfilPortalSchema.safeParse({
+      endereco: "Rua das Flores", numero: "123", complemento: "Apto 4",
+      bairro: "Centro", cidade: "Fortaleza", estado: "CE",
+      paisResidencia: "Brasil", cep: "60000-000",
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("aceita os campos canônicos (documentos eclesiásticos)", () => {
+    const r = PerfilPortalSchema.safeParse({
+      nacionalidade: "Brasileira", rg: "123", orgaoEmissor: "SSP/CE",
+      paroquiaReferencia: "N. Sra.", numFilhos: 2,
+    });
+    expect(r.success).toBe(true);
+  });
+
   it("aceita objeto vazio (nada a alterar)", () => {
     expect(PerfilPortalSchema.safeParse({}).success).toBe(true);
   });
@@ -37,7 +60,7 @@ describe("PerfilPortalSchema", () => {
     ["dataIngresso", "2026-01-01"],
     ["ativo", false],
     ["totalFormacoes", 10],
-    ["nome", "Fulano"],
+    ["email", "novo@exemplo.com"], // e-mail é o login: só o responsável altera no app
   ])("REJEITA o campo formativo/gerido pelo formador: %s", (campo, valor) => {
     const r = PerfilPortalSchema.safeParse({ [campo]: valor });
     expect(r.success).toBe(false);

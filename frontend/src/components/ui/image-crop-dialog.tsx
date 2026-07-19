@@ -29,6 +29,15 @@ interface ImageCropDialogProps {
   /** Tamanho do lado do quadrado exportado em px (padrão 280) */
   outputSize?: number;
   /**
+   * Proporção largura/altura do recorte (padrão 1 = quadrado). Ex.: 2/3 para
+   * capa de livro (retrato). Quando ≠ 1, informe também outputWidth/outputHeight.
+   */
+  aspect?: number;
+  /** Largura exportada em px (padrão = outputSize). */
+  outputWidth?: number;
+  /** Altura exportada em px (padrão = outputSize). */
+  outputHeight?: number;
+  /**
    * Endpoint para upload automático após o crop (ex: "/api/imagens").
    * Quando fornecido, o componente faz POST multipart/form-data e chama
    * onSave com a key retornada pelo servidor.
@@ -45,6 +54,9 @@ export function ImageCropDialog({
   hasImage = false,
   title = "Foto",
   outputSize = 280,
+  aspect = 1,
+  outputWidth,
+  outputHeight,
   uploadEndpoint,
 }: ImageCropDialogProps) {
   const [imagemSrc, setImagemSrc] = useState<string | null>(null);
@@ -88,8 +100,10 @@ export function ImageCropDialog({
         img.src = imagemSrc;
       });
       const canvas = document.createElement("canvas");
-      canvas.width = outputSize;
-      canvas.height = outputSize;
+      const w = outputWidth ?? outputSize;
+      const h = outputHeight ?? outputSize;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(
         img,
@@ -99,8 +113,8 @@ export function ImageCropDialog({
         croppedAreaPixels.height,
         0,
         0,
-        outputSize,
-        outputSize,
+        w,
+        h,
       );
 
       if (uploadEndpoint) {
@@ -150,7 +164,7 @@ export function ImageCropDialog({
                   image={imagemSrc}
                   crop={crop}
                   zoom={zoom}
-                  aspect={1}
+                  aspect={aspect}
                   onCropChange={setCrop}
                   onZoomChange={setZoom}
                   onCropComplete={onCropComplete}

@@ -39,6 +39,8 @@ export async function PATCH(request: Request) {
     await prisma.formando.update({
       where: { id: formando.id },
       data: {
+        // Nome completo é editável pela própria pessoa; o zod já garante não-vazio.
+        ...(body.nome !== undefined ? { nome: body.nome.trim() } : {}),
         // A pessoa PODE limpar a própria data (diferente do PUT do formador, onde
         // `x ? new Date() : undefined` vira no-op): tratamos null explicitamente.
         ...(body.dataNascimento !== undefined
@@ -48,10 +50,19 @@ export async function PATCH(request: Request) {
         ...(body.telefone !== undefined ? { telefone: body.telefone } : {}),
         ...(body.foto !== undefined ? { foto: body.foto || null } : {}),
         ...(body.nomeSocial !== undefined ? { nomeSocial: body.nomeSocial || null } : {}),
+        // Endereço residencial
+        ...(body.endereco !== undefined ? { endereco: body.endereco || null } : {}),
+        ...(body.numero !== undefined ? { numero: body.numero || null } : {}),
+        ...(body.complemento !== undefined ? { complemento: body.complemento || null } : {}),
+        ...(body.bairro !== undefined ? { bairro: body.bairro || null } : {}),
+        ...(body.cidade !== undefined ? { cidade: body.cidade || null } : {}),
+        ...(body.estado !== undefined ? { estado: body.estado || null } : {}),
+        ...(body.paisResidencia !== undefined ? { paisResidencia: body.paisResidencia || null } : {}),
+        ...(body.cep !== undefined ? { cep: body.cep || null } : {}),
+        // Canônicos (documentos eclesiásticos)
         ...(body.nacionalidade !== undefined ? { nacionalidade: body.nacionalidade || null } : {}),
         ...(body.rg !== undefined ? { rg: body.rg || null } : {}),
         ...(body.orgaoEmissor !== undefined ? { orgaoEmissor: body.orgaoEmissor || null } : {}),
-        ...(body.cep !== undefined ? { cep: body.cep || null } : {}),
         ...(body.paroquiaReferencia !== undefined ? { paroquiaReferencia: body.paroquiaReferencia || null } : {}),
         ...(body.numFilhos !== undefined ? { numFilhos: body.numFilhos } : {}),
       },

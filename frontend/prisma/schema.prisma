@@ -257,6 +257,8 @@ model Organizacao {
   acompanhamentosVocacional AcompanhamentoVocacional[]
   leiturasVocacionais       LeituraVocacional[]
   acoesLeitura              AcaoLeitura[]
+  acompanhamentosFormando   AcompanhamentoFormando[]
+  solicitacoesAcompanhamentoFormando SolicitacaoAcompanhamentoFormando[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -321,6 +323,7 @@ model Usuario {
   pushSubscriptions              PushSubscription[]
   participacoesAcompanhadas      ParticipacaoVocacional[]   @relation("AcompanhadorParticipacao")
   acompanhamentosRegistrados     AcompanhamentoVocacional[] @relation("AcompanhadorRegistro")
+  acompanhamentosFormandoFeitos  AcompanhamentoFormando[]   @relation("AcompanhamentoFormandoFormador")
 
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
@@ -416,6 +419,14 @@ model Formando {
   rg                  String?
   orgaoEmissor        String?
   cep                 String?
+  // Endereço residencial (auto-declarado pelo formando no portal)
+  endereco            String?
+  numero              String?
+  complemento         String?
+  bairro              String?
+  cidade              String?
+  estado              String?
+  paisResidencia      String?
   paroquiaReferencia  String?
   numFilhos           Int?
   condicaoAtual       CondicaoMembro?
@@ -451,6 +462,8 @@ model Formando {
   participacoesVocacional ParticipacaoVocacional[]
   accessTokens            FormandoAccessToken[]
   acoesLeitura            AcaoLeitura[]
+  acompanhamentos         AcompanhamentoFormando[]
+  solicitacoesAcompanhamento SolicitacaoAcompanhamentoFormando[]
 
   @@index([organizacaoId])
   @@index([grupoFormacaoId])
@@ -1376,6 +1389,48 @@ model SolicitacaoAcompanhamento {
   @@index([status])
 }
 
+// Encontro de acompanhamento do FORMANDO (jornada formativa comunitária). Espelha
+// AcompanhamentoVocacional, mas ancorado no Formando (não em ParticipacaoVocacional)
+// e SEM criptografia de foro íntimo: é observação FORMATIVA/comunitária do
+// formador — o formando NÃO a vê (nota privada ao formador). Iniciativa do
+// formador (marca a data) ou consequência de uma solicitação do formando.
+model AcompanhamentoFormando {
+  id                     String   @id @default(cuid())
+  organizacaoId          String
+  formandoId             String
+  formadorId             String // quem marcou/registrou (Usuario)
+  data                   DateTime // data do encontro de acompanhamento
+  nota                   String?  @db.Text // observação do formador (privada ao formador)
+  solicitadoPeloFormando Boolean  @default(false)
+  criadoEm               DateTime @default(now())
+  atualizadoEm           DateTime @updatedAt
+
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando    Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+  formador    Usuario     @relation("AcompanhamentoFormandoFormador", fields: [formadorId], references: [id])
+
+  @@index([organizacaoId])
+  @@index([formandoId])
+}
+
+// Pedido do FORMANDO por acompanhamento (via Portal do Formando). Reaproveita o
+// enum de status do vocacional. Sempre disponível ao formando (não depende de flag).
+model SolicitacaoAcompanhamentoFormando {
+  id            String                          @id @default(cuid())
+  organizacaoId String
+  formandoId    String
+  solicitadoEm  DateTime                        @default(now())
+  mensagem      String?
+  status        StatusSolicitacaoAcompanhamento @default(pendente)
+
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando    Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+
+  @@index([organizacaoId])
+  @@index([formandoId])
+  @@index([status])
+}
+
 // ==========================================================
 // LEITURA VOCACIONAL — indicações de leitura da turma vocacional
 // ==========================================================
@@ -1389,6 +1444,9 @@ model LeituraVocacional {
   turmaId       String   @map("morada_id") // → GrupoFormacao tipo=vocacional
   titulo        String
   autor         String?
+  // Capa do livro: storageKey no R2/local (mesmo padrão de Formando.foto). Serve
+  // de identificador visual do livro na app e nos portais.
+  capaUrl       String?  @db.Text
   ordem         Int      @default(0) // ordem do livro na trilha da turma
   ativo         Boolean  @default(true)
   criadoEm      DateTime @default(now())
@@ -1409,6 +1467,19 @@ model CapituloLeitura {
   leituraId String
   numero    Int
   titulo    String
+
+  // Meta de conclusão da leitura deste capítulo (YYYY-MM-DD, date-only textual —
+  // sem hora/fuso). O formador define a cadência da leitura do livro.
+  metaConclusao String?
+
+  // Material formativo OPCIONAL por capítulo, definido no cadastro do livro pelo
+  // formador e exibido na estrutura da leitura no portal do formando/vocacionado.
+  objetivo      String? // Objetivo da leitura
+  palavrasChave String? // Palavras-chave
+  comentarios   String? // Comentários formativos
+  perguntas     String? // Perguntas para reflexão
+  acaoPratica   String? // Ação prática
+  partilha      String? // Convite/roteiro de partilha sobre a leitura
 
   leitura LeituraVocacional @relation(fields: [leituraId], references: [id], onDelete: Cascade)
   acoes   AcaoLeitura[]

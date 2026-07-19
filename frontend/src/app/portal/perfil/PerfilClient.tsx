@@ -22,6 +22,7 @@ import {
   ESTADO_CIVIL_LABELS,
   NIVEL_FORMATIVO_LABELS,
   NIVEL_FORMATIVO_ICONS,
+  MODALIDADE_LABELS,
 } from "@/types";
 import type { EstadoCivil } from "@/types";
 import { applyPhoneMask } from "@/lib/utils";
@@ -62,14 +63,24 @@ export default function PerfilClient({
   const [saving, setSaving] = useState(false);
 
   // Campos pessoais editáveis — semeados do dado atual.
+  const [nome, setNome] = useState(perfil.nome ?? "");
   const [dataNascimento, setDataNascimento] = useState(perfil.dataNascimento ?? "");
   const [estadoCivil, setEstadoCivil] = useState<EstadoCivil>(perfil.estadoCivil);
   const [telefone, setTelefone] = useState(perfil.telefone ?? "");
   const [nomeSocial, setNomeSocial] = useState(perfil.nomeSocial ?? "");
+  // Endereço residencial
+  const [endereco, setEndereco] = useState(perfil.endereco ?? "");
+  const [numero, setNumero] = useState(perfil.numero ?? "");
+  const [complemento, setComplemento] = useState(perfil.complemento ?? "");
+  const [bairro, setBairro] = useState(perfil.bairro ?? "");
+  const [cidade, setCidade] = useState(perfil.cidade ?? "");
+  const [estado, setEstado] = useState(perfil.estado ?? "");
+  const [paisResidencia, setPaisResidencia] = useState(perfil.paisResidencia ?? "");
+  const [cep, setCep] = useState(perfil.cep ?? "");
+  // Canônicos (documentos eclesiásticos)
   const [nacionalidade, setNacionalidade] = useState(perfil.nacionalidade ?? "");
   const [rg, setRg] = useState(perfil.rg ?? "");
   const [orgaoEmissor, setOrgaoEmissor] = useState(perfil.orgaoEmissor ?? "");
-  const [cep, setCep] = useState(perfil.cep ?? "");
   const [paroquiaReferencia, setParoquiaReferencia] = useState(perfil.paroquiaReferencia ?? "");
   const [numFilhos, setNumFilhos] = useState(
     perfil.numFilhos != null ? String(perfil.numFilhos) : ""
@@ -100,20 +111,32 @@ export default function PerfilClient({
   }
 
   async function handleSalvar() {
+    if (!nome.trim()) {
+      toast.error("O nome completo não pode ficar vazio.");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/portal/perfil", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          nome: nome.trim(),
           dataNascimento: dataNascimento || null,
           estadoCivil,
           telefone: telefone.trim(),
           nomeSocial: nomeSocial.trim() || null,
+          endereco: endereco.trim() || null,
+          numero: numero.trim() || null,
+          complemento: complemento.trim() || null,
+          bairro: bairro.trim() || null,
+          cidade: cidade.trim() || null,
+          estado: estado.trim() || null,
+          paisResidencia: paisResidencia.trim() || null,
+          cep: cep.trim() || null,
           nacionalidade: nacionalidade.trim() || null,
           rg: rg.trim() || null,
           orgaoEmissor: orgaoEmissor.trim() || null,
-          cep: cep.trim() || null,
           paroquiaReferencia: paroquiaReferencia.trim() || null,
           numFilhos: numFilhos.trim() === "" ? null : Math.max(0, parseInt(numFilhos, 10) || 0),
         }),
@@ -232,21 +255,63 @@ export default function PerfilClient({
           </CardContent>
         </Card>
 
+        {/* Definidos pela comunidade — somente leitura para a pessoa */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Dados da sua formação</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-1.5">
+              <Label>E-mail</Label>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                {perfil.email}
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Data de ingresso</Label>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                {perfil.dataIngresso.split("-").reverse().join("/")}
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Modalidade</Label>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                {MODALIDADE_LABELS[perfil.modalidade]}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground sm:col-span-3">
+              Estes dados são definidos pelo seu formador. Para ajustes, fale com ele.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Dados pessoais */}
         <Card>
           <CardHeader>
             <CardTitle>Dados pessoais</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="nomeSocial">Nome social</Label>
-              <Input
-                id="nomeSocial"
-                value={nomeSocial}
-                onChange={(e) => setNomeSocial(e.target.value)}
-                maxLength={255}
-                placeholder="Como você prefere ser chamado(a)"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="nome">Nome completo</Label>
+                <Input
+                  id="nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  maxLength={255}
+                  placeholder="Seu nome completo"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="nomeSocial">Nome social</Label>
+                <Input
+                  id="nomeSocial"
+                  value={nomeSocial}
+                  onChange={(e) => setNomeSocial(e.target.value)}
+                  maxLength={255}
+                  placeholder="Como você prefere ser chamado(a)"
+                />
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -274,19 +339,132 @@ export default function PerfilClient({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5 sm:max-w-[calc(50%-0.5rem)]">
+              <Label htmlFor="telefone">Celular</Label>
+              <Input
+                id="telefone"
+                type="tel"
+                inputMode="numeric"
+                value={telefone}
+                onChange={(e) => setTelefone(applyPhoneMask(e.target.value))}
+                placeholder="(xx) xxxxx-xxxx"
+                maxLength={15}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Endereço residencial */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Endereço residencial</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
               <div className="grid gap-1.5">
-                <Label htmlFor="telefone">Telefone</Label>
+                <Label htmlFor="endereco">Endereço</Label>
                 <Input
-                  id="telefone"
-                  type="tel"
-                  inputMode="numeric"
-                  value={telefone}
-                  onChange={(e) => setTelefone(applyPhoneMask(e.target.value))}
-                  placeholder="(xx) xxxxx-xxxx"
-                  maxLength={15}
+                  id="endereco"
+                  value={endereco}
+                  onChange={(e) => setEndereco(e.target.value)}
+                  maxLength={255}
+                  placeholder="Rua, avenida…"
                 />
               </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="numero">Número</Label>
+                <Input
+                  id="numero"
+                  value={numero}
+                  onChange={(e) => setNumero(e.target.value)}
+                  maxLength={30}
+                  placeholder="Nº"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="complemento">Complemento</Label>
+                <Input
+                  id="complemento"
+                  value={complemento}
+                  onChange={(e) => setComplemento(e.target.value)}
+                  maxLength={120}
+                  placeholder="Apto, bloco, referência…"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="bairro">Bairro</Label>
+                <Input
+                  id="bairro"
+                  value={bairro}
+                  onChange={(e) => setBairro(e.target.value)}
+                  maxLength={120}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="cidade">Cidade</Label>
+                <Input
+                  id="cidade"
+                  value={cidade}
+                  onChange={(e) => setCidade(e.target.value)}
+                  maxLength={120}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="estado">Estado (UF)</Label>
+                <Input
+                  id="estado"
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value)}
+                  maxLength={60}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="cep">CEP</Label>
+                <Input
+                  id="cep"
+                  inputMode="numeric"
+                  value={cep}
+                  onChange={(e) => setCep(e.target.value)}
+                  maxLength={10}
+                  placeholder="00000-000"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-1.5 sm:max-w-[calc(50%-0.5rem)]">
+              <Label htmlFor="paisResidencia">País de residência</Label>
+              <Input
+                id="paisResidencia"
+                value={paisResidencia}
+                onChange={(e) => setPaisResidencia(e.target.value)}
+                maxLength={60}
+                placeholder="Brasil"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Dados canônicos (documentos eclesiásticos) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Dados para documentos da comunidade</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <p className="text-xs text-muted-foreground">
+                Informações canônicas usadas nos documentos eclesiásticos que a comunidade
+                elabora para envio à arquidiocese quando solicitados. O preenchimento é opcional.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="nacionalidade">Nacionalidade</Label>
                 <Input
@@ -297,9 +475,18 @@ export default function PerfilClient({
                   placeholder="Brasileira"
                 />
               </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="paroquiaReferencia">Paróquia de referência</Label>
+                <Input
+                  id="paroquiaReferencia"
+                  value={paroquiaReferencia}
+                  onChange={(e) => setParoquiaReferencia(e.target.value)}
+                  maxLength={255}
+                />
+              </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="rg">RG</Label>
                 <Input id="rg" value={rg} onChange={(e) => setRg(e.target.value)} maxLength={30} />
@@ -314,20 +501,6 @@ export default function PerfilClient({
                   placeholder="SSP/UF"
                 />
               </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="cep">CEP</Label>
-                <Input
-                  id="cep"
-                  inputMode="numeric"
-                  value={cep}
-                  onChange={(e) => setCep(e.target.value)}
-                  maxLength={10}
-                  placeholder="00000-000"
-                />
-              </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="numFilhos">Número de filhos</Label>
                 <Input
@@ -339,25 +512,15 @@ export default function PerfilClient({
                 />
               </div>
             </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="paroquiaReferencia">Paróquia de referência</Label>
-              <Input
-                id="paroquiaReferencia"
-                value={paroquiaReferencia}
-                onChange={(e) => setParoquiaReferencia(e.target.value)}
-                maxLength={255}
-              />
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <Button onClick={handleSalvar} disabled={saving}>
-                {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                Salvar alterações
-              </Button>
-            </div>
           </CardContent>
         </Card>
+
+        <div className="flex justify-end">
+          <Button onClick={handleSalvar} disabled={saving}>
+            {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+            Salvar alterações
+          </Button>
+        </div>
 
         <p className="pt-2 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} {communityName}

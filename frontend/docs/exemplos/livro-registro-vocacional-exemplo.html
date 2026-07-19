@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Livro de Registro Geral — Exemplo (todos os cenários)</title>
+<style>
+  /* ── Padrão cartorial/canônico — folha A4; termos preenchem a folha ──────── */
+  :root {
+    --tinta: #1a1a1a;
+    --clay: #B25433;
+    --regua: #cbb89d;
+    --papel: #fbf8f1;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: #e6e2d8;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    color: var(--tinta);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .folha {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 12mm auto;
+    padding: 20mm 20mm 16mm;
+    background: var(--papel);
+    box-shadow: 0 2px 14px rgba(0,0,0,.25);
+    position: relative;
+  }
+  .folha::before { /* margem de fé pública à esquerda */
+    content: "";
+    position: absolute;
+    top: 12mm; bottom: 12mm; left: 16mm;
+    border-left: 1.5px solid var(--clay);
+    opacity: .5;
+  }
+  .cabecalho {
+    text-align: center;
+    border-bottom: 2px double var(--tinta);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+  .cabecalho .org { font-variant: small-caps; letter-spacing: .04em; font-size: 15px; font-weight: 700; }
+  .cabecalho .titulo { font-variant: small-caps; letter-spacing: .12em; font-size: 12px; color: var(--clay); margin-top: 2px; }
+  .foliacao {
+    display: flex; justify-content: space-between;
+    font-size: 11px; font-variant: small-caps; letter-spacing: .06em;
+    margin-bottom: 10px; color: #6b5d49;
+  }
+  .termo { padding: 7px 0 9px; border-bottom: 1px dashed var(--regua); }
+  .termo:last-child { border-bottom: none; }
+  .termo h3 {
+    margin: 0 0 3px; font-size: 12px; font-variant: small-caps;
+    letter-spacing: .04em; display: flex; gap: 8px; align-items: baseline;
+  }
+  .termo h3 .n { color: var(--clay); font-weight: 700; }
+  .termo h3 .tag {
+    margin-left: auto; font-size: 9px; letter-spacing: .07em;
+    color: #6b5d49; border: 1px solid var(--regua); border-radius: 3px; padding: 1px 6px;
+  }
+  .termo p { margin: 2px 0; text-align: justify; }
+  .termo .meta { font-size: 10px; color: #6b5d49; }
+  .rubrica { font-style: italic; color: #6b5d49; }
+  .ref { color: var(--clay); font-style: italic; }
+  .abertura, .encerramento {
+    background: rgba(178,84,51,.05);
+    border: 1px solid var(--regua);
+    padding: 10px 12px; margin: 4px 0 12px; border-radius: 4px;
+  }
+  .abertura h2, .encerramento h2 {
+    margin: 0 0 5px; font-size: 13px; font-variant: small-caps; letter-spacing: .08em; text-align: center;
+  }
+  .assinaturas { display: flex; gap: 28px; margin-top: 12px; }
+  .assinaturas .linha { flex: 1; text-align: center; }
+  .assinaturas .linha .ln { border-top: 1px solid var(--tinta); margin-top: 22px; padding-top: 3px; font-size: 10px; }
+  .nota {
+    max-width: 210mm; margin: 0 auto 12mm; padding: 10px 14px;
+    background: #fff7e8; border: 1px solid #e6cf9c; border-radius: 6px;
+    font-family: system-ui, sans-serif; font-size: 12px; color: #5a4a1f;
+  }
+  @media print {
+    body { background: #fff; }
+    .nota { display: none; }
+    .folha { box-shadow: none; margin: 0; width: auto; min-height: auto; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="nota">
+  <strong>Arquivo de exemplo (mock-up)</strong> — três folhas do Livro de Registro Geral cobrindo
+  <em>todos os cenários de termo</em>. Os termos preenchem a folha de forma contínua (o nº da folha
+  é a posição física onde o termo é lavrado, não uma cota fixa). Não é tela do app: serve para validar
+  layout, foliação e linguagem canônica. Imprima em PDF (A4). Dados fictícios.
+</div>
+
+<!-- ════════════════════ FOLHA 1 ════════════════════ -->
+<div class="folha">
+  <div class="cabecalho">
+    <div class="org">Comunidade Católica Exemplo da Travessia</div>
+    <div class="titulo">Livro de Registro Geral da Jornada Vocacional</div>
+  </div>
+  <div class="foliacao">
+    <span>Tomo I</span><span>Folha 1</span><span>Termos nº 0001 a 0006</span>
+  </div>
+
+  <div class="abertura">
+    <h2>Termo de Abertura</h2>
+    <p>Este livro, sob o título <em>Livro de Registro Geral da Jornada Vocacional</em>, Tomo I,
+    contém 200 (duzentas) folhas, numeradas e rubricadas, e destina-se ao assento cronológico de
+    todos os atos relativos à jornada formativa dos candidatos e membros desta organização, desde o
+    ingresso no período vocacional até o desligamento ou falecimento. Vai por mim aberto, numerado e
+    encerrado nos termos do regimento interno e da praxe canônica.</p>
+    <p class="meta">Fortaleza/CE, 12 de dezembro de 2025.</p>
+    <div class="assinaturas">
+      <div class="linha"><div class="ln">Moderador(a) Geral</div></div>
+      <div class="linha"><div class="ln">Secretário(a)</div></div>
+    </div>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0001</span> — Ingresso no Período Vocacional <span class="tag">VOCACIONAL · INÍCIO</span></h3>
+    <p>Aos 02 (dois) dias do mês de fevereiro de 2026, foi admitido(a) ao Período Vocacional o(a)
+    candidato(a) <strong>Ana Beatriz Moreira de Lima</strong>, nascido(a) em 14/05/2001, natural de
+    Sobral/CE, vinculado(a) ao núcleo de Fortaleza/CE, sob acompanhamento do(a) formador(a)
+    comunitário(a) <strong>Pe. João da Silva</strong>. O período compreende 10 (dez) encontros mensais
+    e 2 (dois) retiros comunitários, cujo acompanhamento de presença consta da ficha do grupo de formação.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 02/02/2026 a partir do registro do formador comunitário.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0002</span> — Encerramento do Período Vocacional <span class="tag">VOCACIONAL · TÉRMINO</span></h3>
+    <p>Aos 06 (seis) dias do mês de dezembro de 2026, encerra-se o Período Vocacional de
+    <strong>Ana Beatriz Moreira de Lima</strong>, iniciado em 02/02/2026. Ao fim do 2º retiro, a
+    candidata apresentou, por carta de próprio punho recebida em 06/12/2026, <strong>pedido formal de
+    ingresso</strong> nas etapas formativas. Carta digitalizada e arquivada no rol de documentos
+    <span class="ref">(doc. CARTA-2026-018)</span>.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 06/12/2026.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0003</span> — Encerramento do Período Vocacional <span class="tag">VOCACIONAL · TÉRMINO</span></h3>
+    <p>Aos 06 (seis) dias do mês de dezembro de 2026, encerra-se o Período Vocacional do(a) candidato(a)
+    <strong>Carlos Henrique Souza</strong>, iniciado em 02/02/2026. Por carta recebida em 06/12/2026, o
+    candidato manifestou <strong>o desejo de não ingressar</strong> nas etapas formativas, concluindo seu
+    discernimento. Carta digitalizada e arquivada <span class="ref">(doc. CARTA-2026-019)</span>. Não
+    havendo prosseguimento, este é o último assento referente ao interessado.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 06/12/2026.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0004</span> — Admissão ao Pré-Discipulado <span class="tag">ETAPA · INGRESSO</span></h3>
+    <p>Aos 15 (quinze) dias do mês de janeiro de 2027, deferido o pedido de ingresso de
+    <strong>Ana Beatriz Moreira de Lima</strong>, é a mesma admitida ao <strong>Pré-Discipulado</strong>,
+    conforme processo eclesiástico nº PE-2027-004, aprovado pelo governo da comunidade. Passa a candidata
+    à condição de <strong>Membro em Experiência</strong>.</p>
+    <p class="meta rubrica">Lavrado automaticamente na conclusão do processo PE-2027-004.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0005</span> — Conclusão do Pré-Discipulado <span class="tag">ETAPA · CONCLUSÃO</span></h3>
+    <p>Aos 20 (vinte) dias do mês de dezembro de 2027, <strong>Ana Beatriz Moreira de Lima</strong> conclui
+    o <strong>Pré-Discipulado</strong>, tendo cumprido o itinerário previsto e participado do retiro de
+    encerramento. Carta de discernimento recebida em 20/12/2027 <span class="ref">(doc. CARTA-2027-145)</span>.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 20/12/2027.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0006</span> — Admissão ao Discipulado <span class="tag">ETAPA · INGRESSO</span></h3>
+    <p>Aos 18 (dezoito) dias do mês de janeiro de 2028, deferido o pedido de ingresso de
+    <strong>Ana Beatriz Moreira de Lima</strong>, é a mesma admitida ao <strong>Discipulado</strong>,
+    conforme processo eclesiástico nº PE-2028-031, aprovado pelo governo da comunidade. Passa a mesma à
+    condição de <strong>Membro em Formação</strong>.</p>
+    <p class="meta rubrica">Lavrado automaticamente na conclusão do processo PE-2028-031.</p>
+  </div>
+</div>
+
+<!-- ════════════════════ FOLHA 2 ════════════════════ -->
+<div class="folha">
+  <div class="cabecalho">
+    <div class="org">Comunidade Católica Exemplo da Travessia</div>
+    <div class="titulo">Livro de Registro Geral da Jornada Vocacional</div>
+  </div>
+  <div class="foliacao">
+    <span>Tomo I</span><span>Folha 2</span><span>Termos nº 0007 a 0013</span>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0007</span> — Primeiras Promessas <span class="tag">PROMESSAS · INICIAIS</span></h3>
+    <p>Aos 12 (doze) dias do mês de dezembro de 2029, <strong>Ana Beatriz Moreira de Lima</strong> emitiu
+    suas <strong>Primeiras Promessas</strong>, com vigência temporária até 12/12/2030. O ato foi lavrado
+    em livro próprio, ao qual este termo se reporta:
+    <span class="ref">Livro de Promessas, Tomo II, Folha 045, Registro nº 2029-031</span>. Celebrante: Dom
+    Antônio Ribeiro. Passa a mesma à condição de <strong>Membro de Primeiras Promessas</strong>.</p>
+    <p class="meta rubrica">Termo referencial — o assento canônico íntegro consta do Livro de Promessas.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0008</span> — Renovação de Promessas <span class="tag">PROMESSAS · RENOVAÇÃO</span></h3>
+    <p>Aos 12 (doze) dias do mês de dezembro de 2030, renovou <strong>Ana Beatriz Moreira de Lima</strong>
+    suas promessas (1ª renovação), com parecer formativo <strong>favorável</strong>, vigência até 12/12/2031.
+    Reporta-se a <span class="ref">Livro de Promessas, Tomo II, Folha 061, Registro nº 2030-052</span>.
+    Passa a mesma à condição de <strong>Membro Consagrado</strong>.</p>
+    <p class="meta rubrica">Lavrado automaticamente na conclusão do processo de renovação PE-2030-052.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0009</span> — Promessas Definitivas <span class="tag">PROMESSAS · DEFINITIVAS</span></h3>
+    <p>Aos 12 (doze) dias do mês de dezembro de 2033, emitiu <strong>Ana Beatriz Moreira de Lima</strong>
+    suas <strong>Promessas Definitivas</strong>, de caráter perpétuo (sem termo de vigência). Reporta-se a
+    <span class="ref">Livro de Promessas, Tomo III, Folha 012, Registro nº 2033-007</span>. Passa a mesma à
+    condição de <strong>Membro de Promessas Definitivas</strong>.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 12/12/2033.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0010</span> — Conferição de Ministério <span class="tag">MINISTÉRIO</span></h3>
+    <p>Aos 02 (dois) dias do mês de fevereiro de 2034, recebeu <strong>Ana Beatriz Moreira de Lima</strong>
+    o ministério de <strong>Coordenação de Núcleo</strong>, conforme carta de designação do governo da comunidade.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 02/02/2034.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0011</span> — Envio em Missão <span class="tag">MISSÃO</span></h3>
+    <p>Aos 25 (vinte e cinco) dias do mês de julho de 2034, foi <strong>Ana Beatriz Moreira de Lima</strong>
+    enviada em missão à fraternidade de Lisboa/Portugal, conforme Carta de Missão expedida pelo Moderador
+    Geral, com prazo previsto de 24 meses.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 25/07/2034.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0012</span> — Transferência de Núcleo <span class="tag">TRANSFERÊNCIA</span></h3>
+    <p>Aos 10 (dez) dias do mês de agosto de 2034, foi <strong>Ana Beatriz Moreira de Lima</strong>
+    transferida do núcleo de Fortaleza/CE para o núcleo de Lisboa/Portugal, conforme Carta de Transferência.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 10/08/2034.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0013</span> — Início de Licença <span class="tag">LICENÇA · INÍCIO</span></h3>
+    <p>Aos 01 (primeiro) dia do mês de março de 2036, foi concedida a <strong>Ana Beatriz Moreira de Lima</strong>
+    <strong>licença</strong> da vida comunitária, por motivo de saúde, a seu requerimento, pelo prazo de 12
+    (doze) meses, deferida pelo governo da comunidade.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 01/03/2036.</p>
+  </div>
+</div>
+
+<!-- ════════════════════ FOLHA 3 ════════════════════ -->
+<div class="folha">
+  <div class="cabecalho">
+    <div class="org">Comunidade Católica Exemplo da Travessia</div>
+    <div class="titulo">Livro de Registro Geral da Jornada Vocacional</div>
+  </div>
+  <div class="foliacao">
+    <span>Tomo I</span><span>Folha 3</span><span>Termos nº 0014 a 0018</span>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0014</span> — Término de Licença <span class="tag">LICENÇA · TÉRMINO</span></h3>
+    <p>Aos 28 (vinte e oito) dias do mês de fevereiro de 2037, encerra-se a licença concedida pelo Termo
+    nº 0013, retornando <strong>Ana Beatriz Moreira de Lima</strong> à plena vida comunitária.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 28/02/2037.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0015</span> — Dispensa de Promessas <span class="tag">DISPENSA</span></h3>
+    <p>Aos 14 (quatorze) dias do mês de junho de 2038, foi concedida ao membro
+    <strong>Marcos Vinícius Andrade</strong> a <strong>dispensa de suas promessas</strong> pela autoridade
+    competente (Bispo Diocesano). Reporta-se a
+    <span class="ref">Livro de Promessas, Tomo III, Folha 088, Registro nº 2038-014</span>.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 14/06/2038.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0016</span> — Desligamento <span class="tag">DESLIGAMENTO</span></h3>
+    <p>Aos 14 (quatorze) dias do mês de junho de 2038, em decorrência da dispensa lavrada no Termo nº 0015,
+    <strong>Marcos Vinícius Andrade</strong> é desligado do quadro de membros da comunidade, cessando seus
+    vínculos formativos.</p>
+    <p class="meta rubrica">Lavrado automaticamente em 14/06/2038.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0017</span> — Retificação <span class="tag">RETIFICAÇÃO</span></h3>
+    <p>Retifica-se o <strong>Termo nº 0011</strong> (Envio em Missão), no qual constou indevidamente
+    "Lisboa/Portugal", para que conste corretamente <strong>"Porto/Portugal"</strong>. A retificação não
+    altera nem suprime o termo original, que permanece íntegro; este termo a ele se reporta para todos os efeitos.</p>
+    <p class="meta rubrica">Lavrado por determinação do(a) administrador(a), com registro em log de auditoria.</p>
+  </div>
+
+  <div class="termo">
+    <h3><span class="n">Termo nº 0018</span> — Falecimento <span class="tag">FALECIMENTO</span></h3>
+    <p>Aos 03 (três) dias do mês de outubro de 2040, faleceu, em comunhão com a comunidade, o membro
+    <strong>Pe. José Carlos Nunes</strong>, em Fortaleza/CE. Encerram-se com este os assentos relativos ao
+    interessado. <em>Requiescat in pace.</em></p>
+    <p class="meta rubrica">Lavrado automaticamente em 03/10/2040.</p>
+  </div>
+
+  <div class="encerramento">
+    <h2>Termo de Encerramento</h2>
+    <p>Encerra-se o presente Tomo I do <em>Livro de Registro Geral da Jornada Vocacional</em>, contendo 200
+    (duzentas) folhas e os termos de nº 0001 a nº ____, todos por mim conferidos. Os assentos subsequentes
+    terão prosseguimento no Tomo II.</p>
+    <p class="meta">Fortaleza/CE, ____ de ____________ de ______.</p>
+    <div class="assinaturas">
+      <div class="linha"><div class="ln">Moderador(a) Geral</div></div>
+      <div class="linha"><div class="ln">Secretário(a)</div></div>
+      <div class="linha"><div class="ln">Visto do Auditor</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

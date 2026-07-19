@@ -71,6 +71,8 @@ export type PrismaFormando = {
   nomeSocial: string | null; nacionalidade: string | null; rg: string | null;
   orgaoEmissor: string | null; cep: string | null; paroquiaReferencia: string | null;
   numFilhos: number | null;
+  endereco: string | null; numero: string | null; complemento: string | null;
+  bairro: string | null; cidade: string | null; estado: string | null; paisResidencia: string | null;
   progressoEtapas: {
     id: string; formandoId: string; nivelFormativo: string;
     formacoesComunitariasRealizadas: number; retirosComunitariosRealizados: number;
@@ -228,6 +230,13 @@ export function toFormando(f: PrismaFormando): Formando {
     cep: f.cep ?? undefined,
     paroquiaReferencia: f.paroquiaReferencia ?? undefined,
     numFilhos: f.numFilhos ?? undefined,
+    endereco: f.endereco ?? undefined,
+    numero: f.numero ?? undefined,
+    complemento: f.complemento ?? undefined,
+    bairro: f.bairro ?? undefined,
+    cidade: f.cidade ?? undefined,
+    estado: f.estado ?? undefined,
+    paisResidencia: f.paisResidencia ?? undefined,
     progressoEtapas: f.progressoEtapas.map((p): ProgressoEtapa => ({
       nivel: p.nivelFormativo as ProgressoEtapa["nivel"],
       formacoesComunitariasRealizadas: p.formacoesComunitariasRealizadas,

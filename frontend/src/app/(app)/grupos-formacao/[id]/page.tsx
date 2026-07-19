@@ -12,6 +12,7 @@ import {
   toRelatorio,
 } from "@/lib/converters";
 import GrupoFormacaoDetail from "./GrupoFormacaoDetail";
+import { capituloCampos } from "@/lib/leituras-store";
 import type { PerfilUsuario, Usuario } from "@/types";
 
 export default async function GrupoFormacaoDetailPage({
@@ -44,7 +45,7 @@ export default async function GrupoFormacaoDetailPage({
 
   if (!grupo) redirect("/grupos-formacao");
 
-  const [formandos, agendamentos, planos, grades, usuarios, relatorios] =
+  const [formandos, agendamentos, planos, grades, usuarios, relatorios, leituras] =
     await Promise.all([
       prisma.formando.findMany({
         where: { grupoFormacaoId: id, organizacaoId: orgId, deletedAt: null },
@@ -82,6 +83,11 @@ export default async function GrupoFormacaoDetailPage({
       }),
       prisma.relatorioEtapa.findMany({
         where: { organizacaoId: orgId, formando: { grupoFormacaoId: id } },
+      }),
+      prisma.leituraVocacional.findMany({
+        where: { turmaId: id, organizacaoId: orgId },
+        orderBy: { ordem: "asc" },
+        include: { capitulos: { orderBy: { numero: "asc" }, select: capituloCampos } },
       }),
     ]);
 
@@ -126,6 +132,15 @@ export default async function GrupoFormacaoDetailPage({
       initialGrades={grades.map(toGrade)}
       initialUsuarios={initialUsuarios}
       initialRelatorios={relatorios.map(toRelatorio)}
+      initialLeituras={leituras.map((l) => ({
+        id: l.id,
+        titulo: l.titulo,
+        autor: l.autor,
+        capaUrl: l.capaUrl,
+        ordem: l.ordem,
+        ativo: l.ativo,
+        capitulos: l.capitulos,
+      }))}
     />
   );
 }

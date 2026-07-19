@@ -38,6 +38,7 @@ import {
   RECOMENDACAO_CORES,
 } from "@/types";
 import { RelatorioDialog } from "./RelatorioDialog";
+import { LeiturasManager, type Leitura } from "@/components/leituras/LeiturasManager";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   progressoNaEtapa,
@@ -125,6 +126,7 @@ interface GrupoFormacaoDetailProps {
   initialGrades: GradeFormativa[];
   initialUsuarios: Usuario[];
   initialRelatorios: RelatorioEtapa[];
+  initialLeituras: Leitura[];
 }
 
 
@@ -177,12 +179,16 @@ export default function GrupoFormacaoDetail({
   initialGrades,
   initialUsuarios,
   initialRelatorios,
+  initialLeituras,
 }: GrupoFormacaoDetailProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isAdmin = userRole === "administrador";
   const isFormadorGeral = userRole === "formador_geral";
   const isFC = userRole === "formador_comunitario";
+  // Gestão (admin/formador geral) ou o FC responsável — que só alcança esta tela
+  // para o próprio grupo (guard em page.tsx) — pode gerir a lista de leituras.
+  const podeGerirLeituras = isAdmin || isFormadorGeral || isFC;
 
   const [grupoFormacao, setGrupoFormacao] = useState<GrupoFormacao>(initialGrupoFormacao);
   const [allFormandos, setAllFormandos] = useState<Formando[]>(initialFormandos);
@@ -768,6 +774,10 @@ export default function GrupoFormacaoDetail({
           <TabsTrigger value="relatorios" className="text-xs h-7 gap-1.5">
             <FileText className="h-3.5 w-3.5" />
             Relatórios
+          </TabsTrigger>
+          <TabsTrigger value="leituras" className="text-xs h-7 gap-1.5">
+            <BookOpen className="h-3.5 w-3.5" />
+            Leituras
           </TabsTrigger>
         </TabsList>
         </div>
@@ -1499,6 +1509,16 @@ export default function GrupoFormacaoDetail({
               })}
             </div>
           )}
+        </TabsContent>
+
+        {/* TAB LEITURAS — livros indicados ao grupo (jornada de leitura do formando) */}
+        <TabsContent value="leituras" className="mt-4 space-y-4">
+          <LeiturasManager
+            apiBase={`/api/grupos-formacao/${id}/leituras`}
+            leituras={initialLeituras}
+            podeGerir={podeGerirLeituras}
+            contexto="formativo"
+          />
         </TabsContent>
       </Tabs>
 

@@ -5,13 +5,12 @@ import {
   CAMPOS_COMPLETUDE,
 } from "@/lib/perfil-completude";
 
+// Completude foca só nos essenciais de contato/identidade. Os campos canônicos
+// (nacionalidade, RG, órgão emissor, CEP…) são opcionais — só exigidos, quando
+// for o caso, nos documentos eclesiásticos — e não entram na completude.
 const completo = {
   dataNascimento: "2000-01-01",
   telefone: "(11) 99999-9999",
-  nacionalidade: "Brasileira",
-  rg: "12.345.678-9",
-  orgaoEmissor: "SSP/SP",
-  cep: "01001-000",
 };
 
 describe("perfil-completude", () => {
@@ -22,18 +21,19 @@ describe("perfil-completude", () => {
 
   it("cadastro mínimo vazio → todos os campos faltam, na ordem", () => {
     expect(camposFaltantes({})).toEqual(CAMPOS_COMPLETUDE.map((c) => c.label));
+    expect(camposFaltantes({})).toEqual(["Data de nascimento", "Telefone"]);
     expect(perfilIncompleto({})).toBe(true);
   });
 
   it("trata null, undefined e string em branco como não preenchidos", () => {
-    const d = { ...completo, rg: "  ", orgaoEmissor: null, cep: undefined };
-    expect(camposFaltantes(d)).toEqual(["RG", "Órgão emissor", "CEP"]);
+    const d = { dataNascimento: "  ", telefone: null };
+    expect(camposFaltantes(d)).toEqual(["Data de nascimento", "Telefone"]);
     expect(perfilIncompleto(d)).toBe(true);
   });
 
-  it("estadoCivil/foto/nomeSocial não contam para completude", () => {
-    // Campos fora do conjunto essencial não afetam o resultado.
-    const d = { ...completo, estadoCivil: undefined, foto: null, nomeSocial: "" };
+  it("campos canônicos/opcionais NÃO contam para completude", () => {
+    // nacionalidade/RG/CEP etc. fora do conjunto essencial não afetam o resultado.
+    const d = { ...completo, nacionalidade: null, rg: "", cep: null };
     expect(perfilIncompleto(d as never)).toBe(false);
   });
 });

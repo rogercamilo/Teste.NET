@@ -10,18 +10,16 @@
  *
  * Fica de fora, por decisão:
  *  - `estadoCivil`: tem default (`solteiro`) indistinguível de escolha real;
- *  - `foto`, `nomeSocial`, `numFilhos`, `paroquiaReferencia`: opcionais/nice.
- * Restam os campos que a formação de fato precisa (identidade + contato) e que
- * o formador antes digitava por completo.
+ *  - `foto`, `nomeSocial`, endereço e os campos CANÔNICOS (nacionalidade, RG,
+ *    órgão emissor, CEP, paróquia, nº de filhos): opcionais — os canônicos só
+ *    são exigidos, quando for o caso, nos documentos eclesiásticos, então não
+ *    pressionamos o formando por eles aqui.
+ * Restam os essenciais de contato/identidade que a formação de fato precisa.
  */
 
 export interface DadosPessoaisCompletude {
   dataNascimento?: string | null;
   telefone?: string | null;
-  nacionalidade?: string | null;
-  rg?: string | null;
-  orgaoEmissor?: string | null;
-  cep?: string | null;
 }
 
 export const CAMPOS_COMPLETUDE: {
@@ -30,10 +28,6 @@ export const CAMPOS_COMPLETUDE: {
 }[] = [
   { campo: "dataNascimento", label: "Data de nascimento" },
   { campo: "telefone", label: "Telefone" },
-  { campo: "nacionalidade", label: "Nacionalidade" },
-  { campo: "rg", label: "RG" },
-  { campo: "orgaoEmissor", label: "Órgão emissor" },
-  { campo: "cep", label: "CEP" },
 ];
 
 function vazio(v: string | null | undefined): boolean {

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth-helpers";
 import { hasVocacionalAccess, isGestao, temPermissao } from "@/types";
 import { getTurmaTravessiaProgresso } from "@/lib/vocacional-travessia";
+import { capituloCampos } from "@/lib/leituras-store";
 import TurmaDetailClient from "./TurmaDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +60,7 @@ export default async function TurmaVocacionalPage({ params }: { params: Promise<
       where: { turmaId: id, organizacaoId: user.organizacaoId },
       orderBy: { ordem: "asc" },
       include: {
-        capitulos: { orderBy: { numero: "asc" }, select: { id: true, numero: true, titulo: true } },
+        capitulos: { orderBy: { numero: "asc" }, select: capituloCampos },
       },
     }),
     getTurmaTravessiaProgresso(id, user.organizacaoId),
@@ -90,6 +91,7 @@ export default async function TurmaVocacionalPage({ params }: { params: Promise<
         id: l.id,
         titulo: l.titulo,
         autor: l.autor,
+        capaUrl: l.capaUrl,
         ordem: l.ordem,
         ativo: l.ativo,
         capitulos: l.capitulos,

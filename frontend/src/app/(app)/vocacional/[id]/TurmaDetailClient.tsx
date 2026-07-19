@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft, Plus, Users, Sprout, FileText, HeartHandshake, Lock,
-  CheckCircle2, XCircle, Upload, Calendar, BookOpen, Pencil, Trash2,
+  CheckCircle2, XCircle, Upload, Calendar, Pencil,
   Heart, MessageSquareText, ChevronDown, Send, Megaphone, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { isGestao, temPermissao, CONDICAO_MEMBRO_LABELS, type CondicaoMembro } from "@/types";
 import type { TurmaTravessiaProgresso, ProgressoParticipante, ProgressoPartilha } from "@/lib/vocacional-travessia";
+import { LeiturasManager, type Leitura } from "@/components/leituras/LeiturasManager";
 
 interface Option { id: string; nome: string }
 
@@ -46,21 +47,6 @@ interface Turma {
   vocacionalDuracaoMeses: number | null; vocacionalTotalRetiros: number | null;
   vocacionalAcompanhamentoAtivo: boolean;
   muralFrutosAtivo: boolean;
-}
-
-interface CapituloLeitura {
-  id: string;
-  numero: number;
-  titulo: string;
-}
-
-interface Leitura {
-  id: string;
-  titulo: string;
-  autor: string | null;
-  ordem: number;
-  ativo: boolean;
-  capitulos: CapituloLeitura[];
 }
 
 interface Props {
@@ -213,7 +199,12 @@ export default function TurmaDetailClient(props: Props) {
       )}
 
       {/* Leituras da turma */}
-      <LeiturasSection turmaId={turma.id} leituras={leituras} podeGerir={podeGerirLeituras} />
+      <LeiturasManager
+        apiBase={`/api/vocacional/turmas/${turma.id}/leituras`}
+        leituras={leituras}
+        podeGerir={podeGerirLeituras}
+        contexto="vocacional"
+      />
 
       {/* Progresso da Travessia (leitura + partilhas dos vocacionados) */}
       {travessiaProgresso && (
@@ -499,195 +490,6 @@ function GerirDialog({
             )}
           </section>
         )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/** Divide o texto colado em títulos de capítulo (um por linha, sem vazias). */
-function parseCapitulos(texto: string): string[] {
-  return texto.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-}
-
-function LeiturasSection({
-  turmaId, leituras, podeGerir,
-}: {
-  turmaId: string;
-  leituras: Leitura[];
-  podeGerir: boolean;
-}) {
-  const router = useRouter();
-  const [formOpen, setFormOpen] = useState(false);
-  const [editando, setEditando] = useState<Leitura | null>(null);
-  const [removendo, setRemovendo] = useState<string | null>(null);
-
-  function abrirNova() { setEditando(null); setFormOpen(true); }
-  function abrirEdicao(l: Leitura) { setEditando(l); setFormOpen(true); }
-
-  async function remover(l: Leitura) {
-    if (!confirm(`Remover a leitura "${l.titulo}" e seus capítulos?`)) return;
-    setRemovendo(l.id);
-    try {
-      const res = await fetch(`/api/vocacional/turmas/${turmaId}/leituras/${l.id}`, { method: "DELETE" });
-      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? "Falha"); }
-      toast.success("Leitura removida.");
-      router.refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
-    } finally { setRemovendo(null); }
-  }
-
-  return (
-    <section className="space-y-2.5">
-      <div className="flex items-center gap-2">
-        <BookOpen className="h-4 w-4 text-primary" />
-        <h2 className="text-sm font-semibold flex-1">Leituras da turma</h2>
-        {podeGerir && (
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={abrirNova}>
-            <Plus className="h-4 w-4" /> Adicionar leitura
-          </Button>
-        )}
-      </div>
-
-      {leituras.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            <BookOpen className="mx-auto mb-2 h-6 w-6 opacity-50" />
-            Nenhuma leitura cadastrada. As indicações de leitura da turma aparecem aqui.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-2">
-          {leituras.map((l) => (
-            <Card key={l.id} className="border-0 shadow-sm">
-              <CardContent className="flex flex-wrap items-center gap-3 py-3">
-                <div className="flex-1 min-w-[12rem]">
-                  <p className="text-sm font-medium">
-                    {l.titulo}
-                    {!l.ativo && (
-                      <Badge variant="outline" className="ml-2 text-[10px]">Inativa</Badge>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {l.autor ? `${l.autor} · ` : ""}
-                    {l.capitulos.length} {l.capitulos.length === 1 ? "capítulo" : "capítulos"}
-                  </p>
-                </div>
-                {podeGerir && (
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon-sm" aria-label="Editar leitura" onClick={() => abrirEdicao(l)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost" size="icon-sm" aria-label="Remover leitura"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => remover(l)} disabled={removendo === l.id}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {formOpen && (
-        <LeituraFormDialog
-          key={editando?.id ?? "nova"}
-          turmaId={turmaId}
-          leitura={editando}
-          onClose={() => setFormOpen(false)}
-          onSaved={() => { setFormOpen(false); router.refresh(); }}
-        />
-      )}
-    </section>
-  );
-}
-
-function LeituraFormDialog({
-  turmaId, leitura, onClose, onSaved,
-}: {
-  turmaId: string;
-  leitura: Leitura | null;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const edicao = !!leitura;
-  const capitulosOriginais = leitura ? leitura.capitulos.map((c) => c.titulo).join("\n") : "";
-  const [titulo, setTitulo] = useState(leitura?.titulo ?? "");
-  const [autor, setAutor] = useState(leitura?.autor ?? "");
-  const [capitulosTexto, setCapitulosTexto] = useState(capitulosOriginais);
-  const [busy, setBusy] = useState(false);
-
-  const capitulos = parseCapitulos(capitulosTexto);
-
-  async function salvar() {
-    if (!titulo.trim()) return toast.error("Informe o título do livro.");
-    if (capitulos.length === 0) return toast.error("Informe ao menos um capítulo (um por linha).");
-    setBusy(true);
-    try {
-      const url = edicao
-        ? `/api/vocacional/turmas/${turmaId}/leituras/${leitura!.id}`
-        : `/api/vocacional/turmas/${turmaId}/leituras`;
-      // Na edição, só reenvia os capítulos quando o texto mudou — evita apagar e
-      // recriar as linhas (e regenerar seus IDs) numa edição só de título.
-      const capitulosMudaram = capitulosTexto.trim() !== capitulosOriginais.trim();
-      const body: Record<string, unknown> = { titulo: titulo.trim(), autor: autor.trim() || null };
-      if (!edicao || capitulosMudaram) body.capitulos = capitulos;
-      const res = await fetch(url, {
-        method: edicao ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? "Falha"); }
-      toast.success(edicao ? "Leitura atualizada." : "Leitura cadastrada.");
-      onSaved();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
-    } finally { setBusy(false); }
-  }
-
-  return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{edicao ? "Editar leitura" : "Nova leitura"}</DialogTitle>
-          <DialogDescription>
-            Cole os títulos dos capítulos — um por linha. Eles são numerados automaticamente.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-3">
-          <div className="grid gap-1.5">
-            <Label>Título do livro *</Label>
-            <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: A Imitação de Cristo" maxLength={200} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label>Autor (opcional)</Label>
-            <Input value={autor} onChange={(e) => setAutor(e.target.value)} placeholder="Ex.: Tomás de Kempis" maxLength={120} />
-          </div>
-          <div className="grid gap-1.5">
-            <div className="flex items-baseline justify-between">
-              <Label>Capítulos — um por linha</Label>
-              <span className="text-[11px] text-muted-foreground">
-                {capitulos.length} {capitulos.length === 1 ? "capítulo" : "capítulos"}
-              </span>
-            </div>
-            <Textarea
-              rows={8}
-              value={capitulosTexto}
-              onChange={(e) => setCapitulosTexto(e.target.value)}
-              placeholder={"1. O menosprezo das vaidades\n2. Humilde sentir de si\n3. A doutrina da verdade"}
-            />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 pt-1">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={busy}>Cancelar</Button>
-          <Button size="sm" onClick={salvar} disabled={busy}>
-            {busy ? "Salvando…" : edicao ? "Salvar" : "Cadastrar"}
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   );
