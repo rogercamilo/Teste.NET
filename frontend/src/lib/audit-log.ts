@@ -135,6 +135,7 @@ export type AuditAction =
   | "grupo_leitura_criada"
   | "grupo_leitura_editada"
   | "grupo_leitura_removida"
+  | "acompanhamento_formando_registrado"
   | "travessia_capitulo_lido"
   | "travessia_capitulo_desmarcado"
   | "travessia_partilha_registrada"
