@@ -19,6 +19,7 @@ export interface UserAuth {
   perfil: PerfilUsuario;
   grupoFormacaoId?: string;
   ativo: boolean;
+  foto?: string;
   criadoEm: string;
   primeiroAcesso?: boolean;
   mfaEnabled?: boolean;
@@ -124,6 +125,7 @@ function toUserAuth(u: {
   perfil: PerfilUsuario;
   grupoFormacaoId: string | null;
   ativo: boolean;
+  foto: string | null;
   criadoEm: Date;
   primeiroAcesso: boolean;
   mfaEnabled: boolean;
@@ -142,6 +144,7 @@ function toUserAuth(u: {
     perfil: u.perfil,
     grupoFormacaoId: u.grupoFormacaoId ?? undefined,
     ativo: u.ativo,
+    foto: u.foto ?? undefined,
     criadoEm: u.criadoEm.toISOString().split("T")[0],
     primeiroAcesso: u.primeiroAcesso,
     mfaEnabled: u.mfaEnabled,
@@ -306,6 +309,7 @@ export async function createUser(
     perfil: data.perfil as PerfilUsuario,
     grupoFormacaoId: data.grupoFormacaoId ?? null,
     ativo: data.ativo,
+    foto: data.foto ?? null,
     primeiroAcesso: tempPassword !== undefined ? true : (data.primeiroAcesso ?? false),
   };
 
@@ -351,10 +355,11 @@ export class EmailConflictError extends Error {
 
 export async function updateUser(
   id: string,
-  data: Omit<Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">>, "grupoFormacaoId" | "mfaSecretExpiresAt"> & {
+  data: Omit<Partial<Omit<UserAuth, "id" | "criadoEm" | "passwordHash">>, "grupoFormacaoId" | "mfaSecretExpiresAt" | "foto"> & {
     password?: string;
     organizacaoId: string;
     grupoFormacaoId?: string | null;
+    foto?: string | null;
     mfaSecretExpiresAt?: Date | null;
   }
 ): Promise<UserAuth | null> {
@@ -390,6 +395,7 @@ export async function updateUser(
         ...(rest.perfil !== undefined && { perfil: rest.perfil as PerfilUsuario }),
         ...(rest.grupoFormacaoId !== undefined && { grupoFormacaoId: rest.grupoFormacaoId ?? null }),
         ...(rest.ativo !== undefined && { ativo: rest.ativo }),
+        ...(rest.foto !== undefined && { foto: rest.foto ?? null }),
         ...(rest.primeiroAcesso !== undefined && { primeiroAcesso: rest.primeiroAcesso }),
         ...(rest.mfaEnabled !== undefined && { mfaEnabled: rest.mfaEnabled }),
         ...(rest.mfaSecret !== undefined && {

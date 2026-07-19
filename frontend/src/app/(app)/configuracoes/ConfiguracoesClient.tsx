@@ -23,7 +23,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
+import { resolveImageSrc } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -59,6 +61,7 @@ import {
   Bell,
   Building2,
   Calendar,
+  Camera,
   CheckCircle2,
   Clipboard,
   Download,
@@ -767,6 +770,7 @@ function PerfilTab({
 type UsuarioForm = {
   nome: string;
   email: string;
+  foto: string;
   perfil: PerfilUsuario;
   grupoFormacaoId: string;
   grupoFormacaoModo: "existente" | "provisoria";
@@ -781,6 +785,7 @@ type UsuarioForm = {
 const EMPTY_USUARIO_FORM: UsuarioForm = {
   nome: "",
   email: "",
+  foto: "",
   perfil: "formador_comunitario",
   grupoFormacaoId: "",
   grupoFormacaoModo: "existente",
@@ -814,6 +819,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
   const [form, setForm] = useState<UsuarioForm>(EMPTY_USUARIO_FORM);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [fotoDialogOpen, setFotoDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -872,6 +878,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
     setForm({
       nome: u.nome,
       email: u.email,
+      foto: u.foto ?? "",
       perfil: u.perfil,
       grupoFormacaoId: u.grupoFormacaoId ?? "",
       grupoFormacaoModo: "existente",
@@ -936,6 +943,8 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
           // (undefined seria omitido pelo JSON e manteria o vínculo antigo no banco).
           grupoFormacaoId: form.perfil === "formador_comunitario" ? form.grupoFormacaoId || undefined : null,
           ativo: form.ativo,
+          // null remove a foto; string define a key. Sempre enviado para refletir remoção.
+          foto: form.foto || null,
         };
         if (form.password) body.password = form.password;
         const res = await fetch(`/api/users/${editing.id}`, {
@@ -966,6 +975,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
             perfil: form.perfil,
             grupoFormacaoId: grupoFormacaoIdParaEnviar,
             ativo: form.ativo,
+            foto: form.foto || undefined,
           }),
         });
         if (!res.ok) {
@@ -1104,6 +1114,9 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8 shrink-0">
+                        {resolveImageSrc(usuario.foto) && (
+                          <AvatarImage src={resolveImageSrc(usuario.foto)!} alt={usuario.nome} />
+                        )}
                         <AvatarFallback
                           className={`text-xs font-semibold ${
                             usuario.perfil === "administrador"
@@ -1211,6 +1224,24 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
             <DialogTitle>{editing ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setFotoDialogOpen(true)}
+                className="relative h-20 w-20 group/foto rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                title="Alterar foto"
+              >
+                <Avatar className="h-20 w-20">
+                  {resolveImageSrc(form.foto) && <AvatarImage src={resolveImageSrc(form.foto)!} alt={form.nome} />}
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+                    {form.nome ? getInitials(form.nome) : <User className="h-7 w-7" />}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover/foto:opacity-100 transition-opacity">
+                  <Camera className="h-5 w-5 text-white" />
+                </span>
+              </button>
+            </div>
             <div className="grid gap-1.5">
               <Label>
                 Nome completo <span className="text-destructive">*</span>
@@ -1517,6 +1548,17 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Foto do usuário — mesmo fluxo (crop + upload R2) das fotos de formandos */}
+      <ImageCropDialog
+        open={fotoDialogOpen}
+        onOpenChange={setFotoDialogOpen}
+        title={form.nome ? `Foto de ${form.nome}` : "Foto do usuário"}
+        hasImage={!!form.foto}
+        onSave={(key) => set("foto")(key)}
+        onRemove={() => set("foto")("")}
+        uploadEndpoint="/api/imagens"
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

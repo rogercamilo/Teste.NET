@@ -292,6 +292,7 @@ model Usuario {
   perfil             PerfilUsuario
   grupoFormacaoId    String?       @map("morada_id")
   ativo              Boolean       @default(true)
+  foto               String?
   primeiroAcesso     Boolean       @default(false)
   mfaSecret          String?       @db.Text
   mfaEnabled         Boolean       @default(false)

@@ -73,6 +73,7 @@ export const CreateUserSchema = z.object({
   perfil: PerfilEnum.optional(),
   grupoFormacaoId: z.string().cuid("ID inválido").optional().or(z.literal("")).transform((v) => v || undefined),
   ativo: z.boolean().optional(),
+  foto: z.string().max(2_000_000).nullable().optional(),
 });
 
 export const UpdateUserSchema = z.object({
@@ -81,6 +82,7 @@ export const UpdateUserSchema = z.object({
   perfil: PerfilEnum.optional(),
   grupoFormacaoId: z.string().optional().nullable(),
   ativo: z.boolean().optional(),
+  foto: z.string().max(2_000_000).nullable().optional(),
 });
 
 // ── Formando ──────────────────────────────────────────────────────────────────

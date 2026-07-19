@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   try {
     const parsed = await parseJson(request, CreateUserSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-    const { nome, email, password, perfil, grupoFormacaoId, ativo } = parsed.data;
+    const { nome, email, password, perfil, grupoFormacaoId, ativo, foto } = parsed.data;
 
     const limitCheck = await canAddUser(actor.organizacaoId);
     if (!limitCheck.allowed) {
@@ -87,6 +87,7 @@ export async function POST(request: Request) {
       perfil: perfilSanitizado as "administrador" | "formador_geral" | "formador_comunitario",
       grupoFormacaoId,
       ativo: ativo ?? true,
+      foto: foto ?? undefined,
       organizacaoId: actor.organizacaoId,
     });
 

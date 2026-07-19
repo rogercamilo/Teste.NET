@@ -40,6 +40,11 @@ export async function PUT(request: Request, ctx: Ctx) {
       : undefined;
     const ativo = typeof body.ativo === "boolean" ? body.ativo : undefined;
     const password = typeof body.password === "string" ? body.password : undefined;
+    // null = remover foto; string = definir key/data URL; undefined = sem alteração
+    const foto: string | null | undefined =
+      body.foto === null ? null
+      : typeof body.foto === "string" ? body.foto
+      : undefined;
 
     if (nome !== undefined && (nome.length === 0 || nome.length > 255)) {
       return NextResponse.json({ error: "Nome deve ter entre 1 e 255 caracteres" }, { status: 400 });
@@ -64,7 +69,7 @@ export async function PUT(request: Request, ctx: Ctx) {
     // e com a troca self-service (change-password também zera o flag).
     const primeiroAcesso = password ? false : undefined;
 
-    const updated = await updateUser(id, { nome, email, perfil, grupoFormacaoId, ativo, password, primeiroAcesso, organizacaoId: actor.organizacaoId });
+    const updated = await updateUser(id, { nome, email, perfil, grupoFormacaoId, ativo, foto, password, primeiroAcesso, organizacaoId: actor.organizacaoId });
     if (!updated) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
 
     logAction("user_updated", actor.id, getClientIp(request), { targetId: id }, actor.organizacaoId);
