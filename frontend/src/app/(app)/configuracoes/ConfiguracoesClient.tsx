@@ -346,6 +346,7 @@ function PerfilTab({
   const { update } = useSession();
   const { formador } = useTermos();
   const [usuario, setUsuario] = useState<UserPublic | null>(null);
+  const [fotoDialogOpen, setFotoDialogOpen] = useState(false);
 
   // Troca de senha
   const [currentPassword, setCurrentPassword] = useState("");
@@ -382,6 +383,20 @@ function PerfilTab({
       .catch(() => {})
       .finally(() => setMfaLoading(false));
   }, []);
+
+  async function handleFotoChange(foto: string | null) {
+    const res = await fetch("/api/users/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ foto }),
+    });
+    if (!res.ok) { toast.error(await readApiError(res, "Erro ao salvar foto.")); return; }
+    const updated: UserPublic = await res.json();
+    setUsuario(updated);
+    toast.success(foto ? "Foto atualizada." : "Foto removida.");
+    // Atualiza o avatar da sidebar (layout server component relê a foto do banco).
+    router.refresh();
+  }
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -478,12 +493,22 @@ function PerfilTab({
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              {resolveImageSrc(usuario?.foto) && <AvatarImage src={resolveImageSrc(usuario?.foto)!} alt={userName} />}
-              <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-                {getInitials(userName)}
-              </AvatarFallback>
-            </Avatar>
+            <button
+              type="button"
+              onClick={() => setFotoDialogOpen(true)}
+              className="relative h-16 w-16 shrink-0 group/foto rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              title="Alterar foto"
+            >
+              <Avatar className="h-16 w-16">
+                {resolveImageSrc(usuario?.foto) && <AvatarImage src={resolveImageSrc(usuario?.foto)!} alt={userName} />}
+                <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+                  {getInitials(userName)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover/foto:opacity-100 transition-opacity">
+                <Camera className="h-5 w-5 text-white" />
+              </span>
+            </button>
             <div className="flex-1 min-w-0">
               <p className="text-lg font-semibold text-foreground truncate">{userName}</p>
               <p className="text-sm text-muted-foreground truncate">{userEmail}</p>
@@ -497,6 +522,16 @@ function PerfilTab({
           </div>
         </CardContent>
       </Card>
+
+      <ImageCropDialog
+        open={fotoDialogOpen}
+        onOpenChange={setFotoDialogOpen}
+        title="Sua foto"
+        hasImage={!!usuario?.foto}
+        onSave={(key) => handleFotoChange(key)}
+        onRemove={() => handleFotoChange(null)}
+        uploadEndpoint="/api/imagens"
+      />
 
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
