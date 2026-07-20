@@ -6,19 +6,24 @@ import { limiters } from "@/lib/rate-limit";
 import { sendAccountDeletionEmail } from "@/lib/email";
 import { randomBytes } from "crypto";
 import { SessionUser } from "@/lib/auth-helpers";
+import { isGestao } from "@/types";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   const actor = session?.user as SessionUser | undefined;
   if (!actor?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const rl = await limiters.passwordChange(actor.id);
-  if (!rl.allowed) return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
-
-  // super_admin não pode autoexcluir pela plataforma
+  // super_admin é o operador da plataforma (cockpit), não uma conta de tenant:
+  // não se autoexclui por aqui.
   if (actor.role === "super_admin") {
     return NextResponse.json({ error: "Super admins não podem excluir a própria conta por aqui" }, { status: 403 });
   }
+  // Gestão de conta = Administrador + Formador Geral. O Formador Comunitário
+  // solicita à liderança; os titulares reais usam o Portal.
+  if (!isGestao(actor.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+
+  const rl = await limiters.passwordChange(actor.id);
+  if (!rl.allowed) return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente." }, { status: 429 });
 
   let body: { emailConfirmacao?: string };
   try {

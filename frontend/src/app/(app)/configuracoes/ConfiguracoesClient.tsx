@@ -10,7 +10,7 @@ import type { UserPublic } from "@/lib/users-store";
 import {
   PERFIL_USUARIO_LABELS,
   TIPO_ORGANIZACAO_LABELS,
-  temPermissao,
+  isGestao as roleIsGestao,
   type PerfilUsuario,
   type NivelFormativo,
   type TipoOrganizacao,
@@ -64,7 +64,6 @@ import {
   Camera,
   CheckCircle2,
   Clipboard,
-  Download,
   Eye,
   EyeOff,
   FileText,
@@ -80,7 +79,6 @@ import {
   RotateCcw,
   Save,
   Send,
-  Server,
   ShieldCheck,
   Shuffle,
   Sprout,
@@ -100,15 +98,13 @@ import StripeUpgrade from "@/components/StripeUpgrade";
 import type { BillingInfo } from "@/lib/billing-data";
 import type { UsageInfo } from "@/lib/plan-limits";
 import PrivacidadeTab from "@/components/PrivacidadeTab";
-import DadosPessoaisCard from "@/components/DadosPessoaisCard";
-import { downloadJsonExport } from "@/lib/download-export";
 import NotificacoesTab from "@/components/NotificacoesTab";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { THEME_PALETTES, applyThemePalette } from "@/lib/themes";
 
-const VALID_TABS = ["perfil", "usuarios", "comunidade", "email", "plano", "sistema", "notificacoes", "privacidade"];
+const VALID_TABS = ["perfil", "usuarios", "comunidade", "email", "plano", "notificacoes", "privacidade"];
 
 /** Lê a mensagem de erro de uma resposta sem sucesso de forma resiliente.
  *  Respostas de timeout/gateway (502/504) costumam vir como HTML, não JSON —
@@ -168,9 +164,11 @@ export default function ConfiguracoesClient({
   initialBilling,
   initialUsage,
 }: ConfiguracoesClientProps) {
-  const isGestao = temPermissao(userRole as PerfilUsuario, "formador_geral");
-  // Admin comercial (e super_admin): controla Plano, Sistema e Privacidade.
-  const isAdmin = temPermissao(userRole as PerfilUsuario, "administrador");
+  // Gestão do tenant = Administrador + Formador Geral (exclui super_admin, que é o
+  // operador da plataforma e só age pelo cockpit — não vê contas de cliente aqui).
+  const isGestao = roleIsGestao(userRole);
+  // Plano é decisão comercial exclusiva do Administrador do tenant.
+  const isAdmin = userRole === "administrador";
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -232,17 +230,11 @@ export default function ConfiguracoesClient({
               Plano
             </TabsTrigger>
           )}
-          {isAdmin && (
-            <TabsTrigger value="sistema" className="text-xs h-7 gap-1.5">
-              <Server className="h-3.5 w-3.5" />
-              Sistema
-            </TabsTrigger>
-          )}
           <TabsTrigger value="notificacoes" className="text-xs h-7 gap-1.5">
             <Bell className="h-3.5 w-3.5" />
             Notificações
           </TabsTrigger>
-          {isAdmin && (
+          {isGestao && (
             <TabsTrigger value="privacidade" className="text-xs h-7 gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5" />
               Privacidade
@@ -252,7 +244,7 @@ export default function ConfiguracoesClient({
         </div>
 
         <TabsContent value="perfil" className="mt-4">
-          <PerfilTab userId={userId} userName={userName} userEmail={userEmail} userRole={userRole} isSuperAdmin={userRole === "super_admin"} />
+          <PerfilTab userId={userId} userName={userName} userEmail={userEmail} userRole={userRole} />
         </TabsContent>
 
         {isGestao && (
@@ -307,19 +299,13 @@ export default function ConfiguracoesClient({
           </TabsContent>
         )}
 
-        {isAdmin && (
-          <TabsContent value="sistema" className="mt-4">
-            <SistemaTab />
-          </TabsContent>
-        )}
-
         <TabsContent value="notificacoes" className="mt-4">
           <NotificacoesTab isGestao={isGestao} userRole={userRole} userGrupoFormacaoId={userGrupoFormacaoId} />
         </TabsContent>
 
-        {isAdmin && (
+        {isGestao && (
           <TabsContent value="privacidade" className="mt-4">
-            <PrivacidadeTab />
+            <PrivacidadeTab userEmail={userEmail} isSuperAdmin={userRole === "super_admin"} />
           </TabsContent>
         )}
       </Tabs>
@@ -334,13 +320,11 @@ function PerfilTab({
   userName,
   userEmail,
   userRole,
-  isSuperAdmin = false,
 }: {
   userId: string;
   userName: string;
   userEmail: string;
   userRole: string;
-  isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
   const { update } = useSession();
@@ -694,9 +678,6 @@ function PerfilTab({
           )}
         </CardContent>
       </Card>
-
-      {/* Dados pessoais e exclusão de conta (LGPD) — disponíveis a qualquer usuário */}
-      <DadosPessoaisCard userEmail={userEmail} isSuperAdmin={isSuperAdmin} />
 
       {/* MFA Setup Dialog */}
       <Dialog open={mfaSetupOpen} onOpenChange={(v) => { setMfaSetupOpen(v); if (!v) { setMfaSetupStep("scan"); setMfaSetupTotp(""); } }}>
@@ -3135,67 +3116,3 @@ function EmailTab() {
 
 /* ─── TAB: SISTEMA ──────────────────────────────────────────────── */
 
-function SistemaTab() {
-  async function handleExport() {
-    try {
-      const ok = await downloadJsonExport(
-        "/api/export/organizacao",
-        `formattio-backup-${new Date().toISOString().split("T")[0]}.json`,
-      );
-      toast[ok ? "success" : "error"](ok ? "Dados exportados com sucesso!" : "Falha ao exportar dados.");
-    } catch {
-      toast.error("Falha ao exportar dados.");
-    }
-  }
-
-  return (
-    <div className="max-w-2xl space-y-4">
-      {/* App info */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Server className="h-4 w-4 text-muted-foreground" />
-            Informações do Sistema
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4 space-y-0">
-          {[
-            { label: "Aplicativo", value: "Formattio" },
-            { label: "Versão do schema", value: "3" },
-            { label: "Ambiente", value: "Produção" },
-            { label: "Armazenamento", value: "PostgreSQL (servidor)" },
-            { label: "Autenticação", value: "NextAuth v5 — JWT (8h)" },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="flex justify-between items-center py-2.5 border-b border-border/60 last:border-0"
-            >
-              <span className="text-sm text-muted-foreground">{item.label}</span>
-              <span className="text-sm font-medium text-foreground">{item.value}</span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Export */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Download className="h-4 w-4 text-muted-foreground" />
-            Exportar Dados
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Faz o download de todos os dados armazenados em formato JSON
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pb-4">
-          <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5">
-            <Download className="h-3.5 w-3.5" />
-            Baixar backup JSON
-          </Button>
-        </CardContent>
-      </Card>
-
-    </div>
-  );
-}

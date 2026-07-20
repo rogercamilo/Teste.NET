@@ -7,15 +7,24 @@ import { FileJson, Shield } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { downloadJsonExport } from "@/lib/download-export";
+import { MeusDadosCard, ExcluirContaCard } from "@/components/DadosPessoaisCard";
 
 /**
- * Aba Privacidade — exclusiva do Administrador (responsável comercial).
- * Trata apenas dos dados da organização. A própria aba só é montada para
- * admin/super_admin (gate isAdmin em ConfiguracoesClient), então não há
- * verificação de perfil aqui. Os controles pessoais (exportar os próprios
- * dados, excluir a própria conta) ficam na aba Perfil, em DadosPessoaisCard.
+ * Aba Privacidade — lar único de tudo que é dados & LGPD. Só é montada para a
+ * gestão do tenant (Administrador + Formador Geral) pelo gate `isGestao` em
+ * ConfiguracoesClient; por isso não há checagem de perfil aqui. O Formador
+ * Comunitário não vê esta aba, e a aba Perfil não expõe mais controles de dados.
+ *
+ * Ordem (do inócuo ao destrutivo): dados pessoais → dados da organização →
+ * zona de perigo → rodapé único de políticas.
  */
-export default function PrivacidadeTab() {
+export default function PrivacidadeTab({
+  userEmail,
+  isSuperAdmin = false,
+}: {
+  userEmail: string;
+  isSuperAdmin?: boolean;
+}) {
   const [downloadingOrg, setDownloadingOrg] = useState(false);
 
   async function handleDownloadOrg() {
@@ -34,24 +43,27 @@ export default function PrivacidadeTab() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Dados da organização */}
-      <Card>
+    <div className="max-w-2xl space-y-6">
+      {/* 1. Dados pessoais do usuário logado */}
+      <MeusDadosCard />
+
+      {/* 2. Dados da organização (gestão do tenant) */}
+      <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
-            <CardTitle className="text-base">Dados da organização</CardTitle>
+            <CardTitle className="text-sm font-semibold">Dados da organização</CardTitle>
           </div>
           <CardDescription className="text-xs">
-            Em conformidade com a LGPD, você pode baixar uma cópia completa dos dados da sua organização a qualquer momento.
+            Em conformidade com a LGPD, a gestão pode baixar uma cópia completa dos dados da organização a qualquer momento.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="pb-5">
           <div className="flex items-start justify-between gap-4 p-3 rounded-lg border border-border bg-muted/30">
             <div>
-              <p className="text-sm font-medium">Dados da organização</p>
+              <p className="text-sm font-medium">Backup completo</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Todos os formandos, moradas, formações, presenças e históricos. Somente administradores.
+                Todos os formandos, moradas, formações, presenças e históricos. Disponível para administradores e formadores gerais.
               </p>
             </div>
             <Button
@@ -68,20 +80,24 @@ export default function PrivacidadeTab() {
               Baixar JSON
             </Button>
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            Acesse nossa{" "}
-            <Link href="/privacidade" target="_blank" className="text-primary hover:underline">
-              Política de Privacidade
-            </Link>{" "}
-            e os{" "}
-            <Link href="/termos" target="_blank" className="text-primary hover:underline">
-              Termos de Uso
-            </Link>{" "}
-            para mais informações sobre como tratamos os dados.
-          </p>
         </CardContent>
       </Card>
+
+      {/* 3. Zona de perigo — exclusão da própria conta */}
+      <ExcluirContaCard userEmail={userEmail} isSuperAdmin={isSuperAdmin} />
+
+      {/* 4. Rodapé único de políticas (antes duplicado em cada card) */}
+      <p className="text-xs text-muted-foreground">
+        Acesse nossa{" "}
+        <Link href="/privacidade" target="_blank" className="text-primary hover:underline">
+          Política de Privacidade
+        </Link>{" "}
+        e os{" "}
+        <Link href="/termos" target="_blank" className="text-primary hover:underline">
+          Termos de Uso
+        </Link>{" "}
+        para mais informações sobre como tratamos os dados.
+      </p>
     </div>
   );
 }

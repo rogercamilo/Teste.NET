@@ -5,13 +5,15 @@ import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 
 import { SessionUser } from "@/lib/auth-helpers";
-import { temPermissao } from "@/types";
+import { isGestao } from "@/types";
 
 export async function GET(request: Request) {
   const session = await auth();
   const actor = session?.user as SessionUser | undefined;
   if (!actor?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!temPermissao(actor.role, "administrador")) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  // Gestão de dados da organização = Administrador + Formador Geral. O super_admin
+  // (operador da plataforma) não acessa dados de tenant por aqui — só pelo cockpit.
+  if (!isGestao(actor.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   const orgId = actor.organizacaoId;
   if (!orgId) return NextResponse.json({ error: "Organização não encontrada" }, { status: 400 });

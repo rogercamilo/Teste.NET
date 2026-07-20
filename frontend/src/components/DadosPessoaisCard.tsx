@@ -9,23 +9,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Download, AlertTriangle, Shield, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import Link from "next/link";
 import { downloadJsonExport } from "@/lib/download-export";
 
-interface Props {
-  userEmail: string;
-  isSuperAdmin?: boolean;
-}
-
 /**
- * Controles pessoais de privacidade (LGPD) disponíveis a qualquer usuário:
- * exportação dos próprios dados e exclusão da própria conta. Vive na aba Perfil
- * — a aba Privacidade é exclusiva do Administrador (dados da organização).
+ * Controles pessoais de dados (LGPD). Vivem na aba Privacidade, que é exclusiva
+ * da gestão do tenant (Administrador + Formador Geral). O Formador Comunitário
+ * não tem esses controles — solicita à liderança; os titulares reais dos dados
+ * (formandos/vocacionados) exercem seus direitos pelo Portal. Os links de política
+ * NÃO ficam aqui: a aba Privacidade os apresenta uma única vez, em rodapé.
  */
-export default function DadosPessoaisCard({ userEmail, isSuperAdmin = false }: Props) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [emailConfirmacao, setEmailConfirmacao] = useState("");
-  const [deleting, setDeleting] = useState(false);
+
+/** Exportação dos próprios dados do usuário logado. */
+export function MeusDadosCard() {
   const [downloadingUser, setDownloadingUser] = useState(false);
 
   async function handleDownloadMeusDados() {
@@ -42,6 +37,50 @@ export default function DadosPessoaisCard({ userEmail, isSuperAdmin = false }: P
       setDownloadingUser(false);
     }
   }
+
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-primary" />
+          <CardTitle className="text-sm font-semibold">Seus dados pessoais</CardTitle>
+        </div>
+        <CardDescription className="text-xs">
+          Em conformidade com a LGPD, você pode baixar uma cópia completa dos seus dados a qualquer momento.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pb-5">
+        <div className="flex items-start justify-between gap-4 p-3 rounded-lg border border-border bg-muted/30">
+          <div>
+            <p className="text-sm font-medium">Meus dados</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Perfil, histórico de acessos, aceites legais e preferências de cookies.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 gap-1.5 h-8 text-xs"
+            onClick={handleDownloadMeusDados}
+            disabled={downloadingUser}
+          >
+            {downloadingUser
+              ? <span className="h-3.5 w-3.5 rounded-full border-2 border-muted-foreground/30 border-t-foreground animate-spin" />
+              : <Download className="h-3.5 w-3.5" />
+            }
+            Baixar JSON
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Zona de perigo: exclusão da própria conta (anonimização imediata). */
+export function ExcluirContaCard({ userEmail, isSuperAdmin = false }: { userEmail: string; isSuperAdmin?: boolean }) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [emailConfirmacao, setEmailConfirmacao] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   async function handleExcluirConta() {
     if (emailConfirmacao.toLowerCase().trim() !== userEmail.toLowerCase()) {
@@ -70,55 +109,6 @@ export default function DadosPessoaisCard({ userEmail, isSuperAdmin = false }: P
 
   return (
     <>
-      {/* Seus dados pessoais */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm font-semibold">Seus dados pessoais</CardTitle>
-          </div>
-          <CardDescription className="text-xs">
-            Em conformidade com a LGPD, você pode baixar uma cópia completa dos seus dados a qualquer momento.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3 pb-5">
-          <div className="flex items-start justify-between gap-4 p-3 rounded-lg border border-border bg-muted/30">
-            <div>
-              <p className="text-sm font-medium">Meus dados</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Perfil, histórico de acessos, aceites legais e preferências de cookies.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0 gap-1.5 h-8 text-xs"
-              onClick={handleDownloadMeusDados}
-              disabled={downloadingUser}
-            >
-              {downloadingUser
-                ? <span className="h-3.5 w-3.5 rounded-full border-2 border-muted-foreground/30 border-t-foreground animate-spin" />
-                : <Download className="h-3.5 w-3.5" />
-              }
-              Baixar JSON
-            </Button>
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            Acesse nossa{" "}
-            <Link href="/privacidade" target="_blank" className="text-primary hover:underline">
-              Política de Privacidade
-            </Link>{" "}
-            e os{" "}
-            <Link href="/termos" target="_blank" className="text-primary hover:underline">
-              Termos de Uso
-            </Link>{" "}
-            para mais informações sobre como tratamos seus dados.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Zona de perigo */}
       <Card className="border-destructive/40 shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -150,7 +140,6 @@ export default function DadosPessoaisCard({ userEmail, isSuperAdmin = false }: P
         </CardContent>
       </Card>
 
-      {/* Dialog de confirmação */}
       <Dialog open={showDeleteDialog} onOpenChange={(o) => { if (!deleting) { setShowDeleteDialog(o); setEmailConfirmacao(""); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>

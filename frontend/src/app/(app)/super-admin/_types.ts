@@ -166,7 +166,8 @@ export type Tab =
   | "infraestrutura"
   | "seguranca"
   | "lgpd"
-  | "leads";
+  | "leads"
+  | "conta";
 
 export interface LeadRow {
   id: string;

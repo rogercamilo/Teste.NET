@@ -4,11 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { SessionUser } from "@/lib/auth-helpers";
+import { isGestao } from "@/types";
 
 export async function GET(request: Request) {
   const session = await auth();
   const actor = session?.user as SessionUser | undefined;
   if (!actor?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  // Controles de dados/conta são exclusivos da gestão do tenant (Administrador +
+  // Formador Geral). O Formador Comunitário solicita à liderança; os titulares reais
+  // usam o Portal; o super_admin opera só pelo cockpit da plataforma.
+  if (!isGestao(actor.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   const rl = await limiters.export(actor.id);
   if (!rl.allowed) {

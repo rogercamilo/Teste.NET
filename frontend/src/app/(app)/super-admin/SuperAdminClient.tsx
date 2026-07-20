@@ -14,7 +14,7 @@ import {
 import {
   Building2, RefreshCw, Gift, Ban, BadgeCheck, DollarSign, Activity, Lock,
   Shield, Server, Clock, Scale, AlertTriangle, TrendingUp, CalendarPlus,
-  Loader2, Mail, CircleAlert, LayoutDashboard, Sparkles,
+  Loader2, Mail, CircleAlert, LayoutDashboard, Sparkles, UserCog,
   type LucideIcon,
 } from "lucide-react";
 import { STORAGE_LIMITS } from "./_utils";
@@ -26,6 +26,7 @@ import { TabInfraestrutura } from "./_tabs/TabInfraestrutura";
 import { TabSeguranca } from "./_tabs/TabSeguranca";
 import { TabLgpd } from "./_tabs/TabLgpd";
 import { TabLeads } from "./_tabs/TabLeads";
+import { TabConta } from "./_tabs/TabConta";
 import type {
   OrgRow, Metricas, LgpdData, ServicosData, SegurancaData, LeadsData, DialogAcao, Tab,
 } from "./_types";
@@ -41,6 +42,7 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
   { id: "seguranca",      label: "Segurança",     Icon: Lock },
   { id: "lgpd",           label: "LGPD",          Icon: Shield },
   { id: "leads",          label: "Leads",         Icon: Sparkles },
+  { id: "conta",          label: "Minha Conta",   Icon: UserCog },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -550,6 +552,10 @@ export default function SuperAdminClient() {
 
       {tab === "leads" && (
         <TabLeads leads={leads} />
+      )}
+
+      {tab === "conta" && (
+        <TabConta />
       )}
 
       {/* ── Shared Dialogs ─────────────────────────────────────────────────── */}

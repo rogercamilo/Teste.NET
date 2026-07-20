@@ -242,14 +242,18 @@ export default auth(async function proxy(req) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  // super_admin não tem acesso a funcionalidades operacionais das organizações
-  const superAdminBlocked = [
-    "/dashboard", "/formandos", "/grupos-formacao", "/formacoes",
-    "/planos", "/grades", "/presenca", "/agenda",
-    "/documentos", "/comentarios", "/viewer", "/jornada-vocacional",
-    "/livro-registro", "/livro-promessas", "/vocacional", "/vitrine",
-  ];
-  if (role === "super_admin" && superAdminBlocked.some((p) => pathname.startsWith(p))) {
+  // super_admin é o operador da PLATAFORMA e não acessa NENHUMA conta de cliente:
+  // vive apenas no cockpit (/super-admin). Qualquer PÁGINA de tenant autenticada é
+  // redirecionada ao cockpit. É allow-list (não deny-list): rotas de tenant novas já
+  // nascem bloqueadas para o super_admin, sem depender de manutenção de uma lista.
+  // As APIs de tenant não entram aqui — cada handler checa o papel e responde 403
+  // (redirecionar um fetch quebraria o cliente); só páginas são redirecionadas.
+  if (
+    role === "super_admin" &&
+    !isPublic &&
+    !pathname.startsWith("/api/") &&
+    !pathname.startsWith("/super-admin")
+  ) {
     return NextResponse.redirect(new URL("/super-admin", req.url));
   }
 
