@@ -54,7 +54,9 @@ export type PrismaFormacao = {
   cargaHoraria: number; modalidade: string; materialApoio: string | null;
   documentoAnexo: string | null; documentoAnexoId: string | null;
   materialFormadorAnexo: string | null; materialFormadorAnexoId: string | null;
-  observacoesFormador: string | null; criadoEm: Date;
+  observacoesFormador: string | null;
+  revisadoEm: Date | null; revisadoPor: string | null;
+  criadoEm: Date;
   // Relações resolvidas por join (nome vem da FK, não denormalizado).
   plano?: { nome: string } | null;
   grade?: { nome: string } | null;
@@ -85,7 +87,9 @@ export type PrismaGrade = {
   id: string; organizacaoId: string | null; nome: string; planoId: string; planoNome: string;
   nivelFormativo: string; vigenciaInicio: Date; vigenciaFim: Date; versao: string;
   totalFormacoes: number; objetivos: string | null; fundamentacao: string | null;
-  documentoAnexo: string | null; documentoAnexoId: string | null; ativo: boolean; criadoEm: Date;
+  documentoAnexo: string | null; documentoAnexoId: string | null; ativo: boolean;
+  revisadoEm: Date | null; revisadoPor: string | null;
+  criadoEm: Date;
   eixos: {
     id: string; gradeId: string; nome: string; descricao: string; ordem: number; cor: string | null;
     eixoPlanoId: string | null;
@@ -205,6 +209,8 @@ export function toFormacao(f: PrismaFormacao): Formacao {
     materialFormadorAnexo: f.materialFormadorAnexo ?? undefined,
     materialFormadorAnexoId: f.materialFormadorAnexoId ?? undefined,
     observacoesFormador: f.observacoesFormador ?? undefined,
+    revisadoEm: f.revisadoEm?.toISOString() ?? undefined,
+    revisadoPor: f.revisadoPor ?? undefined,
     realizacoes: f._count?.agendamentos,
     criadoEm: f.criadoEm.toISOString(),
   };
@@ -269,7 +275,10 @@ export function toGrade(g: PrismaGrade): GradeFormativa {
     totalFormacoes: g.totalFormacoes,
     objetivos: g.objetivos ?? undefined, fundamentacao: g.fundamentacao ?? undefined,
     documentoAnexo: g.documentoAnexo ?? undefined, documentoAnexoId: g.documentoAnexoId ?? undefined,
-    ativo: g.ativo, criadoEm: g.criadoEm.toISOString(),
+    ativo: g.ativo,
+    revisadoEm: g.revisadoEm?.toISOString() ?? undefined,
+    revisadoPor: g.revisadoPor ?? undefined,
+    criadoEm: g.criadoEm.toISOString(),
   };
 }
 

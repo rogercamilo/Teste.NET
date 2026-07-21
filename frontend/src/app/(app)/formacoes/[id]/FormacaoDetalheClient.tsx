@@ -24,6 +24,7 @@ import {
 import {
   ArrowLeft,
   CalendarCheck,
+  CheckCircle2,
   Clock,
   Eye,
   FileText,
@@ -69,8 +70,31 @@ export default function FormacaoDetalheClient({
   const router = useRouter();
   const id = formacao.id;
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [revisadoEm, setRevisadoEm] = useState<string | undefined>(formacao.revisadoEm);
+  const [revisadoPor, setRevisadoPor] = useState<string | undefined>(formacao.revisadoPor);
+  const [revisando, setRevisando] = useState(false);
 
   const isPontual = !formacao.gradeId;
+
+  async function toggleRevisao() {
+    const novo = !revisadoEm;
+    setRevisando(true);
+    try {
+      const res = await fetch(`/api/formacoes/${id}/revisar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ revisado: novo }),
+      });
+      if (!res.ok) { toast.error("Não foi possível atualizar a revisão."); return; }
+      const data = await res.json() as { revisadoEm: string | null; revisadoPor: string | null };
+      setRevisadoEm(data.revisadoEm ?? undefined);
+      setRevisadoPor(data.revisadoPor ?? undefined);
+      toast.success(novo ? "Formação marcada como revisada." : "Revisão removida.");
+      router.refresh();
+    } finally {
+      setRevisando(false);
+    }
+  }
 
   async function handleDelete() {
     if (formacao.documentoAnexoId) {
@@ -137,11 +161,37 @@ export default function FormacaoDetalheClient({
                     Complementar ao plano
                   </Badge>
                 )}
+                {revisadoEm ? (
+                  <Badge variant="outline" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Revisada
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-200 gap-1">
+                    <Clock className="h-3 w-3" />
+                    Não revisada
+                  </Badge>
+                )}
               </div>
+              {revisadoEm && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Revisada em {fmtData(revisadoEm.split("T")[0])}
+                  {revisadoPor ? ` por ${revisadoPor}` : ""}
+                </p>
+              )}
             </div>
           </div>
           {canEdit && (
             <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant={revisadoEm ? "outline" : "default"}
+                size="sm"
+                onClick={toggleRevisao}
+                disabled={revisando}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                {revisadoEm ? "Desfazer revisão" : "Marcar como revisada"}
+              </Button>
               <Button variant="outline" size="sm" onClick={() => router.push(`/formacoes/${id}/editar`)}>
                 <Pencil className="h-3.5 w-3.5 mr-1.5" />
                 Editar

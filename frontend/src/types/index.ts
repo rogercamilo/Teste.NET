@@ -201,6 +201,8 @@ export interface GradeFormativa {
   documentoAnexo?: string;
   documentoAnexoId?: string;
   ativo: boolean;
+  revisadoEm?: string;
+  revisadoPor?: string;
   criadoEm: string;
 }
 
@@ -240,6 +242,8 @@ export interface Formacao {
   materialFormadorAnexo?: string;
   materialFormadorAnexoId?: string;
   observacoesFormador?: string;
+  revisadoEm?: string;
+  revisadoPor?: string;
   // Realizações derivadas de Agendamento (G6). Presente quando o read path conta.
   realizacoes?: number;
   criadoEm: string;

@@ -17,7 +17,9 @@ import {
   ArrowLeft,
   BookOpen,
   Calendar,
+  CheckCircle2,
   ChevronRight,
+  Clock,
   Eye,
   FileText,
   GitBranch,
@@ -45,6 +47,29 @@ export default function GradeDetalheClient({
   const router = useRouter();
   const id = grade.id;
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [revisadoEm, setRevisadoEm] = useState<string | undefined>(grade.revisadoEm);
+  const [revisadoPor, setRevisadoPor] = useState<string | undefined>(grade.revisadoPor);
+  const [revisando, setRevisando] = useState(false);
+
+  async function toggleRevisao() {
+    const novo = !revisadoEm;
+    setRevisando(true);
+    try {
+      const res = await fetch(`/api/grades/${id}/revisar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ revisado: novo }),
+      });
+      if (!res.ok) { toast.error("Não foi possível atualizar a revisão."); return; }
+      const data = await res.json() as { revisadoEm: string | null; revisadoPor: string | null };
+      setRevisadoEm(data.revisadoEm ?? undefined);
+      setRevisadoPor(data.revisadoPor ?? undefined);
+      toast.success(novo ? "Grade marcada como revisada." : "Revisão removida.");
+      router.refresh();
+    } finally {
+      setRevisando(false);
+    }
+  }
 
   const eixoNomeToEtapaMap = new Map<string, string>();
   grade.eixos.forEach((e) => {
@@ -152,11 +177,37 @@ export default function GradeDetalheClient({
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-border text-xs text-muted-foreground bg-muted">
                   v{grade.versao}
                 </span>
+                {revisadoEm ? (
+                  <Badge variant="outline" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Revisada
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-200 gap-1">
+                    <Clock className="h-3 w-3" />
+                    Não revisada
+                  </Badge>
+                )}
               </div>
+              {revisadoEm && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Revisada em {format(parseISO(revisadoEm), "dd/MM/yyyy", { locale: ptBR })}
+                  {revisadoPor ? ` por ${revisadoPor}` : ""}
+                </p>
+              )}
             </div>
           </div>
           {canEdit && (
             <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant={revisadoEm ? "outline" : "default"}
+                size="sm"
+                onClick={toggleRevisao}
+                disabled={revisando}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                {revisadoEm ? "Desfazer revisão" : "Marcar como revisada"}
+              </Button>
               <Button variant="outline" size="sm" onClick={() => router.push(`/grades/${id}/editar`)}>
                 <Pencil className="h-3.5 w-3.5 mr-1.5" />
                 Editar

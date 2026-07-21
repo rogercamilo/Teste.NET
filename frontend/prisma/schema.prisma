@@ -618,6 +618,10 @@ model GradeFormativa {
   documentoAnexo   String?
   documentoAnexoId String?
   ativo            Boolean  @default(true)
+  // Revisão editorial: nulo = ainda não revisada. Preenchidos ao "Marcar como
+  // revisada" (indicador do dashboard do Formador Pedagógico).
+  revisadoEm       DateTime?
+  revisadoPor      String?
   criadoEm         DateTime @default(now())
   atualizadoEm     DateTime @updatedAt
 
@@ -718,6 +722,10 @@ model Formacao {
   materialFormadorAnexo   String?
   materialFormadorAnexoId String?
   observacoesFormador String?
+  // Revisão editorial: nulo = ainda não revisada. Preenchidos ao "Marcar como
+  // revisada" (indicador do dashboard do Formador Pedagógico).
+  revisadoEm          DateTime?
+  revisadoPor         String?
   deletedAt           DateTime?
   criadoEm            DateTime  @default(now())
   atualizadoEm        DateTime  @updatedAt
