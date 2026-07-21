@@ -88,6 +88,7 @@ const EMPTY_STATS: DashboardStats = {
 
 const PERFIL_SUBTITULO: Record<PerfilUsuario, string> = {
   formador_comunitario: "",
+  formador_pedagogico: "Elaboração do caminho formativo",
   formador_geral: "Visão geral da organização",
   administrador: "Visão geral da organização",
   super_admin: "Plataforma",

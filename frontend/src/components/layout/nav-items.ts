@@ -100,6 +100,35 @@ export const navGroupsGestao: NavGroup[] = [
   },
 ];
 
+/**
+ * Formador Pedagógico — especialista de conteúdo. Vê Dashboard + Agenda +
+ * o bloco Pedagógico (Planos/Grades/Formações) + Configurações (Perfil).
+ * NÃO tem o bloco de Gestão (moradas, formandos, vocacional, livros...).
+ */
+export const navGroupsFormadorPedagogico: NavGroup[] = [
+  {
+    label: "Principal",
+    items: [
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Agenda", href: "/agenda", icon: Calendar },
+    ],
+  },
+  {
+    label: "Pedagógico",
+    items: [
+      { title: "Planos Formativos", href: "/planos", icon: BookOpen },
+      { title: "Grades Formativas", href: "/grades", icon: Library },
+      { title: "Formações", href: "/formacoes", icon: BookOpen },
+    ],
+  },
+  {
+    label: "Sistema",
+    items: [
+      { title: "Configurações", href: "/configuracoes", icon: Settings },
+    ],
+  },
+];
+
 /** Super Admin — acesso global à plataforma */
 export const navGroupsSuperAdmin: NavGroup[] = [
   {
@@ -139,9 +168,12 @@ export function resolveNavGroups(opts: {
   const { role, grupoFormacaoId, termoGrupoFormacao, termoFormando, tipoOrg, vocacionalOk } = opts;
   const isSuperAdmin = role === "super_admin";
   const isGestao = role === "formador_geral" || role === "administrador";
+  const isFormadorPedagogico = role === "formador_pedagogico";
 
   const baseGroups: NavGroup[] = isSuperAdmin
     ? navGroupsSuperAdmin
+    : isFormadorPedagogico
+    ? navGroupsFormadorPedagogico
     : isGestao
     ? navGroupsGestao
     : navGroupsFormador.map((g) => {

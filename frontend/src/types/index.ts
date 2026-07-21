@@ -24,7 +24,7 @@ export type StatusFormacao =
   | "cancelada"
   | "reagendada";
 export type Modalidade = "presencial" | "online" | "hibrida";
-export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comunitario" | "super_admin";
+export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comunitario" | "formador_pedagogico" | "super_admin";
 export type PlanoAssinatura = "GRATUITO" | "BASICO" | "INTERMEDIARIO" | "AVANCADO" | "PERSONALIZADO";
 export type StatusOrganizacao = "TRIAL" | "ATIVO" | "SUSPENSO" | "CANCELADO";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
@@ -504,6 +504,7 @@ export const PERFIL_USUARIO_LABELS: Record<PerfilUsuario, string> = {
   formador_geral: "Formador Geral",
   administrador: "Administrador",
   formador_comunitario: "Formador Comunitário",
+  formador_pedagogico: "Formador Pedagógico",
   super_admin: "Super Admin",
 };
 
@@ -555,6 +556,11 @@ export function temPermissao(
 ): boolean {
   const nivel: Record<PerfilUsuario, number> = {
     formador_comunitario: 1,
+    // Formador Pedagógico é um papel ESPECIALISTA (autor de conteúdo), ortogonal
+    // à hierarquia de campo. Fica no nível 1 para nunca satisfazer checagens de
+    // GESTÃO (>= formador_geral); seu acesso ao conteúdo é resolvido por
+    // CAPACIDADE (`podeElaborarConteudo`), não por este nível linear.
+    formador_pedagogico: 1,
     formador_geral: 2,
     administrador: 3,
     super_admin: 99,
@@ -569,6 +575,35 @@ export function isSuperAdmin(role: string | undefined): boolean {
 export function isGestao(role: string | undefined): boolean {
   return role === "administrador" || role === "formador_geral";
 }
+
+/**
+ * Capacidade de ELABORAR conteúdo formativo (planos, grades, formações).
+ * É uma checagem por capacidade, não por nível: além da gestão (Admin/FG), o
+ * Formador Pedagógico — especialista de conteúdo — também pode criar/editar,
+ * embora não tenha acesso às áreas operacionais (moradas, formandos, vocacional).
+ */
+export function podeElaborarConteudo(role: string | undefined): boolean {
+  return role === "administrador" || role === "formador_geral" || role === "formador_pedagogico";
+}
+
+/**
+ * Áreas operacionais/comunitárias que o Formador Pedagógico NÃO acessa: moradas,
+ * formandos, presença, jornada/período vocacional, livros, vitrine, auditoria
+ * documental. Fonte única usada pelo `proxy` (confinamento) e pela navegação.
+ * Deny-list: o papel vê "todo o resto" (dashboard, agenda, planos, grades,
+ * formações, configurações) — o oposto do super_admin, que é allow-list.
+ */
+export const FORMADOR_PEDAGOGICO_ROTAS_BLOQUEADAS: string[] = [
+  "/grupos-formacao",
+  "/formandos",
+  "/presenca",
+  "/documentos",
+  "/jornada-vocacional",
+  "/vocacional",
+  "/livro-registro",
+  "/livro-promessas",
+  "/vitrine",
+];
 
 export const NIVEL_FORMATIVO_ICONS: Record<NivelFormativo, string> = {
   "pre-discipulado": "🌱",

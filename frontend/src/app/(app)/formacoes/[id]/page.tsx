@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toFormacao } from "@/lib/converters";
+import { podeElaborarConteudo } from "@/types";
 import FormacaoDetalheClient, { type Realizacao } from "./FormacaoDetalheClient";
 
 export default async function FormacaoDetalhePage({
@@ -45,8 +46,7 @@ export default async function FormacaoDetalhePage({
     participantes: a.participantes,
   }));
 
-  const canEdit =
-    user.role === "formador_geral" || user.role === "administrador";
+  const canEdit = podeElaborarConteudo(user.role);
 
   return (
     <FormacaoDetalheClient

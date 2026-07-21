@@ -25,6 +25,7 @@ export const ModalidadeEnum = z.enum(["presencial", "online", "hibrida"]);
 
 export const PerfilEnum = z.enum([
   "formador_comunitario",
+  "formador_pedagogico",
   "administrador",
   "formador_geral",
 ]);

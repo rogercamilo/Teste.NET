@@ -9,7 +9,7 @@ import {
   TIPO_FORMACAO_LABELS,
   TIPO_FORMACAO_CORES,
   isColunaCentral,
-  temPermissao,
+  podeElaborarConteudo,
   type Formacao,
   type GradeFormativa,
   type GrupoFormacao,
@@ -125,7 +125,7 @@ export default function FormacoesClient({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const etapaLabels = useEtapaLabels();
-  const canEdit = temPermissao(role, "formador_geral");
+  const canEdit = podeElaborarConteudo(role);
   const isFormadorComunitario = role === "formador_comunitario";
 
   const myMorada = isFormadorComunitario ? initialGruposFormacao.find((m) => m.id === grupoFormacaoId) : undefined;

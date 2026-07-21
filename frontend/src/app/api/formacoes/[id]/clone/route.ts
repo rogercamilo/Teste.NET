@@ -5,14 +5,14 @@ import { logAction, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isValidId } from "@/lib/schemas";
 
-import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
+import { podeElaborarConteudo, SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isGestao(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!podeElaborarConteudo(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Aguarde antes de tentar novamente." }, { status: 429 });

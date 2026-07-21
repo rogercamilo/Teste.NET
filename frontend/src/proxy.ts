@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { jwtVerify, decodeJwt } from "jose";
 import { portalHomeFor, type PortalAudiencia } from "@/lib/portal-routes";
+import { FORMADOR_PEDAGOGICO_ROTAS_BLOQUEADAS } from "@/types";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -239,6 +240,21 @@ export default auth(async function proxy(req) {
 
   // Protege /super-admin — apenas super_admin pode acessar
   if (pathname.startsWith("/super-admin") && role !== "super_admin") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  // Formador Pedagógico é especialista de CONTEÚDO: não acessa as áreas
+  // operacionais/comunitárias (moradas, formandos, vocacional, livros...). É uma
+  // deny-list (o papel vê "todo o resto"); as PÁGINAS bloqueadas redirecionam ao
+  // dashboard. As APIs não entram aqui — cada handler valida o papel e responde
+  // 403 (redirecionar um fetch quebraria o cliente); só páginas são redirecionadas.
+  if (
+    role === "formador_pedagogico" &&
+    !pathname.startsWith("/api/") &&
+    FORMADOR_PEDAGOGICO_ROTAS_BLOQUEADAS.some(
+      (r) => pathname === r || pathname.startsWith(r + "/")
+    )
+  ) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

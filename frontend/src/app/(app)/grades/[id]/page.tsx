@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toGrade, toFormacao, toPlano } from "@/lib/converters";
+import { podeElaborarConteudo } from "@/types";
 import GradeDetalheClient from "./GradeDetalheClient";
 
 export default async function GradeDetalhePage({
@@ -46,7 +47,7 @@ export default async function GradeDetalhePage({
       : Promise.resolve(null),
   ]);
 
-  const canEdit = user.role !== "formador_comunitario";
+  const canEdit = podeElaborarConteudo(user.role);
 
   return (
     <GradeDetalheClient

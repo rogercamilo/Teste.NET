@@ -1419,7 +1419,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
             )}
             <div className="grid gap-1.5">
               <Label>Perfil de acesso</Label>
-              <Select value={form.perfil} onValueChange={(v) => v && set("perfil")(v)} items={{ administrador: PERFIL_USUARIO_LABELS.administrador, formador_geral: PERFIL_USUARIO_LABELS.formador_geral, formador_comunitario: PERFIL_USUARIO_LABELS.formador_comunitario }}>
+              <Select value={form.perfil} onValueChange={(v) => v && set("perfil")(v)} items={{ administrador: PERFIL_USUARIO_LABELS.administrador, formador_geral: PERFIL_USUARIO_LABELS.formador_geral, formador_pedagogico: PERFIL_USUARIO_LABELS.formador_pedagogico, formador_comunitario: PERFIL_USUARIO_LABELS.formador_comunitario }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -1429,6 +1429,9 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
                   </SelectItem>
                   <SelectItem value="formador_geral">
                     {PERFIL_USUARIO_LABELS["formador_geral"]}
+                  </SelectItem>
+                  <SelectItem value="formador_pedagogico">
+                    {PERFIL_USUARIO_LABELS["formador_pedagogico"]}
                   </SelectItem>
                   <SelectItem value="formador_comunitario">
                     {PERFIL_USUARIO_LABELS["formador_comunitario"]}
@@ -1724,6 +1727,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="formador_comunitario">Formador Comunitário</SelectItem>
+                  <SelectItem value="formador_pedagogico">Formador Pedagógico</SelectItem>
                   <SelectItem value="formador_geral">Formador Geral</SelectItem>
                   <SelectItem value="administrador">Administrador</SelectItem>
                 </SelectContent>

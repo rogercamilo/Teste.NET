@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { usePathname } from "next/navigation";
-import { LogOut, Shield, ShieldCheck, UserCog } from "lucide-react";
+import { BookOpen, LogOut, Shield, ShieldCheck, UserCog } from "lucide-react";
 import { signOut } from "next-auth/react";
 import {
   Sidebar,
@@ -54,9 +54,10 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   const isFormadorGeral = user.role === "formador_geral";
   const isAdmin = user.role === "administrador";
   const isSuperAdmin = user.role === "super_admin";
+  const isFormadorPedagogico = user.role === "formador_pedagogico";
 
-  const roleLabel = isSuperAdmin ? "Super Admin" : isFormadorGeral ? "Formador Geral" : isAdmin ? "Administrador" : formador;
-  const RoleIcon = isSuperAdmin ? ShieldCheck : isFormadorGeral ? ShieldCheck : isAdmin ? Shield : UserCog;
+  const roleLabel = isSuperAdmin ? "Super Admin" : isFormadorGeral ? "Formador Geral" : isAdmin ? "Administrador" : isFormadorPedagogico ? "Formador Pedagógico" : formador;
+  const RoleIcon = isSuperAdmin ? ShieldCheck : isFormadorGeral ? ShieldCheck : isAdmin ? Shield : isFormadorPedagogico ? BookOpen : UserCog;
 
   const tipoOrg = comunidade.tipoOrganizacao;
   const vocacionalOk = hasVocacionalAccess(tipoOrg, comunidade.vocacionalHabilitado);

@@ -5,7 +5,7 @@ import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isValidId, UpdateGradeSchema, parseJson } from "@/lib/schemas";
 
-import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
+import { podeElaborarConteudo, SessionUser as SU } from "@/lib/auth-helpers";
 import { criarNotificacoes, formadoresDaGrade } from "@/lib/notificacoes";
 import { syncGradeEixos, reconcileGradeFormacoes } from "@/lib/grade-formacoes";
 type Params = { params: Promise<{ id: string }> };
@@ -32,7 +32,7 @@ export async function PUT(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isGestao(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!podeElaborarConteudo(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rl = await limiters.mutation(user.id ?? "unknown");
   if (!rl.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;
@@ -101,7 +101,7 @@ export async function DELETE(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!isGestao(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  if (!podeElaborarConteudo(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   const rlDel = await limiters.mutation(user.id ?? "unknown");
   if (!rlDel.allowed) return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
   const { id } = await params;

@@ -7,7 +7,7 @@ import {
   STATUS_PLANO_STYLES,
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
-  temPermissao,
+  podeElaborarConteudo,
   type StatusPlano,
   type PlanoFormativo,
   type NivelFormativo,
@@ -73,7 +73,7 @@ export default function PlanosClient({ role, grupoFormacaoId, initialPlanos, ini
   const [toDelete, setToDelete] = useState<PlanoFormativo | null>(null);
   const [page, setPage] = useState(1);
 
-  const isAdmin = temPermissao(role, "formador_geral");
+  const isAdmin = podeElaborarConteudo(role);
 
   const meuGrupoFormacao =
     role === "formador_comunitario" && grupoFormacaoId

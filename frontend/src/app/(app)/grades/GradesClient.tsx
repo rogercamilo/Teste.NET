@@ -6,7 +6,7 @@ import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
   EIXO_COLORS,
-  temPermissao,
+  podeElaborarConteudo,
   type NivelFormativo,
   type GradeFormativa,
   type GrupoFormacao,
@@ -60,7 +60,7 @@ interface GradesClientProps {
 export default function GradesClient({ role, grupoFormacaoId, initialGrades, initialGruposFormacao }: GradesClientProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const canEdit = temPermissao(role, "formador_geral");
+  const canEdit = podeElaborarConteudo(role);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [toDelete, setToDelete] = useState<GradeFormativa | null>(null);
   const [page, setPage] = useState(1);
