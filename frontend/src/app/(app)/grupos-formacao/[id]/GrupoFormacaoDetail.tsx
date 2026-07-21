@@ -1081,44 +1081,62 @@ export default function GrupoFormacaoDetail({
             </Card>
           )}
 
-          <Card className="border-0 shadow-sm">
-            <CardContent className="pt-5">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground mb-1.5">Selecionar Formação</p>
-                  <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)} items={Object.fromEntries(realizadas.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`]))}>
-                    <SelectTrigger className="w-full sm:w-96">
-                      <SelectValue placeholder="Escolha uma formação..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {realizadas.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.formacaoTema} —{" "}
-                          {format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {agendamento && (
-                  <div className="flex gap-3 text-sm">
-                    <span className="flex items-center gap-1.5 text-emerald-600">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="font-semibold">{presentes}</span>
-                      <span className="text-muted-foreground">presentes</span>
-                    </span>
-                    <span className="flex items-center gap-1.5 text-red-500">
-                      <XCircle className="h-4 w-4" />
-                      <span className="font-semibold">{ausentes}</span>
-                      <span className="text-muted-foreground">ausentes</span>
-                    </span>
+          {realizadas.length === 0 ? (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-0">
+                <EmptyState
+                  icon={Calendar}
+                  title="Nenhuma formação agendada para esta morada"
+                  description="A presença é registrada em formações agendadas, não na grade. Agende uma formação desta morada na Agenda para começar a marcar presença."
+                  action={
+                    <Button onClick={() => router.push("/agenda")}>
+                      <Calendar className="h-4 w-4" />
+                      Ir para a Agenda
+                    </Button>
+                  }
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="pt-5">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground mb-1.5">Selecionar Formação</p>
+                    <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)} items={Object.fromEntries(realizadas.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`]))}>
+                      <SelectTrigger className="w-full sm:w-96">
+                        <SelectValue placeholder="Escolha uma formação..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {realizadas.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.formacaoTema} —{" "}
+                            {format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  {agendamento && (
+                    <div className="flex gap-3 text-sm">
+                      <span className="flex items-center gap-1.5 text-emerald-600">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span className="font-semibold">{presentes}</span>
+                        <span className="text-muted-foreground">presentes</span>
+                      </span>
+                      <span className="flex items-center gap-1.5 text-red-500">
+                        <XCircle className="h-4 w-4" />
+                        <span className="font-semibold">{ausentes}</span>
+                        <span className="text-muted-foreground">ausentes</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {agendamento ? (
+          {realizadas.length === 0 ? null : agendamento ? (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between gap-4">
