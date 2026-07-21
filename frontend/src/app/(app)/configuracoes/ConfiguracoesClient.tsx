@@ -815,6 +815,7 @@ const EMPTY_USUARIO_FORM: UsuarioForm = {
 };
 
 function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: string; initialGruposFormacao: GrupoFormacao[] }) {
+  const router = useRouter();
   const etapaLabels = useEtapaLabels();
   const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [usuarios, setUsuarios] = useState<UserPublic[]>([]);
@@ -976,6 +977,10 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
         setUsuarios((prev) => prev.map((u) => (u.id === editing.id ? updated : u)));
         toast.success("Usuário atualizado com sucesso!");
         setDialogOpen(false);
+        // Nome/foto do usuário logado aparecem na sidebar e no cabeçalho do Perfil,
+        // que são renderizados no servidor a partir do banco. Sem revalidar, esses
+        // locais continuam mostrando o valor capturado no carregamento da página.
+        router.refresh();
       } else {
         const grupoFormacaoIdParaEnviar =
           form.perfil === "formador_comunitario" && form.grupoFormacaoModo === "existente"
