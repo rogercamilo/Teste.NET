@@ -292,6 +292,117 @@ async function getDashboardData(
     };
   }
 
+  // ── Formador Pedagógico: elaboração do caminho formativo ───────────────────
+  // Escopo: conteúdo da PRÓPRIA organização (exclui o conteúdo global da
+  // plataforma, que não é do tenant para elaborar/revisar).
+  if (perfil === "formador_pedagogico") {
+    const [planos, grades, formacoesGrade] = await Promise.all([
+      prisma.planoFormativo.findMany({
+        where: { organizacaoId },
+        select: {
+          id: true, nome: true, status: true, vigenciaFim: true,
+          objetivos: true, fundamentacao: true,
+          _count: { select: { eixos: true } },
+        },
+      }),
+      prisma.gradeFormativa.findMany({
+        where: { organizacaoId },
+        select: {
+          id: true, nome: true, ativo: true, revisadoEm: true,
+          eixos: { select: { _count: { select: { etapas: true } } } },
+        },
+      }),
+      prisma.formacao.findMany({
+        where: { organizacaoId, gradeId: { not: null }, deletedAt: null },
+        select: {
+          id: true, tema: true, gradeId: true, objetivo: true, descricao: true,
+          documentoAnexo: true, materialFormadorAnexo: true, revisadoEm: true,
+        },
+      }),
+    ]);
+
+    // Formações elaboradas por grade (para "vazias" e "incompletas").
+    const elaboradasPorGrade = new Map<string, number>();
+    for (const f of formacoesGrade) {
+      if (f.gradeId) elaboradasPorGrade.set(f.gradeId, (elaboradasPorGrade.get(f.gradeId) ?? 0) + 1);
+    }
+
+    const atencao: NonNullable<DashboardStats["conteudo"]>["atencao"] = [];
+
+    // Planos
+    const planosRascunho = planos.filter((p) => p.status === "rascunho").length;
+    const planosEmRevisao = planos.filter((p) => p.status === "em-revisao").length;
+    const planosAtivos = planos.filter((p) => p.status === "ativo").length;
+    const planosIncompletos = planos.filter(
+      (p) => p._count.eixos === 0 || !p.objetivos.trim() || !p.fundamentacao.trim(),
+    ).length;
+    const planosVigenciaExpirada = planos.filter(
+      (p) => p.status === "ativo" && p.vigenciaFim < now,
+    ).length;
+    for (const p of planos) {
+      if (p._count.eixos === 0) atencao.push({ tipo: "plano", id: p.id, nome: p.nome, motivo: "Plano sem eixos" });
+      else if (p.status === "rascunho") atencao.push({ tipo: "plano", id: p.id, nome: p.nome, motivo: "Em rascunho" });
+    }
+
+    // Grades
+    let gradesInativas = 0, gradesVazias = 0, gradesIncompletas = 0, gradesNaoRevisadas = 0;
+    for (const g of grades) {
+      if (!g.ativo) gradesInativas++;
+      if (!g.revisadoEm) gradesNaoRevisadas++;
+      const elaboradas = elaboradasPorGrade.get(g.id) ?? 0;
+      const previstas = g.eixos.reduce((s, e) => s + e._count.etapas, 0);
+      if (elaboradas === 0) {
+        gradesVazias++;
+        atencao.push({ tipo: "grade", id: g.id, nome: g.nome, motivo: "Grade sem formações" });
+      } else if (previstas > 0 && elaboradas < previstas) {
+        gradesIncompletas++;
+        atencao.push({ tipo: "grade", id: g.id, nome: g.nome, motivo: `Faltam formações (${elaboradas}/${previstas})` });
+      } else if (!g.revisadoEm) {
+        atencao.push({ tipo: "grade", id: g.id, nome: g.nome, motivo: "Não revisada" });
+      }
+    }
+
+    // Formações (vinculadas à grade)
+    let formEsboco = 0, formSemMaterial = 0, formNaoRevisadas = 0;
+    for (const f of formacoesGrade) {
+      const esboco = !f.objetivo.trim() || !f.descricao.trim();
+      if (esboco) {
+        formEsboco++;
+        atencao.push({ tipo: "formacao", id: f.id, nome: f.tema, motivo: "Conteúdo em esboço" });
+      }
+      if (!f.documentoAnexo && !f.materialFormadorAnexo) formSemMaterial++;
+      if (!f.revisadoEm) formNaoRevisadas++;
+    }
+
+    return {
+      ...baseStats,
+      conteudo: {
+        planos: {
+          total: planos.length,
+          rascunho: planosRascunho,
+          emRevisao: planosEmRevisao,
+          ativos: planosAtivos,
+          incompletos: planosIncompletos,
+          vigenciaExpirada: planosVigenciaExpirada,
+        },
+        grades: {
+          total: grades.length,
+          inativas: gradesInativas,
+          vazias: gradesVazias,
+          incompletas: gradesIncompletas,
+          naoRevisadas: gradesNaoRevisadas,
+        },
+        formacoes: {
+          totalElaboradas: formacoesGrade.length,
+          esboco: formEsboco,
+          semMaterial: formSemMaterial,
+          naoRevisadas: formNaoRevisadas,
+        },
+        atencao: atencao.slice(0, 8),
+      },
+    };
+  }
+
   return baseStats;
 }
 

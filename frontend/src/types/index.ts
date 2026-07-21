@@ -473,6 +473,39 @@ export interface DashboardStats {
     taxaPresenca?: number | null;   // últimos 90 dias, null = sem registros
     gradeVigente?: boolean;         // false = grade expirada ou sem grade
   }[];
+
+  // Formador Pedagógico — indicadores de elaboração do caminho formativo.
+  // Escopo: conteúdo da própria organização (exclui o conteúdo global da plataforma).
+  conteudo?: {
+    planos: {
+      total: number;
+      rascunho: number;      // status = rascunho (a finalizar)
+      emRevisao: number;     // status = em-revisao (aguardando revisão)
+      ativos: number;        // status = ativo
+      incompletos: number;   // 0 eixos OU objetivos/fundamentação vazios
+      vigenciaExpirada: number; // ativo com vigenciaFim < hoje
+    };
+    grades: {
+      total: number;
+      inativas: number;      // ativo = false
+      vazias: number;        // nenhuma formação viva vinculada
+      incompletas: number;   // formações elaboradas < previstas (etapas / meta)
+      naoRevisadas: number;  // revisadoEm nulo
+    };
+    formacoes: {
+      totalElaboradas: number; // vinculadas à grade
+      esboco: number;          // vinculadas mas com objetivo ou descrição vazios
+      semMaterial: number;     // vinculadas sem nenhum anexo de apoio
+      naoRevisadas: number;    // vinculadas com revisadoEm nulo
+    };
+    // "O que precisa da minha atenção" — itens acionáveis com link direto.
+    atencao: {
+      tipo: "plano" | "grade" | "formacao";
+      id: string;
+      nome: string;
+      motivo: string;
+    }[];
+  };
 }
 
 export const NIVEL_FORMATIVO_LABELS: Record<NivelFormativo, string> = {

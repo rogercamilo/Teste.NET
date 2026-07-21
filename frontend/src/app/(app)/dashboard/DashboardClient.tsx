@@ -22,7 +22,7 @@ import dynamic from "next/dynamic";
 import {
   AlertTriangle, BookOpen, Calendar, CheckCircle2, Clock,
   FileText, GitBranch, Home, Plus, TrendingUp,
-  User, Users, XCircle,
+  User, Users, XCircle, type LucideIcon,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -93,6 +93,53 @@ const PERFIL_SUBTITULO: Record<PerfilUsuario, string> = {
   administrador: "Visão geral da organização",
   super_admin: "Plataforma",
 };
+
+// ── Dashboard do Formador Pedagógico: bloco de KPIs de um domínio de conteúdo ──
+type ConteudoTone = "ok" | "warn" | "alert" | "muted";
+const CONTEUDO_TONE_CLASSES: Record<ConteudoTone, string> = {
+  ok: "text-emerald-600",
+  warn: "text-amber-600",
+  alert: "text-red-500",
+  muted: "text-foreground",
+};
+
+function ConteudoBloco({
+  titulo,
+  icon: Icon,
+  href,
+  itens,
+}: {
+  titulo: string;
+  icon: LucideIcon;
+  href: string;
+  itens: { label: string; value: number; tone: ConteudoTone }[];
+}) {
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Icon className="h-4 w-4 text-primary" />
+            {titulo}
+          </CardTitle>
+          <Link href={href} className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+            Ver todos
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {itens.map((it) => (
+            <div key={it.label} className="rounded-lg bg-muted/40 p-3">
+              <p className={cn("text-2xl font-bold", CONTEUDO_TONE_CLASSES[it.tone])}>{it.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{it.label}</p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ── Funil Formativo card (shared between FC and FG/Admin views) ─────────────
 
@@ -189,6 +236,119 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
             Você ainda não foi associado a uma {termos.grupoFormacao.toLowerCase()}. Entre em contacto com o administrador da sua organização para ser incluído numa {termos.grupoFormacao.toLowerCase()}.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // ── Formador Pedagógico: dashboard de elaboração do caminho formativo ──────
+  if (perfil === "formador_pedagogico") {
+    const c = stats.conteudo;
+    return (
+      <div className="space-y-6 animate-in-fast">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">{tituloSaudacao}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5 capitalize">
+              {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+              <span className="normal-case text-muted-foreground/80"> · {subtitulo}</span>
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/planos/novo" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              <Plus className="h-4 w-4 mr-1.5" /> Novo Plano
+            </Link>
+            <Link href="/formacoes/novo" className={cn(buttonVariants({ size: "sm" }))}>
+              <Plus className="h-4 w-4 mr-1.5" /> Nova Formação
+            </Link>
+          </div>
+        </div>
+
+        {!c ? (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Ainda não há conteúdo formativo cadastrado. Comece criando um plano.
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Planos */}
+            <ConteudoBloco
+              titulo="Planos Formativos"
+              icon={BookOpen}
+              href="/planos"
+              itens={[
+                { label: "Ativos", value: c.planos.ativos, tone: "ok" },
+                { label: "Em rascunho", value: c.planos.rascunho, tone: c.planos.rascunho > 0 ? "warn" : "muted" },
+                { label: "Em revisão", value: c.planos.emRevisao, tone: c.planos.emRevisao > 0 ? "warn" : "muted" },
+                { label: "Incompletos", value: c.planos.incompletos, tone: c.planos.incompletos > 0 ? "alert" : "muted" },
+                { label: "Vigência expirada", value: c.planos.vigenciaExpirada, tone: c.planos.vigenciaExpirada > 0 ? "alert" : "muted" },
+              ]}
+            />
+
+            {/* Grades */}
+            <ConteudoBloco
+              titulo="Grades Formativas"
+              icon={GitBranch}
+              href="/grades"
+              itens={[
+                { label: "Total", value: c.grades.total, tone: "muted" },
+                { label: "Vazias", value: c.grades.vazias, tone: c.grades.vazias > 0 ? "alert" : "muted" },
+                { label: "Incompletas", value: c.grades.incompletas, tone: c.grades.incompletas > 0 ? "warn" : "muted" },
+                { label: "Não revisadas", value: c.grades.naoRevisadas, tone: c.grades.naoRevisadas > 0 ? "warn" : "ok" },
+                { label: "Inativas", value: c.grades.inativas, tone: c.grades.inativas > 0 ? "warn" : "muted" },
+              ]}
+            />
+
+            {/* Formações */}
+            <ConteudoBloco
+              titulo="Formações (no caminho formativo)"
+              icon={FileText}
+              href="/formacoes"
+              itens={[
+                { label: "Elaboradas", value: c.formacoes.totalElaboradas, tone: "ok" },
+                { label: "Em esboço", value: c.formacoes.esboco, tone: c.formacoes.esboco > 0 ? "alert" : "muted" },
+                { label: "Sem material", value: c.formacoes.semMaterial, tone: c.formacoes.semMaterial > 0 ? "warn" : "muted" },
+                { label: "Não revisadas", value: c.formacoes.naoRevisadas, tone: c.formacoes.naoRevisadas > 0 ? "warn" : "ok" },
+              ]}
+            />
+
+            {/* O que precisa da minha atenção */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  O que precisa da minha atenção
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {c.atencao.length === 0 ? (
+                  <div className="flex items-center gap-2 py-6 justify-center text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    Tudo em dia — nenhum item pendente.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {c.atencao.map((a) => (
+                      <Link
+                        key={`${a.tipo}-${a.id}`}
+                        href={`/${a.tipo === "plano" ? "planos" : a.tipo === "grade" ? "grades" : "formacoes"}/${a.id}`}
+                        className="flex items-center gap-3 p-2.5 rounded-lg border border-border/60 hover:bg-muted/40 transition-colors"
+                      >
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0 capitalize">
+                          {a.tipo === "plano" ? "Plano" : a.tipo === "grade" ? "Grade" : "Formação"}
+                        </span>
+                        <span className="text-sm font-medium truncate flex-1">{a.nome}</span>
+                        <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0">
+                          {a.motivo}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     );
   }
