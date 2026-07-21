@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { UpdateFormandoSchema, isValidId, parseJson } from "@/lib/schemas";
-import type { Formando, ProgressoEtapa } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };

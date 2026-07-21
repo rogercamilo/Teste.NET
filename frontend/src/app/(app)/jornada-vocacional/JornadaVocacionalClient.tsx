@@ -29,7 +29,6 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import {
   type ProcessoEclesiastico,
-  type TipoProcessoEclesiastico,
   type StatusProcessoEclesiastico,
   STATUS_PROCESSO_LABELS,
   STATUS_PROCESSO_COLORS,

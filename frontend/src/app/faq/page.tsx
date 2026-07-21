@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, Mail, MessageSquare } from "lucide-react";
+import { ArrowRight, Mail } from "lucide-react";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { FaqAccordion } from "./FaqAccordion";

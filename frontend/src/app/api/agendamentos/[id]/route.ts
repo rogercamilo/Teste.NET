@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import type { Agendamento } from "@/types";
 import { UpdateAgendamentoSchema, isValidId, parseJson } from "@/lib/schemas";
 import { sendPushToOrg } from "@/lib/push";
 import { formatDataBr } from "@/lib/utils";

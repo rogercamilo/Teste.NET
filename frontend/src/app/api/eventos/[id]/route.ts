@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isValidId, UpdateEventoSchema, parseJson } from "@/lib/schemas";
-import type { EventoFormando } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };

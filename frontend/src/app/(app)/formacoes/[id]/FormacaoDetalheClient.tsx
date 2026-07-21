@@ -27,7 +27,6 @@ import {
   CheckCircle2,
   Clock,
   Eye,
-  FileText,
   Hash,
   Layers,
   Link,

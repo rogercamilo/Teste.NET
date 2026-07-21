@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, AlertTriangle, Trash2, Loader2, RefreshCw, Clock, CheckCircle2 } from "lucide-react";
+import { Shield, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import { ACAO_CLASS, fmtDate } from "../_utils";
 import type { SegurancaData } from "../_types";
 

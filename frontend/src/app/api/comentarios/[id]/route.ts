@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { UpdateComentarioSchema, isValidId, parseJson } from "@/lib/schemas";
-import type { ComentarioFormando } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };

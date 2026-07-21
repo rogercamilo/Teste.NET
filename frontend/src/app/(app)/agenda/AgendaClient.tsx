@@ -12,7 +12,6 @@ import {
   TIPOS_EVENTO_AVULSO,
   type StatusFormacao,
   type Agendamento,
-  type NivelFormativo,
   type Formacao,
   type GrupoFormacao,
   type Compromisso,

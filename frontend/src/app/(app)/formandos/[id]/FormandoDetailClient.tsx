@@ -100,7 +100,6 @@ import {
   ScrollText,
   TrendingUp,
   Upload,
-  User,
   UserCheck,
   UserMinus,
   UserX,

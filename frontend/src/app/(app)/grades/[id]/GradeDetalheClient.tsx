@@ -21,7 +21,6 @@ import {
   ChevronRight,
   Clock,
   Eye,
-  FileText,
   GitBranch,
   Layers,
   Paperclip,

@@ -2,8 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DollarSign, TrendingUp, TrendingDown, Activity, Minus, AlertTriangle, Building2, Users, Gift } from "lucide-react";
-import { MRR_PRICE, PLANO_COLORS } from "../_utils";
+import { DollarSign, TrendingUp, TrendingDown, Activity, Minus, AlertTriangle, Building2, Users } from "lucide-react";
+import { MRR_PRICE } from "../_utils";
 import { MrrHistoryChart } from "../_utils";
 import type { Metricas } from "../_types";
 

@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import type { GrupoFormacao } from "@/types";
 import { UpdateGrupoFormacaoSchema, isValidId, parseJson } from "@/lib/schemas";
 
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";

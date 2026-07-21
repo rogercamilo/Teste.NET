@@ -12,8 +12,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Building2, RefreshCw, Gift, Ban, BadgeCheck, DollarSign, Activity, Lock,
-  Shield, Server, Clock, Scale, AlertTriangle, TrendingUp, CalendarPlus,
+  Building2, RefreshCw, Gift, DollarSign, Lock,
+  Shield, Server, Clock, Scale, AlertTriangle, CalendarPlus,
   Loader2, Mail, CircleAlert, LayoutDashboard, Sparkles, UserCog,
   type LucideIcon,
 } from "lucide-react";

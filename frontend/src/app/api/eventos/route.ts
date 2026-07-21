@@ -5,7 +5,6 @@ import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { limiters } from "@/lib/rate-limit";
 import { CreateEventoSchema, parseJson } from "@/lib/schemas";
-import type { EventoFormando } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 

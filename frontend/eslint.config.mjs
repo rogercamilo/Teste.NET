@@ -19,7 +19,13 @@ const eslintConfig = defineConfig([
       // Track resolution in: https://github.com/rogercamilo/Teste.NET/issues
       "react/no-unescaped-entities": "warn",
       "@next/next/no-img-element": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
+      // Prefixo `_` marca "intencionalmente não usado" (convenção padrão do
+      // TS-ESLint): permite descartar args/vars sem virar ruído no lint.
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      }],
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/purity": "warn",

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft, Building2, Users, CalendarPlus, KeyRound, AlertTriangle,
-  BadgeCheck, Ban, Gift, TrendingUp, Clock, CheckCircle2, RefreshCw,
+  BadgeCheck, Ban, Gift, Clock, CheckCircle2, RefreshCw,
   HardDrive, Mail, MailX, Activity, BarChart3,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";

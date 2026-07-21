@@ -5,7 +5,6 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateAgendamentoSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
-import type { Agendamento } from "@/types";
 import { sendPushToOrg } from "@/lib/push";
 import { formatDataBr } from "@/lib/utils";
 import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";

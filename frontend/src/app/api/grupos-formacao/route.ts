@@ -5,13 +5,11 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateGrupoFormacaoSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
-import type { GrupoFormacao } from "@/types";
 
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 
 
 import { toGrupoFormacao } from "@/lib/converters";
-import type { PrismaGrupoFormacao } from "@/lib/converters";
 
 export async function GET(request: Request) {
   const session = await auth();

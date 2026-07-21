@@ -6,7 +6,6 @@ import { canAddFormando, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateFormandoSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
-import type { Formando, ProgressoEtapa } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";

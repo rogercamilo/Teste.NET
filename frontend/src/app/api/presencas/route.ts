@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { limiters } from "@/lib/rate-limit";
-import type { PresencaFormacao } from "@/types";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 

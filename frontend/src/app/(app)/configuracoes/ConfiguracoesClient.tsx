@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { resolveImageSrc } from "@/lib/utils";
@@ -60,7 +59,6 @@ import {
   AlertTriangle,
   Bell,
   Building2,
-  Calendar,
   Camera,
   CheckCircle2,
   Clipboard,
@@ -1772,7 +1770,6 @@ const MAX_LOGO_BYTES = 1_048_576; // 1 MB
 function ComunidadeTab() {
   const router = useRouter();
   const [comunidade, setComunidade] = useComunidade();
-  const etapaLabels = useEtapaLabels();
   const [form, setForm] = useState<ComunidadeConfig>(() => ({ ...comunidade }));
   const [dirty, setDirty] = useState(false);
 

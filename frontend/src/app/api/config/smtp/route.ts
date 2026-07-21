@@ -7,7 +7,7 @@ import { limiters } from "@/lib/rate-limit";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 import { temPermissao } from "@/types";
 
-export async function GET(request: Request) {
+export async function GET() {
   const session = await auth();
   const user = session?.user as SU | undefined;
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });

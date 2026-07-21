@@ -448,7 +448,6 @@ export async function clearLoginFailures(userId: string): Promise<void> {
 }
 
 export function toPublic(u: UserAuth): UserPublic {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { passwordHash: _, mfaSecret: __, ...pub } = u;
   return pub;
 }

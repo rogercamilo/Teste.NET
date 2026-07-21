@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { UpdatePlanoSchema, isValidId, parseJson } from "@/lib/schemas";
-import type { PlanoFormativo, EixoPlano } from "@/types";
 
 import { podeElaborarConteudo, SessionUser as SU } from "@/lib/auth-helpers";
 import { criarNotificacoes, formadoresDoPlano } from "@/lib/notificacoes";

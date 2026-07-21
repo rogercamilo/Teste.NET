@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
 import {
-  TrendingUp, AlertTriangle, Gift, Ban, BadgeCheck, Activity, KeyRound,
+  TrendingUp, AlertTriangle, Gift, Ban, BadgeCheck, KeyRound,
   CalendarPlus, Search, ExternalLink, CircleAlert, Filter, X, Download,
   MessageSquare, CheckSquare2, MoreHorizontal, RefreshCw, Clock,
   Loader2, Send, CheckCircle2,

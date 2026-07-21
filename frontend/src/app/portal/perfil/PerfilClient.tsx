@@ -27,7 +27,7 @@ import {
 import type { EstadoCivil } from "@/types";
 import { applyPhoneMask } from "@/lib/utils";
 import type { PublicBranding } from "@/lib/public-branding";
-import { portalHomeFor, type PortalAudiencia } from "@/lib/portal-routes";
+import { type PortalAudiencia } from "@/lib/portal-routes";
 import type { PortalPerfil } from "@/lib/portal-data";
 import { camposFaltantes } from "@/lib/perfil-completude";
 

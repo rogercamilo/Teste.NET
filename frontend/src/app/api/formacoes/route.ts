@@ -5,7 +5,6 @@ import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateFormacaoSchema, parseJson } from "@/lib/schemas";
-import type { Formacao } from "@/types";
 
 import { podeElaborarConteudo, SessionUser as SU } from "@/lib/auth-helpers";
 

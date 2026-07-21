@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import {
   ArrowRight, Building2, Heart, BookMarked, GraduationCap,
-  Check, X, Minus, ChevronRight,
+  Check, Minus, ChevronRight,
 } from "lucide-react";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
