@@ -1196,6 +1196,10 @@ export interface ComunidadeConfig {
   termoDiscipulado?: string;
   termoPrimeirasPromessas?: string;
   termoFormacaoPermanente?: string;
+  /** Glossário dos documentos da Jornada (promessa + consagração) */
+  termoPromessa?: string;
+  termoConsagracao?: string;
+  termoConsagrado?: string;
   /** Período Vocacional — módulo opcional, desacoplado do tipoOrganizacao */
   vocacionalHabilitado?: boolean;
   termoVocacional?: string;

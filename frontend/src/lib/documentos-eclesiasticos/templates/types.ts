@@ -8,6 +8,12 @@ export interface DadosTemplate {
   termoDiscipulado: string;
   termoPrimeirasPromessas: string;
   termoPromessa: string;
+  /** Rótulo do responsável comunitário nas assinaturas (ex.: Líder, Guia). */
+  termoFormador: string;
+  /** Ato de consagração (ex.: Consagração, Aliança, Compromisso). */
+  termoConsagracao: string;
+  /** Pessoa consagrada (ex.: Consagrado(a), Membro, Aliançado(a)). */
+  termoConsagrado: string;
 
   processoTipo: string;
   nivelFormativo: string;

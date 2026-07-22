@@ -102,7 +102,7 @@ export default function ParecerFormativoPDF({ dados }: { dados: DadosTemplate })
         ) : null}
 
         <DataLocal />
-        <Assinaturas items={["Formador Comunitário", "Formador Geral"]} />
+        <Assinaturas items={[dados.termoFormador, "Formador Geral"]} />
         <Footer orgNome={dados.orgNome} geradoEm={dados.geradoEm} marcaDagua={dados.marcaDagua} />
       </Page>
     </Document>

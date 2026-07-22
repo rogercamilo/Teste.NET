@@ -18,7 +18,7 @@ export async function GET() {
   try {
     const org = await prisma.organizacao.findUnique({
       where: { id: user.organizacaoId },
-      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, termoPromessa: true, termoConsagracao: true, termoConsagrado: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
@@ -36,6 +36,9 @@ export async function GET() {
       termoDiscipulado: org.termoDiscipulado,
       termoPrimeirasPromessas: org.termoPrimeirasPromessas,
       termoFormacaoPermanente: org.termoFormacaoPermanente,
+      termoPromessa: org.termoPromessa,
+      termoConsagracao: org.termoConsagracao,
+      termoConsagrado: org.termoConsagrado,
       vocacionalHabilitado: org.vocacionalHabilitado,
       termoVocacional: org.termoVocacional,
       termoAcompanhamentoVocacional: org.termoAcompanhamentoVocacional,
@@ -90,6 +93,9 @@ export async function PUT(request: Request) {
         termoDiscipulado: body.termoDiscipulado || undefined,
         termoPrimeirasPromessas: body.termoPrimeirasPromessas || undefined,
         termoFormacaoPermanente: body.termoFormacaoPermanente || undefined,
+        termoPromessa: body.termoPromessa || undefined,
+        termoConsagracao: body.termoConsagracao || undefined,
+        termoConsagrado: body.termoConsagrado || undefined,
         ...(body.vocacionalHabilitado !== undefined ? { vocacionalHabilitado: body.vocacionalHabilitado } : {}),
         termoVocacional: body.termoVocacional || undefined,
         termoAcompanhamentoVocacional: body.termoAcompanhamentoVocacional || undefined,
@@ -105,7 +111,7 @@ export async function PUT(request: Request) {
         temaCor: body.temaCor || undefined,
         ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
-      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, termoPromessa: true, termoConsagracao: true, termoConsagrado: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     revalidateTag(orgBrandingTag(user.organizacaoId), { expire: 0 });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
@@ -123,6 +129,9 @@ export async function PUT(request: Request) {
       termoDiscipulado: updated.termoDiscipulado,
       termoPrimeirasPromessas: updated.termoPrimeirasPromessas,
       termoFormacaoPermanente: updated.termoFormacaoPermanente,
+      termoPromessa: updated.termoPromessa,
+      termoConsagracao: updated.termoConsagracao,
+      termoConsagrado: updated.termoConsagrado,
       vocacionalHabilitado: updated.vocacionalHabilitado,
       termoVocacional: updated.termoVocacional,
       termoAcompanhamentoVocacional: updated.termoAcompanhamentoVocacional,

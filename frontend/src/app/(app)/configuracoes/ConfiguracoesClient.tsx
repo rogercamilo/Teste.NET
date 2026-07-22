@@ -2100,6 +2100,59 @@ function ComunidadeTab() {
             </div>
           </div>
 
+          {/* Glossário dos documentos da Jornada — só relevante para orgs que os emitem */}
+          {(comunidade.tipoOrganizacao === "nova_comunidade" ||
+            comunidade.tipoOrganizacao === "instituto_religioso" ||
+            form.vocacionalHabilitado === true) && (
+            <div className="grid gap-2 border-t border-border pt-5">
+              <p className="text-sm font-medium">Documentos da Jornada</p>
+              <p className="text-xs text-muted-foreground -mt-1">
+                Vocabulário carismático usado nos termos e documentos gerados (Vitrine de Documentos).
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+                <div className="grid gap-1.5">
+                  <Label>
+                    Promessa{" "}
+                    <span className="font-normal text-muted-foreground text-xs">(padrão: "Promessa")</span>
+                  </Label>
+                  <Input
+                    value={form.termoPromessa ?? ""}
+                    onChange={(e) => handleChange("termoPromessa", e.target.value)}
+                    placeholder="Promessa"
+                    className="h-9 text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">Ex.: Promessa, Voto, Aliança.</p>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>
+                    Ato de consagração{" "}
+                    <span className="font-normal text-muted-foreground text-xs">(padrão: "Consagração")</span>
+                  </Label>
+                  <Input
+                    value={form.termoConsagracao ?? ""}
+                    onChange={(e) => handleChange("termoConsagracao", e.target.value)}
+                    placeholder="Consagração"
+                    className="h-9 text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">Ex.: Consagração, Aliança, Compromisso.</p>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>
+                    Pessoa consagrada{" "}
+                    <span className="font-normal text-muted-foreground text-xs">(padrão: "Consagrado(a)")</span>
+                  </Label>
+                  <Input
+                    value={form.termoConsagrado ?? ""}
+                    onChange={(e) => handleChange("termoConsagrado", e.target.value)}
+                    placeholder="Consagrado(a)"
+                    className="h-9 text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">Ex.: Consagrado(a), Membro, Aliançado(a).</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Prévia */}
           <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2.5">
             <p className="text-xs font-medium text-muted-foreground">Prévia na navegação</p>

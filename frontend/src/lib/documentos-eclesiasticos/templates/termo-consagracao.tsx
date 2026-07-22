@@ -18,9 +18,9 @@ export default function TermoConsagracaoPDF({ dados }: { dados: DadosTemplate })
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <Header branding={dados.branding} orgNome={dados.orgNome} titulo={`Termo de Consagração — ${tipoPromessa}`} />
+        <Header branding={dados.branding} orgNome={dados.orgNome} titulo={`Termo de ${dados.termoConsagracao} — ${tipoPromessa}`} />
 
-        <Secao>Dados do Consagrado(a)</Secao>
+        <Secao>{`Dados do ${dados.termoConsagrado}`}</Secao>
         <Campo label="Nome completo" value={nomeCompleto} />
         <Campo label="Data de nascimento" value={dados.formandoDataNascimento} />
         <Campo label="Estado civil" value={val(f.estado_civil) ?? dados.formandoEstadoCivil} />
@@ -33,7 +33,7 @@ export default function TermoConsagracaoPDF({ dados }: { dados: DadosTemplate })
           <Campo label="Assistente eclesiástico" value={val(f.assistente_eclesiastico)} />
         ) : null}
 
-        <Secao>Fórmula de Consagração</Secao>
+        <Secao>{`Fórmula de ${dados.termoConsagracao}`}</Secao>
         <Text style={s.paragraph}>
           {val(f.formula_texto) ??
             `Eu, ${nomeCompleto}, diante de Deus e desta comunidade reunida em Seu nome, livremente me consagro a Ele por meio de ${tipoPromessa} em ${dados.orgNome}, comprometendo-me a viver o carisma e a missão desta comunidade com fidelidade, ${vigencia}.`}
@@ -54,7 +54,7 @@ export default function TermoConsagracaoPDF({ dados }: { dados: DadosTemplate })
         <DataLocal />
         <Assinaturas
           items={[
-            "Consagrado(a)",
+            dados.termoConsagrado,
             "Celebrante",
             "Moderador(a) Geral",
             ...(val(f.assistente_eclesiastico) ? ["Assistente eclesiástico"] : []),

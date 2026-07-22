@@ -203,6 +203,10 @@ model Organizacao {
   termoPrimeirasPromessas       String            @default("Primeiras Promessas")
   termoFormacaoPermanente       String            @default("Formação Permanente")
   termoPromessa                 String            @default("Promessa")
+  // Glossário dos documentos da Jornada — o ato de consagração e a pessoa
+  // consagrada variam por carisma (ex.: Aliança/Compromisso, Membro/Aliançado).
+  termoConsagracao              String            @default("Consagração")
+  termoConsagrado               String            @default("Consagrado(a)")
   // Período Vocacional (módulo opcional, desacoplado do tipoOrganizacao)
   vocacionalHabilitado          Boolean           @default(false)
   termoVocacional               String            @default("Período Vocacional")

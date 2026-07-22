@@ -17,6 +17,9 @@ export function dadosFicticios(): DadosTemplate {
     termoDiscipulado: "Discipulado",
     termoPrimeirasPromessas: "Primeiras Promessas",
     termoPromessa: "Promessas Definitivas",
+    termoFormador: "Formador Comunitário",
+    termoConsagracao: "Consagração",
+    termoConsagrado: "Consagrado(a)",
 
     processoTipo: "admissao_etapa2",
     nivelFormativo: "Discipulado",
