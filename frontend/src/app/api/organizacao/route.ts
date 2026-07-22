@@ -7,6 +7,18 @@ import { limiters } from "@/lib/rate-limit";
 import { UpdateOrganizacaoSchema, parseJson } from "@/lib/schemas";
 import type { ComunidadeConfig } from "@/types";
 import { orgBrandingTag } from "@/lib/org-cache";
+import { BLOCO_IDS, BLOCO_MAX } from "@/lib/documentos-eclesiasticos/blocos";
+
+/** Mantém só blocos conhecidos, não-vazios e dentro do limite. */
+function sanitizeDocumentosTextos(input: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [id, texto] of Object.entries(input)) {
+    if (!BLOCO_IDS.has(id)) continue;
+    const t = (texto ?? "").trim();
+    if (t) out[id] = t.slice(0, BLOCO_MAX);
+  }
+  return out;
+}
 
 import { isGestao, SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -18,7 +30,7 @@ export async function GET() {
   try {
     const org = await prisma.organizacao.findUnique({
       where: { id: user.organizacaoId },
-      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, termoPromessa: true, termoConsagracao: true, termoConsagrado: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, termoPromessa: true, termoConsagracao: true, termoConsagrado: true, documentosTextos: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     if (!org) return NextResponse.json({ error: "Organização não encontrada" }, { status: 404 });
 
@@ -39,6 +51,7 @@ export async function GET() {
       termoPromessa: org.termoPromessa,
       termoConsagracao: org.termoConsagracao,
       termoConsagrado: org.termoConsagrado,
+      documentosTextos: (org.documentosTextos as Record<string, string> | null) ?? undefined,
       vocacionalHabilitado: org.vocacionalHabilitado,
       termoVocacional: org.termoVocacional,
       termoAcompanhamentoVocacional: org.termoAcompanhamentoVocacional,
@@ -96,6 +109,9 @@ export async function PUT(request: Request) {
         termoPromessa: body.termoPromessa || undefined,
         termoConsagracao: body.termoConsagracao || undefined,
         termoConsagrado: body.termoConsagrado || undefined,
+        ...(body.documentosTextos !== undefined
+          ? { documentosTextos: sanitizeDocumentosTextos(body.documentosTextos) }
+          : {}),
         ...(body.vocacionalHabilitado !== undefined ? { vocacionalHabilitado: body.vocacionalHabilitado } : {}),
         termoVocacional: body.termoVocacional || undefined,
         termoAcompanhamentoVocacional: body.termoAcompanhamentoVocacional || undefined,
@@ -111,7 +127,7 @@ export async function PUT(request: Request) {
         temaCor: body.temaCor || undefined,
         ...(body.onboardingConcluido === true ? { onboardingConcluido: true } : {}),
       },
-      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, termoPromessa: true, termoConsagracao: true, termoConsagrado: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
+      select: { tipoOrganizacao: true, nome: true, descricao: true, endereco: true, missao: true, anoFundacao: true, termoGrupoFormacao: true, termoFormando: true, termoFormador: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true, termoPromessa: true, termoConsagracao: true, termoConsagrado: true, documentosTextos: true, vocacionalHabilitado: true, termoVocacional: true, termoAcompanhamentoVocacional: true, vocacionalDuracaoPadraoMeses: true, emailAgendamentoAtivo: true, instagramHandle: true, youtubeUrl: true, onboardingConcluido: true, nomePlataforma: true, logoUrl: true, temaCor: true },
     });
     revalidateTag(orgBrandingTag(user.organizacaoId), { expire: 0 });
     logAction("organizacao_updated", user.id, getClientIp(request), {}, user.organizacaoId);
@@ -132,6 +148,7 @@ export async function PUT(request: Request) {
       termoPromessa: updated.termoPromessa,
       termoConsagracao: updated.termoConsagracao,
       termoConsagrado: updated.termoConsagrado,
+      documentosTextos: (updated.documentosTextos as Record<string, string> | null) ?? undefined,
       vocacionalHabilitado: updated.vocacionalHabilitado,
       termoVocacional: updated.termoVocacional,
       termoAcompanhamentoVocacional: updated.termoAcompanhamentoVocacional,

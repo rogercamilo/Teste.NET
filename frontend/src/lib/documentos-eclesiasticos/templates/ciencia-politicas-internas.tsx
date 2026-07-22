@@ -1,21 +1,13 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import type { DadosTemplate } from "./types";
-import { s, Header, Secao, Campo, Assinaturas, DataLocal, Footer, val } from "./base";
-
-const POLITICAS = [
-  "Participar regularmente das reuniões e encontros formativos previstos no plano formativo.",
-  "Zelar pelo bem comum e pela fraternidade nas relações comunitárias.",
-  "Manter sigilo sobre assuntos internos de caráter confidencial.",
-  "Respeitar a autoridade e o carisma próprio da organização.",
-  "Comunicar ao responsável canônico qualquer impedimento ou dificuldade relevante.",
-  "Contribuir com dedicação e generosidade para as atividades missionárias e apostólicas.",
-  "Cuidar dos bens materiais da organização com responsabilidade.",
-  "Observar as normas e orientações pastorais estabelecidas pelo governo da organização.",
-];
+import { s, Header, Secao, Campo, Paragrafos, Assinaturas, DataLocal, Footer, val } from "./base";
+import { resolveBlocoParagrafos, resolveBlocoLista } from "../blocos";
 
 export default function CienciaPoliticasInternasPDF({ dados }: { dados: DadosTemplate }) {
   const f = dados.formulario;
+  const nomeCompleto = val(f.nome_completo) ?? dados.formandoNome;
+  const politicas = resolveBlocoLista("ciencia.politicas", dados.textosCustom, {});
   return (
     <Document>
       <Page size="A4" style={s.page}>
@@ -32,11 +24,15 @@ export default function CienciaPoliticasInternasPDF({ dados }: { dados: DadosTem
         <Campo label="Núcleo" value={val(f.nucleo)} />
 
         <Secao>Declaração de Ciência</Secao>
-        <Text style={s.paragraph}>
-          {`Eu, ${val(f.nome_completo) ?? dados.formandoNome}, candidato(a) à etapa "${dados.nivelFormativo}" em ${dados.orgNome}, declaro ter lido, compreendido e aceito as políticas internas da organização, comprometendo-me a observar os seguintes princípios e normas de convivência:`}
-        </Text>
+        <Paragrafos
+          textos={resolveBlocoParagrafos("ciencia.preambulo", dados.textosCustom, {
+            pessoa: nomeCompleto,
+            etapa: dados.nivelFormativo,
+            org: dados.orgNome,
+          })}
+        />
 
-        {POLITICAS.map((item, i) => (
+        {politicas.map((item, i) => (
           <View key={i} style={{ flexDirection: "row", marginBottom: 5, alignItems: "flex-start" }}>
             <Text style={{ fontSize: 10, color: "#374151", width: 18, flexShrink: 0 }}>{i + 1}.</Text>
             <Text style={[s.fieldValue, { lineHeight: 1.5 }]}>{item}</Text>

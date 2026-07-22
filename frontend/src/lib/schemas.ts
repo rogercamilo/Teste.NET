@@ -371,6 +371,8 @@ export const UpdateOrganizacaoSchema = z.object({
   termoPromessa: optionalString(100),
   termoConsagracao: optionalString(100),
   termoConsagrado: optionalString(100),
+  // Blocos de texto dos documentos (Fase 3). Chaves/limite reforçados na rota.
+  documentosTextos: z.record(z.string(), z.string().max(4000)).optional(),
   vocacionalHabilitado: z.boolean().optional(),
   termoVocacional: optionalString(100),
   termoAcompanhamentoVocacional: optionalString(100),

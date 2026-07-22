@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
 
   const org = await prisma.organizacao.findUnique({
     where: { id: user.organizacaoId },
-    select: { tipoOrganizacao: true, vocacionalHabilitado: true, temaCor: true, logoUrl: true },
+    select: { tipoOrganizacao: true, vocacionalHabilitado: true, temaCor: true, logoUrl: true, documentosTextos: true },
   });
   if (!hasVocacionalAccess(org?.tipoOrganizacao, org?.vocacionalHabilitado)) {
     return NextResponse.json({ error: "Recurso indisponível para este tipo de organização" }, { status: 403 });
@@ -44,6 +44,7 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
       ...dadosFicticios(),
       marcaDagua: MARCA_DAGUA_PREVIEW,
       branding: resolveDocumentoBranding(org),
+      textosCustom: (org?.documentosTextos as Record<string, string> | null) ?? {},
     };
     const pdf = await renderTemplate(tipo, dados);
     return new Response(new Uint8Array(pdf), {

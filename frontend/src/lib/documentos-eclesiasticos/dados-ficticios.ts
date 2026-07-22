@@ -20,6 +20,7 @@ export function dadosFicticios(): DadosTemplate {
     termoFormador: "Formador Comunitário",
     termoConsagracao: "Consagração",
     termoConsagrado: "Consagrado(a)",
+    textosCustom: {},
 
     processoTipo: "admissao_etapa2",
     nivelFormativo: "Discipulado",

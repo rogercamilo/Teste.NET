@@ -1,7 +1,8 @@
 import React from "react";
 import { Document, Page, Text } from "@react-pdf/renderer";
 import type { DadosTemplate } from "./types";
-import { s, Header, Secao, Campo, Assinaturas, DataLocal, Footer, val } from "./base";
+import { s, Header, Secao, Campo, Paragrafos, Assinaturas, DataLocal, Footer, val } from "./base";
+import { resolveBlocoParagrafos } from "../blocos";
 
 export default function TermoCerimonialPDF({ dados }: { dados: DadosTemplate }) {
   const f = dados.formulario;
@@ -29,20 +30,21 @@ export default function TermoCerimonialPDF({ dados }: { dados: DadosTemplate }) 
         <Text style={s.paragraph}>
           {`Prezado(a) ${nomeCompleto},`}
         </Text>
-        <Text style={s.paragraph}>
-          {`Em nome de ${dados.orgNome} e da nossa comunidade de fé, é com grande alegria que o(a) acolhemos nesta nova etapa da sua caminhada formativa: o ${dados.termoDiscipulado}.`}
-        </Text>
-        <Text style={s.paragraph}>
-          {`Esta etapa representa um passo significativo em sua jornada vocacional. Ao ingressar no ${dados.termoDiscipulado}, você é convidado(a) a aprofundar seu comprometimento com a vida espiritual, comunitária e missionária, respondendo ao chamado que Deus lhe dirige por meio desta comunidade.`}
-        </Text>
-        <Text style={s.paragraph}>
-          {`Que esta passagem seja marcada pela gratidão, pela abertura ao Espírito Santo e pelo desejo sincero de crescer em santidade e serviço. A comunidade inteira o(a) acompanha com oração e fraternidade.`}
-        </Text>
+        <Paragrafos
+          textos={resolveBlocoParagrafos("termo_cerimonial.acolhimento", dados.textosCustom, {
+            org: dados.orgNome,
+            discipulado: dados.termoDiscipulado,
+          })}
+        />
 
         <Secao>Compromisso</Secao>
-        <Text style={s.paragraph}>
-          {`Eu, ${nomeCompleto}, ao ingressar no ${dados.termoDiscipulado} de ${dados.orgNome}, renovo meu comprometimento com a vida comunitária e me disponho a percorrer esta etapa com fidelidade, escuta e generosidade.`}
-        </Text>
+        <Paragrafos
+          textos={resolveBlocoParagrafos("termo_cerimonial.compromisso", dados.textosCustom, {
+            pessoa: nomeCompleto,
+            discipulado: dados.termoDiscipulado,
+            org: dados.orgNome,
+          })}
+        />
 
         <DataLocal />
         <Assinaturas items={["Candidato(a)", "Responsável canônico", "Moderador(a) Geral"]} />

@@ -14,6 +14,11 @@ export interface DadosTemplate {
   termoConsagracao: string;
   /** Pessoa consagrada (ex.: Consagrado(a), Membro, Aliançado(a)). */
   termoConsagrado: string;
+  /**
+   * Overrides de blocos de texto por bloco.id (Fase 3). Vazio = usa o padrão do
+   * registro em `lib/documentos-eclesiasticos/blocos.ts`.
+   */
+  textosCustom: Record<string, string>;
 
   processoTipo: string;
   nivelFormativo: string;

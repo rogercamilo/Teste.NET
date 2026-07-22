@@ -1200,6 +1200,8 @@ export interface ComunidadeConfig {
   termoPromessa?: string;
   termoConsagracao?: string;
   termoConsagrado?: string;
+  /** Blocos de texto editáveis dos documentos (Fase 3): bloco.id -> texto. */
+  documentosTextos?: Record<string, string>;
   /** Período Vocacional — módulo opcional, desacoplado do tipoOrganizacao */
   vocacionalHabilitado?: boolean;
   termoVocacional?: string;

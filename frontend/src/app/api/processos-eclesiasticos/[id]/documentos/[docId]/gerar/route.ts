@@ -60,6 +60,7 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
             termoFormador: true,
             termoConsagracao: true,
             termoConsagrado: true,
+            documentosTextos: true,
             temaCor: true,
             logoUrl: true,
           },
@@ -131,6 +132,7 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
       termoFormador: org.termoFormador,
       termoConsagracao: org.termoConsagracao,
       termoConsagrado: org.termoConsagrado,
+      textosCustom: (org.documentosTextos as Record<string, string> | null) ?? {},
 
       processoTipo: processo.tipo,
       nivelFormativo: processo.nivelFormativo,

@@ -1,7 +1,8 @@
 import React from "react";
 import { Document, Page, Text } from "@react-pdf/renderer";
 import type { DadosTemplate } from "./types";
-import { s, Header, Secao, Campo, Assinaturas, DataLocal, Footer, val } from "./base";
+import { s, Header, Secao, Campo, Paragrafos, Assinaturas, DataLocal, Footer, val } from "./base";
+import { resolveBlocoParagrafos } from "../blocos";
 
 export default function TermoConsagracaoPDF({ dados }: { dados: DadosTemplate }) {
   const f = dados.formulario;
@@ -34,13 +35,19 @@ export default function TermoConsagracaoPDF({ dados }: { dados: DadosTemplate })
         ) : null}
 
         <Secao>{`Fórmula de ${dados.termoConsagracao}`}</Secao>
-        <Text style={s.paragraph}>
-          {val(f.formula_texto) ??
-            `Eu, ${nomeCompleto}, diante de Deus e desta comunidade reunida em Seu nome, livremente me consagro a Ele por meio de ${tipoPromessa} em ${dados.orgNome}, comprometendo-me a viver o carisma e a missão desta comunidade com fidelidade, ${vigencia}.`}
-        </Text>
-        <Text style={s.paragraph}>
-          {`Faço estas ${tipoPromessa} com plena consciência das exigências que assumo, confiante na graça de Deus e no apoio fraterno da comunidade.`}
-        </Text>
+        {/* Precedência: fórmula real da cerimônia (Livro de Promessas) > bloco da org > padrão. */}
+        {val(f.formula_texto) ? (
+          <Text style={s.paragraph}>{val(f.formula_texto)}</Text>
+        ) : (
+          <Paragrafos
+            textos={resolveBlocoParagrafos("termo_consagracao.formula", dados.textosCustom, {
+              pessoa: nomeCompleto,
+              promessa: tipoPromessa,
+              org: dados.orgNome,
+              vigencia,
+            })}
+          />
+        )}
 
         {val(f.tomo) || val(f.folha) || val(f.numero) ? (
           <>

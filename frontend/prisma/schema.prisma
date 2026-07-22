@@ -207,6 +207,9 @@ model Organizacao {
   // consagrada variam por carisma (ex.: Aliança/Compromisso, Membro/Aliançado).
   termoConsagracao              String            @default("Consagração")
   termoConsagrado               String            @default("Consagrado(a)")
+  // Blocos de texto editáveis dos documentos (Fase 3): mapa bloco.id -> texto.
+  // Null/ausente => usa o padrão do registro (lib/documentos-eclesiasticos/blocos.ts).
+  documentosTextos              Json?
   // Período Vocacional (módulo opcional, desacoplado do tipoOrganizacao)
   vocacionalHabilitado          Boolean           @default(false)
   termoVocacional               String            @default("Período Vocacional")

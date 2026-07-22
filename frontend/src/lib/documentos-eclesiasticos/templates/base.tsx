@@ -184,6 +184,19 @@ export function Paragrafo({ children }: { children: string }) {
   return <Text style={s.paragraph}>{children}</Text>;
 }
 
+/** Renderiza uma lista de parágrafos já resolvidos (bloco de texto editável). */
+export function Paragrafos({ textos }: { textos: string[] }) {
+  return (
+    <>
+      {textos.map((t, i) => (
+        <Text key={i} style={s.paragraph}>
+          {t}
+        </Text>
+      ))}
+    </>
+  );
+}
+
 export function Assinaturas({ items }: { items: string[] }) {
   return (
     <View style={s.sigRow}>
