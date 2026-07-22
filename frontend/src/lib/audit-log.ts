@@ -10,6 +10,7 @@ export type AuditAction =
   | "login_success"
   | "login_failure"
   | "login_blocked"
+  | "login_error"
   | "logout"
   | "user_created"
   | "user_updated"

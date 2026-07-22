@@ -2,10 +2,11 @@
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateGlobal, findByEmailGlobal, findById, recordLoginFailure, clearLoginFailures } from "@/lib/users-store";
 import { authConfig } from "@/auth.config";
 import { limiters } from "@/lib/rate-limit";
-import { getClientIp, logAction } from "@/lib/audit-log";
+import { getClientIp, logAction, logError } from "@/lib/audit-log";
 import { verifyTotpToken } from "@/lib/totp";
 
 class MFARequiredError extends CredentialsSignin {
@@ -34,70 +35,89 @@ const providers: NextAuthConfig["providers"] = [
       const ip = request ? getClientIp(request as Request) : "unknown";
       const email = (credentials.email as string).toLowerCase().trim();
 
-      // Só aplica o limite por IP quando o IP é conhecido. Atrás de um proxy mal configurado
-      // (sem x-real-ip / TRUST_PROXY) getClientIp devolve "unknown" para todos — aplicar o
-      // limite nesse caso colapsaria a plataforma inteira num único balde de 50/15min.
-      if (ip !== "unknown") {
-        const rlIp = await limiters.login(ip);
-        if (!rlIp.allowed) {
-          logAction("login_blocked", undefined, ip, { email, reason: "ip_rate_limit" });
+      try {
+        // Só aplica o limite por IP quando o IP é conhecido. Atrás de um proxy mal configurado
+        // (sem x-real-ip / TRUST_PROXY) getClientIp devolve "unknown" para todos — aplicar o
+        // limite nesse caso colapsaria a plataforma inteira num único balde de 50/15min.
+        if (ip !== "unknown") {
+          const rlIp = await limiters.login(ip);
+          if (!rlIp.allowed) {
+            logAction("login_blocked", undefined, ip, { email, reason: "ip_rate_limit" });
+            throw new TooManyAttemptsError();
+          }
+        }
+
+        const rlEmail = await limiters.loginPerEmail(email);
+        if (!rlEmail.allowed) {
+          logAction("login_blocked", undefined, ip, { email, reason: "email_rate_limit" });
           throw new TooManyAttemptsError();
         }
-      }
 
-      const rlEmail = await limiters.loginPerEmail(email);
-      if (!rlEmail.allowed) {
-        logAction("login_blocked", undefined, ip, { email, reason: "email_rate_limit" });
-        throw new TooManyAttemptsError();
-      }
+        // Check account lockout before the expensive password verification
+        const candidate = await findByEmailGlobal(email);
+        if (candidate?.lockedUntil && candidate.lockedUntil > new Date()) {
+          logAction("login_blocked", candidate.id, ip, { email, reason: "account_locked" }, candidate.organizacaoId);
+          throw new TooManyAttemptsError();
+        }
 
-      // Check account lockout before the expensive password verification
-      const candidate = await findByEmailGlobal(email);
-      if (candidate?.lockedUntil && candidate.lockedUntil > new Date()) {
-        logAction("login_blocked", candidate.id, ip, { email, reason: "account_locked" }, candidate.organizacaoId);
-        throw new TooManyAttemptsError();
-      }
-
-      const user = await authenticateGlobal(email, credentials.password as string);
-      if (!user) {
-        if (candidate?.id) await recordLoginFailure(candidate.id);
-        logAction("login_failure", candidate?.id, ip, { email }, candidate?.organizacaoId);
-        return null;
-      }
-
-      await clearLoginFailures(user.id);
-
-      // super_admin só pode acessar pela página exclusiva de acesso à plataforma
-      const isSuperAdminSource = credentials.loginSource === "super_admin";
-      if (user.perfil === "super_admin" && !isSuperAdminSource) {
-        logAction("login_failure", user.id, ip, { reason: "source_mismatch" }, user.organizacaoId);
-        return null;
-      }
-      if (user.perfil !== "super_admin" && isSuperAdminSource) {
-        logAction("login_failure", user.id, ip, { reason: "source_mismatch" }, user.organizacaoId);
-        return null;
-      }
-
-      if (user.mfaEnabled === true) {
-        const totpCode = credentials.totp as string | undefined;
-        if (!totpCode) throw new MFARequiredError();
-        if (!user.mfaSecret || !await verifyTotpToken(totpCode, user.mfaSecret)) {
-          await recordLoginFailure(user.id);
-          logAction("login_failure", user.id, ip, { reason: "invalid_mfa" }, user.organizacaoId);
+        const user = await authenticateGlobal(email, credentials.password as string);
+        if (!user) {
+          if (candidate?.id) await recordLoginFailure(candidate.id);
+          logAction("login_failure", candidate?.id, ip, { email }, candidate?.organizacaoId);
           return null;
         }
-      }
 
-      return {
-        id: user.id,
-        name: user.nome,
-        email: user.email,
-        role: user.perfil,
-        grupoFormacaoId: user.grupoFormacaoId ?? null,
-        organizacaoId: user.organizacaoId,
-        primeiroAcesso: user.primeiroAcesso ?? false,
-        passwordChangedAt: user.passwordChangedAt?.getTime() ?? null,
-      };
+        await clearLoginFailures(user.id);
+
+        // super_admin só pode acessar pela página exclusiva de acesso à plataforma
+        const isSuperAdminSource = credentials.loginSource === "super_admin";
+        if (user.perfil === "super_admin" && !isSuperAdminSource) {
+          logAction("login_failure", user.id, ip, { reason: "source_mismatch" }, user.organizacaoId);
+          return null;
+        }
+        if (user.perfil !== "super_admin" && isSuperAdminSource) {
+          logAction("login_failure", user.id, ip, { reason: "source_mismatch" }, user.organizacaoId);
+          return null;
+        }
+
+        if (user.mfaEnabled === true) {
+          const totpCode = credentials.totp as string | undefined;
+          if (!totpCode) throw new MFARequiredError();
+          if (!user.mfaSecret || !await verifyTotpToken(totpCode, user.mfaSecret)) {
+            await recordLoginFailure(user.id);
+            logAction("login_failure", user.id, ip, { reason: "invalid_mfa" }, user.organizacaoId);
+            return null;
+          }
+        }
+
+        return {
+          id: user.id,
+          name: user.nome,
+          email: user.email,
+          role: user.perfil,
+          grupoFormacaoId: user.grupoFormacaoId ?? null,
+          organizacaoId: user.organizacaoId,
+          primeiroAcesso: user.primeiroAcesso ?? false,
+          passwordChangedAt: user.passwordChangedAt?.getTime() ?? null,
+        };
+      } catch (err) {
+        // Erros de CONTROLE DE FLUXO (MFA exigido, rate-limit/bloqueio de conta) não são
+        // falhas de infraestrutura: precisam propagar como CredentialsSignin para a UI dar a
+        // orientação certa. Deixá-los seguir intactos.
+        if (err instanceof CredentialsSignin) throw err;
+
+        // Falha INESPERADA no login (ex.: banco indisponível, pool esgotado, timeout). O
+        // NextAuth engole exceções do authorize e as converte num erro genérico no cliente,
+        // e o onRequestError do Sentry NÃO dispara para esses erros tratados internamente —
+        // então o incidente fica INVISÍVEL sem captura explícita. Registramos (stdout+DB+Sentry)
+        // e relançamos: o comportamento visto pelo usuário é idêntico ao anterior; só ganhamos
+        // observabilidade. logAction grava no stdout antes de tentar o DB, então a linha
+        // sobrevive mesmo se a causa for o próprio banco fora do ar.
+        logError("login_authorize_error", err);
+        logAction("login_error", undefined, ip, { email, reason: "unexpected" });
+        Sentry.captureException(err, { tags: { area: "auth", op: "authorize" } });
+        throw err;
+      }
     },
   }),
 ];
