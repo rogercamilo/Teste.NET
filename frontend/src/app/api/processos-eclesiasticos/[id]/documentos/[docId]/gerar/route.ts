@@ -9,6 +9,7 @@ import { getUserName } from "@/lib/current-user";
 import type { SessionUser } from "@/lib/auth-helpers";
 import { renderTemplate } from "@/lib/documentos-eclesiasticos/templates";
 import type { DadosTemplate } from "@/lib/documentos-eclesiasticos/templates/types";
+import { resolveDocumentoBranding } from "@/lib/documentos-eclesiasticos/branding";
 import { TIPO_DOCUMENTO_LABELS } from "@/lib/jornada-vocacional";
 import type { TipoDocumentoEclesiastico } from "@/types";
 
@@ -56,6 +57,8 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
             termoDiscipulado: true,
             termoPrimeirasPromessas: true,
             termoPromessa: true,
+            temaCor: true,
+            logoUrl: true,
           },
         },
         promessa: true,
@@ -117,6 +120,7 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
 
     const dados: DadosTemplate = {
       orgNome: org.nome,
+      branding: resolveDocumentoBranding(org),
       termoPreDiscipulado: org.termoPreDiscipulado,
       termoDiscipulado: org.termoDiscipulado,
       termoPrimeirasPromessas: org.termoPrimeirasPromessas,

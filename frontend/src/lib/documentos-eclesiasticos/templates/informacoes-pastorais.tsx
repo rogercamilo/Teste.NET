@@ -12,7 +12,7 @@ export default function InformacoesPastoraisPDF({ dados }: { dados: DadosTemplat
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <Header orgNome={dados.orgNome} titulo="Informações Pastorais e Formativas" subtitulo={dados.nivelFormativo} />
+        <Header branding={dados.branding} orgNome={dados.orgNome} titulo="Informações Pastorais e Formativas" subtitulo={dados.nivelFormativo} />
 
         <Secao>Dados do Candidato</Secao>
         <Campo label="Nome" value={dados.formandoNome} />

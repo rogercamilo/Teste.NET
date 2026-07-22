@@ -1,5 +1,6 @@
 import React from "react";
-import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import type { DocumentoBranding } from "../branding";
 
 export const s = StyleSheet.create({
   page: {
@@ -14,6 +15,11 @@ export const s = StyleSheet.create({
   header: {
     marginBottom: 20,
     alignItems: "center",
+  },
+  logo: {
+    height: 44,
+    marginBottom: 10,
+    objectFit: "contain",
   },
   orgName: {
     fontSize: 13,
@@ -136,15 +142,19 @@ export function Header({
   orgNome,
   titulo,
   subtitulo,
+  branding,
 }: {
   orgNome: string;
   titulo: string;
   subtitulo?: string;
+  branding?: DocumentoBranding;
 }) {
+  const cor = branding?.corHex ?? "#1e3a5f";
   return (
     <View style={s.header}>
-      <Text style={s.orgName}>{orgNome.toUpperCase()}</Text>
-      <View style={s.divider} />
+      {branding?.logoDataUrl ? <Image src={branding.logoDataUrl} style={s.logo} /> : null}
+      <Text style={[s.orgName, { color: cor }]}>{orgNome.toUpperCase()}</Text>
+      <View style={[s.divider, { borderBottomColor: cor }]} />
       <Text style={s.docTitle}>{titulo.toUpperCase()}</Text>
       {subtitulo ? <Text style={s.docSubtitle}>{subtitulo}</Text> : null}
     </View>

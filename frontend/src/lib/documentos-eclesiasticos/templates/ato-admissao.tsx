@@ -8,7 +8,7 @@ export default function AtoAdmissaoPDF({ dados }: { dados: DadosTemplate }) {
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <Header orgNome={dados.orgNome} titulo="Ato de Admissão" subtitulo={dados.nivelFormativo} />
+        <Header branding={dados.branding} orgNome={dados.orgNome} titulo="Ato de Admissão" subtitulo={dados.nivelFormativo} />
 
         <Secao>Identificação do Candidato</Secao>
         <Campo label="Nome completo" value={val(f.nome_completo) ?? dados.formandoNome} />

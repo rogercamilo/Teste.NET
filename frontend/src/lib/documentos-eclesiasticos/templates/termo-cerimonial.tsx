@@ -11,6 +11,7 @@ export default function TermoCerimonialPDF({ dados }: { dados: DadosTemplate }) 
     <Document>
       <Page size="A4" style={s.page}>
         <Header
+          branding={dados.branding}
           orgNome={dados.orgNome}
           titulo={`Termo Cerimonial de Admissão — ${dados.termoDiscipulado}`}
           subtitulo={dados.nivelFormativo}

@@ -12,6 +12,7 @@ export default function RequerimentoRenovacaoPDF({ dados }: { dados: DadosTempla
     <Document>
       <Page size="A4" style={s.page}>
         <Header
+          branding={dados.branding}
           orgNome={dados.orgNome}
           titulo={`Requerimento de Renovação de ${dados.termoPromessa}s`}
           subtitulo={numeroRenovacao ? `${numeroRenovacao}ª Renovação` : undefined}

@@ -13,6 +13,7 @@ export default function DeclaracaoResponsavelPDF({ dados }: { dados: DadosTempla
     <Document>
       <Page size="A4" style={s.page}>
         <Header
+          branding={dados.branding}
           orgNome={dados.orgNome}
           titulo="Declaração do Responsável Legal"
           subtitulo={dados.nivelFormativo}

@@ -18,7 +18,7 @@ export default function TermoConsagracaoPDF({ dados }: { dados: DadosTemplate })
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <Header orgNome={dados.orgNome} titulo={`Termo de Consagração — ${tipoPromessa}`} />
+        <Header branding={dados.branding} orgNome={dados.orgNome} titulo={`Termo de Consagração — ${tipoPromessa}`} />
 
         <Secao>Dados do Consagrado(a)</Secao>
         <Campo label="Nome completo" value={nomeCompleto} />

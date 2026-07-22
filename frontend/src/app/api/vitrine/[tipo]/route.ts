@@ -7,6 +7,7 @@ import { temPermissao, hasVocacionalAccess } from "@/types";
 import { renderTemplate } from "@/lib/documentos-eclesiasticos/templates";
 import { dadosFicticios } from "@/lib/documentos-eclesiasticos/dados-ficticios";
 import { isTipoVitrine, MARCA_DAGUA_PREVIEW } from "@/lib/vitrine";
+import { resolveDocumentoBranding } from "@/lib/documentos-eclesiasticos/branding";
 
 type RouteCtx = { params: Promise<{ tipo: string }> };
 
@@ -27,7 +28,7 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
 
   const org = await prisma.organizacao.findUnique({
     where: { id: user.organizacaoId },
-    select: { tipoOrganizacao: true, vocacionalHabilitado: true },
+    select: { tipoOrganizacao: true, vocacionalHabilitado: true, temaCor: true, logoUrl: true },
   });
   if (!hasVocacionalAccess(org?.tipoOrganizacao, org?.vocacionalHabilitado)) {
     return NextResponse.json({ error: "Recurso indisponível para este tipo de organização" }, { status: 403 });
@@ -39,7 +40,11 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
   }
 
   try {
-    const dados = { ...dadosFicticios(), marcaDagua: MARCA_DAGUA_PREVIEW };
+    const dados = {
+      ...dadosFicticios(),
+      marcaDagua: MARCA_DAGUA_PREVIEW,
+      branding: resolveDocumentoBranding(org),
+    };
     const pdf = await renderTemplate(tipo, dados);
     return new Response(new Uint8Array(pdf), {
       headers: {

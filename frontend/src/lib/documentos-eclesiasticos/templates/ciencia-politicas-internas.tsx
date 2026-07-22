@@ -20,6 +20,7 @@ export default function CienciaPoliticasInternasPDF({ dados }: { dados: DadosTem
     <Document>
       <Page size="A4" style={s.page}>
         <Header
+          branding={dados.branding}
           orgNome={dados.orgNome}
           titulo="Ciência de Políticas Internas"
           subtitulo={dados.nivelFormativo}

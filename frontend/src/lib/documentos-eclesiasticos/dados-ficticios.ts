@@ -1,4 +1,5 @@
 import type { DadosTemplate } from "./templates/types";
+import { BRANDING_PADRAO } from "./branding";
 
 /**
  * Dados fictícios para a Vitrine de documentos: preenche um DadosTemplate
@@ -11,6 +12,7 @@ import type { DadosTemplate } from "./templates/types";
 export function dadosFicticios(): DadosTemplate {
   return {
     orgNome: "Comunidade Católica Nova Aliança",
+    branding: BRANDING_PADRAO,
     termoPreDiscipulado: "Pré-Discipulado",
     termoDiscipulado: "Discipulado",
     termoPrimeirasPromessas: "Primeiras Promessas",

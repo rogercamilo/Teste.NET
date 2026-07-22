@@ -56,7 +56,7 @@ export default function ParecerFormativoPDF({ dados }: { dados: DadosTemplate })
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <Header orgNome={dados.orgNome} titulo="Parecer Formativo Anual" subtitulo={dados.nivelFormativo} />
+        <Header branding={dados.branding} orgNome={dados.orgNome} titulo="Parecer Formativo Anual" subtitulo={dados.nivelFormativo} />
 
         <Secao>Dados do Avaliado</Secao>
         <Campo label="Nome" value={dados.formandoNome} />

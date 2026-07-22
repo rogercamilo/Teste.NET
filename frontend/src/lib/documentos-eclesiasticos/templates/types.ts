@@ -1,5 +1,9 @@
+import type { DocumentoBranding } from "../branding";
+
 export interface DadosTemplate {
   orgNome: string;
+  /** Identidade visual da org (cor de destaque + logo) aplicada ao cabeçalho. */
+  branding: DocumentoBranding;
   termoPreDiscipulado: string;
   termoDiscipulado: string;
   termoPrimeirasPromessas: string;

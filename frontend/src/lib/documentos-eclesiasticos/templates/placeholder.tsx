@@ -7,7 +7,7 @@ export default function PlaceholderPDF({ dados }: { dados: DadosTemplate }) {
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <Header orgNome={dados.orgNome} titulo="Documento em Elaboração" subtitulo={dados.nivelFormativo} />
+        <Header branding={dados.branding} orgNome={dados.orgNome} titulo="Documento em Elaboração" subtitulo={dados.nivelFormativo} />
         <View style={{ marginTop: 40, alignItems: "center" }}>
           <Text style={[s.paragraph, { textAlign: "center", color: "#6b7280" }]}>
             {"Este documento está em elaboração e será disponibilizado em breve."}
