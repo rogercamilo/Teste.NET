@@ -374,6 +374,8 @@ export async function updateUser(
   // @@unique([email, organizacaoId]). Nunca reaproveita/herda o registro alheio
   // numa edição: a atualização é bloqueada e o registro excluído fica intocado.
   if (rest.email !== undefined && rest.email.toLowerCase() !== exists.email.toLowerCase()) {
+    // Conflito na PRÓPRIA org: qualquer outro registro (ativo OU soft-deleted) que
+    // ocupe o índice composto @@unique([email, organizacaoId]).
     const conflito = await prisma.usuario.findFirst({
       where: {
         organizacaoId: orgId,
@@ -383,6 +385,12 @@ export async function updateUser(
       select: { id: true },
     });
     if (conflito) throw new EmailConflictError();
+
+    // Invariante multi-tenant (1 e-mail = 1 org): conflito com usuário ATIVO em
+    // OUTRA org. findByEmailGlobal ignora soft-deleted, espelhando o índice único
+    // parcial global (email WHERE deletedAt IS NULL) que respalda esta regra.
+    const globalConflito = await findByEmailGlobal(rest.email);
+    if (globalConflito && globalConflito.id !== id) throw new EmailConflictError();
   }
   const newPasswordHash = password ? await hashPassword(password) : undefined;
 

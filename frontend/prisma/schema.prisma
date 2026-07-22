@@ -326,6 +326,11 @@ model Usuario {
   acompanhamentosRegistrados     AcompanhamentoVocacional[] @relation("AcompanhadorRegistro")
   acompanhamentosFormandoFeitos  AcompanhamentoFormando[]   @relation("AcompanhamentoFormandoFormador")
 
+  // Unicidade DENTRO da org. A unicidade GLOBAL de e-mail (invariante 1 e-mail = 1 org,
+  // exigida pelo login por findByEmailGlobal) é imposta por um índice único PARCIAL em
+  // lower(email) WHERE deletedAt IS NULL — criado via SQL cru na migração
+  // 20260721130000_usuario_email_global_unique (o Prisma não modela índice parcial).
+  // ⚠️ Um `migrate dev` futuro pode gerar um DROP desse índice como drift: NÃO aceitar.
   @@unique([email, organizacaoId])
   @@index([organizacaoId])
   @@index([email])

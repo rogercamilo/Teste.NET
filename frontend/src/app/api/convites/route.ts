@@ -7,6 +7,7 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateConviteSchema, parseJson } from "@/lib/schemas";
+import { findByEmailGlobal } from "@/lib/users-store";
 import type { PerfilUsuario } from "@prisma/client";
 
 import { isAdminOrAbove, SessionUser as SU } from "@/lib/auth-helpers";
@@ -63,10 +64,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Perfil inválido para convite. Use formador_comunitario ou administrador." }, { status: 400 });
     }
 
-    // Verificar se já existe usuário com esse e-mail
-    const existing = await prisma.usuario.findFirst({
-      where: { email: { equals: email.toLowerCase().trim(), mode: "insensitive" }, organizacaoId: user.organizacaoId },
-    });
+    // Invariante multi-tenant: 1 e-mail = 1 organização. Checagem GLOBAL (não por-org):
+    // não se pode convidar um e-mail que já pertence a um usuário ativo em qualquer org.
+    // Mensagem genérica de propósito (não revela a org onde o e-mail existe).
+    const existing = await findByEmailGlobal(email.toLowerCase().trim());
     if (existing) {
       return NextResponse.json({ error: "Já existe um usuário com este e-mail" }, { status: 409 });
     }

@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { listUsers, countUsers, createUser, findByEmail, toPublic } from "@/lib/users-store";
+import { listUsers, countUsers, createUser, findByEmailGlobal, toPublic } from "@/lib/users-store";
 import { sendWelcomeEmail } from "@/lib/email";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
@@ -74,7 +74,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: limitCheck.reason }, { status: 403 });
     }
 
-    if (await findByEmail(email, actor.organizacaoId)) {
+    // Invariante multi-tenant: 1 e-mail = 1 organização. A checagem é GLOBAL (não
+    // por-org) — se o e-mail já pertence a um usuário ativo em QUALQUER org, recusa.
+    // findByEmailGlobal ignora registros soft-deleted, então um usuário excluído na
+    // própria org não bloqueia (createUser revive esse registro). Mensagem genérica
+    // de propósito: não revela em qual org o e-mail existe (evita enumeração cross-tenant).
+    if (await findByEmailGlobal(email)) {
       return NextResponse.json({ error: "E-mail já está em uso" }, { status: 409 });
     }
 
