@@ -1,4 +1,4 @@
-import { getPublicBranding } from "@/lib/public-branding";
+import { NEUTRAL_BRANDING } from "@/lib/public-branding";
 import { getThemeInlineCss } from "@/lib/themes";
 
 // Renderização dinâmica obrigatória: sob a CSP estrita de produção
@@ -9,9 +9,12 @@ import { getThemeInlineCss } from "@/lib/themes";
 // bloqueia — a página fica presa no fallback do Suspense (tela em branco).
 export const dynamic = "force-dynamic";
 
-export default async function AuthLayout({ children }: { children: React.ReactNode }) {
-  const branding = await getPublicBranding();
-  const themeCss = getThemeInlineCss(branding.temaCor);
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  // Superfícies anônimas (login, registro, recuperação, convite, acesso-plataforma) não
+  // resolvem o tenant → tema NEUTRO da plataforma. No login, a marca da org é aplicada
+  // no cliente (applyThemePalette) após o e-mail. Evita vazar o tema de um tenant
+  // específico (org_default) para usuários de outras organizações.
+  const themeCss = getThemeInlineCss(NEUTRAL_BRANDING.temaCor);
   return (
     <>
       {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}

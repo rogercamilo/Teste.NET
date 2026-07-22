@@ -154,6 +154,14 @@ export const limiters = {
   /** 10 login attempts per email per 30 minutes — account-level brute-force protection. */
   loginPerEmail: (email: string) => rateLimit(`login_email:${email.toLowerCase()}`, 10, 30 * 60 * 1000),
 
+  /**
+   * 30 consultas de branding por e-mail por IP em 15 min — resolve a identidade visual
+   * da org no login em 2 passos. Throttle de enumeração: o endpoint revela (por design)
+   * a marca associada a um e-mail; o limite por IP encarece varreduras em massa sem
+   * atrapalhar o uso legítimo (usuário digita/corrige o e-mail poucas vezes).
+   */
+  brandingLookup: (ip: string) => rateLimit(`branding_lookup:${ip}`, 30, 15 * 60 * 1000),
+
   /** 10 bulk operations per super admin per minute — prevents rapid-fire bulk mutations. */
   superAdminBulk: (userId: string) => rateLimit(`sa_bulk:${userId}`, 10, 60 * 1000),
 

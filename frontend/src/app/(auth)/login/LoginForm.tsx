@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Lock, Mail, AlertCircle, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, AlertCircle, ShieldCheck, ArrowLeft } from "lucide-react";
 import type { PublicBranding } from "@/lib/public-branding";
+import { applyThemePalette } from "@/lib/themes";
 
 export default function LoginForm({ branding }: { branding: PublicBranding }) {
   const router = useRouter();
@@ -21,16 +22,22 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
       : "/dashboard";
   const error = searchParams.get("error");
 
+  // Login em 2 passos: "email" (marca neutra) → "password" (marca da organização,
+  // resolvida por e-mail). `branding` recebido é o NEUTRO; `orgBranding` passa a
+  // refletir a org após o 1º passo.
+  const [step, setStep] = useState<"email" | "password">("email");
+  const [orgBranding, setOrgBranding] = useState<PublicBranding>(branding);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [mfaRequired, setMfaRequired] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resolving, setResolving] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const communityName = branding.nomePlataforma ?? branding.nome;
+  const communityName = orgBranding.nomePlataforma ?? orgBranding.nome;
 
   const errorMessages: Record<string, string> = {
     CredentialsSignin: "E-mail ou senha inválidos.",
@@ -42,7 +49,44 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
 
   const displayError = error ? (errorMessages[error] ?? errorMessages.Default) : formError;
 
-  async function handleSubmit(e: React.FormEvent) {
+  // 1º passo: resolve a identidade visual da org a partir do e-mail e avança para a
+  // senha já brandeado. Falha na resolução NÃO bloqueia o login — segue com a marca
+  // neutra (o branding é cosmético; a autenticação acontece no 2º passo).
+  async function handleEmailContinue(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) return;
+    setResolving(true);
+    setFormError(null);
+    try {
+      const res = await fetch("/api/public/branding/by-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        const b = (await res.json()) as PublicBranding;
+        setOrgBranding(b);
+        applyThemePalette(b.temaCor);
+      }
+    } catch {
+      // silencioso — segue com a marca neutra
+    } finally {
+      setResolving(false);
+      setStep("password");
+    }
+  }
+
+  function handleBackToEmail() {
+    setStep("email");
+    setMfaRequired(false);
+    setPassword("");
+    setTotpCode("");
+    setFormError(null);
+    setOrgBranding(branding);
+    applyThemePalette(branding.temaCor);
+  }
+
+  async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setFormError(null);
@@ -85,10 +129,10 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
         <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80 opacity-90" />
         <div className="relative z-10 flex flex-col items-center text-center text-primary-foreground max-w-sm">
           <div className="mb-8">
-            {branding.logoUrl ? (
+            {orgBranding.logoUrl ? (
               <div className="mx-auto bg-white/20 backdrop-blur-sm rounded-2xl p-4 inline-flex items-center justify-center">
                 <img
-                  src={branding.logoUrl}
+                  src={orgBranding.logoUrl}
                   alt={communityName}
                   className="max-h-16 max-w-[160px] object-contain"
                 />
@@ -118,9 +162,9 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center justify-center mb-8 lg:hidden">
-            {branding.logoUrl ? (
+            {orgBranding.logoUrl ? (
               <img
-                src={branding.logoUrl}
+                src={orgBranding.logoUrl}
                 alt={communityName}
                 className="h-8 max-w-[100px] object-contain mr-2.5 shrink-0"
               />
@@ -151,7 +195,9 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
               <>
                 <h2 className="text-2xl font-bold text-foreground">Bem-vindo(a)</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Entre com sua conta para acessar a plataforma
+                  {step === "email"
+                    ? "Informe seu e-mail para acessar a plataforma"
+                    : "Entre com sua senha para continuar"}
                 </p>
               </>
             )}
@@ -164,9 +210,10 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!mfaRequired ? (
-              <>
+          {/* ── 1º passo: e-mail (marca neutra) ─────────────────────────────── */}
+          {step === "email" ? (
+            <>
+              <form onSubmit={handleEmailContinue} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-sm font-medium">E-mail</Label>
                   <div className="relative">
@@ -179,79 +226,22 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      autoFocus
                       autoComplete="email"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
-                    <Link href="/recuperar-senha" className="text-xs text-primary hover:underline">
-                      Esqueceu a senha?
-                    </Link>
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      className="pl-9 pr-9 h-10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      autoComplete="current-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="space-y-1.5">
-                <Label htmlFor="totp" className="text-sm font-medium">Código do autenticador</Label>
-                <Input
-                  id="totp"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  placeholder="000000"
-                  className="h-10 text-center text-xl tracking-widest font-mono"
-                  value={totpCode}
-                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  maxLength={6}
-                  required
-                  autoFocus
-                  autoComplete="one-time-code"
-                />
-                <button
-                  type="button"
-                  onClick={() => { setMfaRequired(false); setTotpCode(""); setFormError(null); }}
-                  className="text-xs text-muted-foreground hover:text-foreground underline"
-                >
-                  Voltar ao login
-                </button>
-              </div>
-            )}
+                <Button type="submit" className="w-full h-10" disabled={resolving}>
+                  {resolving ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      Continuando...
+                    </span>
+                  ) : "Continuar"}
+                </Button>
+              </form>
 
-            <Button type="submit" className="w-full h-10" disabled={loading}>
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  {mfaRequired ? "Verificando..." : "Entrando..."}
-                </span>
-              ) : mfaRequired ? "Verificar" : "Entrar"}
-            </Button>
-          </form>
-
-          {!mfaRequired && (
-            <>
               <div className="relative my-6">
                 <Separator />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
@@ -288,6 +278,93 @@ export default function LoginForm({ branding }: { branding: PublicBranding }) {
                 Problemas para acessar? Fale com o administrador da sua organização.
               </p>
             </>
+          ) : (
+            /* ── 2º passo: senha (marca da organização) ────────────────────── */
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              {!mfaRequired ? (
+                <>
+                  {/* E-mail informado + trocar */}
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+                    <span className="flex items-center gap-2 min-w-0 text-sm text-foreground">
+                      <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{email}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleBackToEmail}
+                      className="flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+                    >
+                      <ArrowLeft className="h-3 w-3" />
+                      trocar
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
+                      <Link href="/recuperar-senha" className="text-xs text-primary hover:underline">
+                        Esqueceu a senha?
+                      </Link>
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        className="pl-9 pr-9 h-10"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        autoFocus
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label htmlFor="totp" className="text-sm font-medium">Código do autenticador</Label>
+                  <Input
+                    id="totp"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    placeholder="000000"
+                    className="h-10 text-center text-xl tracking-widest font-mono"
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    maxLength={6}
+                    required
+                    autoFocus
+                    autoComplete="one-time-code"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setMfaRequired(false); setTotpCode(""); setFormError(null); }}
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                  >
+                    Voltar ao login
+                  </button>
+                </div>
+              )}
+
+              <Button type="submit" className="w-full h-10" disabled={loading}>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    {mfaRequired ? "Verificando..." : "Entrando..."}
+                  </span>
+                ) : mfaRequired ? "Verificar" : "Entrar"}
+              </Button>
+            </form>
           )}
         </div>
 

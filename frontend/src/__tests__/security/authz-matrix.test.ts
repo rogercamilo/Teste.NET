@@ -48,6 +48,7 @@ const PUBLIC = new Set<string>([
   "auth/[...nextauth]/route.ts", // handler do NextAuth
   "health/route.ts", // liveness — só SELECT 1
   "public/branding/route.ts", // branding público da org (login/portal)
+  "public/branding/by-email/route.ts", // login em 2 passos: resolve a marca da org por e-mail (só leitura; neutro se desconhecido; rate-limit por IP)
   "csp-report/route.ts", // browsers postam violações de CSP
   "registro/route.ts", // signup público (cria org)
   "convites/[token]/route.ts", // valida o próprio token do convite

@@ -8,12 +8,16 @@ export interface PublicBranding {
   temaCor: string;
 }
 
-const DEFAULT_BRANDING: PublicBranding = {
+// Identidade NEUTRA da plataforma (sem tenant). É o que superfícies anônimas exibem
+// quando a org não pode ser resolvida — inclusive o 1º passo do login (antes do e-mail).
+export const NEUTRAL_BRANDING: PublicBranding = {
   nome: "Formattio",
   nomePlataforma: null,
   logoUrl: null,
   temaCor: "Formattio",
 };
+
+const DEFAULT_BRANDING = NEUTRAL_BRANDING;
 
 // React.cache() deduplicates calls within a single request (layout + page share one DB hit
 // desde que passem o MESMO organizacaoId).
