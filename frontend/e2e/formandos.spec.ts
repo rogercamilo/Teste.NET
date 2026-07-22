@@ -8,7 +8,7 @@ import {
   disconnect,
   prisma,
 } from "./helpers/db";
-import { acceptCookies } from "./helpers/ui";
+import { acceptCookies, login } from "./helpers/ui";
 
 const orgNome = uniqueOrgName();
 const adminEmail = uniqueEmail("formandos-admin");
@@ -63,9 +63,7 @@ test.afterAll(async () => {
 async function entrar(page: import("@playwright/test").Page) {
   await page.goto("/login");
   await acceptCookies(page);
-  await page.fill("#email", adminEmail);
-  await page.fill("#password", TEST_PASSWORD);
-  await page.click("button[type=submit]");
+  await login(page, adminEmail, TEST_PASSWORD);
   await page.waitForURL("**/dashboard");
   await page.goto("/formandos");
   await acceptCookies(page);
