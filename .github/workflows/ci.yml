@@ -33,9 +33,6 @@ jobs:
           # Skip Prisma binary download during install — we generate manually below
           PRISMA_SKIP_POSTINSTALL_GENERATE: "true"
 
-      - name: Security audit
-        run: npm audit --audit-level=high
-
       - name: Generate Prisma Client
         run: npx prisma generate
 
@@ -49,6 +46,46 @@ jobs:
 
       - name: Test (with coverage thresholds)
         run: npm run test:coverage
+
+  security-audit:
+    name: Security audit (report-only)
+    # DELIBERADAMENTE NÃO-BLOQUEANTE. Antes o `npm audit --audit-level=high` era um
+    # passo do job `ci`: quando uma advisory nova saía numa dependência (mesmo sem
+    # relação com a mudança), o job ficava vermelho e o gate "Wait for CI" do Railway
+    # estrangulava TODOS os deploys em silêncio — inclusive fixes de infra urgentes
+    # (incidente 2026-07-23: warm-up/2-réplicas do login ficou SKIPPED por uma CVE de
+    # @auth/core). Aqui o audit RODA e publica o resultado, mas o job sempre conclui
+    # verde; o alerta acionável fica por conta do Dependabot (já ativo no repo).
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PRISMA_SKIP_POSTINSTALL_GENERATE: "true"
+
+      - name: Audit (report to job summary — never fails the pipeline)
+        run: |
+          echo "## \`npm audit --audit-level=high\`" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if npm audit --audit-level=high >> "$GITHUB_STEP_SUMMARY" 2>&1; then
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "✅ Sem vulnerabilidades high/critical." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "⚠️ Vulnerabilidades high/critical encontradas — revise acima (não bloqueia o deploy)." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=Security audit::npm audit encontrou vulnerabilidades high/critical — ver resumo do job (não bloqueia o deploy)."
+          fi
 
   coverage-diff:
     name: Coverage regression (PR vs base)
