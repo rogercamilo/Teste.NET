@@ -28,7 +28,17 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
 
   const org = await prisma.organizacao.findUnique({
     where: { id: user.organizacaoId },
-    select: { tipoOrganizacao: true, vocacionalHabilitado: true, temaCor: true, logoUrl: true, documentosTextos: true },
+    select: {
+      tipoOrganizacao: true,
+      vocacionalHabilitado: true,
+      temaCor: true,
+      logoUrl: true,
+      documentosTextos: true,
+      termoPromessa: true,
+      termoConsagracao: true,
+      termoConsagrado: true,
+      termoFormador: true,
+    },
   });
   if (!hasVocacionalAccess(org?.tipoOrganizacao, org?.vocacionalHabilitado)) {
     return NextResponse.json({ error: "Recurso indisponível para este tipo de organização" }, { status: 403 });
@@ -40,11 +50,18 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
   }
 
   try {
+    // Dados fictícios como base; o vocabulário da org (quando definido) sobrescreve
+    // para que a prévia reflita ao vivo o que é editado em "Documentos Eclesiásticos".
+    const base = dadosFicticios();
     const dados = {
-      ...dadosFicticios(),
+      ...base,
       marcaDagua: MARCA_DAGUA_PREVIEW,
       branding: resolveDocumentoBranding(org),
       textosCustom: (org?.documentosTextos as Record<string, string> | null) ?? {},
+      termoPromessa: org?.termoPromessa?.trim() || base.termoPromessa,
+      termoConsagracao: org?.termoConsagracao?.trim() || base.termoConsagracao,
+      termoConsagrado: org?.termoConsagrado?.trim() || base.termoConsagrado,
+      termoFormador: org?.termoFormador?.trim() || base.termoFormador,
     };
     const pdf = await renderTemplate(tipo, dados);
     return new Response(new Uint8Array(pdf), {

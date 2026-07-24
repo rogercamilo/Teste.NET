@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BLOCOS } from "@/lib/documentos-eclesiasticos/blocos";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { resolveImageSrc } from "@/lib/utils";
@@ -1789,11 +1788,6 @@ function ComunidadeTab() {
     setDirty(true);
   }
 
-  function handleTextoBloco(id: string, value: string) {
-    setForm((prev) => ({ ...prev, documentosTextos: { ...prev.documentosTextos, [id]: value } }));
-    setDirty(true);
-  }
-
   async function handleSave() {
     if (!form.nome.trim()) return toast.error("Nome da comunidade é obrigatório.");
     try {
@@ -2106,56 +2100,23 @@ function ComunidadeTab() {
             </div>
           </div>
 
-          {/* Glossário dos documentos da Jornada — só relevante para orgs que os emitem */}
+          {/* Vocabulário e textos dos documentos migraram para a aba "Documentos Eclesiásticos" */}
           {(comunidade.tipoOrganizacao === "nova_comunidade" ||
             comunidade.tipoOrganizacao === "instituto_religioso" ||
             form.vocacionalHabilitado === true) && (
             <div className="grid gap-2 border-t border-border pt-5">
               <p className="text-sm font-medium">Documentos da Jornada</p>
-              <p className="text-xs text-muted-foreground -mt-1">
-                Vocabulário carismático usado nos termos e documentos gerados (Vitrine de Documentos).
+              <p className="text-xs text-muted-foreground rounded-lg border border-border bg-muted/30 p-3">
+                O vocabulário carismático (Promessa, Consagração…) e os textos das fórmulas e termos agora são
+                editados com pré-visualização ao vivo em{" "}
+                <a
+                  href="/vitrine"
+                  className="font-medium text-foreground underline underline-offset-2"
+                >
+                  Documentos Eclesiásticos
+                </a>
+                .
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
-                <div className="grid gap-1.5">
-                  <Label>
-                    Promessa{" "}
-                    <span className="font-normal text-muted-foreground text-xs">(padrão: "Promessa")</span>
-                  </Label>
-                  <Input
-                    value={form.termoPromessa ?? ""}
-                    onChange={(e) => handleChange("termoPromessa", e.target.value)}
-                    placeholder="Promessa"
-                    className="h-9 text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">Ex.: Promessa, Voto, Aliança.</p>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>
-                    Ato de consagração{" "}
-                    <span className="font-normal text-muted-foreground text-xs">(padrão: "Consagração")</span>
-                  </Label>
-                  <Input
-                    value={form.termoConsagracao ?? ""}
-                    onChange={(e) => handleChange("termoConsagracao", e.target.value)}
-                    placeholder="Consagração"
-                    className="h-9 text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">Ex.: Consagração, Aliança, Compromisso.</p>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>
-                    Pessoa consagrada{" "}
-                    <span className="font-normal text-muted-foreground text-xs">(padrão: "Consagrado(a)")</span>
-                  </Label>
-                  <Input
-                    value={form.termoConsagrado ?? ""}
-                    onChange={(e) => handleChange("termoConsagrado", e.target.value)}
-                    placeholder="Consagrado(a)"
-                    className="h-9 text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">Ex.: Consagrado(a), Membro, Aliançado(a).</p>
-                </div>
-              </div>
             </div>
           )}
 
@@ -2183,57 +2144,6 @@ function ComunidadeTab() {
 
         </CardContent>
       </Card>
-
-      {/* Textos dos documentos da Jornada (Fase 3) */}
-      {(comunidade.tipoOrganizacao === "nova_comunidade" ||
-        comunidade.tipoOrganizacao === "instituto_religioso" ||
-        form.vocacionalHabilitado === true) && (
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Type className="h-4 w-4 text-muted-foreground" />
-              Textos dos documentos
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Reescreva as fórmulas e textos dos documentos da Jornada com as palavras da sua
-              comunidade. Deixe em branco para usar o texto padrão. Use as variáveis entre chaves —
-              elas são substituídas automaticamente na emissão.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5 pb-6">
-            {BLOCOS.map((b) => (
-              <div key={b.id} className="grid gap-1.5">
-                <Label>{b.label}</Label>
-                <p className="text-xs text-muted-foreground -mt-0.5">{b.descricao}</p>
-                <Textarea
-                  value={form.documentosTextos?.[b.id] ?? ""}
-                  onChange={(e) => handleTextoBloco(b.id, e.target.value)}
-                  placeholder={b.padrao}
-                  rows={b.tipo === "lista" ? 6 : 4}
-                  className="text-sm"
-                />
-                {b.variaveis.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">Variáveis:</span>
-                    {b.variaveis.map((v) => (
-                      <code
-                        key={v}
-                        className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-mono text-foreground"
-                      >
-                        {v}
-                      </code>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-            <p className="text-xs text-muted-foreground rounded-lg border border-border bg-muted/30 p-3">
-              Editar um texto afeta apenas emissões futuras. Documentos já assinados ou arquivados
-              permanecem inalterados. Veja o resultado na Vitrine de Documentos.
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Período Vocacional */}
       {(() => {

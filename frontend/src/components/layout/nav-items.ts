@@ -12,6 +12,7 @@
   Settings,
   ShieldAlert,
   Sprout,
+  Stamp,
   type LucideIcon,
   Users,
 } from "lucide-react";
@@ -85,9 +86,9 @@ export const navGroupsGestao: NavGroup[] = [
         requiredCapability: "vocacional",
       },
       {
-        title: "Vitrine de Documentos",
+        title: "Documentos Eclesiásticos",
         href: "/vitrine",
-        icon: Library,
+        icon: Stamp,
         requiredCapability: "vocacional",
       },
     ],
