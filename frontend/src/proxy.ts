@@ -115,6 +115,7 @@ export default auth(async function proxy(req) {
     "/recursos",
     "/para-quem-e",
     "/precos",
+    "/blog",
     "/faq",
     // Captura de leads (ímã eBook) — página de obrigado, PDF do eBook e endpoints públicos
     "/materiais",

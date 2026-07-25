@@ -55,6 +55,7 @@ export function MarketingFooter() {
                 ["Recursos", "/recursos"],
                 ["Para quem é", "/para-quem-e"],
                 ["Preços", "/precos"],
+                ["Blog", "/blog"],
                 ["FAQ", "/faq"],
               ],
             },

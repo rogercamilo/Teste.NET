@@ -103,6 +103,37 @@ export function productOffersLd(
   };
 }
 
+/** Article para posts do blog — dá ao Google contexto de conteúdo editorial
+ *  (autor, datas, imagem) e habilita rich results de artigo. */
+export function articleLd(a: {
+  title: string;
+  description: string;
+  slug: string;
+  date: string;
+  cover?: string;
+}): Json {
+  const url = `${SITE_URL}/blog/${a.slug}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: a.title,
+    description: a.description,
+    datePublished: a.date,
+    dateModified: a.date,
+    inLanguage: "pt-BR",
+    mainEntityOfPage: url,
+    url,
+    image: a.cover ? `${SITE_URL}${a.cover}` : `${SITE_URL}/brand/og-card.png`,
+    author: { "@type": "Organization", name: "Formattio", url: SITE_URL },
+    publisher: {
+      "@type": "Organization",
+      name: "Formattio",
+      url: SITE_URL,
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/brand/icon-512.png` },
+    },
+  };
+}
+
 export function breadcrumbLd(
   crumbs: { name: string; path: string }[],
 ): Json {
