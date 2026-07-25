@@ -7,18 +7,20 @@ import {
 } from "lucide-react";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { JsonLd } from "@/components/JsonLd";
+import { breadcrumbLd } from "@/lib/structured-data";
+import { marketingMeta } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Recursos — Formattio",
+  title: "Recursos",
   description:
     "Conheça todos os recursos da plataforma Formattio: Jornada Vocacional, avaliação nas 3 perspectivas, histórico do formando, controle de presença, comunicação e segurança LGPD.",
-  openGraph: {
+  ...marketingMeta({
     title: "Recursos — Formattio",
     description:
       "Tudo que sua comunidade precisa para acompanhar a jornada formativa dos seus membros com profundidade e rigor.",
-    type: "website",
-    locale: "pt_BR",
-  },
+    path: "/recursos",
+  }),
 };
 
 const canonicalDocs = [
@@ -129,6 +131,12 @@ const trustItems = [
 export default function RecursosPage() {
   return (
     <div className="font-sans antialiased bg-slate-950 min-h-screen">
+      <JsonLd
+        data={breadcrumbLd([
+          { name: "Início", path: "/" },
+          { name: "Recursos", path: "/recursos" },
+        ])}
+      />
       <MarketingNav />
 
       {/* Hero */}

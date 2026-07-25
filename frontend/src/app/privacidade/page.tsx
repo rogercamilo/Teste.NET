@@ -3,10 +3,16 @@ import { Shield } from "lucide-react";
 import type { Metadata } from "next";
 import { PRIVACY_VERSION, PRIVACY_DATE } from "@/lib/legal-versions";
 import { LegalSectionHeader } from "@/components/LegalSectionHeader";
+import { marketingMeta } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidade — Formattio",
+  title: "Política de Privacidade",
   description: "Como a Formattio coleta, usa e protege seus dados pessoais em conformidade com a LGPD.",
+  ...marketingMeta({
+    title: "Política de Privacidade — Formattio",
+    description: "Como a Formattio coleta, usa e protege seus dados pessoais em conformidade com a LGPD.",
+    path: "/privacidade",
+  }),
 };
 
 const tocSections = [

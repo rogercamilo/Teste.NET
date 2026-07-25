@@ -3,10 +3,16 @@ import { FileText } from "lucide-react";
 import type { Metadata } from "next";
 import { TERMS_VERSION, TERMS_DATE } from "@/lib/legal-versions";
 import { LegalSectionHeader } from "@/components/LegalSectionHeader";
+import { marketingMeta } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Termos de Uso — Formattio",
+  title: "Termos de Uso",
   description: "Condições de uso da plataforma Formattio para organizações e usuários.",
+  ...marketingMeta({
+    title: "Termos de Uso — Formattio",
+    description: "Condições de uso da plataforma Formattio para organizações e usuários.",
+    path: "/termos",
+  }),
 };
 
 const tocSections = [

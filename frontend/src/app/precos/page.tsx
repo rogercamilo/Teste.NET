@@ -6,18 +6,20 @@ import {
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { PrecosContent, PricingFaq } from "./PrecosContent";
+import { JsonLd } from "@/components/JsonLd";
+import { productOffersLd, breadcrumbLd } from "@/lib/structured-data";
+import { marketingMeta } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Preços — Formattio",
+  title: "Preços",
   description:
     "Planos Básico (R$97/mês), Intermediário (R$197/mês) e Avançado (R$397/mês). 30 dias de experiência com acesso completo. Sem cartão de crédito.",
-  openGraph: {
+  ...marketingMeta({
     title: "Preços — Formattio",
     description:
       "Planos transparentes para cada tamanho de comunidade. Comece sem compromisso, escale conforme cresce.",
-    type: "website",
-    locale: "pt_BR",
-  },
+    path: "/precos",
+  }),
 };
 
 const includedAll = [
@@ -38,6 +40,19 @@ const trialSteps = [
 export default function PrecosPage() {
   return (
     <div className="font-sans antialiased bg-slate-950 min-h-screen">
+      <JsonLd
+        data={[
+          productOffersLd([
+            { name: "Básico", price: 97, desc: "Para comunidades em início de jornada. Até 60 usuários ativos." },
+            { name: "Intermediário", price: 197, desc: "Para comunidades em crescimento. Até 140 usuários ativos." },
+            { name: "Avançado", price: 397, desc: "Para grandes organizações formativas. Até 350 usuários ativos." },
+          ]),
+          breadcrumbLd([
+            { name: "Início", path: "/" },
+            { name: "Preços", path: "/precos" },
+          ]),
+        ]}
+      />
       <MarketingNav />
 
       {/* Hero */}

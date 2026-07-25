@@ -6,18 +6,20 @@ import {
 } from "lucide-react";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { JsonLd } from "@/components/JsonLd";
+import { breadcrumbLd } from "@/lib/structured-data";
+import { marketingMeta } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Para quem é — Formattio",
+  title: "Para quem é",
   description:
     "O Formattio atende Novas Comunidades, Institutos Religiosos, Grupos de Oração e Centros Formativos. Conheça o perfil de cada organização e como a plataforma se adapta ao seu modelo.",
-  openGraph: {
+  ...marketingMeta({
     title: "Para quem é — Formattio",
     description:
       "Da nova comunidade ao centro de formação: uma plataforma que se adapta ao modelo formativo da sua instituição.",
-    type: "website",
-    locale: "pt_BR",
-  },
+    path: "/para-quem-e",
+  }),
 };
 
 const orgTypes = [
@@ -188,6 +190,12 @@ const colHeaders = [
 export default function ParaQuemEPage() {
   return (
     <div className="font-sans antialiased bg-slate-950 min-h-screen">
+      <JsonLd
+        data={breadcrumbLd([
+          { name: "Início", path: "/" },
+          { name: "Para quem é", path: "/para-quem-e" },
+        ])}
+      />
       <MarketingNav />
 
       {/* Hero */}

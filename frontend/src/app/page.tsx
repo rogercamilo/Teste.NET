@@ -2,11 +2,16 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import LandingPage from "./LandingPage";
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
+import { organizationLd, websiteLd, softwareApplicationLd } from "@/lib/structured-data";
 
 export const metadata: Metadata = {
-  title: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
+  title: {
+    absolute: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
+  },
   description:
     "Acompanhe a jornada formativa de cada membro com a profundidade que ela merece. Grupos de formação, planos formativos, Jornada Vocacional, documentos eclesiásticos e conformidade com a LGPD.",
+  alternates: { canonical: "/" },
   ...(process.env.FB_APP_ID ? { other: { "fb:app_id": process.env.FB_APP_ID } } : {}),
   openGraph: {
     title: "Formattio — Plataforma de gestão formativa para comunidades e institutos",
@@ -38,5 +43,10 @@ export default async function Home() {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
 
-  return <LandingPage isNewOrg />;
+  return (
+    <>
+      <JsonLd data={[organizationLd(), websiteLd(), softwareApplicationLd()]} />
+      <LandingPage isNewOrg />
+    </>
+  );
 }

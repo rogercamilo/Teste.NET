@@ -5,18 +5,20 @@ import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { FaqAccordion } from "./FaqAccordion";
 import type { FaqCategory } from "./FaqAccordion";
+import { JsonLd } from "@/components/JsonLd";
+import { faqPageLd, breadcrumbLd } from "@/lib/structured-data";
+import { marketingMeta } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Perguntas Frequentes — Formattio",
+  title: "Perguntas frequentes",
   description:
     "Tire suas dúvidas sobre o Formattio: funcionalidades, Jornada Vocacional, segurança, LGPD, planos e preços.",
-  openGraph: {
+  ...marketingMeta({
     title: "Perguntas Frequentes — Formattio",
     description:
       "Respostas sobre plataforma, segurança, planos, cobrança e suporte do Formattio.",
-    type: "website",
-    locale: "pt_BR",
-  },
+    path: "/faq",
+  }),
 };
 
 const categories: FaqCategory[] = [
@@ -113,6 +115,15 @@ const categories: FaqCategory[] = [
 export default function FaqPage() {
   return (
     <div className="font-sans antialiased bg-slate-950 min-h-screen">
+      <JsonLd
+        data={[
+          faqPageLd(categories.flatMap((c) => c.items)),
+          breadcrumbLd([
+            { name: "Início", path: "/" },
+            { name: "Perguntas frequentes", path: "/faq" },
+          ]),
+        ]}
+      />
       <MarketingNav />
 
       {/* Hero */}
