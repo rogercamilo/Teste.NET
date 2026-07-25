@@ -2,14 +2,22 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { ArrowLeft, ArrowRight, Download } from "lucide-react";
+import rehypeSlug from "rehype-slug";
+import { ArrowLeft, ArrowRight, Download, List } from "lucide-react";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { JsonLd } from "@/components/JsonLd";
 import { articleLd, breadcrumbLd, SITE_URL } from "@/lib/structured-data";
 import { OG_IMAGE } from "@/lib/seo";
 import { mdxComponents } from "@/components/blog/mdx-components";
-import { getAllSlugs, getPostBySlug, clusterLabel } from "@/lib/blog";
+import { ShareBar } from "@/components/blog/ShareBar";
+import {
+  getAllSlugs,
+  getPostBySlug,
+  getRelatedPosts,
+  extractHeadings,
+  clusterLabel,
+} from "@/lib/blog";
 
 export function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug }));
@@ -64,6 +72,9 @@ export default async function BlogPost({
   if (!post) notFound();
 
   const { meta, content } = post;
+  const toc = extractHeadings(content);
+  const related = getRelatedPosts(slug);
+  const url = `${SITE_URL}/blog/${slug}`;
 
   return (
     <div className="font-sans antialiased bg-slate-950 min-h-screen">
@@ -103,14 +114,55 @@ export default async function BlogPost({
               {meta.title}
             </h1>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">{meta.description}</p>
-            <p className="mt-5 text-xs text-slate-500">
-              {meta.author} · {formatDate(meta.date)} · {meta.readingMinutes} min de leitura
-            </p>
+            <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-slate-500">
+                {meta.author} · {formatDate(meta.date)} · {meta.readingMinutes} min de leitura
+              </p>
+              <ShareBar url={url} title={meta.title} />
+            </div>
           </header>
+
+          {/* Capa (opcional) */}
+          {meta.cover && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={meta.cover}
+              alt={meta.title}
+              className="mb-10 w-full rounded-2xl border border-white/10 object-cover"
+            />
+          )}
+
+          {/* Índice — "Neste artigo" (só quando há seções suficientes) */}
+          {toc.length >= 3 && (
+            <nav
+              aria-label="Índice do artigo"
+              className="mb-12 rounded-2xl border border-white/10 bg-white/[0.02] p-6"
+            >
+              <p className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-400">
+                <List className="h-4 w-4 text-primary" /> Neste artigo
+              </p>
+              <ul className="space-y-2">
+                {toc.map((h) => (
+                  <li key={h.id} className={h.depth === 3 ? "pl-4" : ""}>
+                    <a
+                      href={`#${h.id}`}
+                      className="text-sm text-slate-400 hover:text-primary transition-colors"
+                    >
+                      {h.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
 
           {/* Corpo MDX */}
           <div className="max-w-none">
-            <MDXRemote source={content} components={mdxComponents} />
+            <MDXRemote
+              source={content}
+              components={mdxComponents}
+              options={{ mdxOptions: { rehypePlugins: [rehypeSlug] } }}
+            />
           </div>
 
           {/* CTA — ímã de eBook + produto */}
@@ -137,6 +189,32 @@ export default async function BlogPost({
               </Link>
             </div>
           </aside>
+
+          {/* Artigos relacionados */}
+          {related.length > 0 && (
+            <section className="mt-16 border-t border-white/10 pt-10">
+              <h2 className="mb-6 text-lg font-semibold text-white">Continue lendo</h2>
+              <div className="grid gap-5 sm:grid-cols-2">
+                {related.map((r) => (
+                  <Link
+                    key={r.slug}
+                    href={`/blog/${r.slug}`}
+                    className="group flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-primary/40 hover:bg-white/[0.04] transition-colors"
+                  >
+                    <span className="mb-3 inline-flex self-start items-center rounded-full bg-primary/10 text-primary text-[11px] font-medium px-2.5 py-1">
+                      {clusterLabel(r.cluster)}
+                    </span>
+                    <h3 className="text-base font-semibold text-white leading-snug group-hover:text-primary transition-colors">
+                      {r.title}
+                    </h3>
+                    <span className="mt-3 text-xs text-slate-500">
+                      {r.readingMinutes} min de leitura
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Retorno ao blog no fim do artigo */}
           <div className="mt-12 border-t border-white/10 pt-8">

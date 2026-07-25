@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import GithubSlugger from "github-slugger";
 
 // Motor de conteúdo do blog (Opção A — MDX no repositório).
 //
@@ -106,4 +107,51 @@ export function getPostBySlug(slug: string): { meta: PostMeta; content: string }
   if (!post) return null;
   if (isProd && !post.meta.published) return null;
   return post;
+}
+
+export type TocEntry = { depth: 2 | 3; text: string; id: string };
+
+/** Remove marcação inline (negrito, itálico, código, links) do texto de um
+ *  heading para gerar o rótulo do índice. */
+function stripInlineMd(s: string): string {
+  return s
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .trim();
+}
+
+/** Extrai os headings h2/h3 do corpo MDX para montar o índice ("Neste artigo").
+ *  Os `id` são gerados com o MESMO github-slugger que o `rehype-slug` aplica na
+ *  renderização — em ordem de documento — garantindo que as âncoras batam. */
+export function extractHeadings(content: string): TocEntry[] {
+  const slugger = new GithubSlugger();
+  const out: TocEntry[] = [];
+  let inFence = false;
+  for (const line of content.split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const m = /^(#{2,3})\s+(.+?)\s*#*\s*$/.exec(line);
+    if (!m) continue;
+    const depth = m[1].length as 2 | 3;
+    const text = stripInlineMd(m[2]);
+    out.push({ depth, text, id: slugger.slug(text) });
+  }
+  return out;
+}
+
+/** Artigos relacionados: prioriza o mesmo cluster; completa com os mais
+ *  recentes de outros clusters até atingir `limit`. Exclui o próprio slug. */
+export function getRelatedPosts(slug: string, limit = 3): PostMeta[] {
+  const all = getAllPosts();
+  const current = all.find((p) => p.slug === slug);
+  if (!current) return [];
+  const others = all.filter((p) => p.slug !== slug);
+  const sameCluster = others.filter((p) => p.cluster === current.cluster);
+  const rest = others.filter((p) => p.cluster !== current.cluster);
+  return [...sameCluster, ...rest].slice(0, limit);
 }
