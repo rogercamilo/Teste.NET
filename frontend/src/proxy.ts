@@ -92,6 +92,11 @@ export default auth(async function proxy(req) {
   // Exact matches (paths where startsWith would be too broad)
   const publicExact = [
     "/",
+    // Arquivos para crawlers (gerados por app/robots.ts e app/sitemap.ts). Sem
+    // isto o proxy os trata como rota protegida e responde 307 → /login, e o
+    // Googlebot nunca lê o sitemap. O matcher não os exclui (não são assets de /public).
+    "/robots.txt",
+    "/sitemap.xml",
     // Portal do formando — páginas públicas exatas (não usar prefixo: /portal/* inclui rotas protegidas)
     "/portal",
     "/portal/formando",
