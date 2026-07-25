@@ -137,6 +137,16 @@ export default async function BlogPost({
               </Link>
             </div>
           </aside>
+
+          {/* Retorno ao blog no fim do artigo */}
+          <div className="mt-12 border-t border-white/10 pt-8">
+            <Link
+              href="/blog"
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" /> Voltar para o blog
+            </Link>
+          </div>
         </div>
       </article>
 

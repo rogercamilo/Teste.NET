@@ -20,6 +20,7 @@ function Nav() {
     ["Recursos", "/recursos"],
     ["Para quem é", "/para-quem-e"],
     ["Preços", "/precos"],
+    ["Blog", "/blog"],
     ["FAQ", "/faq"],
   ];
   return (
