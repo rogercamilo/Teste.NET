@@ -14,19 +14,49 @@ import GithubSlugger from "github-slugger";
 const BLOG_DIR = path.join(process.cwd(), "content", "blog");
 
 /** Pilares de conteúdo (= clusters de SEO). A chave é usada no frontmatter
- *  `cluster:` de cada artigo; o rótulo aparece nos selos e listagens. */
+ *  `cluster:` de cada artigo; o `label` aparece nos selos e listagens; a
+ *  `description` alimenta a pillar page (`/blog/categoria/[cluster]`) — hero
+ *  e metadados de SEO. */
 export const CLUSTERS = {
-  "governanca-formativa": { label: "Governança formativa" },
-  "jornada-formativa": { label: "A jornada formativa" },
-  "memoria-conformidade": { label: "Memória & conformidade" },
-  "vida-pratica": { label: "Vida prática da comunidade" },
-  "historias": { label: "Histórias & casos" },
+  "governanca-formativa": {
+    label: "Governança formativa",
+    description:
+      "Como garantir que o plano formativo seja vivido, acompanhado e verificado — pessoa a pessoa, ao longo de anos.",
+  },
+  "jornada-formativa": {
+    label: "A jornada formativa",
+    description:
+      "Do plano à grade, do carisma ao encontro concreto: o caminho formativo de comunidades novas e institutos.",
+  },
+  "memoria-conformidade": {
+    label: "Memória & conformidade",
+    description:
+      "Livros de registro, documentos eclesiásticos e a memória institucional que o Direito Canônico e a boa governança pedem.",
+  },
+  "vida-pratica": {
+    label: "Vida prática da comunidade",
+    description:
+      "O dia a dia da formação: encontros, presença, acompanhamento e as rotinas que sustentam a jornada.",
+  },
+  "historias": {
+    label: "Histórias & casos",
+    description:
+      "Experiências reais de comunidades e institutos que organizaram a sua formação com método e memória.",
+  },
 } as const;
 
 export type ClusterId = keyof typeof CLUSTERS;
 
+export function isClusterId(id: string): id is ClusterId {
+  return Object.prototype.hasOwnProperty.call(CLUSTERS, id);
+}
+
 export function clusterLabel(id: string): string {
   return (CLUSTERS as Record<string, { label: string }>)[id]?.label ?? id;
+}
+
+export function clusterDescription(id: string): string {
+  return (CLUSTERS as Record<string, { description: string }>)[id]?.description ?? "";
 }
 
 export type PostMeta = {
@@ -142,6 +172,24 @@ export function extractHeadings(content: string): TocEntry[] {
     out.push({ depth, text, id: slugger.slug(text) });
   }
   return out;
+}
+
+/** Artigos de um cluster (pilar), do mais novo ao mais antigo. */
+export function getPostsByCluster(cluster: ClusterId): PostMeta[] {
+  return getAllPosts().filter((p) => p.cluster === cluster);
+}
+
+/** Clusters que têm ao menos um artigo publicado, com a contagem. Usado para
+ *  navegação por pilares no índice e para as pillar pages no sitemap — não
+ *  listamos clusters vazios (evita páginas magras). */
+export function getUsedClusters(): { id: ClusterId; count: number }[] {
+  const counts = new Map<ClusterId, number>();
+  for (const p of getAllPosts()) {
+    counts.set(p.cluster, (counts.get(p.cluster) ?? 0) + 1);
+  }
+  return (Object.keys(CLUSTERS) as ClusterId[])
+    .filter((id) => counts.has(id))
+    .map((id) => ({ id, count: counts.get(id)! }));
 }
 
 /** Artigos relacionados: prioriza o mesmo cluster; completa com os mais

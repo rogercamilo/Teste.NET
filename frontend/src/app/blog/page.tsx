@@ -1,12 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight } from "lucide-react";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbLd } from "@/lib/structured-data";
 import { marketingMeta } from "@/lib/seo";
-import { getAllPosts, clusterLabel } from "@/lib/blog";
+import { PostCard } from "@/components/blog/PostCard";
+import { getAllPosts, getUsedClusters, clusterLabel } from "@/lib/blog";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -20,13 +20,9 @@ export const metadata: Metadata = {
   }),
 };
 
-function formatDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(d);
-}
-
 export default function BlogIndex() {
   const posts = getAllPosts();
+  const clusters = getUsedClusters();
 
   return (
     <div className="font-sans antialiased bg-slate-950 min-h-screen">
@@ -58,6 +54,22 @@ export default function BlogIndex() {
       {/* Lista */}
       <section className="bg-slate-950 py-16">
         <div className="max-w-6xl mx-auto px-4">
+          {/* Navegação por pilares (clusters com artigos) */}
+          {clusters.length > 0 && (
+            <nav aria-label="Temas do blog" className="mb-10 flex flex-wrap gap-2">
+              {clusters.map(({ id, count }) => (
+                <Link
+                  key={id}
+                  href={`/blog/categoria/${id}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.02] text-slate-300 text-sm px-4 py-1.5 hover:border-primary/40 hover:text-primary transition-colors"
+                >
+                  {clusterLabel(id)}
+                  <span className="text-xs text-slate-500">{count}</span>
+                </Link>
+              ))}
+            </nav>
+          )}
+
           {posts.length === 0 ? (
             <p className="text-slate-500 text-center py-16">
               Novos conteúdos em breve. Enquanto isso, conheça{" "}
@@ -69,37 +81,7 @@ export default function BlogIndex() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {posts.map((post) => (
-                <Link
-                  key={post.slug}
-                  href={`/blog/${post.slug}`}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] hover:border-primary/40 hover:bg-white/[0.04] transition-colors"
-                >
-                  {post.cover && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={post.cover}
-                      alt=""
-                      className="aspect-[16/9] w-full object-cover"
-                    />
-                  )}
-                  <div className="flex flex-1 flex-col p-6">
-                  <span className="inline-flex self-start items-center rounded-full bg-primary/10 text-primary text-xs font-medium px-3 py-1 mb-4">
-                    {clusterLabel(post.cluster)}
-                  </span>
-                  <h2 className="text-lg font-semibold text-white leading-snug group-hover:text-primary transition-colors">
-                    {post.title}
-                  </h2>
-                  <p className="mt-2 text-sm text-slate-400 leading-relaxed line-clamp-3 flex-1">
-                    {post.description}
-                  </p>
-                  <div className="mt-5 flex items-center justify-between text-xs text-slate-500">
-                    <span>
-                      {formatDate(post.date)} · {post.readingMinutes} min de leitura
-                    </span>
-                    <ArrowRight className="h-4 w-4 text-slate-600 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  </div>
-                </Link>
+                <PostCard key={post.slug} post={post} />
               ))}
             </div>
           )}

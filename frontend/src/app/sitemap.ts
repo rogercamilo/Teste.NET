@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/structured-data";
-import { getAllPosts } from "@/lib/blog";
+import { getAllPosts, getUsedClusters } from "@/lib/blog";
 
 // Mapa das páginas públicas indexáveis. Prioridades e frequência sinalizam ao
 // Googlebot a importância relativa (a home e as páginas de conversão pesam
@@ -38,5 +38,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticEntries, ...postEntries];
+  // Pillar pages por cluster (só as que têm artigos) — hubs de tema para SEO.
+  const clusterEntries: MetadataRoute.Sitemap = getUsedClusters().map(({ id }) => ({
+    url: `${SITE_URL}/blog/categoria/${id}`,
+    lastModified: now,
+    changeFrequency: "weekly",
+    priority: 0.7,
+  }));
+
+  return [...staticEntries, ...postEntries, ...clusterEntries];
 }

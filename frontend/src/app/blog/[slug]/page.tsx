@@ -107,9 +107,12 @@ export default async function BlogPost({
 
           {/* Cabeçalho */}
           <header className="mb-10">
-            <span className="inline-flex items-center rounded-full bg-primary/10 text-primary text-xs font-medium px-3 py-1 mb-5">
+            <Link
+              href={`/blog/categoria/${meta.cluster}`}
+              className="inline-flex items-center rounded-full bg-primary/10 text-primary text-xs font-medium px-3 py-1 mb-5 hover:bg-primary/20 transition-colors"
+            >
               {clusterLabel(meta.cluster)}
-            </span>
+            </Link>
             <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight">
               {meta.title}
             </h1>
