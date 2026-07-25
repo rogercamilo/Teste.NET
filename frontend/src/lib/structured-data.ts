@@ -11,8 +11,8 @@ export const SITE_URL = "https://www.formattio.com.br";
  *  (ajuda o Google a montar o painel de conhecimento da marca). Preencha à
  *  medida que os canais forem criados. */
 export const SOCIAL_PROFILES: string[] = [
-  // "https://www.instagram.com/formattio",
-  // "https://www.youtube.com/@formattio",
+  "https://www.instagram.com/formattio.app",
+  "https://www.youtube.com/@Formattio",
 ];
 
 type Json = Record<string, unknown>;
