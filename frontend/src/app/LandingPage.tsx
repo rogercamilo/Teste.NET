@@ -11,6 +11,9 @@ import {
   FileText, Compass, BellRing, Building2, Heart, BookMarked, GraduationCap,
 } from "lucide-react";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { Depoimentos } from "@/components/marketing/Depoimentos";
+import type { DepoimentoPublico } from "@/lib/depoimentos-store";
+import type { AggregateRating } from "@/lib/structured-data";
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
 
@@ -1153,7 +1156,15 @@ function FinalCTA({ isNewOrg }: { isNewOrg: boolean }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function LandingPage({ isNewOrg }: { isNewOrg: boolean }) {
+export default function LandingPage({
+  isNewOrg,
+  depoimentos = [],
+  rating = null,
+}: {
+  isNewOrg: boolean;
+  depoimentos?: DepoimentoPublico[];
+  rating?: AggregateRating | null;
+}) {
   return (
     <div className="font-sans antialiased">
       <Nav />
@@ -1163,6 +1174,7 @@ export default function LandingPage({ isNewOrg }: { isNewOrg: boolean }) {
       <Features />
       <ParaQuemE />
       <HowItWorks />
+      <Depoimentos depoimentos={depoimentos} rating={rating} />
       <Pricing />
       <FAQ />
       <FinalCTA isNewOrg={isNewOrg} />

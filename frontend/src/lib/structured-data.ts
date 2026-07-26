@@ -44,10 +44,30 @@ export function websiteLd(): Json {
   };
 }
 
+/** Avaliação agregada (média + contagem) para o `aggregateRating`. Só passe
+ *  quando houver reviews REAIS suficientes — avaliações inventadas ou markup
+ *  "fino" (1–2 reviews) são penalizados pelo Google. A média/contagem visível
+ *  na página tem de bater com o schema (exigência do Google). */
+export interface AggregateRating {
+  ratingValue: number;
+  reviewCount: number;
+}
+
+function aggregateRatingLd(r: AggregateRating): Json {
+  return {
+    "@type": "AggregateRating",
+    ratingValue: r.ratingValue,
+    reviewCount: r.reviewCount,
+    bestRating: 5,
+    worstRating: 1,
+  };
+}
+
 /** SoftwareApplication com faixa de preço — dá ao Google contexto de que
- *  Formattio é um SaaS pago e a partir de quanto. Sem `aggregateRating`
- *  (avaliações inventadas são penalizadas; adicionar só com reviews reais). */
-export function softwareApplicationLd(): Json {
+ *  Formattio é um SaaS pago e a partir de quanto. `rating` (opcional) emite o
+ *  `aggregateRating` (estrela na busca) — só é passado quando há reviews reais
+ *  publicados suficientes (ver `getAggregateRating` em depoimentos-store). */
+export function softwareApplicationLd(rating?: AggregateRating | null): Json {
   return {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -65,6 +85,7 @@ export function softwareApplicationLd(): Json {
       highPrice: "397",
       offerCount: 3,
     },
+    ...(rating ? { aggregateRating: aggregateRatingLd(rating) } : {}),
     publisher: { "@type": "Organization", name: "Formattio", url: SITE_URL },
   };
 }
@@ -83,6 +104,7 @@ export function faqPageLd(items: { q: string; a: string }[]): Json {
 
 export function productOffersLd(
   plans: { name: string; price: number; desc: string }[],
+  rating?: AggregateRating | null,
 ): Json {
   return {
     "@context": "https://schema.org",
@@ -91,6 +113,7 @@ export function productOffersLd(
     description:
       "Plataforma de gestão formativa para comunidades e institutos religiosos.",
     brand: { "@type": "Brand", name: "Formattio" },
+    ...(rating ? { aggregateRating: aggregateRatingLd(rating) } : {}),
     offers: plans.map(({ name, price, desc }) => ({
       "@type": "Offer",
       name: `Plano ${name}`,

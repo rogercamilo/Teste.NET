@@ -168,7 +168,10 @@ export type AuditAction =
   | "lead_subscribed"
   | "lead_confirmed"
   | "lead_unsubscribed"
-  | "leads_exportados";
+  | "leads_exportados"
+  | "depoimento_criado"
+  | "depoimento_atualizado"
+  | "depoimento_excluido";
 
 export interface AuditEntry {
   timestamp: string;

@@ -167,7 +167,32 @@ export type Tab =
   | "seguranca"
   | "lgpd"
   | "leads"
+  | "depoimentos"
   | "conta";
+
+export type DepoimentoStatus = "rascunho" | "publicado" | "arquivado";
+
+export interface DepoimentoRow {
+  id: string;
+  nome: string;
+  papel: string | null;
+  comunidade: string | null;
+  texto: string;
+  nota: number;
+  foto: string | null;
+  status: DepoimentoStatus;
+  destaque: boolean;
+  ordem: number;
+  consentimento: boolean;
+  origem: string;
+  criadoEm: string;
+  publicadoEm: string | null;
+}
+
+export interface DepoimentosData {
+  depoimentos: DepoimentoRow[];
+  counts: Record<string, number>;
+}
 
 export interface LeadRow {
   id: string;

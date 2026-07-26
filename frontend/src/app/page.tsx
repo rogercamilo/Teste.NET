@@ -4,6 +4,7 @@ import LandingPage from "./LandingPage";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { organizationLd, websiteLd, softwareApplicationLd } from "@/lib/structured-data";
+import { getDepoimentosPublicados, getAggregateRating } from "@/lib/depoimentos-store";
 
 export const metadata: Metadata = {
   title: {
@@ -43,10 +44,15 @@ export default async function Home() {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
 
+  const [depoimentos, rating] = await Promise.all([
+    getDepoimentosPublicados(),
+    getAggregateRating(),
+  ]);
+
   return (
     <>
-      <JsonLd data={[organizationLd(), websiteLd(), softwareApplicationLd()]} />
-      <LandingPage isNewOrg />
+      <JsonLd data={[organizationLd(), websiteLd(), softwareApplicationLd(rating)]} />
+      <LandingPage isNewOrg depoimentos={depoimentos} rating={rating} />
     </>
   );
 }

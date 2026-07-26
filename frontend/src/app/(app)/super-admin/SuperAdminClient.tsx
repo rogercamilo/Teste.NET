@@ -15,6 +15,7 @@ import {
   Building2, RefreshCw, Gift, DollarSign, Lock,
   Shield, Server, Clock, Scale, AlertTriangle, CalendarPlus,
   Loader2, Mail, CircleAlert, LayoutDashboard, Sparkles, UserCog,
+  MessageSquareQuote,
   type LucideIcon,
 } from "lucide-react";
 import { STORAGE_LIMITS } from "./_utils";
@@ -26,9 +27,10 @@ import { TabInfraestrutura } from "./_tabs/TabInfraestrutura";
 import { TabSeguranca } from "./_tabs/TabSeguranca";
 import { TabLgpd } from "./_tabs/TabLgpd";
 import { TabLeads } from "./_tabs/TabLeads";
+import { TabDepoimentos } from "./_tabs/TabDepoimentos";
 import { TabConta } from "./_tabs/TabConta";
 import type {
-  OrgRow, Metricas, LgpdData, ServicosData, SegurancaData, LeadsData, DialogAcao, Tab,
+  OrgRow, Metricas, LgpdData, ServicosData, SegurancaData, LeadsData, DepoimentosData, DialogAcao, Tab,
 } from "./_types";
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
@@ -42,6 +44,7 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
   { id: "seguranca",      label: "Segurança",     Icon: Lock },
   { id: "lgpd",           label: "LGPD",          Icon: Shield },
   { id: "leads",          label: "Leads",         Icon: Sparkles },
+  { id: "depoimentos",    label: "Depoimentos",   Icon: MessageSquareQuote },
   { id: "conta",          label: "Minha Conta",   Icon: UserCog },
 ];
 
@@ -71,6 +74,8 @@ export default function SuperAdminClient() {
   const [segurancaLoaded, setSegurancaLoaded] = useState(false);
   const [leads, setLeads] = useState<LeadsData | null>(null);
   const [leadsLoaded, setLeadsLoaded] = useState(false);
+  const [depoimentos, setDepoimentos] = useState<DepoimentosData | null>(null);
+  const [depoimentosLoaded, setDepoimentosLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [metricasError, setMetricasError] = useState<string | null>(null);
@@ -173,11 +178,21 @@ export default function SuperAdminClient() {
     } catch { toast.error("Erro de rede."); }
   }, []);
 
+  const loadDepoimentos = useCallback(async () => {
+    try {
+      const res = await fetch("/api/super-admin/depoimentos");
+      if (!res.ok) { toast.error("Falha ao carregar depoimentos."); return; }
+      setDepoimentos(await res.json() as DepoimentosData);
+      setDepoimentosLoaded(true);
+    } catch { toast.error("Erro de rede."); }
+  }, []);
+
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (tab === "lgpd" && !lgpdLoaded) void loadLgpd(); }, [tab, lgpdLoaded, loadLgpd]);
   useEffect(() => { if (tab === "infraestrutura" && !servicosLoaded) void loadServicos(); }, [tab, servicosLoaded, loadServicos]);
   useEffect(() => { if (tab === "seguranca" && !segurancaLoaded) void loadSeguranca(); }, [tab, segurancaLoaded, loadSeguranca]);
   useEffect(() => { if (tab === "leads" && !leadsLoaded) void loadLeads(); }, [tab, leadsLoaded, loadLeads]);
+  useEffect(() => { if (tab === "depoimentos" && !depoimentosLoaded) void loadDepoimentos(); }, [tab, depoimentosLoaded, loadDepoimentos]);
 
   // ── Dialog helpers ─────────────────────────────────────────────────────────
 
@@ -401,6 +416,7 @@ export default function SuperAdminClient() {
           if (segurancaLoaded) void loadSeguranca();
           if (lgpdLoaded) void loadLgpd();
           if (leadsLoaded) void loadLeads();
+          if (depoimentosLoaded) void loadDepoimentos();
         }} className="gap-1.5">
           <RefreshCw className="h-4 w-4" />Atualizar
         </Button>
@@ -552,6 +568,10 @@ export default function SuperAdminClient() {
 
       {tab === "leads" && (
         <TabLeads leads={leads} />
+      )}
+
+      {tab === "depoimentos" && (
+        <TabDepoimentos depoimentos={depoimentos} onReload={loadDepoimentos} />
       )}
 
       {tab === "conta" && (

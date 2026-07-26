@@ -1593,3 +1593,36 @@ model NewsletterLead {
   @@index([status])
   @@index([criadoEm])
 }
+
+enum DepoimentoStatus {
+  rascunho // criado, ainda não exibido publicamente
+  publicado // visível na landing / preços e conta para o aggregateRating
+  arquivado // retirado de exibição sem apagar o histórico
+}
+
+/// Depoimento/avaliação de um cliente real sobre o Formattio. Alimenta a prova
+/// social pública (landing, /precos) e o `aggregateRating` (estrela no Google)
+/// quando há reviews reais suficientes. Sem vínculo de tenant: é da plataforma
+/// e curado pelo super-admin (entrada manual na Fase A). `nota` 1–5 é o que
+/// habilita o aggregateRating; `consentimento` registra a autorização LGPD para
+/// exibir nome + comunidade publicamente.
+model Depoimento {
+  id            String           @id @default(cuid())
+  nome          String // autor do depoimento
+  papel         String? // ex.: "Coordenador de formação"
+  comunidade    String? // nome da comunidade/instituto (texto livre, não FK)
+  texto         String // corpo do depoimento
+  nota          Int // 1–5 (validado na aplicação)
+  foto          String? // URL da foto/avatar do autor (opcional)
+  status        DepoimentoStatus @default(rascunho)
+  destaque      Boolean          @default(false) // aparece em posição de destaque na landing
+  ordem         Int              @default(0) // ordenação manual (asc)
+  consentimento Boolean          @default(false) // autorizou exibir nome + comunidade (LGPD)
+  origem        String           @default("manual") // como foi coletado (manual, in-app, etc.)
+  criadoEm      DateTime         @default(now())
+  publicadoEm   DateTime?
+  atualizadoEm  DateTime         @updatedAt
+
+  @@index([status])
+  @@index([destaque])
+}

@@ -9,6 +9,8 @@ import { PrecosContent, PricingFaq } from "./PrecosContent";
 import { JsonLd } from "@/components/JsonLd";
 import { productOffersLd, breadcrumbLd } from "@/lib/structured-data";
 import { marketingMeta } from "@/lib/seo";
+import { Depoimentos } from "@/components/marketing/Depoimentos";
+import { getDepoimentosPublicados, getAggregateRating } from "@/lib/depoimentos-store";
 
 export const metadata: Metadata = {
   title: "Preços",
@@ -38,7 +40,12 @@ const trialSteps = [
   { num: "03", title: "Escolha seu plano", desc: "Assine o plano que melhor se adapta ao tamanho da sua comunidade." },
 ];
 
-export default function PrecosPage() {
+export default async function PrecosPage() {
+  const [depoimentos, rating] = await Promise.all([
+    getDepoimentosPublicados(),
+    getAggregateRating(),
+  ]);
+
   return (
     <div className="font-sans antialiased bg-slate-950 min-h-screen">
       <JsonLd
@@ -47,7 +54,7 @@ export default function PrecosPage() {
             { name: "Básico", price: 97, desc: "Para comunidades em início de jornada. Até 60 usuários ativos." },
             { name: "Intermediário", price: 197, desc: "Para comunidades em crescimento. Até 140 usuários ativos." },
             { name: "Avançado", price: 397, desc: "Para grandes organizações formativas. Até 350 usuários ativos." },
-          ]),
+          ], rating),
           breadcrumbLd([
             { name: "Início", path: "/" },
             { name: "Preços", path: "/precos" },
@@ -175,6 +182,9 @@ export default function PrecosPage() {
           </div>
         </div>
       </section>
+
+      {/* Prova social — só renderiza se houver depoimentos publicados */}
+      <Depoimentos depoimentos={depoimentos} rating={rating} />
 
       {/* CTA final */}
       <section className="bg-slate-950 py-24">
