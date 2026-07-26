@@ -169,6 +169,37 @@ describe("getClientIp", () => {
       const req = makeRequest({ "x-real-ip": "5.6.7.8" });
       expect(getClientIp(req)).toBe("5.6.7.8");
     });
+
+    describe("behind Cloudflare", () => {
+      it("uses cf-connecting-ip when the peer (envoy) is a Cloudflare egress IP", () => {
+        const req = makeRequest({
+          "x-envoy-external-address": "104.16.0.5", // dentro de 104.16.0.0/13 (Cloudflare)
+          "cf-connecting-ip": "203.0.113.77", // visitante real
+        });
+        expect(getClientIp(req)).toBe("203.0.113.77");
+      });
+
+      it("does NOT trust cf-connecting-ip when the peer is NOT Cloudflare (anti-spoof direto no origin)", () => {
+        const req = makeRequest({
+          "x-envoy-external-address": "9.9.9.9", // não-Cloudflare (acesso direto ao origin)
+          "cf-connecting-ip": "203.0.113.77", // forjado
+        });
+        expect(getClientIp(req)).toBe("9.9.9.9");
+      });
+
+      it("falls back to the Cloudflare peer when cf-connecting-ip is absent", () => {
+        const req = makeRequest({ "x-envoy-external-address": "104.16.0.5" });
+        expect(getClientIp(req)).toBe("104.16.0.5");
+      });
+
+      it("trata peer Cloudflare IPv6 e devolve o cf-connecting-ip", () => {
+        const req = makeRequest({
+          "x-envoy-external-address": "2606:4700::1", // dentro de 2606:4700::/32
+          "cf-connecting-ip": "198.51.100.9",
+        });
+        expect(getClientIp(req)).toBe("198.51.100.9");
+      });
+    });
   });
 });
 

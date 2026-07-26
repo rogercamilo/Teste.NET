@@ -6,6 +6,8 @@
  * Logs are written to stdout as JSON AND persisted in the AuditLog table (D2.8).
  */
 
+import { isCloudflareIp } from "./cloudflare-ip";
+
 export type AuditAction =
   | "login_success"
   | "login_failure"
@@ -203,8 +205,19 @@ export function getClientIp(request: Request): string {
     // que o Envoy apenas anexa, deixando qualquer valor forjado pelo cliente à frente.
     // Fonte canônica do IP real no Railway; crítico num produto multi-tenant para impedir
     // que um atacante forje o IP de um tenant e esgote o rate-limit dos seus usuários.
-    const envoy = request.headers.get("x-envoy-external-address");
-    if (envoy) return envoy.trim();
+    const envoy = request.headers.get("x-envoy-external-address")?.trim();
+
+    // Atrás do proxy da Cloudflare (nuvem laranja), o peer imediato reportado pelo
+    // Envoy é um IP de EGRESS da Cloudflare — não o visitante. O IP real vem em
+    // CF-Connecting-IP (setado/reescrito pela Cloudflare, não-spoofável PARA quem
+    // passa por ela). Só confiamos nele quando o peer é comprovadamente Cloudflare:
+    // isso barra spoof de um atacante que bata direto no origin do Railway forjando
+    // o header. Fora da Cloudflare (envoy não-CF) o ramo é inerte — retrocompatível.
+    if (envoy && isCloudflareIp(envoy)) {
+      const cf = request.headers.get("cf-connecting-ip")?.trim();
+      if (cf) return cf;
+    }
+    if (envoy) return envoy;
 
     // Fallback (ambientes sem Envoy): usa o ÚLTIMO hop do X-Forwarded-For — o que o proxy
     // confiável anexou — nunca o primeiro, que é controlado pelo cliente.
