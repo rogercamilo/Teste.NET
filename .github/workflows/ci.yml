@@ -249,3 +249,40 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report/
           retention-days: 7
+
+  deploy:
+    name: Deploy to Railway (production)
+    # GATE DE DEPLOY = EXATAMENTE `ci` + `e2e`. Ao disparar o deploy pela própria
+    # pipeline (em vez do auto-deploy do Railway + "Wait for CI"), o release passa
+    # a depender só destes dois jobs e IGNORA checks externos (Dependabot/CodeQL),
+    # que antes estrangulavam TODO deploy quando ficavam vermelhos por um advisory
+    # sem relação com a mudança (o "Wait for CI" do Railway é tudo-ou-nada e não
+    # deixa escolher a check). Pré-requisitos de ops (uma vez):
+    #   1. Secret `RAILWAY_TOKEN` no repo = project token do env production.
+    #   2. Desligar o auto-deploy do serviço Formatio no painel do Railway,
+    #      senão o push dispara DOIS deploys (este + o do Railway).
+    needs: [ci, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Nunca deixa dois deploys concorrerem; enfileira o mais novo sem cancelar o
+    # que já está buildando (deploy não deve ser interrompido no meio).
+    concurrency:
+      group: railway-deploy-production
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Deploy (railway up)
+        env:
+          # Project token escopado ao env production — falha ALTO se ausente
+          # (nunca deploy silencioso e nunca deploy sem gate).
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        # `railway up` sobe a raiz do repo (o rootDirectory=frontend do serviço é
+        # aplicado no build, igual ao deploy pelo GitHub); --ci streama o log de
+        # build e sai com o código do build (falha => job vermelho => sem release).
+        run: railway up --ci --service Formatio --message "CI deploy ${{ github.sha }}"
