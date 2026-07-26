@@ -9,11 +9,14 @@ import { Check, Link2, MessageCircle } from "lucide-react";
 
 export function ShareBar({ url, title }: { url: string; title: string }) {
   const [copied, setCopied] = useState(false);
-  const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`;
+  // Enfatiza o ATO de compartilhar o artigo (indicação pessoal), não um link
+  // cru do site — reduz a objeção de "mais um comercial da plataforma".
+  const shareText = `Li este artigo e quis compartilhar com você:\n\n📖 ${title}\n${url}`;
+  const whatsapp = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
