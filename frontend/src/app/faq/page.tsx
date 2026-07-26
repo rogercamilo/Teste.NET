@@ -18,6 +18,7 @@ export const metadata: Metadata = {
     description:
       "Respostas sobre plataforma, segurança, planos, cobrança e suporte do Formattio.",
     path: "/faq",
+    ogSubtitle: "Plataforma, segurança, planos e suporte",
   }),
 };
 

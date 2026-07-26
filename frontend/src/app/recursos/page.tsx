@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     description:
       "Tudo que sua comunidade precisa para acompanhar a jornada formativa dos seus membros com profundidade e rigor.",
     path: "/recursos",
+    ogSubtitle: "Acompanhe a jornada formativa com profundidade",
   }),
 };
 

@@ -34,16 +34,46 @@ export function ogImageForPost(opts: {
   return `${SITE_URL}/api/og?${qs.toString()}`;
 }
 
+/** URL absoluta do card social de uma página de marketing (sem `eyebrow` → o
+ *  `/api/og` renderiza o card de MARCA com o título específico da página). Cada
+ *  página pública ganha uma arte própria em vez da `og-card.png` fixa. */
+export function ogImageForPage(opts: { title: string; subtitle?: string }): string {
+  const qs = new URLSearchParams({ title: opts.title });
+  if (opts.subtitle) qs.set("subtitle", opts.subtitle);
+  return `${SITE_URL}/api/og?${qs.toString()}`;
+}
+
+/** Remove o sufixo “— Formattio” (ou “— Blog Formattio”) do título para o card
+ *  social — a arte já traz o wordmark da marca, então repeti-lo é redundante. */
+function cardTitleFrom(title: string): string {
+  return title.replace(/\s*[—–-]\s*(Blog\s+)?Formattio\s*$/i, "").trim() || "Formattio";
+}
+
 /** OpenGraph + Twitter + canonical para uma página pública.
  *  `title`/`description` são os textos de compartilhamento (curtos, com o
  *  sufixo “— Formattio” quando fizer sentido); `path` é o caminho a partir da
- *  raiz (ex.: "/recursos"). */
+ *  raiz (ex.: "/recursos").
+ *
+ *  O card social é gerado dinamicamente por página via `/api/og` (título
+ *  específico sobre a arte de marca) — sobrepõe a `og-card.png` fixa. Use
+ *  `ogTitle`/`ogSubtitle` para customizar o texto do card; por padrão o título
+ *  do card é o `title` sem o sufixo da marca. */
 export function marketingMeta(opts: {
   title: string;
   description: string;
   path: string;
+  ogTitle?: string;
+  ogSubtitle?: string;
 }): Pick<Metadata, "alternates" | "openGraph" | "twitter"> {
-  const { title, description, path } = opts;
+  const { title, description, path, ogTitle, ogSubtitle } = opts;
+  const cardTitle = ogTitle ?? cardTitleFrom(title);
+  const image = ogImageForPage({ title: cardTitle, subtitle: ogSubtitle });
+  const ogImg = {
+    url: image,
+    width: 1200,
+    height: 630,
+    alt: `${cardTitle} — Formattio`,
+  };
   return {
     alternates: { canonical: path },
     openGraph: {
@@ -53,13 +83,13 @@ export function marketingMeta(opts: {
       siteName: "Formattio",
       type: "website",
       locale: "pt_BR",
-      images: [OG_IMAGE],
+      images: [ogImg],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [OG_IMAGE.url],
+      images: [image],
     },
   };
 }

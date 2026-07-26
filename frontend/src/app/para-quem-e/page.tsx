@@ -19,6 +19,7 @@ export const metadata: Metadata = {
     description:
       "Da nova comunidade ao centro de formação: uma plataforma que se adapta ao modelo formativo da sua instituição.",
     path: "/para-quem-e",
+    ogSubtitle: "Da nova comunidade ao centro de formação",
   }),
 };
 

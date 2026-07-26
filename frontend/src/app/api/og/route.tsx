@@ -248,17 +248,26 @@ export async function GET(req: NextRequest) {
             </div>
           </>
         ) : (
-          <>
+          // Wrapper em coluna centralizada: sem ele, o Satori posiciona título e
+          // subtítulo na mesma linha (heading vaza para a esquerda).
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginTop: "20px",
+            }}
+          >
             {/* Page-specific title */}
             <div
               style={{
                 fontSize: "48px",
                 fontWeight: 600,
                 color: DARK,
-                marginTop: "20px",
                 textAlign: "center",
-                maxWidth: "900px",
+                maxWidth: "960px",
                 display: "flex",
+                justifyContent: "center",
               }}
             >
               {heading}
@@ -267,18 +276,19 @@ export async function GET(req: NextRequest) {
             {subtitle && (
               <div
                 style={{
-                  fontSize: "30px",
+                  fontSize: "28px",
                   color: MUTED,
-                  marginTop: "12px",
+                  marginTop: "16px",
                   textAlign: "center",
-                  maxWidth: "800px",
+                  maxWidth: "840px",
                   display: "flex",
+                  justifyContent: "center",
                 }}
               >
                 {subtitle}
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* Bottom clay bar */}

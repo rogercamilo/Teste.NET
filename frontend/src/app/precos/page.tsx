@@ -19,6 +19,7 @@ export const metadata: Metadata = {
     description:
       "Planos transparentes para cada tamanho de comunidade. Comece sem compromisso, escale conforme cresce.",
     path: "/precos",
+    ogSubtitle: "Planos transparentes para cada tamanho de comunidade",
   }),
 };
 
