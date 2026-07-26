@@ -269,7 +269,7 @@ export default async function BlogPost({
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-slate-500">
                     <ArrowLeft className="h-3.5 w-3.5" /> Anterior
                   </span>
-                  <span className="mt-2 text-sm font-semibold leading-snug text-white group-hover:text-primary transition-colors line-clamp-2">
+                  <span className="mt-2 text-sm font-semibold leading-snug text-white group-hover:text-primary transition-colors">
                     {prev.title}
                   </span>
                 </Link>
@@ -298,7 +298,7 @@ export default async function BlogPost({
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-slate-500">
                     Próximo <ArrowRight className="h-3.5 w-3.5" />
                   </span>
-                  <span className="mt-2 text-sm font-semibold leading-snug text-white group-hover:text-primary transition-colors line-clamp-2">
+                  <span className="mt-2 text-sm font-semibold leading-snug text-white group-hover:text-primary transition-colors">
                     {next.title}
                   </span>
                 </Link>
