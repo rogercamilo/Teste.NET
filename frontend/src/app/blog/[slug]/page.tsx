@@ -19,6 +19,7 @@ import {
   getAllSlugs,
   getPostBySlug,
   getRelatedPosts,
+  getAdjacentPosts,
   extractHeadings,
   clusterLabel,
 } from "@/lib/blog";
@@ -83,6 +84,7 @@ export default async function BlogPost({
   const { meta, content } = post;
   const toc = extractHeadings(content);
   const related = getRelatedPosts(slug);
+  const { prev, next, position, total } = getAdjacentPosts(slug);
   const url = `${SITE_URL}/blog/${slug}`;
   const author = getAuthor(meta.author);
   const ogImage = ogImageForPost({
@@ -252,8 +254,67 @@ export default async function BlogPost({
             <BlogNewsletter origem="blog" />
           </div>
 
+          {/* Navegação sequencial (cronológica) entre artigos */}
+          {total > 1 && (
+            <nav
+              aria-label="Navegação entre artigos"
+              className="mt-12 grid grid-cols-2 items-stretch gap-3 border-t border-white/10 pt-8 sm:grid-cols-[1fr_auto_1fr] sm:gap-4"
+            >
+              {/* Anterior (mais antigo) */}
+              {prev ? (
+                <Link
+                  href={`/blog/${prev.slug}`}
+                  className="group flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:border-primary/40 hover:bg-white/[0.04]"
+                >
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-slate-500">
+                    <ArrowLeft className="h-3.5 w-3.5" /> Anterior
+                  </span>
+                  <span className="mt-2 text-sm font-semibold leading-snug text-white group-hover:text-primary transition-colors line-clamp-2">
+                    {prev.title}
+                  </span>
+                </Link>
+              ) : (
+                <div className="flex flex-col rounded-2xl border border-white/5 bg-white/[0.01] p-4 opacity-40">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-slate-600">
+                    <ArrowLeft className="h-3.5 w-3.5" /> Anterior
+                  </span>
+                  <span className="mt-2 text-sm text-slate-600">Início da coleção</span>
+                </div>
+              )}
+
+              {/* Contador central */}
+              <div className="col-span-2 order-first flex items-center justify-center sm:order-none sm:col-span-1 sm:px-2">
+                <span className="text-xs font-medium tabular-nums text-slate-500">
+                  {position} de {total}
+                </span>
+              </div>
+
+              {/* Próximo (mais novo) */}
+              {next ? (
+                <Link
+                  href={`/blog/${next.slug}`}
+                  className="group flex flex-col items-end rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-right transition-colors hover:border-primary/40 hover:bg-white/[0.04]"
+                >
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-slate-500">
+                    Próximo <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="mt-2 text-sm font-semibold leading-snug text-white group-hover:text-primary transition-colors line-clamp-2">
+                    {next.title}
+                  </span>
+                </Link>
+              ) : (
+                <div className="flex flex-col items-end rounded-2xl border border-white/5 bg-white/[0.01] p-4 text-right opacity-40">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-slate-600">
+                    Próximo <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="mt-2 text-sm text-slate-600">Artigo mais recente</span>
+                </div>
+              )}
+            </nav>
+          )}
+
           {/* Retorno ao blog no fim do artigo */}
-          <div className="mt-12 border-t border-white/10 pt-8">
+          <div className="mt-8 flex justify-center border-t border-white/10 pt-8">
             <Link
               href="/blog"
               className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"

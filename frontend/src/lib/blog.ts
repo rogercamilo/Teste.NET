@@ -233,3 +233,24 @@ export function getRelatedPosts(slug: string, limit = 3): PostMeta[] {
   const rest = others.filter((p) => p.cluster !== current.cluster);
   return [...sameCluster, ...rest].slice(0, limit);
 }
+
+/** Navegação sequencial (cronológica) entre artigos. `getAllPosts()` vem
+ *  ordenado do mais recente para o mais antigo; aqui expomos a leitura em ordem
+ *  de publicação: `prev` = artigo mais antigo, `next` = mais novo. `position` é
+ *  a posição cronológica (1 = o mais antigo) e `total` a coleção inteira. */
+export function getAdjacentPosts(slug: string): {
+  prev: PostMeta | null;
+  next: PostMeta | null;
+  position: number;
+  total: number;
+} {
+  const all = getAllPosts(); // desc: [0] = mais recente
+  const i = all.findIndex((p) => p.slug === slug);
+  if (i === -1) return { prev: null, next: null, position: 0, total: all.length };
+  return {
+    prev: all[i + 1] ?? null, // índice maior = mais antigo
+    next: all[i - 1] ?? null, // índice menor = mais novo
+    position: all.length - i, // cronológica: o mais antigo é 1
+    total: all.length,
+  };
+}
