@@ -11,6 +11,8 @@ import { articleLd, breadcrumbLd, SITE_URL } from "@/lib/structured-data";
 import { OG_IMAGE } from "@/lib/seo";
 import { mdxComponents } from "@/components/blog/mdx-components";
 import { ShareBar } from "@/components/blog/ShareBar";
+import { AuthorBox } from "@/components/blog/AuthorBox";
+import { getAuthor } from "@/lib/authors";
 import {
   getAllSlugs,
   getPostBySlug,
@@ -75,6 +77,7 @@ export default async function BlogPost({
   const toc = extractHeadings(content);
   const related = getRelatedPosts(slug);
   const url = `${SITE_URL}/blog/${slug}`;
+  const author = getAuthor(meta.author);
 
   return (
     <div className="font-sans antialiased bg-slate-950 min-h-screen">
@@ -87,6 +90,7 @@ export default async function BlogPost({
             date: meta.date,
             updated: meta.updated,
             cover: meta.cover,
+            author: { name: author.name, type: author.type, url: author.url },
           }),
           breadcrumbLd([
             { name: "Início", path: "/" },
@@ -120,7 +124,7 @@ export default async function BlogPost({
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">{meta.description}</p>
             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-slate-500">
-                {meta.author} · {formatDate(meta.date)} · {meta.readingMinutes} min de leitura
+                {author.name} · {formatDate(meta.date)} · {meta.readingMinutes} min de leitura
                 {meta.updated && (
                   <span className="text-slate-600"> · Atualizado em {formatDate(meta.updated)}</span>
                 )}
@@ -171,6 +175,9 @@ export default async function BlogPost({
               options={{ mdxOptions: { rehypePlugins: [rehypeSlug] } }}
             />
           </div>
+
+          {/* Autor (E-E-A-T) */}
+          <AuthorBox author={author} />
 
           {/* CTA — ímã de eBook + produto */}
           <aside className="mt-16 rounded-2xl border border-primary/30 bg-primary/[0.06] p-8">

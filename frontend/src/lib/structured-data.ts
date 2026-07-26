@@ -112,8 +112,10 @@ export function articleLd(a: {
   date: string;
   updated?: string;
   cover?: string;
+  author?: { name: string; type: "Organization" | "Person"; url: string };
 }): Json {
   const url = `${SITE_URL}/blog/${a.slug}`;
+  const author = a.author ?? { name: "Formattio", type: "Organization" as const, url: SITE_URL };
   return {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -125,7 +127,7 @@ export function articleLd(a: {
     mainEntityOfPage: url,
     url,
     image: a.cover ? `${SITE_URL}${a.cover}` : `${SITE_URL}/brand/og-card.png`,
-    author: { "@type": "Organization", name: "Formattio", url: SITE_URL },
+    author: { "@type": author.type, name: author.name, url: author.url },
     publisher: {
       "@type": "Organization",
       name: "Formattio",
