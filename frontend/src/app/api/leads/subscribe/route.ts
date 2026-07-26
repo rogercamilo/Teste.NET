@@ -11,6 +11,9 @@ const SubscribeSchema = z.object({
   // Telefone/WhatsApp opcional — aceita vazio.
   telefone: z.string().trim().max(40).optional().or(z.literal("")),
   whatsappOptIn: z.boolean().optional(),
+  // Origem da captura (atribuição na base de leads). Whitelist — valores
+  // desconhecidos caem em "landing" (não confiar em texto livre do cliente).
+  origem: z.enum(["landing", "blog"]).optional(),
   // Consentimento LGPD obrigatório (base legal: consentimento).
   consent: z.literal(true, { message: "É preciso aceitar para continuar" }),
   // Honeypot: campo invisível que só bots preenchem. Aceito no schema para poder
@@ -30,7 +33,7 @@ export async function POST(request: Request) {
     if (!parsed.ok) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
-    const { nome, email, telefone, whatsappOptIn, website } = parsed.data;
+    const { nome, email, telefone, whatsappOptIn, origem, website } = parsed.data;
 
     // Honeypot preenchido = bot. Responde 200 sem fazer nada (não sinaliza a detecção).
     if (website) return NextResponse.json({ ok: true });
@@ -51,7 +54,7 @@ export async function POST(request: Request) {
       email,
       telefone: telefone || null,
       whatsappOptIn: whatsappOptIn ?? false,
-      origem: "landing",
+      origem: origem ?? "landing",
       ipAnon: anonymizeIp(ip),
     });
 

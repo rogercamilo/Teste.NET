@@ -59,6 +59,11 @@ export function clusterDescription(id: string): string {
   return (CLUSTERS as Record<string, { description: string }>)[id]?.description ?? "";
 }
 
+/** Par pergunta/resposta do bloco de FAQ de um artigo (frontmatter `faq:`).
+ *  Alimenta tanto a UI (accordion visível) quanto o FAQPage JSON-LD — os dois
+ *  precisam bater (o Google exige que a resposta esteja visível na página). */
+export type FaqPair = { q: string; a: string };
+
 export type PostMeta = {
   slug: string;
   title: string;
@@ -71,6 +76,7 @@ export type PostMeta = {
   author: string;
   published: boolean;
   readingMinutes: number;
+  faq?: FaqPair[];
 };
 
 function estimateReadingMinutes(body: string): number {
@@ -98,6 +104,8 @@ function parseFile(fileName: string): { meta: PostMeta; content: string } | null
   const updatedRaw = data.updated ? toISODate(data.updated) : null;
   const updated = updatedRaw && updatedRaw > date ? updatedRaw : undefined;
 
+  const faq = parseFaq(data.faq);
+
   const meta: PostMeta = {
     slug,
     title: String(data.title),
@@ -110,8 +118,24 @@ function parseFile(fileName: string): { meta: PostMeta; content: string } | null
     author: data.author ? String(data.author) : "Formattio",
     published: data.published !== false, // default: publicado
     readingMinutes: estimateReadingMinutes(content),
+    faq,
   };
   return { meta, content };
+}
+
+/** Valida o `faq:` do frontmatter (lista de `{ q, a }`). Entradas malformadas
+ *  são descartadas em silêncio; ausência/lista vazia vira `undefined`. */
+function parseFaq(v: unknown): FaqPair[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const pairs = v
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const q = "q" in item ? String((item as Record<string, unknown>).q).trim() : "";
+      const a = "a" in item ? String((item as Record<string, unknown>).a).trim() : "";
+      return q && a ? { q, a } : null;
+    })
+    .filter((p): p is FaqPair => p !== null);
+  return pairs.length > 0 ? pairs : undefined;
 }
 
 function readAll(): { meta: PostMeta; content: string }[] {

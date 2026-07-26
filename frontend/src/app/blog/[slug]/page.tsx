@@ -7,8 +7,10 @@ import { ArrowLeft, ArrowRight, Download, List } from "lucide-react";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { JsonLd } from "@/components/JsonLd";
-import { articleLd, breadcrumbLd, SITE_URL } from "@/lib/structured-data";
-import { OG_IMAGE } from "@/lib/seo";
+import { articleLd, breadcrumbLd, faqPageLd, SITE_URL } from "@/lib/structured-data";
+import { ogImageForPost } from "@/lib/seo";
+import { BlogFaq } from "@/components/blog/BlogFaq";
+import { BlogNewsletter } from "@/components/blog/BlogNewsletter";
 import { mdxComponents } from "@/components/blog/mdx-components";
 import { ShareBar } from "@/components/blog/ShareBar";
 import { AuthorBox } from "@/components/blog/AuthorBox";
@@ -40,7 +42,11 @@ export async function generateMetadata({
   if (!post) return { title: "Artigo não encontrado" };
 
   const { meta } = post;
-  const image = meta.cover ? { url: meta.cover, alt: meta.title } : OG_IMAGE;
+  const ogImage = ogImageForPost({
+    title: meta.title,
+    eyebrow: clusterLabel(meta.cluster),
+    cover: meta.cover,
+  });
   return {
     title: meta.title,
     description: meta.description,
@@ -52,14 +58,15 @@ export async function generateMetadata({
       siteName: "Formattio",
       type: "article",
       publishedTime: meta.date,
+      modifiedTime: meta.updated,
       locale: "pt_BR",
-      images: [image],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: meta.title }],
     },
     twitter: {
       card: "summary_large_image",
       title: meta.title,
       description: meta.description,
-      images: [meta.cover ?? OG_IMAGE.url],
+      images: [ogImage],
     },
   };
 }
@@ -78,6 +85,11 @@ export default async function BlogPost({
   const related = getRelatedPosts(slug);
   const url = `${SITE_URL}/blog/${slug}`;
   const author = getAuthor(meta.author);
+  const ogImage = ogImageForPost({
+    title: meta.title,
+    eyebrow: clusterLabel(meta.cluster),
+    cover: meta.cover,
+  });
 
   return (
     <div className="font-sans antialiased bg-slate-950 min-h-screen">
@@ -90,6 +102,7 @@ export default async function BlogPost({
             date: meta.date,
             updated: meta.updated,
             cover: meta.cover,
+            image: ogImage,
             author: { name: author.name, type: author.type, url: author.url },
           }),
           breadcrumbLd([
@@ -97,6 +110,7 @@ export default async function BlogPost({
             { name: "Blog", path: "/blog" },
             { name: meta.title, path: `/blog/${slug}` },
           ]),
+          ...(meta.faq && meta.faq.length > 0 ? [faqPageLd(meta.faq)] : []),
         ]}
       />
       <MarketingNav />
@@ -176,6 +190,9 @@ export default async function BlogPost({
             />
           </div>
 
+          {/* Perguntas frequentes (opcional — alimenta o FAQPage schema) */}
+          {meta.faq && meta.faq.length > 0 && <BlogFaq items={meta.faq} />}
+
           {/* Autor (E-E-A-T) */}
           <AuthorBox author={author} />
 
@@ -229,6 +246,11 @@ export default async function BlogPost({
               </div>
             </section>
           )}
+
+          {/* Newsletter — opt-in (double opt-in via /api/leads/subscribe) */}
+          <div className="mt-16">
+            <BlogNewsletter origem="blog" />
+          </div>
 
           {/* Retorno ao blog no fim do artigo */}
           <div className="mt-12 border-t border-white/10 pt-8">

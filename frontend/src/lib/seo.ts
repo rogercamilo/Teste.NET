@@ -18,6 +18,22 @@ export const OG_IMAGE = {
   alt: "Formattio — gestão formativa para comunidades e institutos",
 } as const;
 
+/** URL absoluta do card social de um artigo do blog. Usa a capa própria do
+ *  artigo (`cover`), se houver; senão gera um card dinâmico via `/api/og` com o
+ *  título e o pilar (cluster) — cada artigo ganha uma arte única de
+ *  compartilhamento sem precisar de imagem manual. */
+export function ogImageForPost(opts: {
+  title: string;
+  eyebrow: string;
+  cover?: string;
+}): string {
+  if (opts.cover) {
+    return opts.cover.startsWith("http") ? opts.cover : `${SITE_URL}${opts.cover}`;
+  }
+  const qs = new URLSearchParams({ title: opts.title, eyebrow: opts.eyebrow });
+  return `${SITE_URL}/api/og?${qs.toString()}`;
+}
+
 /** OpenGraph + Twitter + canonical para uma página pública.
  *  `title`/`description` são os textos de compartilhamento (curtos, com o
  *  sufixo “— Formattio” quando fizer sentido); `path` é o caminho a partir da

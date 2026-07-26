@@ -6,6 +6,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbLd } from "@/lib/structured-data";
 import { marketingMeta } from "@/lib/seo";
 import { PostCard } from "@/components/blog/PostCard";
+import { BlogNewsletter } from "@/components/blog/BlogNewsletter";
 import { getAllPosts, getUsedClusters, clusterLabel } from "@/lib/blog";
 
 export const metadata: Metadata = {
@@ -87,6 +88,13 @@ export default function BlogIndex() {
               {posts.map((post) => (
                 <PostCard key={post.slug} post={post} />
               ))}
+            </div>
+          )}
+
+          {/* Newsletter — opt-in (double opt-in via /api/leads/subscribe) */}
+          {posts.length > 0 && (
+            <div className="mt-16 max-w-3xl mx-auto">
+              <BlogNewsletter origem="blog" />
             </div>
           )}
         </div>

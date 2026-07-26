@@ -112,6 +112,9 @@ export function articleLd(a: {
   date: string;
   updated?: string;
   cover?: string;
+  /** Imagem absoluta do artigo (1200×630). Se omitida, usa a capa ou o card
+   *  padrão da marca. */
+  image?: string;
   author?: { name: string; type: "Organization" | "Person"; url: string };
 }): Json {
   const url = `${SITE_URL}/blog/${a.slug}`;
@@ -126,7 +129,7 @@ export function articleLd(a: {
     inLanguage: "pt-BR",
     mainEntityOfPage: url,
     url,
-    image: a.cover ? `${SITE_URL}${a.cover}` : `${SITE_URL}/brand/og-card.png`,
+    image: a.image ?? (a.cover ? `${SITE_URL}${a.cover}` : `${SITE_URL}/brand/og-card.png`),
     author: { "@type": author.type, name: author.name, url: author.url },
     publisher: {
       "@type": "Organization",
