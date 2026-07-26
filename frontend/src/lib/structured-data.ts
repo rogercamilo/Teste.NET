@@ -110,6 +110,7 @@ export function articleLd(a: {
   description: string;
   slug: string;
   date: string;
+  updated?: string;
   cover?: string;
 }): Json {
   const url = `${SITE_URL}/blog/${a.slug}`;
@@ -119,7 +120,7 @@ export function articleLd(a: {
     headline: a.title,
     description: a.description,
     datePublished: a.date,
-    dateModified: a.date,
+    dateModified: a.updated ?? a.date,
     inLanguage: "pt-BR",
     mainEntityOfPage: url,
     url,

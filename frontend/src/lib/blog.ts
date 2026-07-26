@@ -63,7 +63,8 @@ export type PostMeta = {
   slug: string;
   title: string;
   description: string;
-  date: string; // ISO (YYYY-MM-DD)
+  date: string; // ISO (YYYY-MM-DD) — data de publicação
+  updated?: string; // ISO (YYYY-MM-DD) — última revisão, se houver (frontmatter `updated:`)
   cluster: ClusterId;
   keyword?: string;
   cover?: string;
@@ -93,11 +94,16 @@ function parseFile(fileName: string): { meta: PostMeta; content: string } | null
   const date = toISODate(data.date);
   if (!data.title || !data.description || !date || !data.cluster) return null;
 
+  // `updated` é opcional; só conta se for uma data válida E posterior à publicação.
+  const updatedRaw = data.updated ? toISODate(data.updated) : null;
+  const updated = updatedRaw && updatedRaw > date ? updatedRaw : undefined;
+
   const meta: PostMeta = {
     slug,
     title: String(data.title),
     description: String(data.description),
     date,
+    updated,
     cluster: String(data.cluster) as ClusterId,
     keyword: data.keyword ? String(data.keyword) : undefined,
     cover: data.cover ? String(data.cover) : undefined,

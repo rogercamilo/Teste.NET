@@ -85,6 +85,7 @@ export default async function BlogPost({
             description: meta.description,
             slug,
             date: meta.date,
+            updated: meta.updated,
             cover: meta.cover,
           }),
           breadcrumbLd([
@@ -120,6 +121,9 @@ export default async function BlogPost({
             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-slate-500">
                 {meta.author} · {formatDate(meta.date)} · {meta.readingMinutes} min de leitura
+                {meta.updated && (
+                  <span className="text-slate-600"> · Atualizado em {formatDate(meta.updated)}</span>
+                )}
               </p>
               <ShareBar url={url} title={meta.title} />
             </div>

@@ -30,10 +30,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority,
   }));
 
-  // Artigos do blog entram automaticamente (lastModified = data do post).
+  // Artigos do blog entram automaticamente (lastModified = última revisão, ou a publicação).
   const postEntries: MetadataRoute.Sitemap = getAllPosts().map((post) => ({
     url: `${SITE_URL}/blog/${post.slug}`,
-    lastModified: new Date(`${post.date}T00:00:00`),
+    lastModified: new Date(`${post.updated ?? post.date}T00:00:00`),
     changeFrequency: "monthly",
     priority: 0.6,
   }));

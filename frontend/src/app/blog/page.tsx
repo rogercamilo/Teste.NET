@@ -18,6 +18,10 @@ export const metadata: Metadata = {
       "Governança formativa na prática: cânon e CHARIS, jornada vocacional, documentos e a organização da formação da sua comunidade.",
     path: "/blog",
   }),
+  alternates: {
+    canonical: "/blog",
+    types: { "application/rss+xml": [{ url: "/blog/feed.xml", title: "Blog Formattio" }] },
+  },
 };
 
 export default function BlogIndex() {
