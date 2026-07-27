@@ -84,7 +84,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <ThemeApplier themeKey={orgBranding.temaCor} />
         <PrimeiroAcessoModal primeiroAcesso={primeiroAcesso} />
         <AppSidebar user={user} nomePlataforma={orgBranding.nomePlataforma} />
-        <SidebarInset>
+        {/* min-w-0: sem isso o SidebarInset (flex item) não encolhe abaixo da
+            largura mínima do conteúdo, e itens largos (ex.: a régua de abas do
+            cockpit) empurram a página inteira em vez de rolarem no próprio
+            container. */}
+        <SidebarInset className="min-w-0">
           <AppTopbar role={user.role} grupoFormacaoId={user.grupoFormacaoId} />
           <QuotaWarningBanner role={user.role} />
           <main className="flex-1 overflow-auto p-4 md:p-6">
