@@ -475,8 +475,9 @@ export default function SuperAdminClient() {
         </div>
       )}
 
-      {/* Tab Bar */}
-      <div className="flex gap-0 border-b overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Tab Bar — quebra em várias linhas para nunca cortar abas (a página em si
+          não rola na horizontal por causa do min-w-0 no SidebarInset do layout). */}
+      <div className="flex flex-wrap gap-y-0 gap-x-0 border-b">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
