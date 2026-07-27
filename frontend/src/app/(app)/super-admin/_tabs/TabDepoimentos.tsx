@@ -11,7 +11,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Star, Plus, Pencil, Trash2, MessageSquareQuote, CheckCircle2, FileEdit } from "lucide-react";
+import { Loader2, Star, Plus, Pencil, Trash2, MessageSquareQuote, CheckCircle2, FileEdit, ImagePlus } from "lucide-react";
+import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { fmtDate } from "../_utils";
 import type { DepoimentosData, DepoimentoRow, DepoimentoStatus } from "../_types";
 
@@ -65,6 +66,7 @@ function StarRow({ value }: { value: number }) {
 
 export function TabDepoimentos({ depoimentos, onReload }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [fotoDialogOpen, setFotoDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DepoimentoRow | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
@@ -314,7 +316,7 @@ export function TabDepoimentos({ depoimentos, onReload }: Props) {
 
       {/* Form dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar depoimento" : "Novo depoimento"}</DialogTitle>
             <DialogDescription>
@@ -382,8 +384,30 @@ export function TabDepoimentos({ depoimentos, onReload }: Props) {
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Foto do autor <span className="text-muted-foreground font-normal">(URL, opcional)</span></label>
-              <Input value={form.foto} onChange={(e) => set("foto", e.target.value)} placeholder="https://..." />
+              <label className="text-sm font-medium">Foto do autor <span className="text-muted-foreground font-normal">(opcional)</span></label>
+              <div className="flex items-center gap-3">
+                {form.foto ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={form.foto} alt="Foto do autor" className="h-14 w-14 rounded-full object-cover border shrink-0" />
+                ) : (
+                  <div className="h-14 w-14 rounded-full border border-dashed flex items-center justify-center bg-muted/40 text-muted-foreground shrink-0">
+                    <ImagePlus className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setFotoDialogOpen(true)}>
+                    {form.foto ? "Trocar foto" : "Enviar foto"}
+                  </Button>
+                  {form.foto && (
+                    <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => set("foto", "")}>
+                      Remover
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Recorte quadrado, exibida como avatar circular no site. PNG, JPG ou WebP · máx. 5 MB.
+              </p>
             </div>
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm">
@@ -405,6 +429,19 @@ export function TabDepoimentos({ depoimentos, onReload }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upload + crop da foto do autor. Sem uploadEndpoint: devolve o data URL
+          base64, guardado direto em `foto` (avatar pequeno, exibição pública sem
+          rota autenticada de servir imagem — ver _shared.ts). */}
+      <ImageCropDialog
+        open={fotoDialogOpen}
+        onOpenChange={setFotoDialogOpen}
+        title="Foto do autor"
+        outputSize={256}
+        hasImage={!!form.foto}
+        onSave={(dataUrl) => set("foto", dataUrl)}
+        onRemove={() => set("foto", "")}
+      />
 
       {/* Delete confirm */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>

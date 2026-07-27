@@ -8,7 +8,20 @@ export const DepoimentoSchema = z.object({
   comunidade: z.string().trim().max(160).optional().or(z.literal("")),
   texto: z.string().trim().min(10, "Depoimento muito curto").max(2000),
   nota: z.number().int().min(1).max(5),
-  foto: z.string().trim().url("URL inválida").max(500).optional().or(z.literal("")),
+  // Foto do autor: aceita uma imagem embutida (data URL base64, produzida pelo
+  // upload+crop do cockpit) OU uma URL http(s) (compatibilidade com cadastros
+  // antigos). O teto acomoda um avatar ~256px JPEG (~40 KB → ~55 mil chars);
+  // 700 mil chars (~500 KB) é folga generosa sem virar vetor de payload.
+  foto: z
+    .string()
+    .trim()
+    .max(700_000, "Imagem muito grande")
+    .refine(
+      (v) => v === "" || v.startsWith("data:image/") || /^https?:\/\//.test(v),
+      "Foto inválida: envie uma imagem ou informe uma URL http(s).",
+    )
+    .optional()
+    .or(z.literal("")),
   status: z.enum(["rascunho", "publicado", "arquivado"]).optional(),
   destaque: z.boolean().optional(),
   ordem: z.number().int().min(0).max(9999).optional(),
