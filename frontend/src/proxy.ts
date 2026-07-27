@@ -37,7 +37,7 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "frame-src 'self' https://*.r2.cloudflarestorage.com https://js.stripe.com https://hooks.stripe.com",
-      "connect-src 'self' https://api.stripe.com https://*.stripe.com https://*.sentry.io https://*.ingest.sentry.io",
+      "connect-src 'self' https://api.stripe.com https://*.stripe.com https://*.sentry.io https://*.ingest.sentry.io https://www.facebook.com https://connect.facebook.net",
       "worker-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",

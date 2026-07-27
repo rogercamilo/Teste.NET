@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import Providers from "@/components/Providers";
 import CookieBanner from "@/components/CookieBanner";
+import MetaPixel from "@/components/MetaPixel";
 import { SITE_URL } from "@/lib/structured-data";
 import { OG_IMAGE } from "@/lib/seo";
 
@@ -65,6 +66,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Providers>
           <TooltipProvider delay={300}>
+            <MetaPixel />
             {children}
             <Toaster richColors position="top-right" />
             <CookieBanner />

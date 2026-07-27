@@ -43,6 +43,10 @@ async function saveConsent(consent: Omit<ConsentState, "version">) {
   const payload: ConsentState = { ...consent, version: CONSENT_VERSION };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 
+  // Avisa recursos condicionados a consentimento (ex.: Meta Pixel) para que
+  // ativem/desativem sem exigir recarga da página.
+  window.dispatchEvent(new Event("Formattio-consent-changed"));
+
   const sessionId = getOrCreateSessionId();
   await fetch("/api/cookies/consent", {
     method: "POST",

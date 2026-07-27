@@ -11,6 +11,7 @@ import {
   FileText, Compass, BellRing, Building2, Heart, BookMarked, GraduationCap,
 } from "lucide-react";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { trackMetaEvent } from "@/lib/analytics-config";
 import { Depoimentos } from "@/components/marketing/Depoimentos";
 import type { DepoimentoPublico } from "@/lib/depoimentos-store";
 import type { AggregateRating } from "@/lib/structured-data";
@@ -968,6 +969,9 @@ function LeadMagnetSection() {
         return;
       }
       setDone(true);
+      // Conversão de lead capturada — informa o Meta Pixel (no-op se pixel
+      // ausente ou sem consentimento de marketing) para otimização de anúncios.
+      trackMetaEvent("Lead");
     } catch {
       setErro("Erro de conexão. Tente novamente.");
     } finally {
