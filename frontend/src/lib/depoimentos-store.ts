@@ -1,6 +1,6 @@
 import type { DepoimentoStatus, Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
-import { logAction } from "./audit-log";
+import { logAction, logError } from "./audit-log";
 
 // Depoimentos de clientes: prova social pública + `aggregateRating` (estrela no
 // Google). Curados pelo super-admin (entrada manual na Fase A). Sem escopo de
@@ -24,38 +24,51 @@ export interface DepoimentoPublico {
 }
 
 /** Depoimentos publicados, na ordem de exibição (destaque primeiro, depois
- *  ordem manual, depois mais recentes). Usado na landing e em /precos. */
+ *  ordem manual, depois mais recentes). Usado na landing e em /precos.
+ *  Fail-open: um erro de banco degrada para lista vazia (a seção some) em vez
+ *  de derrubar a página pública — inclui o prerender de build (DB indisponível). */
 export async function getDepoimentosPublicados(): Promise<DepoimentoPublico[]> {
-  return prisma.depoimento.findMany({
-    where: { status: "publicado" },
-    orderBy: [{ destaque: "desc" }, { ordem: "asc" }, { publicadoEm: "desc" }],
-    select: {
-      id: true,
-      nome: true,
-      papel: true,
-      comunidade: true,
-      texto: true,
-      nota: true,
-      foto: true,
-      destaque: true,
-    },
-  });
+  try {
+    return await prisma.depoimento.findMany({
+      where: { status: "publicado" },
+      orderBy: [{ destaque: "desc" }, { ordem: "asc" }, { publicadoEm: "desc" }],
+      select: {
+        id: true,
+        nome: true,
+        papel: true,
+        comunidade: true,
+        texto: true,
+        nota: true,
+        foto: true,
+        destaque: true,
+      },
+    });
+  } catch (err) {
+    logError("depoimentos/getDepoimentosPublicados", err);
+    return [];
+  }
 }
 
 /** Média e contagem das avaliações publicadas — só retorna quando há reviews
- *  reais suficientes (>= MIN_REVIEWS_AGGREGATE); senão `null` (não emitir). */
+ *  reais suficientes (>= MIN_REVIEWS_AGGREGATE); senão `null` (não emitir).
+ *  Fail-open: erro de banco → `null` (aggregateRating simplesmente não é emitido). */
 export async function getAggregateRating(): Promise<{ ratingValue: number; reviewCount: number } | null> {
-  const agg = await prisma.depoimento.aggregate({
-    where: { status: "publicado" },
-    _avg: { nota: true },
-    _count: { _all: true },
-  });
-  const count = agg._count._all;
-  if (count < MIN_REVIEWS_AGGREGATE || agg._avg.nota == null) return null;
-  return {
-    ratingValue: Math.round(agg._avg.nota * 10) / 10, // 1 casa decimal
-    reviewCount: count,
-  };
+  try {
+    const agg = await prisma.depoimento.aggregate({
+      where: { status: "publicado" },
+      _avg: { nota: true },
+      _count: { _all: true },
+    });
+    const count = agg._count._all;
+    if (count < MIN_REVIEWS_AGGREGATE || agg._avg.nota == null) return null;
+    return {
+      ratingValue: Math.round(agg._avg.nota * 10) / 10, // 1 casa decimal
+      reviewCount: count,
+    };
+  } catch (err) {
+    logError("depoimentos/getAggregateRating", err);
+    return null;
+  }
 }
 
 // ── Administração (super-admin) ──────────────────────────────────────────────

@@ -12,6 +12,10 @@ import { marketingMeta } from "@/lib/seo";
 import { Depoimentos } from "@/components/marketing/Depoimentos";
 import { getDepoimentosPublicados, getAggregateRating } from "@/lib/depoimentos-store";
 
+// Renderiza em runtime (não no build): a página lê depoimentos do banco, que
+// não é acessível durante o prerender de build no Railway.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Preços",
   description:
