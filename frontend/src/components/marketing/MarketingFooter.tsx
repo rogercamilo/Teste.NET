@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CookiePreferencesButton from "@/components/CookiePreferencesButton";
 
 export function MarketingFooter() {
   const year = new Date().getFullYear();
@@ -96,7 +97,10 @@ export function MarketingFooter() {
 
         <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-600">
           <p>© {year} Formattio. Todos os direitos reservados.</p>
-          <p>Desenvolvido com amor para comunidades brasileiras.</p>
+          <div className="flex items-center gap-4">
+            <CookiePreferencesButton className="text-xs text-slate-500 hover:text-slate-300 transition-colors" />
+            <p>Desenvolvido com amor para comunidades brasileiras.</p>
+          </div>
         </div>
       </div>
     </footer>

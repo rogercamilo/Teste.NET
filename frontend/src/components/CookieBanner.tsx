@@ -8,6 +8,17 @@ import { Button } from "@/components/ui/button";
 const STORAGE_KEY = "Formattio_cookie_consent";
 const SESSION_ID_KEY = "Formattio_consent_session_id";
 const CONSENT_VERSION = "1";
+const OPEN_EVENT = "Formattio-open-cookie-preferences";
+
+/**
+ * Reabre o banner de preferências de cookies (link "Gerenciar cookies" no
+ * rodapé). Sem isso, quem dispensa o banner uma vez fica sem como mudar de
+ * ideia — e recursos como o Meta Pixel, presos ao consentimento de marketing,
+ * nunca poderiam ser reativados por esse visitante.
+ */
+export function openCookiePreferences() {
+  window.dispatchEvent(new Event(OPEN_EVENT));
+}
 
 interface ConsentState {
   analiticos: boolean;
@@ -68,6 +79,23 @@ export default function CookieBanner() {
     if (!stored) {
       setTimeout(() => setVisible(true), 800);
     }
+  }, []);
+
+  // Permite reabrir o banner a qualquer momento (link "Gerenciar cookies"),
+  // já expandido e refletindo a escolha atual, para o usuário poder alterá-la.
+  useEffect(() => {
+    const open = () => {
+      const stored = loadConsent();
+      if (stored) {
+        setAnaliticos(stored.analiticos);
+        setMarketing(stored.marketing);
+        setPreferencias(stored.preferencias);
+      }
+      setExpanded(true);
+      setVisible(true);
+    };
+    window.addEventListener(OPEN_EVENT, open);
+    return () => window.removeEventListener(OPEN_EVENT, open);
   }, []);
 
   // Reserva espaço no rodapé igual à altura real do banner enquanto ele estiver
