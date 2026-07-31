@@ -92,10 +92,13 @@ const PAGE_SIZE = 10;
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const STATUS_LIST = ["todos", "agendada", "confirmada", "realizada", "cancelada"] as const;
 
+type AlvoAcompanhamento = { tipo: "formando" | "usuario"; id: string; nome: string };
+
 type FormState = {
   tipoEvento: TipoEvento;
   formacaoId: string;
   titulo: string;
+  acompanhadoId: string;
   dataInicio: string;
   dataFim: string;
   local: string;
@@ -107,6 +110,7 @@ const EMPTY_FORM: FormState = {
   tipoEvento: "formacao",
   formacaoId: "",
   titulo: "",
+  acompanhadoId: "",
   dataInicio: "",
   dataFim: "",
   local: "",
@@ -120,6 +124,7 @@ interface AgendaClientProps {
   initialGruposFormacao: GrupoFormacao[];
   initialCompromissos: Compromisso[];
   formandosVinculo: { id: string; nome: string }[];
+  alvosAcompanhamento: AlvoAcompanhamento[];
   role: string;
   userId: string;
   grupoFormacaoId: string | null;
@@ -131,6 +136,7 @@ export default function AgendaClient({
   initialGruposFormacao,
   initialCompromissos,
   formandosVinculo,
+  alvosAcompanhamento,
   role,
   userId,
   grupoFormacaoId: userGrupoFormacaoId,
@@ -138,6 +144,7 @@ export default function AgendaClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isFC = role === "formador_comunitario";
+  const isFG = role === "formador_geral";
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [calView, setCalView] = useState<"month" | "list">("month");
@@ -160,6 +167,9 @@ export default function AgendaClient({
         (a) =>
           a.grupoFormacaoId === userGrupoFormacaoId ||
           a.formadorId === userId ||
+          // Acompanhamento comunitário em que o FC é o acompanhado (agendado pelo FG):
+          // sem grupo e com outro formadorId, mas deve constar na agenda dele.
+          a.acompanhadoUsuarioId === userId ||
           (userGrupoFormacaoId ? (a.grupoFormacaoIds?.includes(userGrupoFormacaoId) ?? false) : false)
       )
     : initialAgendamentos;
@@ -385,9 +395,11 @@ export default function AgendaClient({
         onClose={() => setNovoOpen(false)}
         formacoes={initialFormacoes}
         gruposFormacao={initialGruposFormacao}
+        alvosAcompanhamento={alvosAcompanhamento}
         userId={userId}
         userGrupoFormacaoId={userGrupoFormacaoId}
         isFC={isFC}
+        isFG={isFG}
         onSaved={() => startTransition(() => router.refresh())}
       />
         </TabsContent>
@@ -406,9 +418,11 @@ function AgendamentoFormDialog({
   initialDataInicio,
   formacoes,
   gruposFormacao,
+  alvosAcompanhamento,
   userId,
   userGrupoFormacaoId,
   isFC,
+  isFG,
   onSaved,
 }: {
   open: boolean;
@@ -416,11 +430,17 @@ function AgendamentoFormDialog({
   initialDataInicio?: string;
   formacoes: Formacao[];
   gruposFormacao: GrupoFormacao[];
+  alvosAcompanhamento: AlvoAcompanhamento[];
   userId: string;
   userGrupoFormacaoId: string | null;
   isFC: boolean;
+  isFG: boolean;
   onSaved: () => void;
 }) {
+  // Só FC e Formador Geral agendam Acompanhamento Comunitário.
+  const podeAcompanhar = isFC || isFG;
+  // FC acompanha formandos; FG acompanha formadores.
+  const rotuloAlvo = isFC ? "Formando" : "Formador";
   const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [form, setForm] = useState<FormState>(() => ({ ...EMPTY_FORM, dataInicio: initialDataInicio ?? "" }));
   const [saving, setSaving] = useState(false);
@@ -438,14 +458,48 @@ function AgendamentoFormDialog({
 
   async function handleSave() {
     const isFormacao = form.tipoEvento === "formacao";
+    const isAcomp = form.tipoEvento === "acompanhamento_comunitario";
     if (isFormacao && !form.formacaoId) return toast.error("Selecione a formação.");
-    if (!isFormacao && !form.titulo.trim()) return toast.error("Informe o título do evento.");
+    if (isAcomp && !form.acompanhadoId) return toast.error(`Selecione o ${rotuloAlvo.toLowerCase()} a acompanhar.`);
+    if (isAcomp && !form.local.trim()) return toast.error("Informe o local do encontro.");
+    if (!isFormacao && !isAcomp && !form.titulo.trim()) return toast.error("Informe o título do evento.");
     if (!form.dataInicio) return toast.error("Informe a data e hora de início.");
     setSaving(true);
     try {
-      const formacao = isFormacao ? formacoes.find((f) => f.id === form.formacaoId) : undefined;
       const dataInicioISO = new Date(form.dataInicio).toISOString();
       const dataFimISO = form.dataFim ? new Date(form.dataFim).toISOString() : dataInicioISO;
+
+      // Acompanhamento Comunitário (1:1): payload enxuto — o servidor resolve
+      // rótulo, nível e formador. O alvo vira formando OU usuário conforme o papel.
+      if (isAcomp) {
+        const alvo = alvosAcompanhamento.find((a) => a.id === form.acompanhadoId);
+        const payloadAcomp = {
+          tipoEvento: form.tipoEvento,
+          acompanhadoFormandoId: alvo?.tipo === "formando" ? alvo.id : undefined,
+          acompanhadoUsuarioId: alvo?.tipo === "usuario" ? alvo.id : undefined,
+          dataInicio: dataInicioISO,
+          dataFim: dataFimISO,
+          local: form.local.trim(),
+          observacoes: form.observacoes.trim() || undefined,
+          status: "agendada",
+        };
+        const resAcomp = await fetch("/api/agendamentos", {
+          method: "POST",
+          headers: JSON_HEADERS,
+          body: JSON.stringify(payloadAcomp),
+        });
+        if (!resAcomp.ok) {
+          const err = await resAcomp.json().catch(() => ({}));
+          return toast.error((err as { error?: string }).error ?? "Erro ao agendar acompanhamento.");
+        }
+        toast.success("Acompanhamento comunitário agendado!");
+        setForm(EMPTY_FORM);
+        onClose();
+        onSaved();
+        return;
+      }
+
+      const formacao = isFormacao ? formacoes.find((f) => f.id === form.formacaoId) : undefined;
       const grupoFormacaoIdsFinal = isFC
         ? (userGrupoFormacaoId ? [userGrupoFormacaoId] : [])
         : form.grupoFormacaoIds;
@@ -503,6 +557,11 @@ function AgendamentoFormDialog({
                 {TIPOS_EVENTO_AVULSO.map((t) => (
                   <SelectItem key={t} value={t}>{TIPO_EVENTO_AGENDA_LABELS[t]}</SelectItem>
                 ))}
+                {podeAcompanhar && (
+                  <SelectItem value="acompanhamento_comunitario">
+                    {TIPO_EVENTO_AGENDA_LABELS.acompanhamento_comunitario}
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -523,6 +582,33 @@ function AgendamentoFormDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          ) : form.tipoEvento === "acompanhamento_comunitario" ? (
+            <div className="grid gap-1.5">
+              <Label>{rotuloAlvo} <span className="text-destructive">*</span></Label>
+              {alvosAcompanhamento.length === 0 ? (
+                <p className="text-sm text-muted-foreground rounded-md border border-dashed border-border px-3 py-2">
+                  {isFC
+                    ? "Nenhum formando no seu grupo para acompanhar."
+                    : "Nenhum formador comunitário ou pedagógico cadastrado."}
+                </p>
+              ) : (
+                <Select value={form.acompanhadoId} onValueChange={(v) => v && set("acompanhadoId")(v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={`Selecionar ${rotuloAlvo.toLowerCase()}...`}>
+                      {alvosAcompanhamento.find((a) => a.id === form.acompanhadoId)?.nome}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {alvosAcompanhamento.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Encontro de partilha e oração — no máximo um por mês para cada pessoa.
+              </p>
             </div>
           ) : (
             <div className="grid gap-1.5">
@@ -553,10 +639,13 @@ function AgendamentoFormDialog({
             </div>
           </div>
           <div className="grid gap-1.5">
-            <Label>Local</Label>
+            <Label>
+              Local
+              {form.tipoEvento === "acompanhamento_comunitario" && <span className="text-destructive"> *</span>}
+            </Label>
             <Input value={form.local} onChange={(e) => set("local")(e.target.value)} placeholder="Salão, online, endereço..." />
           </div>
-          {!isFC && gruposFormacao.length > 0 && (
+          {!isFC && form.tipoEvento !== "acompanhamento_comunitario" && gruposFormacao.length > 0 && (
             <div className="grid gap-1.5">
               <Label>
                 {termoGrupoFormacao}s{" "}

@@ -19,6 +19,10 @@ export type PrismaAgendamento = {
   status: string; participantes: number; observacoes: string | null;
   googleCalendarEventId: string | null; criadoEm: Date;
   grupos?: { grupoFormacaoId: string }[];
+  acompanhadoFormandoId?: string | null;
+  acompanhadoUsuarioId?: string | null;
+  acompanhadoFormando?: { nome: string } | null;
+  acompanhadoUsuario?: { nome: string } | null;
 };
 
 export type PrismaCompromisso = {
@@ -138,6 +142,9 @@ export function toAgendamento(a: PrismaAgendamento): Agendamento {
     dataInicio: a.dataInicio.toISOString(), dataFim: a.dataFim.toISOString(),
     local: a.local ?? undefined, linkOnline: a.linkOnline ?? undefined,
     status: a.status as Agendamento["status"], participantes: a.participantes,
+    acompanhadoFormandoId: a.acompanhadoFormandoId ?? undefined,
+    acompanhadoUsuarioId: a.acompanhadoUsuarioId ?? undefined,
+    acompanhadoNome: a.acompanhadoFormando?.nome ?? a.acompanhadoUsuario?.nome ?? undefined,
     observacoes: a.observacoes ?? undefined,
     googleCalendarEventId: a.googleCalendarEventId ?? undefined,
     criadoEm: a.criadoEm.toISOString(),

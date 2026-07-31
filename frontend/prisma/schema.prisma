@@ -320,7 +320,8 @@ model Usuario {
   comentarios                    ComentarioFormando[]
   eventos                        EventoFormando[]
   compromissos                   Compromisso[]
-  agendamentos                   Agendamento[]
+  agendamentos                   Agendamento[]              @relation("AgendamentoFormador")
+  acompanhamentosRecebidos       Agendamento[]              @relation("AgendamentoAcompanhadoUsuario")
   privacyAcceptances             PrivacyAcceptance[]
   convitesEnviados               ConviteUsuario[]
   relatoriosRedigidos            RelatorioEtapa[]
@@ -476,6 +477,7 @@ model Formando {
   accessTokens            FormandoAccessToken[]
   acoesLeitura            AcaoLeitura[]
   acompanhamentos         AcompanhamentoFormando[]
+  acompanhamentosComoAlvo Agendamento[]              @relation("AgendamentoAcompanhadoFormando")
   solicitacoesAcompanhamento SolicitacaoAcompanhamentoFormando[]
 
   @@index([organizacaoId])
@@ -775,6 +777,11 @@ model Agendamento {
   formadorId            String
   formadorNome          String
   grupoFormacaoId       String?   @map("morada_id")
+  // Alvo do Acompanhamento Comunitário (evento 1:1). Polimórfico e exclusivo:
+  // fluxo FC→formando usa acompanhadoFormandoId; fluxo FG→formador usa
+  // acompanhadoUsuarioId. Ambos nulos nos demais tipos de evento.
+  acompanhadoFormandoId String?
+  acompanhadoUsuarioId  String?
   dataInicio            DateTime
   dataFim               DateTime
   local                 String?
@@ -789,12 +796,14 @@ model Agendamento {
   criadoEm              DateTime  @default(now())
   atualizadoEm          DateTime  @updatedAt
 
-  organizacao   Organizacao        @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  formacao      Formacao?          @relation(fields: [formacaoId], references: [id])
-  formador      Usuario            @relation(fields: [formadorId], references: [id])
-  grupoFormacao GrupoFormacao?     @relation(fields: [grupoFormacaoId], references: [id], onDelete: SetNull)
-  grupos        AgendamentoGrupo[]
-  presencas     PresencaFormacao[]
+  organizacao        Organizacao        @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formacao           Formacao?          @relation(fields: [formacaoId], references: [id])
+  formador           Usuario            @relation("AgendamentoFormador", fields: [formadorId], references: [id])
+  grupoFormacao      GrupoFormacao?     @relation(fields: [grupoFormacaoId], references: [id], onDelete: SetNull)
+  acompanhadoFormando Formando?         @relation("AgendamentoAcompanhadoFormando", fields: [acompanhadoFormandoId], references: [id], onDelete: SetNull)
+  acompanhadoUsuario Usuario?           @relation("AgendamentoAcompanhadoUsuario", fields: [acompanhadoUsuarioId], references: [id], onDelete: SetNull)
+  grupos             AgendamentoGrupo[]
+  presencas          PresencaFormacao[]
 
   @@index([organizacaoId])
   @@index([dataInicio])
@@ -802,6 +811,8 @@ model Agendamento {
   @@index([grupoFormacaoId])
   @@index([organizacaoId, status, dataInicio])
   @@index([deletedAt])
+  @@index([acompanhadoFormandoId])
+  @@index([acompanhadoUsuarioId])
 }
 
 // ==========================================================

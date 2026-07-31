@@ -35,8 +35,18 @@ export type TipoFormacao = "comunitaria" | "retiro-comunitario" | "retiro-pessoa
 export type OrigemFormacao = "prevista" | "complementar";
 /** Estado de realização da formação pontual (G5/G6). */
 export type StatusRealizacao = "registrada" | "realizada";
-/** Natureza do evento coletivo na Agenda. "formacao" é amarrado a uma Formação; os demais são avulsos. */
-export type TipoEvento = "formacao" | "retiro" | "convocacao" | "reuniao" | "outro";
+/**
+ * Natureza do evento na Agenda. "formacao" é amarrado a uma Formação; retiro/
+ * convocacao/reuniao/outro são coletivos avulsos; "acompanhamento_comunitario" é
+ * um encontro 1:1 (partilha e oração) com uma pessoa específica.
+ */
+export type TipoEvento =
+  | "formacao"
+  | "retiro"
+  | "convocacao"
+  | "reuniao"
+  | "outro"
+  | "acompanhamento_comunitario";
 
 export interface ProgressoEtapa {
   nivel: NivelFormativo;
@@ -267,6 +277,11 @@ export interface Agendamento {
   grupoFormacaoId?: string;
   /** Grupos-alvo (item 1.7). Vazio = org inteira; 1+ = esses grupos. */
   grupoFormacaoIds?: string[];
+  /** Acompanhamento Comunitário (1:1): alvo formando (fluxo FC) ou usuário-formador (fluxo FG). */
+  acompanhadoFormandoId?: string;
+  acompanhadoUsuarioId?: string;
+  /** Nome do acompanhado, resolvido no servidor para exibição. */
+  acompanhadoNome?: string;
   observacoes?: string;
   googleCalendarEventId?: string;
   criadoEm: string;
@@ -418,6 +433,7 @@ export const TIPO_EVENTO_AGENDA_LABELS: Record<TipoEvento, string> = {
   convocacao: "Convocação Geral",
   reuniao: "Reunião / Assembleia",
   outro: "Outro",
+  acompanhamento_comunitario: "Acompanhamento Comunitário",
 };
 
 export const TIPO_EVENTO_AGENDA_CORES: Record<TipoEvento, string> = {
@@ -426,6 +442,7 @@ export const TIPO_EVENTO_AGENDA_CORES: Record<TipoEvento, string> = {
   convocacao: "bg-amber-100 text-amber-800",
   reuniao: "bg-blue-100 text-blue-700",
   outro: "bg-gray-100 text-gray-700",
+  acompanhamento_comunitario: "bg-rose-100 text-rose-700",
 };
 
 /** Tipos avulsos no formulário (excl. "formacao", que escolhe uma Formação cadastrada). */

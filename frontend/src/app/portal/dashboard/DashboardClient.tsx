@@ -570,9 +570,15 @@ function ProximoEncontroItem({ encontro }: { encontro: PortalProximoEncontro }) 
   const [justificando, setJustificando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  const tipoLabel = encontro.tipoFormacao
-    ? TIPO_FORMACAO_LABELS[encontro.tipoFormacao]
-    : null;
+  const acomp = encontro.acompanhamentoComunitario;
+  const tipoLabel = acomp
+    ? "Acompanhamento comunitário"
+    : encontro.tipoFormacao
+      ? TIPO_FORMACAO_LABELS[encontro.tipoFormacao]
+      : null;
+  // Encontro 1:1: título fixo (o `tema` guarda o nome do formando, que não faz
+  // sentido exibir para ele próprio).
+  const titulo = acomp ? "Acompanhamento comunitário" : encontro.tema || tipoLabel || "Encontro";
 
   async function confirmar() {
     setBusy(true);
@@ -598,7 +604,7 @@ function ProximoEncontroItem({ encontro }: { encontro: PortalProximoEncontro }) 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-foreground">
-            {encontro.tema || tipoLabel || "Encontro"}
+            {titulo}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -613,10 +619,17 @@ function ProximoEncontroItem({ encontro }: { encontro: PortalProximoEncontro }) 
             )}
           </div>
         </div>
-        {tipoLabel && encontro.tema && (
-          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-            {tipoLabel}
+        {acomp ? (
+          <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] text-rose-700">
+            Partilha e oração
           </span>
+        ) : (
+          tipoLabel &&
+          encontro.tema && (
+            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+              {tipoLabel}
+            </span>
+          )
         )}
       </div>
 
@@ -624,7 +637,7 @@ function ProximoEncontroItem({ encontro }: { encontro: PortalProximoEncontro }) 
         <AdicionarAoCalendario
           event={{
             id: encontro.id,
-            title: encontro.tema || tipoLabel || "Encontro",
+            title: titulo,
             start: encontro.dataInicio,
             end: encontro.dataFim,
             description: tipoLabel ?? undefined,

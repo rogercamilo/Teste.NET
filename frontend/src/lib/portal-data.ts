@@ -47,6 +47,8 @@ export interface PortalProximoEncontro {
   id: string;
   tema: string | null;
   tipoFormacao: TipoFormacao | null;
+  // Encontro 1:1 de partilha e oração (não uma formação coletiva).
+  acompanhamentoComunitario: boolean;
   dataInicio: string; // ISO
   dataFim: string; // ISO
   local: string | null;
@@ -780,32 +782,38 @@ export async function getPortalDashboardData(
         orderBy: { data: "desc" },
         take: 100,
       }),
-      formando.grupoFormacaoId
-        ? prisma.agendamento.findMany({
-            where: {
-              organizacaoId,
-              dataInicio: { gte: agora },
-              status: { not: "cancelada" },
-              deletedAt: null,
-              // Encontros do grupo do formando — legado (grupoFormacaoId) OU via
-              // junção multi-grupo (item 1.7).
-              OR: [
-                { grupoFormacaoId: formando.grupoFormacaoId },
-                { grupos: { some: { grupoFormacaoId: formando.grupoFormacaoId } } },
-              ],
-            },
-            select: {
-              id: true,
-              formacaoTema: true,
-              tipoFormacao: true,
-              dataInicio: true,
-              dataFim: true,
-              local: true,
-            },
-            orderBy: { dataInicio: "asc" },
-            take: 5,
-          })
-        : Promise.resolve([]),
+      prisma.agendamento.findMany({
+        where: {
+          organizacaoId,
+          dataInicio: { gte: agora },
+          status: { not: "cancelada" },
+          deletedAt: null,
+          OR: [
+            // Encontros do grupo do formando — legado (grupoFormacaoId) OU via
+            // junção multi-grupo (item 1.7).
+            ...(formando.grupoFormacaoId
+              ? [
+                  { grupoFormacaoId: formando.grupoFormacaoId },
+                  { grupos: { some: { grupoFormacaoId: formando.grupoFormacaoId } } },
+                ]
+              : []),
+            // Acompanhamento Comunitário 1:1 marcado PARA este formando (privado —
+            // não é do grupo, então entra por alvo, não por morada).
+            { tipoEvento: "acompanhamento_comunitario", acompanhadoFormandoId: formandoId },
+          ],
+        },
+        select: {
+          id: true,
+          formacaoTema: true,
+          tipoFormacao: true,
+          tipoEvento: true,
+          dataInicio: true,
+          dataFim: true,
+          local: true,
+        },
+        orderBy: { dataInicio: "asc" },
+        take: 5,
+      }),
       prisma.progressoEtapa.findUnique({
         where: {
           formandoId_nivelFormativo: { formandoId, nivelFormativo: nivel },
@@ -887,6 +895,8 @@ export async function getPortalDashboardData(
       id: a.id,
       tema: a.formacaoTema,
       tipoFormacao: a.tipoFormacao as TipoFormacao,
+      // Distingue o Acompanhamento Comunitário (encontro 1:1) da formação coletiva.
+      acompanhamentoComunitario: a.tipoEvento === "acompanhamento_comunitario",
       dataInicio: a.dataInicio.toISOString(),
       dataFim: a.dataFim.toISOString(),
       local: a.local,

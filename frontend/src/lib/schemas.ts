@@ -418,7 +418,14 @@ export const CreateConviteSchema = z.object({
 
 // ── Agendamento ───────────────────────────────────────────────────────────────
 
-const TipoEventoAgendaEnum = z.enum(["formacao", "retiro", "convocacao", "reuniao", "outro"]);
+const TipoEventoAgendaEnum = z.enum([
+  "formacao",
+  "retiro",
+  "convocacao",
+  "reuniao",
+  "outro",
+  "acompanhamento_comunitario",
+]);
 
 const AgendamentoBaseSchema = z.object({
   // Natureza do evento (item eventos avulsos). "formacao" (default) exige
@@ -432,6 +439,10 @@ const AgendamentoBaseSchema = z.object({
   // Item 1.7: grupos-alvo (multi). Vazio/omisso = org inteira. Precede o campo
   // legado `grupoFormacaoId` quando presente.
   grupoFormacaoIds: z.array(z.string().min(1)).max(50).optional(),
+  // Acompanhamento Comunitário (1:1): exatamente UM dos dois alvos. formando p/
+  // o fluxo do FC; usuário-formador p/ o fluxo do Formador Geral.
+  acompanhadoFormandoId: z.string().min(1).optional().nullable(),
+  acompanhadoUsuarioId: z.string().min(1).optional().nullable(),
   dataInicio: isoDatetime,
   dataFim: isoDatetime.optional(),
   local: optionalString(500).nullable(),
@@ -447,6 +458,16 @@ export const CreateAgendamentoSchema = AgendamentoBaseSchema.superRefine((data, 
   if (tipo === "formacao") {
     if (!data.formacaoId) {
       ctx.addIssue({ code: "custom", path: ["formacaoId"], message: "Selecione a formação" });
+    }
+  } else if (tipo === "acompanhamento_comunitario") {
+    // Encontro 1:1: exatamente um alvo (formando XOR usuário-formador).
+    const alvos = [data.acompanhadoFormandoId, data.acompanhadoUsuarioId].filter(Boolean);
+    if (alvos.length !== 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["acompanhadoFormandoId"],
+        message: "Selecione a pessoa a ser acompanhada",
+      });
     }
   } else if (!data.formacaoTema || !data.formacaoTema.trim()) {
     ctx.addIssue({ code: "custom", path: ["formacaoTema"], message: "Informe o título do evento" });

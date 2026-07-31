@@ -42,3 +42,39 @@ describe("CreateAgendamentoSchema — tipos de evento", () => {
     expect(r.success).toBe(false);
   });
 });
+
+describe("CreateAgendamentoSchema — acompanhamento comunitário", () => {
+  it("exige exatamente um alvo (formando XOR usuário)", () => {
+    // sem alvo → inválido
+    expect(
+      CreateAgendamentoSchema.safeParse({ ...base, tipoEvento: "acompanhamento_comunitario" }).success
+    ).toBe(false);
+    // dois alvos → inválido
+    expect(
+      CreateAgendamentoSchema.safeParse({
+        ...base,
+        tipoEvento: "acompanhamento_comunitario",
+        acompanhadoFormandoId: "fmd_1",
+        acompanhadoUsuarioId: "usr_1",
+      }).success
+    ).toBe(false);
+  });
+
+  it("aceita alvo formando (fluxo FC) sem exigir formação/título", () => {
+    const r = CreateAgendamentoSchema.safeParse({
+      ...base,
+      tipoEvento: "acompanhamento_comunitario",
+      acompanhadoFormandoId: "fmd_1",
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("aceita alvo usuário-formador (fluxo FG)", () => {
+    const r = CreateAgendamentoSchema.safeParse({
+      ...base,
+      tipoEvento: "acompanhamento_comunitario",
+      acompanhadoUsuarioId: "usr_1",
+    });
+    expect(r.success).toBe(true);
+  });
+});
