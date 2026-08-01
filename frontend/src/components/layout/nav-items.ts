@@ -38,21 +38,17 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-/** Formador Geral e Administrador — acesso completo à plataforma */
+/**
+ * Formador Geral e Administrador — acesso completo à plataforma.
+ * Ordem das seções (fixa, igual a todos os perfis): Principal → Grupo de
+ * formação (Gestão) → Pedagógico → Sistema.
+ */
 export const navGroupsGestao: NavGroup[] = [
   {
     label: "Principal",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { title: "Agenda", href: "/agenda", icon: Calendar },
-    ],
-  },
-  {
-    label: "Pedagógico",
-    items: [
-      { title: "Planos Formativos", href: "/planos", icon: BookOpen },
-      { title: "Grades Formativas", href: "/grades", icon: Library },
-      { title: "Formações", href: "/formacoes", icon: BookOpen },
     ],
   },
   {
@@ -91,6 +87,14 @@ export const navGroupsGestao: NavGroup[] = [
         icon: Stamp,
         requiredCapability: "vocacional",
       },
+    ],
+  },
+  {
+    label: "Pedagógico",
+    items: [
+      { title: "Planos Formativos", href: "/planos", icon: BookOpen },
+      { title: "Grades Formativas", href: "/grades", icon: Library },
+      { title: "Formações", href: "/formacoes", icon: BookOpen },
     ],
   },
   {
