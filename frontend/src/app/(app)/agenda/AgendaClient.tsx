@@ -9,7 +9,6 @@ import {
   STATUS_FORMACAO_LABELS,
   TIPO_EVENTO_AGENDA_LABELS,
   TIPO_EVENTO_AGENDA_CORES,
-  TIPOS_EVENTO_AVULSO,
   type StatusFormacao,
   type Agendamento,
   type Formacao,
@@ -554,14 +553,15 @@ function AgendamentoFormDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="formacao">{TIPO_EVENTO_AGENDA_LABELS.formacao}</SelectItem>
-                {TIPOS_EVENTO_AVULSO.map((t) => (
-                  <SelectItem key={t} value={t}>{TIPO_EVENTO_AGENDA_LABELS[t]}</SelectItem>
-                ))}
+                <SelectItem value="retiro">{TIPO_EVENTO_AGENDA_LABELS.retiro}</SelectItem>
                 {podeAcompanhar && (
                   <SelectItem value="acompanhamento_comunitario">
                     {TIPO_EVENTO_AGENDA_LABELS.acompanhamento_comunitario}
                   </SelectItem>
                 )}
+                <SelectItem value="convocacao">{TIPO_EVENTO_AGENDA_LABELS.convocacao}</SelectItem>
+                <SelectItem value="reuniao">{TIPO_EVENTO_AGENDA_LABELS.reuniao}</SelectItem>
+                <SelectItem value="outro">{TIPO_EVENTO_AGENDA_LABELS.outro}</SelectItem>
               </SelectContent>
             </Select>
           </div>

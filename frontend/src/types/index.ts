@@ -428,11 +428,11 @@ export const TIPO_COMPROMISSO_CORES: Record<TipoCompromisso, string> = {
 export const TIPOS_COMPROMISSO: TipoCompromisso[] = ["reuniao", "visita", "formacao_pessoal", "outro"];
 
 export const TIPO_EVENTO_AGENDA_LABELS: Record<TipoEvento, string> = {
-  formacao: "Formação",
-  retiro: "Retiro",
+  formacao: "Formação Comunitária",
+  retiro: "Retiro Comunitário",
   convocacao: "Convocação Geral",
-  reuniao: "Reunião / Assembleia",
-  outro: "Outro",
+  reuniao: "Reunião / Assembleia Geral",
+  outro: "Outros Compromissos",
   acompanhamento_comunitario: "Acompanhamento Comunitário",
 };
 
@@ -444,9 +444,6 @@ export const TIPO_EVENTO_AGENDA_CORES: Record<TipoEvento, string> = {
   outro: "bg-gray-100 text-gray-700",
   acompanhamento_comunitario: "bg-rose-100 text-rose-700",
 };
-
-/** Tipos avulsos no formulário (excl. "formacao", que escolhe uma Formação cadastrada). */
-export const TIPOS_EVENTO_AVULSO: TipoEvento[] = ["retiro", "convocacao", "reuniao", "outro"];
 
 export interface DashboardStats {
   totalAgendadas: number;
