@@ -40,8 +40,8 @@ export interface NavGroup {
 
 /**
  * Formador Geral e Administrador — acesso completo à plataforma.
- * Ordem das seções (fixa, igual a todos os perfis): Principal → Grupo de
- * formação (Gestão) → Pedagógico → Sistema.
+ * Ordem das seções (fixa, igual a todos os perfis): Principal → Formativo →
+ * Gestão Comunitária → Sistema.
  */
 export const navGroupsGestao: NavGroup[] = [
   {
@@ -52,7 +52,7 @@ export const navGroupsGestao: NavGroup[] = [
     ],
   },
   {
-    label: "Gestão",
+    label: "Gestão Comunitária",
     items: [
       { title: "Moradas", href: "/grupos-formacao", icon: Home },
       { title: "Formandos", href: "/formandos", icon: Users },
@@ -90,7 +90,7 @@ export const navGroupsGestao: NavGroup[] = [
     ],
   },
   {
-    label: "Pedagógico",
+    label: "Formativo",
     items: [
       { title: "Planos Formativos", href: "/planos", icon: BookOpen },
       { title: "Grades Formativas", href: "/grades", icon: Library },
@@ -107,8 +107,8 @@ export const navGroupsGestao: NavGroup[] = [
 
 /**
  * Formador Pedagógico — especialista de conteúdo. Vê Dashboard + Agenda +
- * o bloco Pedagógico (Planos/Grades/Formações) + Configurações (Perfil).
- * NÃO tem o bloco de Gestão (moradas, formandos, vocacional, livros...).
+ * o bloco Formativo (Planos/Grades/Formações) + Configurações (Perfil).
+ * NÃO tem o bloco de Gestão Comunitária (moradas, formandos, vocacional, livros...).
  */
 export const navGroupsFormadorPedagogico: NavGroup[] = [
   {
@@ -119,7 +119,7 @@ export const navGroupsFormadorPedagogico: NavGroup[] = [
     ],
   },
   {
-    label: "Pedagógico",
+    label: "Formativo",
     items: [
       { title: "Planos Formativos", href: "/planos", icon: BookOpen },
       { title: "Grades Formativas", href: "/grades", icon: Library },
@@ -158,20 +158,16 @@ export const navGroupsSuperAdmin: NavGroup[] = [
 
 /**
  * Ordem canônica das seções do sidebar — IGUAL para todos os perfis:
- * Principal → Grupo de formação → Pedagógico → Sistema (Administração, exclusiva
- * do super-admin, fica entre Pedagógico e Sistema). A chave é o rótulo ORIGINAL
- * (antes da terminologia do tenant), então cobre tanto "Minha Morada"/"Gestão"
- * (grupo) quanto "Formativo"/"Pedagógico" (pedagógico). Rótulos desconhecidos
+ * Principal → Formativo → Gestão Comunitária → Sistema (Administração, exclusiva
+ * do super-admin, fica entre Gestão Comunitária e Sistema). Rótulos desconhecidos
  * caem logo antes de "Sistema". `resolveNavGroups` ordena por este rank, de modo
  * que a ordem é garantida estruturalmente — não depende de como cada array acima
  * foi escrito.
  */
 const SECTION_RANK: Record<string, number> = {
   Principal: 0,
-  "Minha Morada": 1,
-  Gestão: 1,
-  Formativo: 2,
-  Pedagógico: 2,
+  Formativo: 1,
+  "Gestão Comunitária": 2,
   Administração: 3,
   Sistema: 5,
 };
@@ -204,7 +200,7 @@ export function resolveNavGroups(opts: {
     : isGestao
     ? navGroupsGestao
     : navGroupsFormador.map((g) => {
-        if (g.label === "Minha Morada" && grupoFormacaoId) {
+        if (g.label === "Gestão Comunitária" && grupoFormacaoId) {
           return {
             ...g,
             items: [
@@ -217,13 +213,11 @@ export function resolveNavGroups(opts: {
       });
 
   // Ordem canônica das seções, idêntica em todos os perfis. `sort` estável (spec
-  // JS) preserva a ordem dos itens dentro de cada seção. Aplicado ANTES da
-  // terminologia para chavear pelos rótulos originais.
+  // JS) preserva a ordem dos itens dentro de cada seção.
   const ordered = [...baseGroups].sort((a, b) => sectionRank(a.label) - sectionRank(b.label));
 
   return ordered.map((g) => ({
     ...g,
-    label: g.label === "Minha Morada" ? `Minha ${termoGrupoFormacao}` : g.label,
     items: g.items
       .filter((item) => !item.requiredTipoOrg || (tipoOrg != null && item.requiredTipoOrg.includes(tipoOrg)))
       .filter((item) => item.requiredCapability !== "vocacional" || vocacionalOk)
@@ -247,7 +241,7 @@ export const navGroupsFormador: NavGroup[] = [
     ],
   },
   {
-    label: "Minha Morada",
+    label: "Gestão Comunitária",
     items: [
       { title: "Formandos", href: "/formandos", icon: Users },
       { title: "Gestão de Presença", href: "/presenca", icon: ClipboardList },
