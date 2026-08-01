@@ -157,10 +157,32 @@ export const navGroupsSuperAdmin: NavGroup[] = [
 ];
 
 /**
+ * Ordem canônica das seções do sidebar — IGUAL para todos os perfis:
+ * Principal → Grupo de formação → Pedagógico → Sistema (Administração, exclusiva
+ * do super-admin, fica entre Pedagógico e Sistema). A chave é o rótulo ORIGINAL
+ * (antes da terminologia do tenant), então cobre tanto "Minha Morada"/"Gestão"
+ * (grupo) quanto "Formativo"/"Pedagógico" (pedagógico). Rótulos desconhecidos
+ * caem logo antes de "Sistema". `resolveNavGroups` ordena por este rank, de modo
+ * que a ordem é garantida estruturalmente — não depende de como cada array acima
+ * foi escrito.
+ */
+const SECTION_RANK: Record<string, number> = {
+  Principal: 0,
+  "Minha Morada": 1,
+  Gestão: 1,
+  Formativo: 2,
+  Pedagógico: 2,
+  Administração: 3,
+  Sistema: 5,
+};
+const sectionRank = (label: string): number => SECTION_RANK[label] ?? 4;
+
+/**
  * Resolve os grupos de navegação para um usuário: escolhe o conjunto por papel,
- * injeta "Visão Geral" da morada do formador, aplica os guards de tipo de org /
- * capability vocacional e substitui a terminologia customizada. Fonte única
- * usada pelo `AppSidebar` e pelo `CommandPalette` (Cmd-K).
+ * injeta "Visão Geral" da morada do formador, impõe a ordem canônica das seções
+ * (igual em todos os perfis), aplica os guards de tipo de org / capability
+ * vocacional e substitui a terminologia customizada. Fonte única usada pelo
+ * `AppSidebar` e pelo `CommandPalette` (Cmd-K).
  */
 export function resolveNavGroups(opts: {
   role: string;
@@ -194,7 +216,12 @@ export function resolveNavGroups(opts: {
         return g;
       });
 
-  return baseGroups.map((g) => ({
+  // Ordem canônica das seções, idêntica em todos os perfis. `sort` estável (spec
+  // JS) preserva a ordem dos itens dentro de cada seção. Aplicado ANTES da
+  // terminologia para chavear pelos rótulos originais.
+  const ordered = [...baseGroups].sort((a, b) => sectionRank(a.label) - sectionRank(b.label));
+
+  return ordered.map((g) => ({
     ...g,
     label: g.label === "Minha Morada" ? `Minha ${termoGrupoFormacao}` : g.label,
     items: g.items
