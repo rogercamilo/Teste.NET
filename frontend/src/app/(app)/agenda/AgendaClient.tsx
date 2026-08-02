@@ -317,7 +317,7 @@ export default function AgendaClient({
                     key={day.toISOString()}
                     role="button"
                     tabIndex={0}
-                    title="Agendar formação neste dia"
+                    title="Agendar evento neste dia"
                     onClick={() => abrirNovo(`${format(day, "yyyy-MM-dd")}T19:00`)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -325,17 +325,25 @@ export default function AgendaClient({
                         abrirNovo(`${format(day, "yyyy-MM-dd")}T19:00`);
                       }
                     }}
-                    className={`aspect-square rounded-lg p-1 transition-colors cursor-pointer hover:bg-muted/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${today ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
+                    className={`min-h-[88px] rounded-lg p-1.5 flex flex-col gap-1 transition-colors cursor-pointer hover:bg-muted/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${today ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
                   >
-                    <span className={`text-xs font-medium block text-center mb-0.5 ${today ? "text-primary" : "text-foreground"}`}>
+                    <span className={`text-xs font-medium block ${today ? "text-primary" : "text-foreground"}`}>
                       {format(day, "d")}
                     </span>
                     <div className="flex flex-col gap-0.5">
-                      {dayAgs.slice(0, 2).map((ag) => (
-                        <div key={ag.id} className={`h-1 rounded-full ${STATUS_DOT[ag.status]}`} title={ag.formacaoTema} />
+                      {dayAgs.slice(0, 3).map((ag) => (
+                        <button
+                          key={ag.id}
+                          type="button"
+                          title={`${format(parseISO(ag.dataInicio), "HH:mm")} — ${ag.formacaoTema}`}
+                          onClick={(e) => { e.stopPropagation(); setCalView("list"); }}
+                          className={`w-full text-left text-[10px] leading-tight rounded border px-1 py-0.5 truncate hover:opacity-80 ${STATUS_STYLES[ag.status]}`}
+                        >
+                          {ag.formacaoTema}
+                        </button>
                       ))}
-                      {dayAgs.length > 2 && (
-                        <span className="text-[9px] text-muted-foreground text-center">+{dayAgs.length - 2}</span>
+                      {dayAgs.length > 3 && (
+                        <span className="text-[9px] text-muted-foreground">+{dayAgs.length - 3} mais</span>
                       )}
                     </div>
                   </div>
