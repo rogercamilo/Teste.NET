@@ -9,6 +9,7 @@ import {
   STATUS_FORMACAO_LABELS,
   TIPO_EVENTO_AGENDA_LABELS,
   TIPO_EVENTO_AGENDA_CORES,
+  TIPO_COMPROMISSO_LABELS,
   type StatusFormacao,
   type Agendamento,
   type Formacao,
@@ -87,6 +88,20 @@ const STATUS_DOT: Record<StatusFormacao, string> = {
   reagendada: "bg-amber-500",
 };
 
+// Compromissos pessoais no calendário unificado: cor distinta dos eventos.
+const COMPROMISSO_STYLE = "bg-violet-100 text-violet-700 border-violet-200";
+const COMPROMISSO_DOT = "bg-violet-500";
+
+/** Item normalizado para a grade unificada (evento ou compromisso pessoal). */
+type CalItem = {
+  id: string;
+  title: string;
+  dataInicio: string;
+  kind: "agendamento" | "compromisso";
+  status?: StatusFormacao;
+  subtitle?: string;
+};
+
 const PAGE_SIZE = 10;
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const STATUS_LIST = ["todos", "agendada", "confirmada", "realizada", "cancelada"] as const;
@@ -146,6 +161,7 @@ export default function AgendaClient({
   const isFG = role === "formador_geral";
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [activeTab, setActiveTab] = useState("formacoes");
   const [calView, setCalView] = useState<"month" | "list">("month");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [page, setPage] = useState(1);
@@ -182,16 +198,39 @@ export default function AgendaClient({
     catch { return false; }
   });
 
+  // Compromissos pessoais já chegam escopados ao próprio usuário (page.tsx).
+  const monthCompromissos = initialCompromissos.filter((c) => {
+    try { return isSameMonth(parseISO(c.dataInicio), currentMonth); }
+    catch { return false; }
+  });
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const paddingDays = Array.from({ length: getDay(monthStart) });
 
-  const getAgendamentosForDay = (day: Date) =>
-    monthAgendamentos.filter((a) => {
-      try { return isSameDay(parseISO(a.dataInicio), day); }
-      catch { return false; }
-    });
+  // Grade unificada: eventos (cor por status) + compromissos pessoais (violeta).
+  const getItemsForDay = (day: Date): CalItem[] => {
+    const sameDay = (iso: string) => {
+      try { return isSameDay(parseISO(iso), day); } catch { return false; }
+    };
+    const ags: CalItem[] = monthAgendamentos
+      .filter((a) => sameDay(a.dataInicio))
+      .map((a) => ({
+        id: a.id, title: a.formacaoTema, dataInicio: a.dataInicio,
+        kind: "agendamento", status: a.status,
+        subtitle: TIPO_EVENTO_AGENDA_LABELS[a.tipoEvento ?? "formacao"],
+      }));
+    const comps: CalItem[] = monthCompromissos
+      .filter((c) => sameDay(c.dataInicio))
+      .map((c) => ({
+        id: c.id, title: c.titulo, dataInicio: c.dataInicio,
+        kind: "compromisso", subtitle: TIPO_COMPROMISSO_LABELS[c.tipo],
+      }));
+    return [...ags, ...comps].sort(
+      (x, y) => new Date(x.dataInicio).getTime() - new Date(y.dataInicio).getTime()
+    );
+  };
 
   async function handleStatusChange(id: string, newStatus: StatusFormacao) {
     try {
@@ -229,7 +268,7 @@ export default function AgendaClient({
         </Button>
       </div>
 
-      <Tabs defaultValue="formacoes" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsList className="bg-muted/50 h-9 min-w-max">
             <TabsTrigger value="formacoes" className="text-xs h-7 gap-1.5">
@@ -242,158 +281,182 @@ export default function AgendaClient({
         </div>
 
         <TabsContent value="formacoes" className="space-y-5 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {STATUS_LIST.map((s) => {
+              const count = s === "todos" ? meus.length : meus.filter((a) => a.status === s).length;
+              return (
+                <button
+                  key={s}
+                  onClick={() => { setStatusFilter(s); setPage(1); }}
+                  className={`p-2.5 rounded-xl text-left transition-all border ${
+                    statusFilter === s
+                      ? "ring-2 ring-primary bg-primary/5 border-primary/30"
+                      : "bg-card border-border/60 hover:border-primary/30"
+                  }`}
+                >
+                  {s !== "todos" && (
+                    <div className={`h-1.5 w-4 rounded-full mb-1.5 ${STATUS_DOT[s as StatusFormacao]}`} />
+                  )}
+                  <p className="text-lg font-bold text-foreground leading-none">{count}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                    {s === "todos" ? "Total" : STATUS_FORMACAO_LABELS[s as StatusFormacao]}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        {STATUS_LIST.map((s) => {
-          const count = s === "todos" ? meus.length : meus.filter((a) => a.status === s).length;
-          return (
-            <button
-              key={s}
-              onClick={() => { setStatusFilter(s); setPage(1); }}
-              className={`p-2.5 rounded-xl text-left transition-all border ${
-                statusFilter === s
-                  ? "ring-2 ring-primary bg-primary/5 border-primary/30"
-                  : "bg-card border-border/60 hover:border-primary/30"
-              }`}
-            >
-              {s !== "todos" && (
-                <div className={`h-1.5 w-4 rounded-full mb-1.5 ${STATUS_DOT[s as StatusFormacao]}`} />
-              )}
-              <p className="text-lg font-bold text-foreground leading-none">{count}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-                {s === "todos" ? "Total" : STATUS_FORMACAO_LABELS[s as StatusFormacao]}
-              </p>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="text-sm font-semibold text-foreground min-w-[140px] text-center capitalize">
-            {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
-          </h2>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setCurrentMonth(new Date())}>
-            Hoje
-          </Button>
-        </div>
-        <div className="flex rounded-md border border-border overflow-hidden h-8">
-          <button
-            onClick={() => setCalView("month")}
-            className={`px-3 text-xs transition-colors ${calView === "month" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
-          >
-            Mês
-          </button>
-          <button
-            onClick={() => setCalView("list")}
-            className={`px-3 text-xs border-l border-border transition-colors ${calView === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
-          >
-            Lista
-          </button>
-        </div>
-      </div>
-
-      {calView === "month" && (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-7 mb-2">
-              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
-                <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
-              ))}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h2 className="text-sm font-semibold text-foreground min-w-[140px] text-center capitalize">
+                {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+              </h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setCurrentMonth(new Date())}>
+                Hoje
+              </Button>
             </div>
-            <div className="grid grid-cols-7 gap-1">
-              {paddingDays.map((_, i) => <div key={`pad-${i}`} className="aspect-square" />)}
-              {days.map((day) => {
-                const dayAgs = getAgendamentosForDay(day);
-                const today = isToday(day);
-                return (
-                  <div
-                    key={day.toISOString()}
-                    role="button"
-                    tabIndex={0}
-                    title="Agendar evento neste dia"
-                    onClick={() => abrirNovo(`${format(day, "yyyy-MM-dd")}T19:00`)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        abrirNovo(`${format(day, "yyyy-MM-dd")}T19:00`);
-                      }
-                    }}
-                    className={`min-h-[88px] rounded-lg p-1.5 flex flex-col gap-1 transition-colors cursor-pointer hover:bg-muted/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${today ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
-                  >
-                    <span className={`text-xs font-medium block ${today ? "text-primary" : "text-foreground"}`}>
-                      {format(day, "d")}
-                    </span>
-                    <div className="flex flex-col gap-0.5">
-                      {dayAgs.slice(0, 3).map((ag) => (
-                        <button
-                          key={ag.id}
-                          type="button"
-                          title={`${format(parseISO(ag.dataInicio), "HH:mm")} — ${ag.formacaoTema}`}
-                          onClick={(e) => { e.stopPropagation(); setCalView("list"); }}
-                          className={`w-full text-left text-[10px] leading-tight rounded border px-1 py-0.5 truncate hover:opacity-80 ${STATUS_STYLES[ag.status]}`}
-                        >
-                          {ag.formacaoTema}
-                        </button>
-                      ))}
-                      {dayAgs.length > 3 && (
-                        <span className="text-[9px] text-muted-foreground">+{dayAgs.length - 3} mais</span>
-                      )}
-                    </div>
+            <div className="flex rounded-md border border-border overflow-hidden h-8">
+              <button
+                onClick={() => setCalView("month")}
+                className={`px-3 text-xs transition-colors ${calView === "month" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
+              >
+                Mês
+              </button>
+              <button
+                onClick={() => setCalView("list")}
+                className={`px-3 text-xs border-l border-border transition-colors ${calView === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
+              >
+                Lista
+              </button>
+            </div>
+          </div>
+
+          {calView === "month" && (
+            <>
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-7 mb-2">
+                    {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
+                      <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  <div className="grid grid-cols-7 gap-1">
+                    {paddingDays.map((_, i) => <div key={`pad-${i}`} className="aspect-square" />)}
+                    {days.map((day) => {
+                      const dayItems = getItemsForDay(day);
+                      const today = isToday(day);
+                      return (
+                        <div
+                          key={day.toISOString()}
+                          role="button"
+                          tabIndex={0}
+                          title="Agendar evento neste dia"
+                          onClick={() => abrirNovo(`${format(day, "yyyy-MM-dd")}T19:00`)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              abrirNovo(`${format(day, "yyyy-MM-dd")}T19:00`);
+                            }
+                          }}
+                          className={`min-h-[88px] rounded-lg p-1.5 flex flex-col gap-1 transition-colors cursor-pointer hover:bg-muted/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${today ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
+                        >
+                          <span className={`text-xs font-medium block ${today ? "text-primary" : "text-foreground"}`}>
+                            {format(day, "d")}
+                          </span>
+                          <div className="flex flex-col gap-0.5">
+                            {dayItems.slice(0, 3).map((it) => (
+                              <button
+                                key={`${it.kind}-${it.id}`}
+                                type="button"
+                                title={`${format(parseISO(it.dataInicio), "HH:mm")} — ${it.title}${it.subtitle ? ` (${it.subtitle})` : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (it.kind === "compromisso") setActiveTab("compromissos");
+                                  else setCalView("list");
+                                }}
+                                className={`w-full text-left text-[10px] leading-tight rounded border px-1 py-0.5 truncate hover:opacity-80 ${it.kind === "compromisso" ? COMPROMISSO_STYLE : STATUS_STYLES[it.status ?? "agendada"]}`}
+                              >
+                                {it.title}
+                              </button>
+                            ))}
+                            {dayItems.length > 3 && (
+                              <span className="text-[9px] text-muted-foreground">+{dayItems.length - 3} mais</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
 
-      <div className="space-y-3">
-        {calView === "list" && (
-          <p className="text-sm font-medium text-foreground">
-            {filteredSorted.length} formação{filteredSorted.length !== 1 ? "ões" : ""}
-          </p>
-        )}
-        {filteredSorted.length === 0 ? (
-          meus.length === 0 ? (
-            <EmptyState
-              icon={Calendar}
-              title="Nenhum evento agendado"
-              description="Agende o primeiro evento (formação, retiro, convocação…) — os participantes recebem lembretes automáticos e podem adicioná-lo ao calendário pessoal."
-              action={
-                <Button size="sm" onClick={() => abrirNovo()}>
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  Agendar evento
-                </Button>
-              }
-            />
-          ) : (
-            <EmptyState
-              icon={Search}
-              title="Nenhum resultado"
-              description="Nenhum evento corresponde ao filtro de status atual."
-              secondaryAction={
-                <Button size="sm" variant="outline" onClick={() => setStatusFilter("todos")}>
-                  Limpar filtro
-                </Button>
-              }
-            />
-          )
-        ) : (
-          <>
-            {filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((ag) => (
-              <AgendamentoCard key={ag.id} ag={ag} canEdit onStatusChange={handleStatusChange} />
-            ))}
-            <Pagination total={filteredSorted.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
-          </>
-        )}
-      </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
+                {(["agendada", "confirmada", "realizada", "cancelada"] as StatusFormacao[]).map((s) => (
+                  <span key={s} className="flex items-center gap-1.5">
+                    <span className={`h-2 w-2 rounded-full ${STATUS_DOT[s]}`} />
+                    {STATUS_FORMACAO_LABELS[s]}
+                  </span>
+                ))}
+                <span className="flex items-center gap-1.5">
+                  <span className={`h-2 w-2 rounded-full ${COMPROMISSO_DOT}`} />
+                  Compromisso pessoal
+                </span>
+              </div>
+            </>
+          )}
+
+          {calView === "list" && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">
+                {filteredSorted.length} formação{filteredSorted.length !== 1 ? "ões" : ""}
+              </p>
+              {filteredSorted.length === 0 ? (
+                meus.length === 0 ? (
+                  <EmptyState
+                    icon={Calendar}
+                    title="Nenhum evento agendado"
+                    description="Agende o primeiro evento (formação, retiro, convocação…) — os participantes recebem lembretes automáticos e podem adicioná-lo ao calendário pessoal."
+                    action={
+                      <Button size="sm" onClick={() => abrirNovo()}>
+                        <Plus className="h-4 w-4 mr-1.5" />
+                        Agendar evento
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <EmptyState
+                    icon={Search}
+                    title="Nenhum resultado"
+                    description="Nenhum evento corresponde ao filtro de status atual."
+                    secondaryAction={
+                      <Button size="sm" variant="outline" onClick={() => setStatusFilter("todos")}>
+                        Limpar filtro
+                      </Button>
+                    }
+                  />
+                )
+              ) : (
+                <>
+                  {filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((ag) => (
+                    <AgendamentoCard key={ag.id} ag={ag} canEdit onStatusChange={handleStatusChange} />
+                  ))}
+                  <Pagination total={filteredSorted.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
+                </>
+              )}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="compromissos" className="mt-4">
+          <CompromissosTab initialCompromissos={initialCompromissos} formandosVinculo={formandosVinculo} />
+        </TabsContent>
+      </Tabs>
 
       <AgendamentoFormDialog
         key={novoSeq}
@@ -409,12 +472,6 @@ export default function AgendaClient({
         isFG={isFG}
         onSaved={() => startTransition(() => router.refresh())}
       />
-        </TabsContent>
-
-        <TabsContent value="compromissos" className="mt-4">
-          <CompromissosTab initialCompromissos={initialCompromissos} formandosVinculo={formandosVinculo} />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
