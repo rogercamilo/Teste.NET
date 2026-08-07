@@ -28,6 +28,22 @@
 > A prod continua rodando 100% em `sfo` no PG antigo. O PG novo é uma cópia paralela que
 > vai divergindo conforme a prod recebe escritas — por isso o **re-restore no corte**.
 
+## ✅ CORTE EXECUTADO — 2026-08-07 (~03:10 UTC)
+
+App+banco rodando em `us-east4-eqdc4a`; PG antigo (sfo) parado-mas-intacto (rollback 7d).
+Verificado: PG novo com conexões do app / PG antigo 0 conns; paridade final idêntica; `/login` e
+`/api/health` 200; TTFB Brasil ~1,2s → ~0,6s. Pendências pós-corte abaixo.
+
+> ⚠️ **Correção importante (CLI `railway` 4.59.0):** os comandos `railway environment edit --json`
+> via stdin **abaixo são de uma versão antiga e falham** ("Invalid patch"). O que funcionou:
+> - **Congelar (freeze real):** `railway down --service Formatio --yes` (0 instâncias; `scale sfo=0`
+>   NÃO zera — remove a região e cai no default us-west2 via redeploy).
+> - **Setar var sem deploy:** `railway variables --service Formatio --set "DATABASE_URL=<url interna PG novo>" --skip-deploys`.
+> - **Corte de região (dispara 1 deploy):** `railway service scale --service Formatio us-east4-eqdc4a=2 sfo=0 us-west2=0` (`=0` remove a região).
+> - **Rollback:** var de volta p/ url interna antiga (`--skip-deploys`) + `railway service scale --service Formatio sfo=2 us-east4-eqdc4a=0`.
+> - `numReplicas` vem do `railway.json` (config-as-code, vence a contagem); a **região** vem do
+>   multiRegionConfig do serviço. pg_dump via proxy público pode dar SSL EOF — re-rodar o restore.
+
 ## CORTE (executar numa janela de baixo uso — downtime de ~poucos minutos)
 
 Pré-requisitos na máquina de execução: `railway` logado, Docker rodando, projeto linkado
