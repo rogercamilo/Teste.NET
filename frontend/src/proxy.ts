@@ -47,6 +47,67 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
   };
 }
 
+// ── Rotas públicas de marketing (cacheáveis na borda / Cloudflare) ───────────
+// Resposta idêntica para todos os visitantes → pode ser cacheada no edge. Ao
+// contrário do app autenticado, NÃO usam nonce por request (o HTML seria único
+// e impediria o cache). Ver buildMarketingSecurityHeaders.
+const MARKETING_PREFIXES = ["/precos", "/recursos", "/para-quem-e", "/faq", "/termos", "/blog"];
+
+function isMarketing(pathname: string): boolean {
+  if (pathname === "/") return true;
+  // /privacidade (política) é marketing; /privacidade/contato é formulário dinâmico (excluir).
+  if (pathname === "/privacidade") return true;
+  if (pathname.startsWith("/privacidade/") && !pathname.startsWith("/privacidade/contato")) return true;
+  return MARKETING_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+// TTL de borda por rota. Blog muda devagar → cacheia mais.
+function marketingCacheControl(pathname: string): string {
+  const isBlog = pathname === "/blog" || pathname.startsWith("/blog/");
+  const sMaxAge = isBlog ? 86400 : 3600;
+  // max-age=0: navegador revalida sempre (rápido, atinge o edge); s-maxage: a
+  // Cloudflare serve do edge; stale-while-revalidate: reaquece sem bloquear.
+  return `public, max-age=0, s-maxage=${sMaxAge}, stale-while-revalidate=86400`;
+}
+
+// CSP das rotas de marketing: SEM nonce e SEM strict-dynamic → HTML idêntico e
+// cacheável. Sem nonce/hash na política, o 'unsafe-inline' É honrado (cobre os
+// scripts inline do Next). Essas páginas não renderizam dado de usuário; o app
+// autenticado mantém o CSP forte (nonce+strict-dynamic) em buildSecurityHeaders.
+function buildMarketingSecurityHeaders(): Record<string, string> {
+  return {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "X-Permitted-Cross-Domain-Policies": "none",
+    "X-Download-Options": "noopen",
+    "X-DNS-Prefetch-Control": "off",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(self), usb=(), magnetometer=(), accelerometer=(), gyroscope=()",
+    ...(isProd ? {
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Report-To": `{"group":"csp-endpoint","max_age":86400,"endpoints":[{"url":"${CSP_REPORT_URI}"}]}`,
+    } : {}),
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "Content-Security-Policy": [
+      "default-src 'self'",
+      // Sem nonce/strict-dynamic. 'unsafe-inline' cobre os scripts inline do Next;
+      // hosts externos (Stripe, Meta Pixel) allowlistados explicitamente.
+      `script-src 'self' 'unsafe-inline' https://js.stripe.com https://connect.facebook.net${isProd ? "" : " 'unsafe-eval'"}`,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      "frame-src 'self' https://*.r2.cloudflarestorage.com https://js.stripe.com https://hooks.stripe.com",
+      "connect-src 'self' https://api.stripe.com https://*.stripe.com https://*.sentry.io https://*.ingest.sentry.io https://www.facebook.com https://connect.facebook.net",
+      "worker-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      ...(isProd ? [`report-to csp-endpoint`, `report-uri ${CSP_REPORT_URI}`] : []),
+    ].join("; "),
+  };
+}
+
 // Rotas públicas do portal do formando (autenticação própria via portal_session)
 const PORTAL_PUBLIC_EXACT = new Set(["/portal", "/portal/formando", "/portal/vocacional"]);
 const PORTAL_PUBLIC_PREFIXES = [
@@ -277,6 +338,19 @@ export default auth(async function proxy(req) {
     !pathname.startsWith("/super-admin")
   ) {
     return NextResponse.redirect(new URL("/super-admin", req.url));
+  }
+
+  // Rotas públicas de marketing: CSP sem nonce + Cache-Control cacheável na borda
+  // (Cloudflare). Resposta idêntica para todos; só GET/HEAD. Nunca setar x-nonce
+  // aqui — o HTML precisa ser estável para o edge. Vem DEPOIS dos redirects para
+  // nunca cachear um redirect.
+  if ((req.method === "GET" || req.method === "HEAD") && isMarketing(pathname)) {
+    const marketingResponse = NextResponse.next();
+    for (const [key, value] of Object.entries(buildMarketingSecurityHeaders())) {
+      marketingResponse.headers.set(key, value);
+    }
+    marketingResponse.headers.set("Cache-Control", marketingCacheControl(pathname));
+    return marketingResponse;
   }
 
   const response = NextResponse.next({

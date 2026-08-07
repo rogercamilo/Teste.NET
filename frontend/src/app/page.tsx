@@ -1,5 +1,3 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import LandingPage from "./LandingPage";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
@@ -40,10 +38,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Home() {
-  const session = await auth();
-  if (session?.user) redirect("/dashboard");
+// Lê depoimentos do banco (indisponível no prerender de build no Railway) →
+// renderiza no servidor a cada request. A resposta é cacheada na BORDA
+// (Cloudflare) via Cache-Control setado no proxy para rotas de marketing (R2).
+// A landing é PÚBLICA para todos — não redireciona usuário logado (decisão de
+// produto: a página precisa ficar sempre disponível ao grande público).
+export const dynamic = "force-dynamic";
 
+export default async function Home() {
   const [depoimentos, rating] = await Promise.all([
     getDepoimentosPublicados(),
     getAggregateRating(),
