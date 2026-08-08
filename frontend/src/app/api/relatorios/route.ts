@@ -72,22 +72,27 @@ export async function POST(request: Request) {
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 
-    // Pré-popula notas das 3 perspectivas a partir da última avaliação de cada perspectiva
+    // Pré-popula notas das 3 perspectivas a partir da última avaliação de cada perspectiva.
+    // As 3 buscas são independentes → paralelizadas (R18: evita 3 round-trips sequenciais).
     const perspectivas = ["humana", "espiritual", "comunitaria"] as const;
+    const eventos = await Promise.all(
+      perspectivas.map((perspectiva) =>
+        prisma.eventoFormando.findFirst({
+          where: {
+            formandoId,
+            organizacaoId: user.organizacaoId,
+            tipo: "avaliacao-adesao",
+            perspectiva,
+            notaAdesao: { not: null },
+          },
+          orderBy: { criadoEm: "desc" },
+        })
+      )
+    );
     const notasSugeridas: Record<string, string | null> = {};
-    for (const perspectiva of perspectivas) {
-      const evento = await prisma.eventoFormando.findFirst({
-        where: {
-          formandoId,
-          organizacaoId: user.organizacaoId,
-          tipo: "avaliacao-adesao",
-          perspectiva,
-          notaAdesao: { not: null },
-        },
-        orderBy: { criadoEm: "desc" },
-      });
-      notasSugeridas[perspectiva] = evento?.notaAdesao ?? null;
-    }
+    perspectivas.forEach((perspectiva, i) => {
+      notasSugeridas[perspectiva] = eventos[i]?.notaAdesao ?? null;
+    });
 
     try {
       const row = await prisma.relatorioEtapa.create({
