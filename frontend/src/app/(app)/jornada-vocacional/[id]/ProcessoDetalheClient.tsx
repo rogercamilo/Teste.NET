@@ -128,6 +128,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   const [isSaving, setIsSaving] = useState(false);
   const [promessaDialogOpen, setPromessaDialogOpen] = useState(false);
   const [devolverDialogOpen, setDevolverDialogOpen] = useState(false);
+  const [criandoDocs, setCriandoDocs] = useState(false);
   // Documento em pré-visualização (modal com preview + download embutido).
   const [viewerDoc, setViewerDoc] = useState<{ arquivoId: string; nome: string } | null>(null);
 
@@ -150,6 +151,34 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   const [tab, setTab] = useState<string>(
     processo.status === "em_revisao" || processo.status === "aprovado" ? "documentos" : "formulario"
   );
+
+  // Recuperação: processo em andamento sem lista de documentos (ex.: dado de
+  // importação/seed que nasceu fora do fluxo "iniciar"). Quem prepara materializa.
+  const podeCriarDocumentos =
+    canEdit && processo.status === "em_andamento" && processo.documentos.length === 0;
+
+  async function handleCriarDocumentos() {
+    setCriandoDocs(true);
+    try {
+      const res = await fetch(
+        `/api/processos-eclesiasticos/${processo.id}/documentos/inicializar`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Erro ao criar a lista de documentos.");
+        return;
+      }
+      const { documentos } = await res.json();
+      setProcesso((prev) => ({ ...prev, documentos }));
+      setTab("documentos");
+      toast.success("Lista de documentos criada. Gere cada documento na aba Documentos.");
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setCriandoDocs(false);
+    }
+  }
 
   function setField(key: string, value: unknown) {
     setDadosForm((prev) => ({ ...prev, [key]: value }));
@@ -319,6 +348,9 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
         docsPendentes={docsPendentes.map((d) => TIPO_DOCUMENTO_LABELS[d.tipo])}
         totalDocs={processo.documentos.length}
         motivoDevolucao={processo.motivoDevolucao ?? null}
+        podeCriarDocumentos={podeCriarDocumentos}
+        criandoDocumentos={criandoDocs}
+        onCriarDocumentos={handleCriarDocumentos}
       />
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -385,6 +417,17 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
                     A lista de documentos é criada automaticamente quando você
                     inicia o processo. Use <strong>&ldquo;Iniciar processo&rdquo;</strong> no topo desta tela.
                   </p>
+                ) : podeCriarDocumentos ? (
+                  <>
+                    <p className="text-sm max-w-sm">
+                      Este processo ainda não tem a lista de documentos canônicos. Crie-a para
+                      poder gerar cada documento.
+                    </p>
+                    <Button size="sm" disabled={criandoDocs} onClick={handleCriarDocumentos}>
+                      {criandoDocs && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                      Criar lista de documentos
+                    </Button>
+                  </>
                 ) : (
                   <p className="text-sm">Nenhum documento associado a este processo.</p>
                 )}
@@ -844,6 +887,7 @@ function ProcessoGuia({
   status, tipoLabel, nome,
   minhaVez, responsavelLabel, responsavelAcao,
   docsPendentes, totalDocs, motivoDevolucao,
+  podeCriarDocumentos, criandoDocumentos, onCriarDocumentos,
 }: {
   status: StatusProcessoEclesiastico;
   tipoLabel: string;
@@ -854,6 +898,9 @@ function ProcessoGuia({
   docsPendentes: string[];
   totalDocs: number;
   motivoDevolucao: string | null;
+  podeCriarDocumentos: boolean;
+  criandoDocumentos: boolean;
+  onCriarDocumentos: () => void;
 }) {
   const idx = FLUXO_ETAPAS.findIndex((e) => e.status === status);
   const terminalNegativo = status === "rejeitado" || status === "cancelado";
@@ -905,9 +952,17 @@ function ProcessoGuia({
         {/* Pendência de documentos para liberar o envio à revisão */}
         {status === "em_andamento" && (
           totalDocs === 0 ? (
-            <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-              <FileText className="h-4 w-4 shrink-0 mt-0.5" />
-              A lista de documentos deste processo ainda não foi criada.
+            <div className="flex flex-col gap-2.5 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <span className="flex items-start gap-2">
+                <FileText className="h-4 w-4 shrink-0 mt-0.5" />
+                A lista de documentos deste processo ainda não foi criada.
+              </span>
+              {podeCriarDocumentos && (
+                <Button size="sm" className="shrink-0 self-start sm:self-auto" disabled={criandoDocumentos} onClick={onCriarDocumentos}>
+                  {criandoDocumentos && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                  Criar lista de documentos
+                </Button>
+              )}
             </div>
           ) : docsPendentes.length > 0 ? (
             <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
