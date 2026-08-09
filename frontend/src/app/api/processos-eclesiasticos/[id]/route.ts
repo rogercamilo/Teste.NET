@@ -244,17 +244,21 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
         }
         logAction("processo_eclesiastico_devolvido", user.id, getClientIp(req), { id }, user.organizacaoId);
         if (processo.formando.grupoFormacaoId) {
-          formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
-            if (!fcId) return;
-            criarNotificacao({
-              organizacaoId,
-              destinatarioId: fcId,
-              tipo: "processo_devolvido",
-              titulo: `Processo de ${processo.formando.nome} devolvido para ajustes`,
-              corpo: `Ajuste solicitado pela revisão: ${motivoDevolucao}. Corrija e reenvie para revisão.`,
-              linkAcao: `/jornada-vocacional/${id}`,
-            });
-          }).catch(() => {});
+          try {
+            const fcId = await formadorDoGrupo(processo.formando.grupoFormacaoId);
+            if (fcId) {
+              await criarNotificacao({
+                organizacaoId,
+                destinatarioId: fcId,
+                tipo: "processo_devolvido",
+                titulo: `Processo de ${processo.formando.nome} devolvido para ajustes`,
+                corpo: `Ajuste solicitado pela revisão: ${motivoDevolucao}. Corrija e reenvie para revisão.`,
+                linkAcao: `/jornada-vocacional/${id}`,
+              });
+            }
+          } catch (err) {
+            logError("processos-eclesiasticos:notificacoes", err);
+          }
         }
         return NextResponse.json({ id, status: "em_andamento" });
       }
@@ -441,29 +445,35 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       logAction("processo_eclesiastico_atualizado", user.id, getClientIp(req), { id, status: body.status }, user.organizacaoId);
 
       // Mensageria entre perfis: cada handoff avisa quem passa a ser responsável.
+      // Aguardado de propósito — em route handler, promessa não-aguardada pode não
+      // executar após o `return`, e a notificação simplesmente não chega. Falha
+      // aqui não deve derrubar a transição (try/catch abaixo).
       const linkAcao = `/jornada-vocacional/${id}`;
+      try {
+        // Iniciado (rascunho → em_andamento; devolução já retornou antes) → avisa o
+        // formador do grupo que há um processo para preparar, se não for ele o ator.
+        if (body.status === "em_andamento" && processo.formando.grupoFormacaoId) {
+          const fcId = await formadorDoGrupo(processo.formando.grupoFormacaoId);
+          if (fcId && fcId !== user.id) {
+            await criarNotificacao({
+              organizacaoId,
+              destinatarioId: fcId,
+              tipo: "processo_iniciado",
+              titulo: `Novo processo de ${processo.formando.nome} para preparar`,
+              corpo: "Preencha o formulário e gere os documentos; depois envie para revisão.",
+              linkAcao,
+            });
+          }
+        }
 
-      // Iniciado (rascunho → em_andamento; devolução já retornou antes) → avisa o
-      // formador do grupo que há um processo para preparar, se não for ele o ator.
-      if (body.status === "em_andamento" && processo.formando.grupoFormacaoId) {
-        formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
-          if (!fcId || fcId === user.id) return;
-          criarNotificacao({
-            organizacaoId,
-            destinatarioId: fcId,
-            tipo: "processo_iniciado",
-            titulo: `Novo processo de ${processo.formando.nome} para preparar`,
-            corpo: "Preencha o formulário e gere os documentos; depois envie para revisão.",
-            linkAcao,
-          });
-        }).catch(() => {});
-      }
-
-      // Entrou em revisão → avisa os revisores (Formadores Gerais) que há ação para eles.
-      if (body.status === "em_revisao") {
-        revisoresDaOrg(organizacaoId).then((ids) => {
-          const destinatarios = ids.filter((rid) => rid !== user.id);
-          return criarNotificacoes(destinatarios.map((destinatarioId) => ({
+        // Entrou em revisão → avisa os revisores (Formadores Gerais) que há ação para eles.
+        if (body.status === "em_revisao") {
+          const ids = await revisoresDaOrg(organizacaoId);
+          // Remove o remetente para não notificar a si mesmo; mas se ele for o
+          // ÚNICO revisor (org com um só FG), mantém o sinal em vez de zerar.
+          let destinatarios = ids.filter((rid) => rid !== user.id);
+          if (destinatarios.length === 0) destinatarios = ids;
+          await criarNotificacoes(destinatarios.map((destinatarioId) => ({
             organizacaoId,
             destinatarioId,
             tipo: "processo_em_revisao" as const,
@@ -471,37 +481,39 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
             corpo: "Confira os documentos e valide: aprove ou devolva para ajustes.",
             linkAcao,
           })));
-        }).catch(() => {});
-      }
+        }
 
-      // Aprovado → informa o preparador (FC) que o processo passou na revisão.
-      if (body.status === "aprovado" && processo.formando.grupoFormacaoId) {
-        formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
-          if (!fcId) return;
-          criarNotificacao({
-            organizacaoId,
-            destinatarioId: fcId,
-            tipo: "processo_aprovado",
-            titulo: `Processo de ${processo.formando.nome} aprovado`,
-            corpo: "O processo foi aprovado na revisão. A gestão fará a conclusão e a oficialização.",
-            linkAcao,
-          });
-        }).catch(() => {});
-      }
+        // Aprovado → informa o preparador (FC) que o processo passou na revisão.
+        if (body.status === "aprovado" && processo.formando.grupoFormacaoId) {
+          const fcId = await formadorDoGrupo(processo.formando.grupoFormacaoId);
+          if (fcId) {
+            await criarNotificacao({
+              organizacaoId,
+              destinatarioId: fcId,
+              tipo: "processo_aprovado",
+              titulo: `Processo de ${processo.formando.nome} aprovado`,
+              corpo: "O processo foi aprovado na revisão. A gestão fará a conclusão e a oficialização.",
+              linkAcao,
+            });
+          }
+        }
 
-      // Concluído → informa o preparador (FC) que os documentos oficiais estão disponíveis.
-      if (body.status === "concluido" && processo.formando.grupoFormacaoId) {
-        formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
-          if (!fcId) return;
-          criarNotificacao({
-            organizacaoId,
-            destinatarioId: fcId,
-            tipo: "processo_concluido",
-            titulo: `Processo de ${processo.formando.nome} concluído`,
-            corpo: "O processo foi concluído e os documentos oficiais estão disponíveis na aba Documentos.",
-            linkAcao,
-          });
-        }).catch(() => {});
+        // Concluído → informa o preparador (FC) que os documentos oficiais estão disponíveis.
+        if (body.status === "concluido" && processo.formando.grupoFormacaoId) {
+          const fcId = await formadorDoGrupo(processo.formando.grupoFormacaoId);
+          if (fcId) {
+            await criarNotificacao({
+              organizacaoId,
+              destinatarioId: fcId,
+              tipo: "processo_concluido",
+              titulo: `Processo de ${processo.formando.nome} concluído`,
+              corpo: "O processo foi concluído e os documentos oficiais estão disponíveis na aba Documentos.",
+              linkAcao,
+            });
+          }
+        }
+      } catch (err) {
+        logError("processos-eclesiasticos:notificacoes", err);
       }
 
       return NextResponse.json({ id, status: body.status });
