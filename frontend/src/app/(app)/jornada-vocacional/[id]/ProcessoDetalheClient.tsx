@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2, Download, Eye } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2, Download, Eye, Info } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -270,6 +270,12 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
       </div>
 
       <Separator />
+
+      <ProcessoGuia
+        status={processo.status}
+        tipoLabel={getTipoLabel(processo.tipo, termos)}
+        nome={f.nome}
+      />
 
       <Tabs defaultValue="formulario">
         <TabsList>
@@ -687,6 +693,111 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <span className="text-muted-foreground min-w-32">{label}</span>
       <span className="font-medium">{value}</span>
     </div>
+  );
+}
+
+// ─── Guia do processo: propósito + andamento + próximo passo ──────────────────
+// O usuário chega nesta tela sem contexto do rito canônico. Este painel explica
+// o que a tela faz, mostra em que ponto da tramitação o processo está e diz
+// claramente qual é o próximo passo e de quem é a vez.
+
+const FLUXO_ETAPAS: { status: StatusProcessoEclesiastico; titulo: string }[] = [
+  { status: "rascunho",     titulo: "Rascunho" },
+  { status: "em_andamento", titulo: "Em andamento" },
+  { status: "em_revisao",   titulo: "Em revisão" },
+  { status: "aprovado",     titulo: "Aprovado" },
+  { status: "concluido",    titulo: "Concluído" },
+];
+
+function proximoPassoTexto(status: StatusProcessoEclesiastico): string {
+  switch (status) {
+    case "rascunho":
+      return "Use “Iniciar processo” no topo para criar automaticamente a lista de documentos canônicos desta etapa.";
+    case "em_andamento":
+      return "Preencha o formulário e gere os documentos na aba Documentos. Quando estiver tudo pronto, o Formador Geral ou o Administrador envia o processo para revisão.";
+    case "em_revisao":
+      return "O processo está com a gestão: o Administrador confere os documentos e então aprova ou rejeita.";
+    case "aprovado":
+      return "Falta a etapa final: o Administrador conclui o processo — oficializando os documentos e, havendo promessa, lavrando o assento no Livro de Promessas.";
+    case "concluido":
+      return "Processo concluído. Os documentos oficiais ficam disponíveis na aba Documentos.";
+    case "rejeitado":
+      return "O processo foi rejeitado na revisão. Combine com a gestão os ajustes necessários antes de abrir um novo processo.";
+    case "cancelado":
+      return "Este processo foi cancelado e não terá andamento.";
+    default:
+      return "";
+  }
+}
+
+function ProcessoGuia({
+  status, tipoLabel, nome,
+}: {
+  status: StatusProcessoEclesiastico;
+  tipoLabel: string;
+  nome: string;
+}) {
+  const idx = FLUXO_ETAPAS.findIndex((e) => e.status === status);
+  const terminalNegativo = status === "rejeitado" || status === "cancelado";
+
+  return (
+    <Card className="border-primary/15 bg-primary/[0.03]">
+      <CardContent className="py-4 px-5 space-y-4">
+        <div className="flex items-start gap-2.5">
+          <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Esta tela conduz o <span className="font-medium text-foreground">processo de {tipoLabel}</span> de{" "}
+            <span className="font-medium text-foreground">{nome}</span>: você preenche os dados na aba{" "}
+            <span className="font-medium text-foreground">Formulário</span>, gera os documentos oficiais na aba{" "}
+            <span className="font-medium text-foreground">Documentos</span> e acompanha a tramitação até a conclusão.
+          </p>
+        </div>
+
+        {terminalNegativo ? (
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+            <XCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-medium text-foreground">
+              {status === "rejeitado" ? "Processo rejeitado na revisão" : "Processo cancelado"}
+            </span>
+          </div>
+        ) : (
+          <ol className="grid grid-cols-2 sm:grid-cols-5 gap-x-3 gap-y-2.5">
+            {FLUXO_ETAPAS.map((etapa, i) => {
+              const reached = idx >= 0 && i <= idx;
+              const active = i === idx;
+              return (
+                <li key={etapa.status} className="space-y-1.5">
+                  <div className={`h-1.5 rounded-full ${reached ? "bg-primary" : "bg-border"}`} />
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[11px] leading-none rounded-full w-4 h-4 inline-flex items-center justify-center font-semibold ${
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : reached
+                          ? "bg-primary/15 text-primary"
+                          : "bg-muted text-muted-foreground"
+                    }`}>
+                      {i + 1}
+                    </span>
+                    <span className={`text-xs ${
+                      active ? "font-semibold text-foreground" : reached ? "text-foreground/70" : "text-muted-foreground"
+                    }`}>
+                      {etapa.titulo}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+
+        <div className="flex items-start gap-2 rounded-lg bg-background/70 border border-border/60 px-3 py-2.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-primary shrink-0 mt-0.5">
+            Próximo passo
+          </span>
+          <p className="text-sm text-foreground/90 leading-relaxed">{proximoPassoTexto(status)}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -21,11 +21,20 @@ function canDelete(arquivo: { uploadedById: string | null }, user: SessionUser):
  *    entidades de grupo (morada/formando) só do PRÓPRIO grupo.
  */
 async function canRead(
-  arquivo: { uploadedById: string | null; entityType: string | null; entityId: string | null },
+  arquivo: { uploadedById: string | null; entityType: string | null; entityId: string | null; formandoId: string | null },
   user: SessionUser
 ): Promise<boolean> {
   if (user.role === "administrador" || user.role === "formador_geral") return true;
   if (arquivo.uploadedById === user.id) return true;
+  // Anexos de formando (cartas de etapa, anexos de evento) vinculam por
+  // `formandoId` — sem entityType/entityId. FC lê os do PRÓPRIO grupo.
+  if (arquivo.formandoId) {
+    const f = await prisma.formando.findFirst({
+      where: { id: arquivo.formandoId, organizacaoId: user.organizacaoId },
+      select: { grupoFormacaoId: true },
+    });
+    return !!f && f.grupoFormacaoId === user.grupoFormacaoId;
+  }
   // Sem entidade associada (ex.: linha do tipo `documentos`): FC não tem grant por entidade.
   if (!arquivo.entityType || !arquivo.entityId) return false;
 
@@ -73,7 +82,7 @@ export async function GET(
       where: { id, organizacaoId: user.organizacaoId },
       select: {
         id: true, storageKey: true, tipo: true, nome: true,
-        uploadedById: true, entityType: true, entityId: true,
+        uploadedById: true, entityType: true, entityId: true, formandoId: true,
       },
     });
 
