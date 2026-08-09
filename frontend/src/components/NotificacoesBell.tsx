@@ -16,6 +16,10 @@ type TipoNotificacao =
   | "novo_formando"
   | "novo_agendamento"
   | "processo_aprovado"
+  | "processo_devolvido"
+  | "processo_em_revisao"
+  | "processo_concluido"
+  | "processo_iniciado"
   | "plano_atribuido"
   | "plano_atualizado"
   | "grade_atribuida"
@@ -40,6 +44,10 @@ const TIPO_CONFIG: Record<TipoNotificacao, { dot: string }> = {
   novo_formando:           { dot: "bg-emerald-500" },
   novo_agendamento:        { dot: "bg-violet-500"  },
   processo_aprovado:       { dot: "bg-green-500"   },
+  processo_devolvido:      { dot: "bg-amber-500"   },
+  processo_em_revisao:     { dot: "bg-yellow-500"  },
+  processo_concluido:      { dot: "bg-emerald-500" },
+  processo_iniciado:       { dot: "bg-blue-500"    },
   plano_atribuido:         { dot: "bg-amber-500"   },
   plano_atualizado:        { dot: "bg-amber-400"   },
   grade_atribuida:         { dot: "bg-orange-500"  },

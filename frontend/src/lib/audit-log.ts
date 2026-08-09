@@ -119,6 +119,7 @@ export type AuditAction =
   | "processo_eclesiastico_atualizado"
   | "documento_eclesiastico_gerado"
   | "processo_eclesiastico_concluido"
+  | "processo_eclesiastico_devolvido"
   | "livro_tomo_aberto"
   | "livro_tomo_encerrado"
   | "livro_termo_lavrado"

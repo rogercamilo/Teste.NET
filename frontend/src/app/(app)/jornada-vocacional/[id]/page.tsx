@@ -105,6 +105,8 @@ export default async function ProcessoDetalhePage({
         dadosFormulario: processo.dadosFormulario as Record<string, unknown>,
         favoravelRenovacao: processo.favoravelRenovacao,
         numeroRenovacao: processo.numeroRenovacao,
+        motivoDevolucao: processo.motivoDevolucao,
+        devolvidoEm: processo.devolvidoEm?.toISOString() ?? null,
         criadoPorId: processo.criadoPorId,
         criadoPorNome: processo.criadoPor.nome,
         criadoEm: processo.criadoEm.toISOString(),

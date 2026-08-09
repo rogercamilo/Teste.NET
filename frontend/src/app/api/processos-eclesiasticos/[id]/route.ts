@@ -9,8 +9,9 @@ import {
   podeEditarFormulario,
   getDocumentosTipos,
   eraMenorDeIdade,
+  documentosProntosParaRevisao,
 } from "@/lib/jornada-vocacional";
-import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
+import { criarNotificacao, criarNotificacoes, formadorDoGrupo, revisoresDaOrg } from "@/lib/notificacoes";
 import { lavrarTermo, mapProcessoParaTermo, LivroError, parseDataLocal } from "@/lib/livro-registro";
 import {
   mapProcessoParaTipoPromessa,
@@ -91,6 +92,8 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
       dadosFormulario: processo.dadosFormulario,
       favoravelRenovacao: processo.favoravelRenovacao,
       numeroRenovacao: processo.numeroRenovacao,
+      motivoDevolucao: processo.motivoDevolucao,
+      devolvidoEm: processo.devolvidoEm?.toISOString() ?? null,
       criadoPorId: processo.criadoPorId,
       criadoPorNome: processo.criadoPor.nome,
       criadoEm: processo.criadoEm.toISOString(),
@@ -146,7 +149,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       where: { id, organizacaoId: user.organizacaoId },
       include: {
         formando: { select: { id: true, nome: true, dataNascimento: true, grupoFormacaoId: true } },
-        documentos: { select: { id: true } },
+        documentos: { select: { id: true, arquivoId: true } },
         organizacao: { select: { nome: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true } },
         promessa: { select: { id: true, tomo: true, folha: true, numeroRegistro: true } },
       },
@@ -161,6 +164,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
     const body = await req.json().catch(() => ({})) as {
       dadosFormulario?: Record<string, unknown>;
       status?: StatusProcessoEclesiastico;
+      motivo?: string;
       favoravelRenovacao?: boolean;
       promessa?: {
         dataCelebracao?: string;
@@ -205,6 +209,54 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
           { error: `Transição de '${processo.status}' para '${body.status}' não permitida para o seu perfil` },
           { status: 403 }
         );
+      }
+
+      const ehDevolucao = transicaoValida.para === "em_andamento" && processo.status === "em_revisao";
+
+      // Trava: só envia para revisão com todos os documentos canônicos gerados.
+      if (transicaoValida.exigeDocumentosGerados && !documentosProntosParaRevisao(processo.documentos)) {
+        return NextResponse.json(
+          { error: "Gere todos os documentos do processo antes de enviar para revisão." },
+          { status: 422 }
+        );
+      }
+
+      // Devolução para ajustes exige um motivo, que retorna ao preparador.
+      const motivoDevolucao = body.motivo?.trim();
+      if (ehDevolucao && !motivoDevolucao) {
+        return NextResponse.json(
+          { error: "Informe o motivo da devolução para o preparador saber o que ajustar." },
+          { status: 422 }
+        );
+      }
+
+      // Devolução (em_revisao → em_andamento): volta ao preparador com o motivo.
+      if (ehDevolucao) {
+        const result = await prisma.processoEclesiastico.updateMany({
+          where: { id, status: processo.status, organizacaoId },
+          data: { status: "em_andamento", motivoDevolucao, devolvidoEm: new Date() },
+        });
+        if (result.count === 0) {
+          return NextResponse.json(
+            { error: "Status alterado por outra operação. Recarregue e tente novamente." },
+            { status: 409 }
+          );
+        }
+        logAction("processo_eclesiastico_devolvido", user.id, getClientIp(req), { id }, user.organizacaoId);
+        if (processo.formando.grupoFormacaoId) {
+          formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
+            if (!fcId) return;
+            criarNotificacao({
+              organizacaoId,
+              destinatarioId: fcId,
+              tipo: "processo_devolvido",
+              titulo: `Processo de ${processo.formando.nome} devolvido para ajustes`,
+              corpo: `Ajuste solicitado pela revisão: ${motivoDevolucao}. Corrija e reenvie para revisão.`,
+              linkAcao: `/jornada-vocacional/${id}`,
+            });
+          }).catch(() => {});
+        }
+        return NextResponse.json({ id, status: "em_andamento" });
       }
 
       // Ao iniciar processo (rascunho → em_andamento): inicializa DocumentoEclesiastico se ainda não existem
@@ -372,7 +424,11 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       } else {
         const result = await prisma.processoEclesiastico.updateMany({
           where: { id, status: processo.status, organizacaoId },
-          data: { status: body.status },
+          // Ao (re)enviar para revisão, limpa a marca de devolução anterior.
+          data: {
+            status: body.status,
+            ...(body.status === "em_revisao" ? { motivoDevolucao: null, devolvidoEm: null } : {}),
+          },
         });
         if (result.count === 0) {
           return NextResponse.json(
@@ -384,7 +440,41 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
 
       logAction("processo_eclesiastico_atualizado", user.id, getClientIp(req), { id, status: body.status }, user.organizacaoId);
 
-      // Notifica FC quando processo é aprovado
+      // Mensageria entre perfis: cada handoff avisa quem passa a ser responsável.
+      const linkAcao = `/jornada-vocacional/${id}`;
+
+      // Iniciado (rascunho → em_andamento; devolução já retornou antes) → avisa o
+      // formador do grupo que há um processo para preparar, se não for ele o ator.
+      if (body.status === "em_andamento" && processo.formando.grupoFormacaoId) {
+        formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
+          if (!fcId || fcId === user.id) return;
+          criarNotificacao({
+            organizacaoId,
+            destinatarioId: fcId,
+            tipo: "processo_iniciado",
+            titulo: `Novo processo de ${processo.formando.nome} para preparar`,
+            corpo: "Preencha o formulário e gere os documentos; depois envie para revisão.",
+            linkAcao,
+          });
+        }).catch(() => {});
+      }
+
+      // Entrou em revisão → avisa os revisores (Formadores Gerais) que há ação para eles.
+      if (body.status === "em_revisao") {
+        revisoresDaOrg(organizacaoId).then((ids) => {
+          const destinatarios = ids.filter((rid) => rid !== user.id);
+          return criarNotificacoes(destinatarios.map((destinatarioId) => ({
+            organizacaoId,
+            destinatarioId,
+            tipo: "processo_em_revisao" as const,
+            titulo: `Processo de ${processo.formando.nome} aguarda sua revisão`,
+            corpo: "Confira os documentos e valide: aprove ou devolva para ajustes.",
+            linkAcao,
+          })));
+        }).catch(() => {});
+      }
+
+      // Aprovado → informa o preparador (FC) que o processo passou na revisão.
       if (body.status === "aprovado" && processo.formando.grupoFormacaoId) {
         formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
           if (!fcId) return;
@@ -393,8 +483,23 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
             destinatarioId: fcId,
             tipo: "processo_aprovado",
             titulo: `Processo de ${processo.formando.nome} aprovado`,
-            corpo: "O processo eclesiástico foi aprovado e os documentos estão disponíveis para geração.",
-            linkAcao: `/jornada-vocacional/${id}`,
+            corpo: "O processo foi aprovado na revisão. A gestão fará a conclusão e a oficialização.",
+            linkAcao,
+          });
+        }).catch(() => {});
+      }
+
+      // Concluído → informa o preparador (FC) que os documentos oficiais estão disponíveis.
+      if (body.status === "concluido" && processo.formando.grupoFormacaoId) {
+        formadorDoGrupo(processo.formando.grupoFormacaoId).then((fcId) => {
+          if (!fcId) return;
+          criarNotificacao({
+            organizacaoId,
+            destinatarioId: fcId,
+            tipo: "processo_concluido",
+            titulo: `Processo de ${processo.formando.nome} concluído`,
+            corpo: "O processo foi concluído e os documentos oficiais estão disponíveis na aba Documentos.",
+            linkAcao,
           });
         }).catch(() => {});
       }

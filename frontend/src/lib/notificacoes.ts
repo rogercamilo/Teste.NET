@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { logError } from "@/lib/audit-log";
-import type { TipoNotificacao } from "@prisma/client";
+import type { TipoNotificacao, PerfilUsuario } from "@prisma/client";
 
 // ── Criar notificação ─────────────────────────────────────────────────────────
 
@@ -65,6 +65,27 @@ export async function marcarTodasLidas(usuarioId: string): Promise<void> {
 }
 
 // ── Helpers para gatilhos ─────────────────────────────────────────────────────
+
+// Retorna os IDs de usuários ativos da org com um dos perfis informados.
+export async function usuariosPorPerfil(
+  organizacaoId: string,
+  perfis: PerfilUsuario[]
+): Promise<string[]> {
+  if (perfis.length === 0) return [];
+  const users = await prisma.usuario.findMany({
+    where: { organizacaoId, perfil: { in: perfis }, ativo: true, deletedAt: null },
+    select: { id: true },
+  });
+  return users.map((u) => u.id);
+}
+
+// Revisores da Jornada Vocacional: os Formadores Gerais validam. Sem nenhum FG
+// cadastrado, a revisão recai sobre o Administrador (comunidades pequenas).
+export async function revisoresDaOrg(organizacaoId: string): Promise<string[]> {
+  const fgs = await usuariosPorPerfil(organizacaoId, ["formador_geral"]);
+  if (fgs.length > 0) return fgs;
+  return usuariosPorPerfil(organizacaoId, ["administrador"]);
+}
 
 // Dado um grupoFormacaoId, retorna o formadorId (FC) se existir.
 export async function formadorDoGrupo(

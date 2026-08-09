@@ -174,6 +174,10 @@ enum TipoNotificacao {
   novo_formando
   novo_agendamento
   processo_aprovado
+  processo_devolvido
+  processo_em_revisao
+  processo_concluido
+  processo_iniciado
   plano_atribuido
   plano_atualizado
   grade_atribuida
@@ -1211,6 +1215,10 @@ model ProcessoEclesiastico {
   dadosFormulario    Json                       @default("{}")
   favoravelRenovacao Boolean?
   numeroRenovacao    Int?
+  // Devolução de revisão: quando o Formador Geral devolve o processo para
+  // ajustes, o motivo retorna ao preparador (banner em "Em andamento").
+  motivoDevolucao    String?
+  devolvidoEm        DateTime?
   criadoPorId        String
   criadoEm           DateTime                   @default(now())
   atualizadoEm       DateTime                   @updatedAt

@@ -61,12 +61,19 @@ export function eraMenorDeIdade(dataNascimento: Date, dataReferencia: Date): boo
   return diff < 18 || (diff === 18 && mesAntes);
 }
 
-// Transições de status válidas por papel
+// Transições de status válidas por papel.
+// - `exigeDocumentosGerados`: só libera a transição quando todos os documentos
+//   canônicos já foram gerados (dá sentido concreto à etapa de preparação).
+// - `exigeMotivo`: a transição captura um motivo (devolução para ajustes).
+// - `variante`: dica de UI (ação destrutiva/negativa) para o botão.
 type TransicaoStatus = {
   de: StatusProcessoEclesiastico;
   para: StatusProcessoEclesiastico;
   papeis: PerfilUsuario[];
   label: string;
+  exigeDocumentosGerados?: boolean;
+  exigeMotivo?: boolean;
+  variante?: "primaria" | "destrutiva";
 };
 
 export const TRANSICOES_STATUS: TransicaoStatus[] = [
@@ -81,25 +88,33 @@ export const TRANSICOES_STATUS: TransicaoStatus[] = [
   {
     de: "em_andamento",
     para: "em_revisao",
+    // Só avança para revisão com todos os documentos gerados.
     papeis: ["administrador", "formador_geral"],
     label: "Enviar para revisão",
+    exigeDocumentosGerados: true,
   },
   {
+    // Validação canônica: responsabilidade do Formador Geral; o Administrador
+    // mantém o poder como reforço de gestão.
     de: "em_revisao",
     para: "aprovado",
-    papeis: ["administrador"],
+    papeis: ["formador_geral", "administrador"],
     label: "Aprovar",
   },
   {
+    // Devolução para ajustes: retorna a "Em andamento" com um motivo, criando o
+    // laço de revisão (o preparador corrige e reenvia).
     de: "em_revisao",
-    para: "rejeitado",
-    papeis: ["administrador"],
-    label: "Rejeitar",
+    para: "em_andamento",
+    papeis: ["formador_geral", "administrador"],
+    label: "Devolver para ajustes",
+    exigeMotivo: true,
+    variante: "destrutiva",
   },
   {
     de: "aprovado",
     para: "concluido",
-    papeis: ["administrador"],
+    papeis: ["formador_geral", "administrador"],
     label: "Concluir",
   },
   {
@@ -107,12 +122,14 @@ export const TRANSICOES_STATUS: TransicaoStatus[] = [
     para: "cancelado",
     papeis: ["administrador"],
     label: "Cancelar",
+    variante: "destrutiva",
   },
   {
     de: "em_andamento",
     para: "cancelado",
     papeis: ["administrador"],
     label: "Cancelar",
+    variante: "destrutiva",
   },
 ];
 
@@ -123,6 +140,28 @@ export function getTransicoesDisponiveis(
   return TRANSICOES_STATUS.filter(
     (t) => t.de === statusAtual && t.papeis.includes(papel as PerfilUsuario)
   );
+}
+
+/** Um documento canônico conta como "gerado" quando tem o PDF anexado. */
+export function documentoFoiGerado(doc: { arquivoId?: string | null }): boolean {
+  return !!doc.arquivoId;
+}
+
+/**
+ * Documentos ainda não gerados (bloqueiam o envio para revisão). Recebe os
+ * documentos já materializados do processo — a lista é criada ao iniciar.
+ */
+export function documentosPendentesDeGeracao<T extends { arquivoId?: string | null }>(
+  documentos: T[]
+): T[] {
+  return documentos.filter((d) => !documentoFoiGerado(d));
+}
+
+/** Todos os documentos exigidos foram gerados? (lista não-vazia e sem pendências) */
+export function documentosProntosParaRevisao(
+  documentos: { arquivoId?: string | null }[]
+): boolean {
+  return documentos.length > 0 && documentosPendentesDeGeracao(documentos).length === 0;
 }
 
 export function podeEditarFormulario(
@@ -191,6 +230,36 @@ export interface TermosProcesso {
   etapa3: string;
   etapa4: string;
   promessa: string;
+}
+
+// ── Responsável da vez por estado do processo ─────────────────────────────────
+// Cada estado tem um dono claro: a tela explicita de quem é a vez e o que essa
+// pessoa precisa fazer, tornando visível o movimento de responsabilidade.
+
+export interface ResponsavelDaVez {
+  /** Papel esperado para agir agora. */
+  papel: PerfilUsuario;
+  /** Rótulo humano do responsável (ex.: "Formador Geral"). */
+  papelLabel: string;
+  /** Ação concreta esperada desse responsável. */
+  acao: string;
+}
+
+export function responsavelDaVez(
+  status: StatusProcessoEclesiastico
+): ResponsavelDaVez | null {
+  switch (status) {
+    case "rascunho":
+      return { papel: "formador_geral", papelLabel: "Preparação (formador)", acao: "iniciar o processo" };
+    case "em_andamento":
+      return { papel: "formador_geral", papelLabel: "Preparação (formador)", acao: "preencher os dados, gerar os documentos e enviar para revisão" };
+    case "em_revisao":
+      return { papel: "formador_geral", papelLabel: "Formador Geral", acao: "conferir os documentos e validar (aprovar ou devolver)" };
+    case "aprovado":
+      return { papel: "formador_geral", papelLabel: "Formador Geral", acao: "concluir e oficializar o processo" };
+    default:
+      return null; // concluido / rejeitado / cancelado / arquivado: sem próxima ação
+  }
 }
 
 export function getTipoLabel(tipo: TipoProcessoEclesiastico, termos: TermosProcesso): string {

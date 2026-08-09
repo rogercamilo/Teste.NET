@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2, Download, Eye, Info } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2, Download, Eye, Info, Undo2, UserCheck, Hourglass } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,9 @@ import {
   podeEditarFormulario,
   TIPO_DOCUMENTO_LABELS,
   getTipoLabel,
+  responsavelDaVez,
+  documentosPendentesDeGeracao,
+  documentosProntosParaRevisao,
   type TermosProcesso,
 } from "@/lib/jornada-vocacional";
 import { DocumentoViewer } from "@/components/documentos/DocumentoViewer";
@@ -73,6 +76,8 @@ interface ProcessoCompleto extends Omit<ProcessoEclesiastico, "documentos"> {
   formando: FormandoDetalhe;
   documentos: (DocumentoEclesiastico & { observacoes?: string | null; geradoPorId?: string | null })[];
   promessa?: RegistroPromessaResumo | null;
+  motivoDevolucao?: string | null;
+  devolvidoEm?: string | null;
 }
 
 interface Props {
@@ -122,6 +127,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   const [gerandoId, setGerandoId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [promessaDialogOpen, setPromessaDialogOpen] = useState(false);
+  const [devolverDialogOpen, setDevolverDialogOpen] = useState(false);
   // Documento em pré-visualização (modal com preview + download embutido).
   const [viewerDoc, setViewerDoc] = useState<{ arquivoId: string; nome: string } | null>(null);
 
@@ -131,6 +137,19 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   const canEdit = podeEditarFormulario(processo.status, userRole);
   const transicoes = getTransicoesDisponiveis(processo.status, userRole);
   const StatusIcon = STATUS_ICONS[processo.status] ?? AlertCircle;
+
+  // Trava de documentos e estado da revisão.
+  const docsPendentes = documentosPendentesDeGeracao(processo.documentos);
+  const docsProntos = documentosProntosParaRevisao(processo.documentos);
+  const resp = responsavelDaVez(processo.status);
+  const acoesForward = transicoes.filter((t) => t.para !== "cancelado");
+  // "É a sua vez": posso preencher (fase de preparação) ou tenho uma ação de avanço.
+  const minhaVez = canEdit || acoesForward.length > 0;
+
+  // Aba inicial: na revisão/aprovação o foco é conferir os documentos.
+  const [tab, setTab] = useState<string>(
+    processo.status === "em_revisao" || processo.status === "aprovado" ? "documentos" : "formulario"
+  );
 
   function setField(key: string, value: unknown) {
     setDadosForm((prev) => ({ ...prev, [key]: value }));
@@ -185,32 +204,42 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
     }
   }
 
-  function onTransicaoClick(novoStatus: StatusProcessoEclesiastico) {
+  function onTransicaoClick(t: { para: StatusProcessoEclesiastico; exigeMotivo?: boolean }) {
+    // Devolução para ajustes exige um motivo → passa pelo modal.
+    if (t.exigeMotivo) {
+      setDevolverDialogOpen(true);
+      return;
+    }
     // Conclusão de promessa exige os dados da celebração (Livro de Promessas).
-    if (novoStatus === "concluido" && exigePromessa) {
+    if (t.para === "concluido" && exigePromessa) {
       setPromessaDialogOpen(true);
       return;
     }
-    handleTransicao(novoStatus);
+    handleTransicao(t.para);
   }
 
   async function handleTransicao(
     novoStatus: StatusProcessoEclesiastico,
-    promessa?: PromessaPayload
+    opts?: { promessa?: PromessaPayload; motivo?: string }
   ): Promise<boolean> {
+    const prevStatus = processo.status;
     setIsSaving(true);
     try {
       const res = await fetch(`/api/processos-eclesiasticos/${processo.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: novoStatus, ...(promessa ? { promessa } : {}) }),
+        body: JSON.stringify({
+          status: novoStatus,
+          ...(opts?.promessa ? { promessa: opts.promessa } : {}),
+          ...(opts?.motivo ? { motivo: opts.motivo } : {}),
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error ?? "Erro ao atualizar status.");
         return false;
       }
-      toast.success(`Status atualizado: ${STATUS_PROCESSO_LABELS[novoStatus]}`);
+      toast.success(mensagemTransicao(novoStatus, prevStatus));
       startTransition(() => router.refresh());
       setProcesso((prev) => ({ ...prev, status: novoStatus }));
       return true;
@@ -253,18 +282,27 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
         {/* Botões de transição de status */}
         {transicoes.length > 0 && (
           <div className="flex gap-2 shrink-0">
-            {transicoes.map((t) => (
-              <Button
-                key={t.para}
-                size="sm"
-                variant={t.para === "rejeitado" || t.para === "cancelado" ? "destructive" : "default"}
-                disabled={isPending || isSaving}
-                onClick={() => onTransicaoClick(t.para)}
-              >
-                {(isPending || isSaving) && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-                {t.label}
-              </Button>
-            ))}
+            {transicoes.map((t) => {
+              // Trava: enviar para revisão só com todos os documentos gerados.
+              const travadoPorDocs = !!t.exigeDocumentosGerados && !docsProntos;
+              return (
+                <Button
+                  key={t.para + t.label}
+                  size="sm"
+                  variant={t.variante === "destrutiva" ? "destructive" : "default"}
+                  disabled={isPending || isSaving || travadoPorDocs}
+                  title={
+                    travadoPorDocs
+                      ? "Gere todos os documentos do processo antes de enviar para revisão."
+                      : undefined
+                  }
+                  onClick={() => onTransicaoClick(t)}
+                >
+                  {(isPending || isSaving) && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                  {t.label}
+                </Button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -275,9 +313,15 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
         status={processo.status}
         tipoLabel={getTipoLabel(processo.tipo, termos)}
         nome={f.nome}
+        minhaVez={minhaVez}
+        responsavelLabel={resp?.papelLabel ?? null}
+        responsavelAcao={resp?.acao ?? null}
+        docsPendentes={docsPendentes.map((d) => TIPO_DOCUMENTO_LABELS[d.tipo])}
+        totalDocs={processo.documentos.length}
+        motivoDevolucao={processo.motivoDevolucao ?? null}
       />
 
-      <Tabs defaultValue="formulario">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="formulario">Formulário</TabsTrigger>
           <TabsTrigger value="documentos">
@@ -296,7 +340,9 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
           {!canEdit && (
             <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              Este processo está em status <strong>{STATUS_PROCESSO_LABELS[processo.status]}</strong> e não pode ser editado.
+              {processo.status === "em_revisao"
+                ? "O formulário está travado durante a revisão do Formador Geral. Para editar, é preciso devolvê-lo para ajustes."
+                : <>Este processo está em status <strong>{STATUS_PROCESSO_LABELS[processo.status]}</strong> e não pode ser editado.</>}
             </div>
           )}
 
@@ -319,7 +365,17 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
         </TabsContent>
 
         {/* ── TAB: DOCUMENTOS ── */}
-        <TabsContent value="documentos" className="pt-4">
+        <TabsContent value="documentos" className="pt-4 space-y-3">
+          {processo.status === "em_revisao" && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-900 px-4 py-3 text-sm text-yellow-900 dark:text-yellow-200">
+              <UserCheck className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>Revisão do Formador Geral.</strong> Confira cada documento abaixo. Estando tudo
+                correto, use <strong>Aprovar</strong> no topo; havendo pendências, use{" "}
+                <strong>Devolver para ajustes</strong> e descreva o que corrigir.
+              </span>
+            </div>
+          )}
           {processo.documentos.length === 0 ? (
             <Card>
               <CardContent className="py-14 flex flex-col items-center gap-3 text-center text-muted-foreground">
@@ -479,11 +535,22 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
           formulaDefault={promessaFormulaDefault ?? ""}
           busy={isSaving}
           onConfirm={async (payload) => {
-            const ok = await handleTransicao("concluido", payload);
+            const ok = await handleTransicao("concluido", { promessa: payload });
             if (ok) setPromessaDialogOpen(false);
           }}
         />
       )}
+
+      <DevolverDialog
+        open={devolverDialogOpen}
+        onOpenChange={setDevolverDialogOpen}
+        nome={f.nome}
+        busy={isSaving}
+        onConfirm={async (motivo) => {
+          const ok = await handleTransicao("em_andamento", { motivo });
+          if (ok) setDevolverDialogOpen(false);
+        }}
+      />
 
       {viewerDoc && (
         <DocumentoViewer
@@ -712,17 +779,17 @@ const FLUXO_ETAPAS: { status: StatusProcessoEclesiastico; titulo: string }[] = [
 function proximoPassoTexto(status: StatusProcessoEclesiastico): string {
   switch (status) {
     case "rascunho":
-      return "Use “Iniciar processo” no topo para criar automaticamente a lista de documentos canônicos desta etapa.";
+      return "Use “Iniciar processo” no topo para criar automaticamente a lista de documentos canônicos desta etapa e começar o preenchimento.";
     case "em_andamento":
-      return "Preencha o formulário e gere os documentos na aba Documentos. Quando estiver tudo pronto, o Formador Geral ou o Administrador envia o processo para revisão.";
+      return "Preencha o formulário e gere todos os documentos na aba Documentos. Só então o botão “Enviar para revisão” é liberado — passando a responsabilidade ao Formador Geral.";
     case "em_revisao":
-      return "O processo está com a gestão: o Administrador confere os documentos e então aprova ou rejeita.";
+      return "A responsabilidade agora é do Formador Geral: ele confere os documentos e valida — aprova, ou devolve para ajustes com um motivo. O formulário fica travado durante a revisão.";
     case "aprovado":
-      return "Falta a etapa final: o Administrador conclui o processo — oficializando os documentos e, havendo promessa, lavrando o assento no Livro de Promessas.";
+      return "Falta a etapa final: o Formador Geral conclui o processo — oficializando os documentos e, havendo promessa, lavrando o assento no Livro de Promessas.";
     case "concluido":
       return "Processo concluído. Os documentos oficiais ficam disponíveis na aba Documentos.";
     case "rejeitado":
-      return "O processo foi rejeitado na revisão. Combine com a gestão os ajustes necessários antes de abrir um novo processo.";
+      return "O processo foi encerrado como rejeitado. Para retomar, abra um novo processo para o membro.";
     case "cancelado":
       return "Este processo foi cancelado e não terá andamento.";
     default:
@@ -730,12 +797,44 @@ function proximoPassoTexto(status: StatusProcessoEclesiastico): string {
   }
 }
 
+// Mensagem de confirmação após uma transição — reforça a mensageria entre
+// perfis: quem foi avisado e que o processo retornará com aviso.
+function mensagemTransicao(
+  novo: StatusProcessoEclesiastico,
+  anterior: StatusProcessoEclesiastico
+): string {
+  switch (novo) {
+    case "em_revisao":
+      return "Enviado para revisão. O Formador Geral foi avisado — você será notificado quando ele responder.";
+    case "em_andamento":
+      return anterior === "em_revisao"
+        ? "Devolvido para ajustes. O preparador foi avisado do motivo."
+        : "Processo iniciado. Preencha o formulário e gere os documentos.";
+    case "aprovado":
+      return "Processo aprovado. O preparador foi avisado.";
+    case "concluido":
+      return "Processo concluído. Os documentos oficiais estão disponíveis.";
+    case "cancelado":
+      return "Processo cancelado.";
+    default:
+      return `Status atualizado: ${STATUS_PROCESSO_LABELS[novo]}`;
+  }
+}
+
 function ProcessoGuia({
   status, tipoLabel, nome,
+  minhaVez, responsavelLabel, responsavelAcao,
+  docsPendentes, totalDocs, motivoDevolucao,
 }: {
   status: StatusProcessoEclesiastico;
   tipoLabel: string;
   nome: string;
+  minhaVez: boolean;
+  responsavelLabel: string | null;
+  responsavelAcao: string | null;
+  docsPendentes: string[];
+  totalDocs: number;
+  motivoDevolucao: string | null;
 }) {
   const idx = FLUXO_ETAPAS.findIndex((e) => e.status === status);
   const terminalNegativo = status === "rejeitado" || status === "cancelado";
@@ -746,12 +845,61 @@ function ProcessoGuia({
         <div className="flex items-start gap-2.5">
           <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Esta tela conduz o <span className="font-medium text-foreground">processo de {tipoLabel}</span> de{" "}
-            <span className="font-medium text-foreground">{nome}</span>: você preenche os dados na aba{" "}
-            <span className="font-medium text-foreground">Formulário</span>, gera os documentos oficiais na aba{" "}
-            <span className="font-medium text-foreground">Documentos</span> e acompanha a tramitação até a conclusão.
+            Este é o rito canônico de <span className="font-medium text-foreground">{tipoLabel}</span> de{" "}
+            <span className="font-medium text-foreground">{nome}</span>. O objetivo é <span className="font-medium text-foreground">produzir e validar os documentos oficiais</span> da etapa:
+            a preparação reúne os dados (aba <span className="font-medium text-foreground">Formulário</span>) e gera os documentos (aba{" "}
+            <span className="font-medium text-foreground">Documentos</span>); o <span className="font-medium text-foreground">Formador Geral</span> revisa e valida;
+            a conclusão oficializa e registra no Livro.
           </p>
         </div>
+
+        {/* De quem é a vez agora */}
+        {responsavelLabel && responsavelAcao && (
+          minhaVez ? (
+            <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5">
+              <UserCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground">
+                <span className="font-semibold">É a sua vez:</span> {responsavelAcao}.
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+              <Hourglass className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">
+                Aguardando <span className="font-medium text-foreground">{responsavelLabel}</span> — {responsavelAcao}.
+                {" "}Você será avisado quando o processo retornar para você.
+              </p>
+            </div>
+          )
+        )}
+
+        {/* Devolução para ajustes: motivo retornado ao preparador */}
+        {status === "em_andamento" && motivoDevolucao && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 px-3 py-2.5">
+            <Undo2 className="h-4 w-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-900 dark:text-amber-200">
+              <span className="font-semibold">Devolvido para ajustes:</span> {motivoDevolucao}
+            </p>
+          </div>
+        )}
+
+        {/* Pendência de documentos para liberar o envio à revisão */}
+        {status === "em_andamento" && (
+          totalDocs === 0 ? (
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+              <FileText className="h-4 w-4 shrink-0 mt-0.5" />
+              A lista de documentos deste processo ainda não foi criada.
+            </div>
+          ) : docsPendentes.length > 0 ? (
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+              <FileText className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                Faltam gerar para liberar a revisão:{" "}
+                <span className="font-medium text-foreground">{docsPendentes.join(", ")}</span>.
+              </span>
+            </div>
+          ) : null
+        )}
 
         {terminalNegativo ? (
           <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
@@ -798,6 +946,63 @@ function ProcessoGuia({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Diálogo: devolver processo para ajustes ──────────────────────────────────
+
+function DevolverDialog({
+  open, onOpenChange, nome, busy, onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  nome: string;
+  busy: boolean;
+  onConfirm: (motivo: string) => void;
+}) {
+  const [motivo, setMotivo] = useState("");
+
+  function submit() {
+    if (!motivo.trim()) {
+      toast.error("Descreva o que precisa ser ajustado.");
+      return;
+    }
+    onConfirm(motivo.trim());
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => { if (!v) setMotivo(""); onOpenChange(v); }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Devolver para ajustes</DialogTitle>
+          <DialogDescription>
+            O processo de {nome} volta para <strong>Em andamento</strong> e o motivo é enviado ao
+            preparador, que corrige e reenvia para revisão.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label>Motivo da devolução</Label>
+          <Textarea
+            rows={4}
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Ex.: O Ato de Admissão está com a data da celebração incorreta."
+            className="resize-none text-sm"
+            autoFocus
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancelar</Button>
+          <Button variant="destructive" onClick={submit} disabled={busy}>
+            {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Devolver
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
