@@ -6,6 +6,7 @@ import { s, Header, Secao, Campo, Assinaturas, DataLocal, Footer, val } from "./
 const DIMENSOES = [
   {
     titulo: "Dimensão Espiritual",
+    consideracoesKey: "consideracoes_espiritual",
     campos: [
       { key: "participacao_sacramentos", label: "Participação nos sacramentos" },
       { key: "vida_oracao", label: "Vida de oração" },
@@ -14,6 +15,7 @@ const DIMENSOES = [
   },
   {
     titulo: "Dimensão Comunitária",
+    consideracoesKey: "consideracoes_comunitaria",
     campos: [
       { key: "participacao_encontros", label: "Participação nos encontros" },
       { key: "relacao_fraterna", label: "Relação fraterna" },
@@ -22,6 +24,7 @@ const DIMENSOES = [
   },
   {
     titulo: "Dimensão Missionária",
+    consideracoesKey: "consideracoes_missionaria",
     campos: [
       { key: "envolvimento_missao", label: "Envolvimento na missão" },
       { key: "disponibilidade_servico", label: "Disponibilidade para o serviço" },
@@ -30,6 +33,7 @@ const DIMENSOES = [
   },
   {
     titulo: "Dimensão Humana",
+    consideracoesKey: "consideracoes_humana",
     campos: [
       { key: "maturidade_afetiva", label: "Maturidade afetiva" },
       { key: "cooperacao_dialogo", label: "Cooperação e diálogo" },
@@ -70,6 +74,9 @@ export default function ParecerFormativoPDF({ dados }: { dados: DadosTemplate })
             {dim.campos.map((c) => (
               <Campo key={c.key} label={c.label} value={notaLabel(f[c.key])} />
             ))}
+            {val(f[dim.consideracoesKey]) ? (
+              <Text style={[s.paragraph, { marginTop: 2 }]}>{val(f[dim.consideracoesKey])}</Text>
+            ) : null}
           </View>
         ))}
 

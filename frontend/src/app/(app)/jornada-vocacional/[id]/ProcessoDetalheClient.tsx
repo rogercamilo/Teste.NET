@@ -638,6 +638,7 @@ function FormularioAdmissao({ dados, formando, onChange, disabled, tipo }: Formu
             titulo="Espiritual"
             campos={["participacao_sacramentos", "vida_oracao", "adesao_carisma"]}
             labels={["Participação nos sacramentos", "Vida de oração", "Adesão ao carisma"]}
+            campoConsideracoes="consideracoes_espiritual"
             dados={dados}
             onChange={onChange}
             disabled={disabled}
@@ -646,6 +647,7 @@ function FormularioAdmissao({ dados, formando, onChange, disabled, tipo }: Formu
             titulo="Comunitária"
             campos={["participacao_encontros", "relacao_fraterna", "zelo_responsabilidade"]}
             labels={["Participação nos encontros", "Relação fraterna", "Zelo e responsabilidade"]}
+            campoConsideracoes="consideracoes_comunitaria"
             dados={dados}
             onChange={onChange}
             disabled={disabled}
@@ -654,6 +656,7 @@ function FormularioAdmissao({ dados, formando, onChange, disabled, tipo }: Formu
             titulo="Missionária"
             campos={["envolvimento_missao", "disponibilidade_servico", "testemunho_cristao"]}
             labels={["Envolvimento na missão", "Disponibilidade para o serviço", "Testemunho cristão"]}
+            campoConsideracoes="consideracoes_missionaria"
             dados={dados}
             onChange={onChange}
             disabled={disabled}
@@ -662,6 +665,7 @@ function FormularioAdmissao({ dados, formando, onChange, disabled, tipo }: Formu
             titulo="Humana"
             campos={["maturidade_afetiva", "cooperacao_dialogo"]}
             labels={["Maturidade afetiva", "Cooperação e diálogo"]}
+            campoConsideracoes="consideracoes_humana"
             dados={dados}
             onChange={onChange}
             disabled={disabled}
@@ -717,11 +721,13 @@ function Field({
 const NOTA_OPTIONS = ["ótimo", "bom", "regular", "fraco"] as const;
 
 function DimensaoParecer({
-  titulo, campos, labels, dados, onChange, disabled,
+  titulo, campos, labels, campoConsideracoes, dados, onChange, disabled,
 }: {
   titulo: string;
   campos: string[];
   labels: string[];
+  /** Campo de texto livre (opcional) para considerações sobre esta dimensão. */
+  campoConsideracoes: string;
   dados: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
   disabled: boolean;
@@ -749,6 +755,19 @@ function DimensaoParecer({
             </Select>
           </div>
         ))}
+      </div>
+      <div className="mt-3">
+        <Label className="text-xs text-muted-foreground mb-1.5 block">
+          Considerações sobre a dimensão {titulo.toLowerCase()} <span className="font-normal">(opcional)</span>
+        </Label>
+        <Textarea
+          rows={2}
+          value={dados[campoConsideracoes] !== undefined && dados[campoConsideracoes] !== null ? String(dados[campoConsideracoes]) : ""}
+          onChange={(e) => onChange(campoConsideracoes, e.target.value)}
+          disabled={disabled}
+          className="resize-none text-sm"
+          placeholder="Observações do responsável sobre esta dimensão…"
+        />
       </div>
     </div>
   );
