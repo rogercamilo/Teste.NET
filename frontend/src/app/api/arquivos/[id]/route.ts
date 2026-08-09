@@ -64,6 +64,9 @@ export async function GET(
   // nativo), tirando o app do caminho de transferência e eliminando a indireção
   // de redirect que atrapalhava o streaming progressivo do pdf.js.
   const wantsJson = request.nextUrl.searchParams.get("url") === "1";
+  // `?download=1`: força o download (Content-Disposition: attachment) em vez de
+  // abrir o arquivo inline no navegador.
+  const wantsDownload = request.nextUrl.searchParams.get("download") === "1";
 
   try {
     const arquivo = await prisma.arquivo.findFirst({
@@ -85,7 +88,7 @@ export async function GET(
       process.env.R2_BUCKET_NAME
     ) {
       const { getFileUrl } = await import("@/lib/storage");
-      const url = await getFileUrl(arquivo.storageKey, arquivo.id);
+      const url = await getFileUrl(arquivo.storageKey, arquivo.id, 900, wantsDownload ? arquivo.nome : undefined);
       const expectedPrefix = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
       if (!url.startsWith(expectedPrefix)) {
         return new Response("URL de redirecionamento inválida", { status: 500 });
@@ -108,7 +111,7 @@ export async function GET(
     return new Response(new Uint8Array(buffer), {
       headers: {
         "Content-Type": arquivo.tipo,
-        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(arquivo.nome)}`,
+        "Content-Disposition": `${wantsDownload ? "attachment" : "inline"}; filename*=UTF-8''${encodeURIComponent(arquivo.nome)}`,
         "Content-Length": String(buffer.length),
         "Cache-Control": "private, no-cache",
       },

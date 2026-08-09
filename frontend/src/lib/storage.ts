@@ -120,13 +120,20 @@ async function uploadR2(
   return key;
 }
 
-async function getPresignedUrlR2(storageKey: string, ttl: number): Promise<string> {
+async function getPresignedUrlR2(storageKey: string, ttl: number, downloadName?: string): Promise<string> {
   const { GetObjectCommand } = await import("@aws-sdk/client-s3");
   const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
   const client = await getR2Client();
   return getSignedUrl(
     client,
-    new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: storageKey }),
+    new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Key: storageKey,
+      // Força o download (em vez de abrir inline) quando um nome é informado.
+      ...(downloadName
+        ? { ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}` }
+        : {}),
+    }),
     { expiresIn: ttl }
   );
 }
@@ -178,9 +185,10 @@ export async function deleteFile(storageKey: string): Promise<void> {
 export async function getFileUrl(
   storageKey: string,
   arquivoId: string,
-  ttl = 900
+  ttl = 900,
+  downloadName?: string
 ): Promise<string> {
-  if (R2_ENABLED) return getPresignedUrlR2(storageKey, ttl);
+  if (R2_ENABLED) return getPresignedUrlR2(storageKey, ttl, downloadName);
   return `/api/arquivos/${arquivoId}`;
 }
 

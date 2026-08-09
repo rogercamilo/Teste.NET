@@ -245,6 +245,12 @@ export const navGroupsFormador: NavGroup[] = [
     items: [
       { title: "Formandos", href: "/formandos", icon: Users },
       { title: "Gestão de Presença", href: "/presenca", icon: ClipboardList },
+      {
+        title: "Jornada Vocacional",
+        href: "/jornada-vocacional",
+        icon: ScrollText,
+        requiredTipoOrg: ["nova_comunidade", "instituto_religioso"],
+      },
     ],
   },
   {

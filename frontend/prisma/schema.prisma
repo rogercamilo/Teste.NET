@@ -49,8 +49,8 @@ enum TipoGrupoFormacao {
 }
 
 enum TipoProcessoEclesiastico {
-  admissao_etapa1
-  admissao_etapa2
+  inicio_vocacional
+  admissao_etapa
   promessas_iniciais
   renovacao_promessas
   promessas_definitivas
@@ -976,6 +976,9 @@ model Arquivo {
   formandoNome    String?
   tipoEvento      String?
   grupoFormacaoId String?  @map("morada_id")
+  // Data de realização do evento associado ao arquivo (ex.: carta de etapa).
+  // Opcional — quando ausente, a data efetiva é o `criadoEm` (registro).
+  dataEvento      DateTime?
   criadoEm        DateTime @default(now())
 
   organizacao             Organizacao             @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)

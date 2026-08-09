@@ -22,7 +22,7 @@ export function dadosFicticios(): DadosTemplate {
     termoConsagrado: "Consagrado(a)",
     textosCustom: {},
 
-    processoTipo: "admissao_etapa2",
+    processoTipo: "admissao_etapa",
     nivelFormativo: "Discipulado",
     favoravelRenovacao: true,
 

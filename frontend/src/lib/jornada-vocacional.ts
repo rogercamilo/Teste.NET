@@ -13,14 +13,14 @@ export function getDocumentosTipos(
   opts: { menorDeIdade?: boolean; favoravelRenovacao?: boolean } = {}
 ): TipoDocumentoEclesiastico[] {
   switch (tipo) {
-    case "admissao_etapa1":
+    case "inicio_vocacional":
       return [
         "ato_admissao",
         "informacoes_pastorais",
         ...(opts.menorDeIdade ? (["declaracao_responsavel"] as TipoDocumentoEclesiastico[]) : []),
         "ciencia_politicas_internas",
       ];
-    case "admissao_etapa2":
+    case "admissao_etapa":
       return [
         "ato_admissao",
         "informacoes_pastorais",
@@ -73,7 +73,9 @@ export const TRANSICOES_STATUS: TransicaoStatus[] = [
   {
     de: "rascunho",
     para: "em_andamento",
-    papeis: ["administrador", "formador_geral"],
+    // O formador comunitário inicia o processo: é o responsável pela etapa
+    // formativa atual do formando e quem coleta os dados dos documentos.
+    papeis: ["administrador", "formador_geral", "formador_comunitario"],
     label: "Iniciar processo",
   },
   {
@@ -130,6 +132,9 @@ export function podeEditarFormulario(
   if (status === "concluido") return false;
   if (papel === "administrador") return true;
   if (papel === "formador_geral") return status !== "aprovado";
+  // O formador comunitário preenche os dados durante a sua fase (antes da
+  // revisão da gestão): edita enquanto o processo está em rascunho ou em andamento.
+  if (papel === "formador_comunitario") return status === "rascunho" || status === "em_andamento";
   return false;
 }
 
@@ -189,8 +194,10 @@ export interface TermosProcesso {
 }
 
 export function getTipoLabel(tipo: TipoProcessoEclesiastico, termos: TermosProcesso): string {
-  if (tipo === "admissao_etapa1") return `Admissão — ${termos.etapa1}`;
-  if (tipo === "admissao_etapa2") return `Admissão — ${termos.etapa2}`;
+  if (tipo === "inicio_vocacional") return "Início Vocacional";
+  // Admissão genérica: o estágio concreto (nível do formando) é exibido à parte,
+  // na coluna "Etapa" da lista e no cabeçalho do processo.
+  if (tipo === "admissao_etapa") return "Admissão à Etapa Formativa";
   if (tipo === "promessas_iniciais") return termos.etapa3;
   if (tipo === "promessas_definitivas") return `${termos.promessa}s Definitivas`;
   return TIPO_PROCESSO_LABELS[tipo];

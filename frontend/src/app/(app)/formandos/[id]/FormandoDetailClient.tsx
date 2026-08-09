@@ -174,6 +174,7 @@ export interface CartaEtapa {
   nivel: NivelFormativo;
   extensao: string;
   tamanho: number;
+  dataEvento: string | null;
   criadoEm: string;
 }
 
@@ -209,6 +210,7 @@ export default function FormandoDetailClient({
   const [cartaOpen, setCartaOpen] = useState(false);
   const [cartaNivel, setCartaNivel] = useState<NivelFormativo>("vocacional");
   const [cartaFile, setCartaFile] = useState<File | null>(null);
+  const [cartaData, setCartaData] = useState("");
   const [cartaSubmitting, setCartaSubmitting] = useState(false);
   const mostraDocumentos =
     hasCanonicalAccess(tipoOrganizacao as TipoOrganizacao | null) || vocacionalHabilitado;
@@ -300,7 +302,7 @@ export default function FormandoDetailClient({
   const [licencaFiles, setLicencaFiles] = useState<File[]>([]);
 
   const [novoProcessoOpen, setNovoProcessoOpen] = useState(false);
-  const [novoProcessoTipo, setNovoProcessoTipo] = useState<TipoProcessoEclesiastico>("admissao_etapa1");
+  const [novoProcessoTipo, setNovoProcessoTipo] = useState<TipoProcessoEclesiastico>("inicio_vocacional");
 
   const ACCEPTED_TYPES = [
     "application/pdf",
@@ -345,6 +347,7 @@ export default function FormandoDetailClient({
       const fd = new FormData();
       fd.append("arquivo", cartaFile);
       fd.append("nivelFormativo", cartaNivel);
+      if (cartaData) fd.append("dataEvento", cartaData);
       const res = await fetch(`/api/formandos/${id}/cartas`, { method: "POST", body: fd });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Falha ao registrar carta." }));
@@ -353,6 +356,7 @@ export default function FormandoDetailClient({
       toast.success("Carta de etapa registrada.");
       setCartaOpen(false);
       setCartaFile(null);
+      setCartaData("");
       startTransition(() => router.refresh());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao registrar carta.");
@@ -1314,7 +1318,7 @@ export default function FormandoDetailClient({
                               </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {format(parseISO(carta.criadoEm), "d 'de' MMM 'de' yyyy", { locale: ptBR })}
+                              {format(parseISO(carta.dataEvento ?? carta.criadoEm), "d 'de' MMM 'de' yyyy", { locale: ptBR })}
                             </p>
                           </div>
                         </div>
@@ -2560,6 +2564,17 @@ export default function FormandoDetailClient({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Data de realização do evento</Label>
+              <Input
+                type="date"
+                value={cartaData}
+                onChange={(e) => setCartaData(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Opcional — se em branco, usamos a data do registro.
+              </p>
             </div>
             <div className="grid gap-1.5">
               <Label>

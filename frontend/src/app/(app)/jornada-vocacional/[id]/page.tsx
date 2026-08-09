@@ -25,6 +25,7 @@ export default async function ProcessoDetalhePage({
           select: {
             id: true,
             nome: true,
+            grupoFormacaoId: true,
             dataNascimento: true,
             estadoCivil: true,
             telefone: true,
@@ -59,6 +60,13 @@ export default async function ProcessoDetalhePage({
 
   if (!processo) redirect("/jornada-vocacional");
   if (!hasCanonicalAccess(org?.tipoOrganizacao)) redirect("/dashboard");
+  // Formador comunitário só acessa processos de formandos da sua morada.
+  if (
+    user.role === "formador_comunitario" &&
+    processo.formando.grupoFormacaoId !== user.grupoFormacaoId
+  ) {
+    redirect("/jornada-vocacional");
+  }
 
   const tipoPromessa = mapProcessoParaTipoPromessa(processo.tipo);
   const promessaFormulaDefault =

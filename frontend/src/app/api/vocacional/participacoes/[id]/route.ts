@@ -127,7 +127,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             data: {
               organizacaoId,
               formandoId: participacao.formandoId,
-              tipo: "admissao_etapa1",
+              tipo: "inicio_vocacional",
               nivelFormativo: "pre-discipulado",
               status: "rascunho",
               dadosFormulario: {},

@@ -927,8 +927,8 @@ export const TIPO_GRUPO_FORMACAO_LABELS: Record<TipoGrupoFormacao, string> = {
 // ==========================================================
 
 export type TipoProcessoEclesiastico =
-  | "admissao_etapa1"
-  | "admissao_etapa2"
+  | "inicio_vocacional"
+  | "admissao_etapa"
   | "promessas_iniciais"
   | "renovacao_promessas"
   | "promessas_definitivas"
@@ -1000,8 +1000,8 @@ export interface RegistroPromessaResumo {
 }
 
 export const TIPO_PROCESSO_LABELS: Record<TipoProcessoEclesiastico, string> = {
-  admissao_etapa1:       "Admissão — Etapa 1",
-  admissao_etapa2:       "Admissão — Etapa 2",
+  inicio_vocacional:     "Início Vocacional",
+  admissao_etapa:        "Admissão à Etapa Formativa",
   promessas_iniciais:    "Promessas Iniciais",
   renovacao_promessas:   "Renovação de Promessas",
   promessas_definitivas: "Promessas Definitivas",

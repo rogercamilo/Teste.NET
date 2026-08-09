@@ -11,17 +11,23 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   const user = session?.user as SessionUser | undefined;
   if (!user?.organizacaoId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (user.role === "formador_comunitario") return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const tipoFiltro = searchParams.get("tipo") ?? undefined;
   const statusFiltro = searchParams.get("status") ?? undefined;
   const formandoId = searchParams.get("formandoId") ?? undefined;
 
+  // O formador comunitário vê apenas processos dos formandos da sua morada.
+  const escopoFormando =
+    user.role === "formador_comunitario"
+      ? { formando: { grupoFormacaoId: user.grupoFormacaoId ?? null } }
+      : {};
+
   try {
     const processos = await prisma.processoEclesiastico.findMany({
       where: {
         organizacaoId: user.organizacaoId,
+        ...escopoFormando,
         ...(tipoFiltro ? { tipo: tipoFiltro as TipoProcessoEclesiastico } : {}),
         ...(statusFiltro ? { status: statusFiltro as never } : {}),
         ...(formandoId ? { formandoId } : {}),
@@ -73,10 +79,6 @@ export async function POST(req: NextRequest) {
   const user = session?.user as SessionUser | undefined;
   if (!user?.organizacaoId || !user.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  if (user.role === "formador_comunitario") {
-    return NextResponse.json({ error: "Sem permissão para criar processos eclesiásticos" }, { status: 403 });
-  }
-
   const { id: userId, organizacaoId } = user;
 
   try {
@@ -99,6 +101,11 @@ export async function POST(req: NextRequest) {
       },
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
+
+    // Formador comunitário só abre processo para formando da sua própria morada.
+    if (user.role === "formador_comunitario" && formando.grupoFormacaoId !== user.grupoFormacaoId) {
+      return NextResponse.json({ error: "Sem permissão para este formando" }, { status: 403 });
+    }
 
     const processo = await prisma.processoEclesiastico.create({
       data: {

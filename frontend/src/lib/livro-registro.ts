@@ -100,25 +100,47 @@ export function condicaoPorTipoTermo(tipo: TipoTermoRegistro): CondicaoMembro | 
 
 // ── Mapeamento processo → termo ───────────────────────────────────────────────
 
+export type EtapaTermoCampo =
+  | "termoPreDiscipulado"
+  | "termoDiscipulado"
+  | "termoPrimeirasPromessas"
+  | "termoFormacaoPermanente";
+
 export interface MapeamentoTermo {
   tipoTermo: TipoTermoRegistro;
   condicaoResultante?: CondicaoMembro;
   /** Campo de Organizacao com o nome da etapa, quando aplicável. */
-  etapaCampo?: "termoPreDiscipulado" | "termoDiscipulado";
+  etapaCampo?: EtapaTermoCampo;
 }
 
 /**
+ * Admissão à etapa formativa: cada nível define a condição resultante e o campo
+ * de Organizacao com o rótulo da etapa. Pré-Discipulado é a entrada (marcada pelo
+ * tipo `inicio_vocacional`); os demais níveis são cobertos pela admissão genérica.
+ */
+const ADMISSAO_POR_NIVEL: Record<string, { condicao: CondicaoMembro; etapaCampo: EtapaTermoCampo }> = {
+  "pre-discipulado":     { condicao: "membro_em_experiencia", etapaCampo: "termoPreDiscipulado" },
+  "discipulado":         { condicao: "membro_em_formacao",    etapaCampo: "termoDiscipulado" },
+  "primeiras-promessas": { condicao: "membro_em_formacao",    etapaCampo: "termoPrimeirasPromessas" },
+  "formacao-permanente": { condicao: "membro_em_formacao",    etapaCampo: "termoFormacaoPermanente" },
+};
+
+/**
  * Mapeia a conclusão de um ProcessoEclesiastico para o termo a ser lavrado.
- * Retorna null para tipos que não geram termo automático.
+ * Retorna null para tipos que não geram termo automático. `nivelFormativo`
+ * parametriza a admissão genérica (`admissao_etapa`) — condição e nome da etapa.
  */
 export function mapProcessoParaTermo(
-  tipo: TipoProcessoEclesiastico
+  tipo: TipoProcessoEclesiastico,
+  nivelFormativo?: string,
 ): MapeamentoTermo | null {
   switch (tipo) {
-    case "admissao_etapa1":
+    case "inicio_vocacional":
       return { tipoTermo: "admissao_etapa", condicaoResultante: "membro_em_experiencia", etapaCampo: "termoPreDiscipulado" };
-    case "admissao_etapa2":
-      return { tipoTermo: "admissao_etapa", condicaoResultante: "membro_em_formacao", etapaCampo: "termoDiscipulado" };
+    case "admissao_etapa": {
+      const m = (nivelFormativo && ADMISSAO_POR_NIVEL[nivelFormativo]) || ADMISSAO_POR_NIVEL["discipulado"];
+      return { tipoTermo: "admissao_etapa", condicaoResultante: m.condicao, etapaCampo: m.etapaCampo };
+    }
     case "promessas_iniciais":
       return { tipoTermo: "primeiras_promessas", condicaoResultante: "membro_primeiras_promessas" };
     case "renovacao_promessas":

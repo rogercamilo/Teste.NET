@@ -213,7 +213,11 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
 
     return NextResponse.json({
       arquivoId: arquivo.id,
-      geradoEm,
+      // ISO — o cliente reidrata o estado e formata para exibição. Devolver a
+      // string pt-BR (variável `geradoEm`, usada só no template) fazia o cliente
+      // rodar `parseISO` sobre "dd/MM/yyyy às HH:mm" → Invalid Date → o `format`
+      // no render lançava RangeError e derrubava a tela logo após gerar o PDF.
+      geradoEm: agora.toISOString(),
       versao: novaVersao,
     });
   } catch (err) {

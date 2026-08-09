@@ -15,7 +15,8 @@ describe("mapProcessoParaTipoPromessa", () => {
   });
 
   it("retorna null para processos que não geram promessa", () => {
-    expect(mapProcessoParaTipoPromessa("admissao_etapa1")).toBeNull();
+    expect(mapProcessoParaTipoPromessa("inicio_vocacional")).toBeNull();
+    expect(mapProcessoParaTipoPromessa("admissao_etapa")).toBeNull();
     expect(mapProcessoParaTipoPromessa("ministerio")).toBeNull();
     expect(mapProcessoParaTipoPromessa("desligamento")).toBeNull();
   });

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth-helpers";
-import { hasCanonicalAccess, temPermissao, type NivelFormativo } from "@/types";
+import { hasCanonicalAccess, type NivelFormativo } from "@/types";
 import JornadaVocacionalClient from "./JornadaVocacionalClient";
 
 export default async function JornadaVocacionalPage() {
@@ -18,10 +18,16 @@ export default async function JornadaVocacionalPage() {
   });
 
   if (!hasCanonicalAccess(org?.tipoOrganizacao)) redirect("/dashboard");
-  if (!temPermissao(user.role, "formador_geral")) redirect("/dashboard");
+
+  // O formador comunitário vê os processos dos formandos da SUA morada (histórico
+  // do formando que acompanha); a gestão vê todos os processos da organização.
+  const escopoFormando =
+    user.role === "formador_comunitario"
+      ? { formando: { grupoFormacaoId: user.grupoFormacaoId ?? null } }
+      : {};
 
   const processos = await prisma.processoEclesiastico.findMany({
-    where: { organizacaoId: user.organizacaoId },
+    where: { organizacaoId: user.organizacaoId, ...escopoFormando },
     include: {
       formando: { select: { id: true, nome: true } },
       criadoPor: { select: { id: true, nome: true } },

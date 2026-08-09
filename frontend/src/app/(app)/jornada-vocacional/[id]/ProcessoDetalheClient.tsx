@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2, Download } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2, Download, Eye } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,7 @@ import {
   getTipoLabel,
   type TermosProcesso,
 } from "@/lib/jornada-vocacional";
+import { DocumentoViewer } from "@/components/documentos/DocumentoViewer";
 
 // Formando extra fields not in base ProcessoEclesiastico type
 interface FormandoDetalhe {
@@ -121,6 +122,8 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   const [gerandoId, setGerandoId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [promessaDialogOpen, setPromessaDialogOpen] = useState(false);
+  // Documento em pré-visualização (modal com preview + download embutido).
+  const [viewerDoc, setViewerDoc] = useState<{ arquivoId: string; nome: string } | null>(null);
 
   // Processo de promessa ainda sem assento lavrado → conclusão passa pelo modal.
   const exigePromessa = !!promessaTipo && !processo.promessa;
@@ -313,13 +316,16 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
         <TabsContent value="documentos" className="pt-4">
           {processo.documentos.length === 0 ? (
             <Card>
-              <CardContent className="py-14 flex flex-col items-center gap-3 text-muted-foreground">
+              <CardContent className="py-14 flex flex-col items-center gap-3 text-center text-muted-foreground">
                 <FileText className="h-9 w-9 opacity-30" />
-                <p className="text-sm">
-                  {processo.status === "rascunho"
-                    ? "Os documentos serão gerados quando o processo for iniciado."
-                    : "Nenhum documento associado a este processo."}
-                </p>
+                {processo.status === "rascunho" ? (
+                  <p className="text-sm max-w-sm">
+                    A lista de documentos é criada automaticamente quando você
+                    inicia o processo. Use <strong>&ldquo;Iniciar processo&rdquo;</strong> no topo desta tela.
+                  </p>
+                ) : (
+                  <p className="text-sm">Nenhum documento associado a este processo.</p>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -349,29 +355,54 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
                       >
                         {STATUS_DOC_LABELS[doc.status]}
                       </span>
-                      {doc.arquivoId && (
-                        <a
-                          href={`/api/arquivos/${doc.arquivoId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-                        >
-                          <Download className="h-3 w-3" />
-                          Baixar
-                        </a>
+                      {/* Visualizar/baixar/gerar são exclusivos da gestão — o formador
+                          comunitário vê o status, mas não consome o documento. */}
+                      {temPermissao(userRole, "formador_geral") && (
+                        doc.arquivoId ? (
+                          <>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="text-xs gap-1"
+                              onClick={() => setViewerDoc({ arquivoId: doc.arquivoId!, nome: `${TIPO_DOCUMENTO_LABELS[doc.tipo]}.pdf` })}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              Visualizar
+                            </Button>
+                            <a
+                              href={`/api/arquivos/${doc.arquivoId}?download=1`}
+                              download={`${TIPO_DOCUMENTO_LABELS[doc.tipo]}.pdf`}
+                              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              Baixar
+                            </a>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs"
+                              disabled={gerandoId === doc.id}
+                              onClick={() => handleGerarPDF(doc.id)}
+                              title="Gerar novamente (cria uma nova versão)"
+                            >
+                              {gerandoId === doc.id
+                                ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Gerando…</>
+                                : "Atualizar"}
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="text-xs"
+                            disabled={gerandoId === doc.id}
+                            onClick={() => handleGerarPDF(doc.id)}
+                          >
+                            {gerandoId === doc.id
+                              ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Gerando…</>
+                              : "Gerar PDF"}
+                          </Button>
+                        )
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        disabled={gerandoId === doc.id || !temPermissao(userRole, "formador_geral")}
-                        onClick={() => handleGerarPDF(doc.id)}
-                      >
-                        {gerandoId === doc.id
-                          ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Gerando…</>
-                          : doc.arquivoId ? "Regenerar" : "Gerar PDF"
-                        }
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -447,6 +478,18 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
           }}
         />
       )}
+
+      {viewerDoc && (
+        <DocumentoViewer
+          key={viewerDoc.arquivoId}
+          open
+          onOpenChange={(o) => { if (!o) setViewerDoc(null); }}
+          nome={viewerDoc.nome}
+          arquivoUrl={`/api/arquivos/${viewerDoc.arquivoId}`}
+          previewUrl={`/api/arquivos/${viewerDoc.arquivoId}?url=1`}
+          downloadUrl={`/api/arquivos/${viewerDoc.arquivoId}?download=1`}
+        />
+      )}
     </div>
   );
 }
@@ -462,7 +505,7 @@ interface FormularioProps {
 }
 
 function FormularioAdmissao({ dados, formando, onChange, disabled, tipo }: FormularioProps) {
-  const isAdmissao = tipo === "admissao_etapa1" || tipo === "admissao_etapa2";
+  const isAdmissao = tipo === "inicio_vocacional" || tipo === "admissao_etapa";
   const isRenovacao = tipo === "renovacao_promessas";
 
   function val(key: string, fallback = ""): string {

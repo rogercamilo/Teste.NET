@@ -53,6 +53,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const arquivo = form.get("arquivo");
     const nivelRaw = String(form.get("nivelFormativo") ?? "");
 
+    // Data de realização do evento (opcional). YYYY-MM-DD ancorado ao meio-dia
+    // local para não rolar de dia em UTC-3; ausente/ inválida → null (a data
+    // efetiva passa a ser o `criadoEm` do registro).
+    const dataEventoRaw = String(form.get("dataEvento") ?? "").trim();
+    const dataEvento = /^\d{4}-\d{2}-\d{2}$/.test(dataEventoRaw)
+      ? new Date(`${dataEventoRaw}T12:00:00`)
+      : null;
+
     const nivel = NivelFormativoEnum.safeParse(nivelRaw);
     if (!nivel.success) return NextResponse.json({ error: "Etapa formativa inválida" }, { status: 400 });
     if (!(arquivo instanceof File)) return NextResponse.json({ error: "Arquivo da carta ausente" }, { status: 400 });
@@ -94,6 +102,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         formandoNome: formando.nome,
         // Etapa codificada no tipoEvento — sem coluna nova no schema.
         tipoEvento: `carta_etapa:${nivel.data}`,
+        dataEvento,
       },
     });
 

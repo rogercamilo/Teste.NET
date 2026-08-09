@@ -168,7 +168,7 @@ async function main() {
     ? await create(
         jarB,
         "/api/processos-eclesiasticos",
-        { formandoId, tipo: "admissao_etapa1", nivelFormativo: "discipulado" },
+        { formandoId, tipo: "admissao_etapa", nivelFormativo: "discipulado" },
         "processo"
       )
     : null;

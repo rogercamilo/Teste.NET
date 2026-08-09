@@ -37,6 +37,7 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
           select: {
             id: true,
             nome: true,
+            grupoFormacaoId: true,
             dataNascimento: true,
             estadoCivil: true,
             telefone: true,
@@ -59,6 +60,11 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
     });
 
     if (!processo) return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
+
+    // Formador comunitário só lê processos de formandos da sua morada.
+    if (user.role === "formador_comunitario" && processo.formando.grupoFormacaoId !== user.grupoFormacaoId) {
+      return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
+    }
 
     return NextResponse.json({
       id: processo.id,
@@ -141,11 +147,16 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       include: {
         formando: { select: { id: true, nome: true, dataNascimento: true, grupoFormacaoId: true } },
         documentos: { select: { id: true } },
-        organizacao: { select: { nome: true, termoPreDiscipulado: true, termoDiscipulado: true } },
+        organizacao: { select: { nome: true, termoPreDiscipulado: true, termoDiscipulado: true, termoPrimeirasPromessas: true, termoFormacaoPermanente: true } },
         promessa: { select: { id: true, tomo: true, folha: true, numeroRegistro: true } },
       },
     });
     if (!processo) return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
+
+    // Formador comunitário só atua sobre processos de formandos da sua morada.
+    if (user.role === "formador_comunitario" && processo.formando.grupoFormacaoId !== user.grupoFormacaoId) {
+      return NextResponse.json({ error: "Sem permissão para este processo" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({})) as {
       dadosFormulario?: Record<string, unknown>;
@@ -234,7 +245,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       } else if (transicaoValida.para === "concluido") {
         // Ao concluir, lavra automaticamente o termo correspondente no Livro de
         // Registro. Se o tipo de processo não gera termo, apenas muda o status.
-        const mapeamento = mapProcessoParaTermo(processo.tipo);
+        const mapeamento = mapProcessoParaTermo(processo.tipo, processo.nivelFormativo);
         const dados = (processo.dadosFormulario as Record<string, unknown>) ?? {};
         const str = (k: string) => (typeof dados[k] === "string" ? (dados[k] as string) : undefined);
         const num = (k: string) => (typeof dados[k] === "number" ? (dados[k] as number) : undefined);

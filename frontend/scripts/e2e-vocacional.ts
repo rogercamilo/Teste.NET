@@ -101,12 +101,12 @@ async function main() {
   const dataConclusao = parseDataLocal("2026-09-20");
   await prisma.$transaction(async (tx) => {
     await lavrarTermo(tx, { organizacaoId: org.id, tipo: "termino_vocacional", formandoId: f1.id, dataEvento: dataConclusao, contexto: { formandoNome: f1.nome, dataEvento: dataConclusao, motivo: "com o deferimento do pedido de ingresso à jornada formativa" }, criadoPorId: admin.id });
-    const proc = await tx.processoEclesiastico.create({ data: { organizacaoId: org.id, formandoId: f1.id, tipo: "admissao_etapa1", nivelFormativo: "pre-discipulado", status: "rascunho", dadosFormulario: {}, criadoPorId: admin.id } });
+    const proc = await tx.processoEclesiastico.create({ data: { organizacaoId: org.id, formandoId: f1.id, tipo: "inicio_vocacional", nivelFormativo: "pre-discipulado", status: "rascunho", dadosFormulario: {}, criadoPorId: admin.id } });
     await tx.participacaoVocacional.update({ where: { id: part1 }, data: { status: "concluida_deferida", dataConclusao, processoGeradoId: proc.id } });
     await tx.formando.update({ where: { id: f1.id }, data: { grupoFormacaoId: grupoOrigem.id } });
   });
   const termoTermino = await prisma.termoRegistro.findFirst({ where: { organizacaoId: org.id, tipo: "termino_vocacional", formandoId: f1.id } });
-  const proc = await prisma.processoEclesiastico.findFirst({ where: { organizacaoId: org.id, formandoId: f1.id, tipo: "admissao_etapa1" } });
+  const proc = await prisma.processoEclesiastico.findFirst({ where: { organizacaoId: org.id, formandoId: f1.id, tipo: "inicio_vocacional" } });
   const f1Final = await prisma.formando.findUnique({ where: { id: f1.id } });
   check(!!termoTermino && termoTermino.condicaoResultante == null, "termo término lavrado (não altera condição)");
   check(proc?.status === "rascunho", "processo de admissão criado (rascunho)");

@@ -93,7 +93,7 @@ export default async function FormandoDetailPage({
     prisma.arquivo.findMany({
       where: { formandoId: id, organizacaoId: user.organizacaoId, tipoEvento: { startsWith: "carta_" } },
       orderBy: { criadoEm: "desc" },
-      select: { id: true, nome: true, tipoEvento: true, extensao: true, tamanho: true, criadoEm: true },
+      select: { id: true, nome: true, tipoEvento: true, extensao: true, tamanho: true, dataEvento: true, criadoEm: true },
     }),
     prisma.acompanhamentoFormando.findMany({
       where: { formandoId: id, organizacaoId: user.organizacaoId },
@@ -126,6 +126,7 @@ export default async function FormandoDetailPage({
     nivel: parseNivelCarta(c.tipoEvento),
     extensao: c.extensao,
     tamanho: c.tamanho,
+    dataEvento: c.dataEvento?.toISOString() ?? null,
     criadoEm: c.criadoEm.toISOString(),
   }));
 
