@@ -9,8 +9,9 @@
  *  4. Testa via HTTP: 5 logins errados → 6º bloqueado por lockout
  */
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const BASE = "http://localhost:3000";
 const EMAIL = process.env.TEST_EMAIL ?? "roger@formattio.com.br";
 const WRONG_PASSWORD = "SenhaErrada@999";

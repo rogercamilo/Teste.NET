@@ -1,26 +1,32 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as { prisma?: PrismaClient };
 
-// Pool size via DATABASE_POOL_SIZE env var (default: 10 for servers, set to 1-3 for serverless/Vercel).
-// Append to DATABASE_URL: ?connection_limit=N&pool_timeout=10
-// If the env var is set here, it overrides what's in the URL.
-function buildDatabaseUrl(): string | undefined {
-  const base = process.env.DATABASE_URL;
-  if (!base) return undefined;
+// Prisma 7 usa driver adapters: a conexão é gerida pelo pool do `pg` (não mais
+// pela URL do engine Rust). DATABASE_POOL_SIZE vira o `max` do pool (Railway = 5);
+// antes ia como `connection_limit` na URL. Sem DATABASE_URL, não cria adapter
+// (o client só é instanciado quando há banco — em runtime real sempre há).
+function createAdapter(): PrismaPg | undefined {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) return undefined;
   const poolSize = process.env.DATABASE_POOL_SIZE;
-  if (!poolSize || base.includes("connection_limit")) return base;
-  const sep = base.includes("?") ? "&" : "?";
-  return `${base}${sep}connection_limit=${poolSize}&pool_timeout=10`;
+  return new PrismaPg({
+    connectionString,
+    ...(poolSize ? { max: Number(poolSize) } : {}),
+    // Fail-fast na conexão TCP (preserva a intenção do antigo pool_timeout=10s):
+    // I/O de rede no hot path não pode travar indefinidamente.
+    connectionTimeoutMillis: 10_000,
+  });
 }
 
-const datasourceUrl = buildDatabaseUrl();
+const adapter = createAdapter();
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-    ...(datasourceUrl ? { datasources: { db: { url: datasourceUrl } } } : {}),
+    ...(adapter ? { adapter } : {}),
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

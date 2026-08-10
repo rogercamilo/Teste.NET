@@ -12,9 +12,10 @@
  *     npx tsx scripts/idor-setup.ts
  */
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { scryptSync, randomBytes } from "crypto";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
