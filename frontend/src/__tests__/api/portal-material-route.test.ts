@@ -16,9 +16,11 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 vi.mock("@/lib/storage", () => ({
-  readLocalFile: vi.fn(async () => Buffer.from("conteudo-pdf")),
+  // A rota serve os bytes SAME-ORIGIN (via readFileBuffer), sem redirect ao R2 —
+  // o visualizador pdf.js do portal busca o arquivo por fetch (302→R2 quebra CORS).
+  readFileBuffer: vi.fn(async () => Buffer.from("conteudo-pdf")),
   localFileExists: vi.fn(async () => true),
-  getFileUrl: vi.fn(),
+  R2_ENABLED: false,
 }));
 vi.mock("@/lib/audit-log", () => ({
   logAction: vi.fn(),
