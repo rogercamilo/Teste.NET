@@ -1,12 +1,16 @@
 import { loadEnvConfig } from "@next/env";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { scryptSync, randomBytes, createHash } from "node:crypto";
 
 // Carrega .env.local para execuções locais; em CI as variáveis já vêm do
 // ambiente do job (loadEnvConfig não sobrescreve process.env existente).
 loadEnvConfig(process.cwd());
 
-export const prisma = new PrismaClient();
+// Prisma 7 exige um driver adapter para conexão direta (ver src/lib/prisma.ts).
+export const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 export const TEST_PASSWORD = "TestE2e@2026";
 export const TEST_ORG_PREFIX = "E2E Test";

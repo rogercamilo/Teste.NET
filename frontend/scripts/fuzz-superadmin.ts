@@ -21,10 +21,11 @@
  */
 import { readFileSync } from "fs";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { scryptSync, randomBytes } from "crypto";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 type Setup = {
   password: string;

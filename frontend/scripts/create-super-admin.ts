@@ -12,10 +12,11 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import argon2 from "argon2";
 import { randomBytes } from "crypto";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 // Org de SISTEMA dedicada ao super_admin — não é um tenant cliente. Mantida separada
 // do DEFAULT_ORG_ID para que o super_admin nunca apareça dentro da org de um cliente real.

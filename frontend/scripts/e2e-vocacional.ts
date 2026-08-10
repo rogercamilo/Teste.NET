@@ -24,13 +24,14 @@ for (const line of readFileSync(resolve(process.cwd(), ".env.local"), "utf8").sp
 }
 
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { lavrarTermo, parseDataLocal } from "@/lib/livro-registro";
 import { encryptField, decryptField } from "@/lib/crypto";
 import { verificarUltimoRetiroVocacional } from "@/lib/vocacional-triggers";
 import { validarElegibilidadeVocacional } from "@/lib/vocacional-rules";
 import { getPortalDashboardData } from "@/lib/portal-data";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const TAG = "E2E-VOC-" + Date.now();
 let pass = 0, fail = 0;
 function check(cond: boolean, label: string) {

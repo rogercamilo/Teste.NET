@@ -18,9 +18,10 @@
  */
 import { readFileSync } from "fs";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 type Setup = { password: string; orgA: { id: string; adminEmail: string } };
 

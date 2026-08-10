@@ -6,11 +6,15 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { scryptSync, randomBytes, randomInt, timingSafeEqual } from "crypto";
 
-const prisma = new PrismaClient();
+// Prisma 7 exige um driver adapter para conexão direta (ver src/lib/prisma.ts).
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID ?? "org_default";
 
