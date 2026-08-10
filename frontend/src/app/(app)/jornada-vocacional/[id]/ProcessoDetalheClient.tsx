@@ -601,8 +601,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
           open
           onOpenChange={(o) => { if (!o) setViewerDoc(null); }}
           nome={viewerDoc.nome}
-          arquivoUrl={`/api/arquivos/${viewerDoc.arquivoId}`}
-          previewUrl={`/api/arquivos/${viewerDoc.arquivoId}?url=1`}
+          fileUrl={`/api/arquivos/${viewerDoc.arquivoId}?stream=1`}
           downloadUrl={`/api/arquivos/${viewerDoc.arquivoId}?download=1`}
         />
       )}

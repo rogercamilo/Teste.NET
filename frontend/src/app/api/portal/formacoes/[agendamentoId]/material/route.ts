@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { readLocalFile, localFileExists } from "@/lib/storage";
+import { readFileBuffer, localFileExists, R2_ENABLED } from "@/lib/storage";
 import { isValidId } from "@/lib/schemas";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 
@@ -58,33 +58,19 @@ export async function GET(request: NextRequest, { params }: Params) {
 
     logAction("portal_material_visualizado", undefined, getClientIp(request), { formandoId, agendamentoId, arquivoId }, organizacaoId);
 
-    // R2: redireciona para pre-signed URL (mesmo padrão de arquivos/[id])
-    if (
-      process.env.R2_ACCOUNT_ID &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      process.env.R2_BUCKET_NAME
-    ) {
-      const { getFileUrl } = await import("@/lib/storage");
-      const url = await getFileUrl(arquivo.storageKey, arquivo.id);
-      const expectedPrefix = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
-      if (!url.startsWith(expectedPrefix)) {
-        return new Response("URL de redirecionamento inválida", { status: 500 });
-      }
-      return Response.redirect(url, 302);
-    }
-
-    // Local: serve direto do disco
-    if (!(await localFileExists(arquivo.storageKey))) {
+    // Serve os bytes SAME-ORIGIN (do R2 ou do disco), sem redirect: o
+    // visualizador pdf.js do portal busca o arquivo por fetch e um 302 → R2
+    // esbarraria no CORS. Material do portal é sempre leitura inline.
+    if (!R2_ENABLED && !(await localFileExists(arquivo.storageKey))) {
       return new Response("Arquivo não encontrado no servidor", { status: 404 });
     }
-    const buffer = await readLocalFile(arquivo.storageKey);
+    const buffer = await readFileBuffer(arquivo.storageKey);
     return new Response(new Uint8Array(buffer), {
       headers: {
         "Content-Type": arquivo.tipo,
         "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(arquivo.nome)}`,
         "Content-Length": String(buffer.length),
-        "Cache-Control": "private, no-cache",
+        "Cache-Control": "private, no-store",
       },
     });
   } catch (err) {

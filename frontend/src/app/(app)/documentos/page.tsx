@@ -262,7 +262,8 @@ export default function DocumentosPage() {
         open={viewer.open}
         onOpenChange={(open) => setViewer((v) => ({ ...v, open }))}
         nome={viewer.doc?.nome ?? ""}
-        arquivoUrl={viewer.doc ? `/api/documentos/${viewer.doc.id}` : ""}
+        fileUrl={viewer.doc ? `/api/documentos/${viewer.doc.id}?stream=1` : ""}
+        downloadUrl={viewer.doc ? `/api/documentos/${viewer.doc.id}?download=1` : ""}
       />
     </div>
   );

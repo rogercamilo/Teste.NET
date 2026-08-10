@@ -3,7 +3,8 @@
 .vscode/
 
 # Documentos de projeto (briefings, relatórios jurídicos, etc.)
-Documentos/
+# Ancorado à raiz: NÃO pode capturar src/components/documentos (case-insensitive no Windows).
+/Documentos/
 
 # Node
 node_modules/

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   Dialog,
   DialogContent,
@@ -8,58 +8,37 @@ import {
 } from "@/components/ui/dialog";
 import { Download, FileText, Loader2 } from "lucide-react";
 
+// react-pdf é pesado e client-only → carregado sob demanda, fora do bundle inicial.
+const PdfCanvas = dynamic(() => import("./PdfCanvas"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-muted-foreground">
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <p className="text-sm">Carregando visualizador…</p>
+    </div>
+  ),
+});
+
 interface DocumentoViewerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nome: string;
-  /** URL de pré-visualização (servida inline no iframe). */
-  arquivoUrl: string;
-  /** URL de download (força attachment). Se ausente, cai em `arquivoUrl`. */
+  /** URL SAME-ORIGIN dos bytes (`?stream=1`) — o pdf.js busca daqui, sem CORS. */
+  fileUrl: string;
+  /** URL de download (`?download=1`, força attachment). Cai em `fileUrl` se ausente. */
   downloadUrl?: string;
-  /**
-   * Endpoint JSON (`?url=1`) que resolve a pre-signed URL do R2. Quando
-   * informado, o iframe aponta DIRETO para o R2 — o mesmo caminho da página
-   * `/viewer`, que carrega com pdf.js nativo. Sem ele, o iframe usa `arquivoUrl`
-   * (que pode fazer 302 → R2, aceitável para endpoints sem suporte a `?url=1`).
-   */
-  previewUrl?: string;
 }
 
-export function DocumentoViewer({ open, onOpenChange, nome, arquivoUrl, downloadUrl, previewUrl }: DocumentoViewerProps) {
+export function DocumentoViewer({ open, onOpenChange, nome, fileUrl, downloadUrl }: DocumentoViewerProps) {
   const isPdf = nome.toLowerCase().endsWith(".pdf");
-  const baixarUrl = downloadUrl ?? arquivoUrl;
-
-  // Com `previewUrl`, resolvemos a assinada uma vez e apontamos o iframe DIRETO
-  // ao R2; sem ela, usamos `arquivoUrl` (que pode fazer 302 → R2).
-  const [resolvedUrl, setResolvedUrl] = useState("");
-  const [loadError, setLoadError] = useState(false);
-  const [iframeLoaded, setIframeLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!open || !isPdf || !previewUrl) return;
-    let cancelled = false;
-    fetch(previewUrl)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: { url?: string }) => {
-        if (cancelled) return;
-        if (d.url) setResolvedUrl(d.url);
-        else setLoadError(true);
-      })
-      .catch(() => {
-        if (!cancelled) setLoadError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, isPdf, previewUrl]);
-
-  const iframeSrc = previewUrl ? resolvedUrl : arquivoUrl;
-  const showSpinner = isPdf && !loadError && (!iframeSrc || !iframeLoaded);
+  const baixarUrl = downloadUrl ?? fileUrl;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <div className="flex items-center justify-between gap-4 px-5 py-3 border-b border-border/60 shrink-0">
+      <DialogContent
+        className="flex flex-col p-0 gap-0 overflow-hidden w-screen h-[100dvh] max-w-none rounded-none sm:w-[95vw] sm:h-[90vh] sm:max-w-5xl sm:rounded-lg"
+      >
+        <div className="flex items-center justify-between gap-4 px-4 sm:px-5 py-3 border-b border-border/60 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <FileText className="h-4 w-4 text-primary shrink-0" />
             <DialogTitle className="text-sm font-medium truncate">{nome}</DialogTitle>
@@ -67,7 +46,7 @@ export function DocumentoViewer({ open, onOpenChange, nome, arquivoUrl, download
           <a
             href={baixarUrl}
             download={nome}
-            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium border border-border bg-background hover:bg-muted transition-colors mr-7 shrink-0"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium border border-border bg-background hover:bg-muted transition-colors mr-7 shrink-0"
           >
             <Download className="h-3.5 w-3.5" />
             Baixar
@@ -75,37 +54,7 @@ export function DocumentoViewer({ open, onOpenChange, nome, arquivoUrl, download
         </div>
 
         {isPdf ? (
-          <div className="relative flex-1">
-            {showSpinner && !loadError && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <p className="text-sm">Carregando documento…</p>
-              </div>
-            )}
-            {loadError ? (
-              <div className="flex h-full flex-col items-center justify-center gap-4 text-center px-6">
-                <FileText className="h-16 w-16 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">Não foi possível abrir a pré-visualização.</p>
-                <a
-                  href={baixarUrl}
-                  download={nome}
-                  className="inline-flex items-center gap-2 h-9 px-4 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  <Download className="h-4 w-4" />
-                  Baixar arquivo
-                </a>
-              </div>
-            ) : (
-              iframeSrc && (
-                <iframe
-                  src={iframeSrc}
-                  className="absolute inset-0 w-full h-full border-0"
-                  title={nome}
-                  onLoad={() => setIframeLoaded(true)}
-                />
-              )
-            )}
-          </div>
+          <PdfCanvas fileUrl={fileUrl} downloadUrl={baixarUrl} nome={nome} />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
             <FileText className="h-16 w-16 text-muted-foreground/30" />

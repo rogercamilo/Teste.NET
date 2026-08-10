@@ -120,6 +120,19 @@ async function uploadR2(
   return key;
 }
 
+// Lê o objeto do R2 em memória (bufferizado). Usado pelo serve same-origin do
+// visualizador de PDF — o pdf.js busca os bytes pela nossa API (sem CORS do R2,
+// sem expor a URL assinada). Documentos são pequenos (centenas de KB).
+async function readR2File(storageKey: string): Promise<{ buffer: Buffer; contentType?: string }> {
+  const { GetObjectCommand } = await import("@aws-sdk/client-s3");
+  const client = await getR2Client();
+  const res = await client.send(
+    new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: storageKey })
+  );
+  const bytes = await res.Body!.transformToByteArray();
+  return { buffer: Buffer.from(bytes), contentType: res.ContentType };
+}
+
 async function getPresignedUrlR2(storageKey: string, ttl: number, downloadName?: string): Promise<string> {
   const { GetObjectCommand } = await import("@aws-sdk/client-s3");
   const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
@@ -190,6 +203,15 @@ export async function getFileUrl(
 ): Promise<string> {
   if (R2_ENABLED) return getPresignedUrlR2(storageKey, ttl, downloadName);
   return `/api/arquivos/${arquivoId}`;
+}
+
+/**
+ * Lê os bytes do arquivo (R2 ou local) para servir same-origin — ex.: o
+ * visualizador de PDF, que precisa buscar os bytes pela nossa API (sem CORS/redirect).
+ */
+export async function readFileBuffer(storageKey: string): Promise<Buffer> {
+  if (R2_ENABLED) return (await readR2File(storageKey)).buffer;
+  return readLocalFile(storageKey);
 }
 
 /**

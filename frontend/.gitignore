@@ -51,3 +51,6 @@ next-env.d.ts
 /data/documentos/
 /data/arquivos-meta.json
 /data/documentos-meta.json
+
+# pdf.js standard fonts copiados por scripts/copy-pdf-assets.mjs (gerado)
+/public/pdfjs/

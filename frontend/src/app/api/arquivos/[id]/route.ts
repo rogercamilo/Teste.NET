@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { deleteFile, readLocalFile, localFileExists } from "@/lib/storage";
+import { deleteFile, readLocalFile, localFileExists, readFileBuffer, R2_ENABLED } from "@/lib/storage";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isValidId } from "@/lib/schemas";
@@ -68,14 +68,12 @@ export async function GET(
   const { id } = await params;
   if (!isValidId(id)) return Response.json({ error: "Não encontrado" }, { status: 404 });
 
-  // Modo `?url=1`: retorna a URL de acesso em JSON em vez de redirecionar. O
-  // visualizador aponta o <iframe> DIRETO para o R2 (que serve o PDF com range
-  // nativo), tirando o app do caminho de transferência e eliminando a indireção
-  // de redirect que atrapalhava o streaming progressivo do pdf.js.
-  const wantsJson = request.nextUrl.searchParams.get("url") === "1";
   // `?download=1`: força o download (Content-Disposition: attachment) em vez de
   // abrir o arquivo inline no navegador.
   const wantsDownload = request.nextUrl.searchParams.get("download") === "1";
+  // `?stream=1`: serve os bytes SAME-ORIGIN (sem redirect ao R2). Necessário para
+  // o visualizador pdf.js buscar o arquivo por fetch sem esbarrar em CORS do R2.
+  const wantsStream = request.nextUrl.searchParams.get("stream") === "1";
 
   try {
     const arquivo = await prisma.arquivo.findFirst({
@@ -88,6 +86,22 @@ export async function GET(
 
     if (!arquivo) return new Response("Arquivo não encontrado", { status: 404 });
     if (!(await canRead(arquivo, user))) return new Response("Acesso negado", { status: 403 });
+
+    // Serve os bytes same-origin (visualizador pdf.js): sem redirect, sem CORS.
+    if (wantsStream) {
+      if (!R2_ENABLED && !(await localFileExists(arquivo.storageKey))) {
+        return new Response("Arquivo não encontrado no servidor", { status: 404 });
+      }
+      const buffer = await readFileBuffer(arquivo.storageKey);
+      return new Response(new Uint8Array(buffer), {
+        headers: {
+          "Content-Type": arquivo.tipo,
+          "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(arquivo.nome)}`,
+          "Content-Length": String(buffer.length),
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
 
     // R2: gera pre-signed URL em tempo real (assinatura local, sem rede)
     if (
@@ -102,16 +116,10 @@ export async function GET(
       if (!url.startsWith(expectedPrefix)) {
         return new Response("URL de redirecionamento inválida", { status: 500 });
       }
-      if (wantsJson) {
-        return Response.json({ url }, { headers: { "Cache-Control": "private, no-store" } });
-      }
       return Response.redirect(url, 302);
     }
 
     // Local: serve o arquivo diretamente do disco
-    if (wantsJson) {
-      return Response.json({ url: `/api/arquivos/${arquivo.id}` }, { headers: { "Cache-Control": "private, no-store" } });
-    }
     if (!await localFileExists(arquivo.storageKey)) {
       return new Response("Arquivo não encontrado no servidor", { status: 404 });
     }
