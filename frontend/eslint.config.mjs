@@ -17,9 +17,10 @@ import globals from "globals";
 // segue coberto por `tsc --noEmit` (CI) e a build por `next build`.
 //
 // PARA RESTAURAR o lint completo de TS quando typescript-eslint suportar a porta
-// nativa: reintroduzir os imports `eslint-config-next/core-web-vitals` e
-// `eslint-config-next/typescript`, remover o ignore de `**/*.{ts,tsx}` e as
-// regras customizadas abaixo, voltando ao spread `...nextVitals, ...nextTs`.
+// nativa: `npm i -D eslint-config-next@latest` (foi desinstalado), reintroduzir
+// os imports `eslint-config-next/core-web-vitals` e `eslint-config-next/typescript`,
+// remover o ignore de `**/*.{ts,tsx}` e as regras customizadas abaixo, voltando ao
+// spread `...nextVitals, ...nextTs`.
 const eslintConfig = defineConfig([
   globalIgnores([
     ".next/**",
