@@ -42,7 +42,7 @@ All commands run from `frontend/`:
 ```bash
 npm run dev           # Dev server (Turbopack)
 npm run build         # Production build
-npm run lint          # ESLint
+npm run lint          # ESLint 10 (só JS/MJS — lint de TS/TSX off sob TS 7, ver Toolchain)
 
 npm run db:migrate    # Apply pending migrations (prisma migrate deploy)
 npm run db:push       # Push schema without migration files (prototyping only)
@@ -70,6 +70,20 @@ DATABASE_URL=postgresql://... npx prisma migrate dev --name <name>
 This project uses **Next.js 16**, which has breaking changes vs. earlier versions:
 - Middleware is now called **proxy** — the file is `src/proxy.ts`, not `src/middleware.ts`
 - Read `node_modules/next/dist/docs/` for unfamiliar APIs before writing code
+
+### Toolchain: TypeScript 7 & ESLint 10
+
+- **TypeScript 7** (`typescript@^7`) is the **native (Go) port**. The `tsc` CLI works
+  (typecheck via `npx tsc --noEmit`), but it exposes **no JS compiler API** —
+  `ts.createProgram`, `ts.Extension`, `ts.ModuleKind` are `undefined`. Do not write
+  code that imports the `typescript` package programmatically; it will break.
+- **ESLint 10** (`eslint@^10`), flat config in `eslint.config.mjs`.
+- ⚠️ **Lint de `.ts/.tsx` está DESLIGADO.** `typescript-eslint` (que é também o parser
+  de TS) depende da API JS do compilador e não suporta a porta nativa do TS 7 — quebra
+  já no import. Por isso `eslint-config-next` foi removido e os arquivos TS/TSX estão em
+  `globalIgnores`; o ESLint só cobre JS/MJS (scripts, `public/sw.js`) via `@eslint/js`.
+  A garantia de tipos fica por conta de `tsc --noEmit` (job de CI) e da build. Instruções
+  de restauração no topo de `eslint.config.mjs` (quando typescript-eslint suportar TS 7).
 
 ### Authentication (NextAuth v5 beta)
 
