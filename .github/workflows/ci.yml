@@ -282,7 +282,11 @@ jobs:
           # Project token escopado ao env production — falha ALTO se ausente
           # (nunca deploy silencioso e nunca deploy sem gate).
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          # Mensagem do commit via env (nunca interpolar ${{ }} direto no `run` —
+          # evita injeção de shell). O deploy no Railway mostra a 1ª linha (assunto)
+          # do commit — texto explicativo em vez do SHA cru.
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         # `railway up` sobe a raiz do repo (o rootDirectory=frontend do serviço é
         # aplicado no build, igual ao deploy pelo GitHub); --ci streama o log de
         # build e sai com o código do build (falha => job vermelho => sem release).
-        run: railway up --ci --service Formatio --message "CI deploy ${{ github.sha }}"
+        run: railway up --ci --service Formatio --message "$(printf '%s' "$COMMIT_MESSAGE" | head -n1)"
