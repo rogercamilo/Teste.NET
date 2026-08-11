@@ -41,6 +41,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompromissosTab } from "./CompromissosTab";
+import { FormacaoCombobox } from "./FormacaoCombobox";
 import {
   BookOpen,
   Calendar,
@@ -633,20 +634,13 @@ function AgendamentoFormDialog({
 
           {form.tipoEvento === "formacao" ? (
             <div className="grid gap-1.5">
-              <Label>Formação <span className="text-destructive">*</span></Label>
-              <Select value={form.formacaoId} onValueChange={(v) => v && set("formacaoId")(v)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecionar formação..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {formacoes.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      <span>{f.tema}</span>
-                      {f.eixoNome && <span className="ml-2 text-xs text-muted-foreground">({f.eixoNome})</span>}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="formacao-combobox">Formação <span className="text-destructive">*</span></Label>
+              <FormacaoCombobox
+                id="formacao-combobox"
+                formacoes={formacoes}
+                value={form.formacaoId}
+                onChange={(v) => set("formacaoId")(v)}
+              />
             </div>
           ) : form.tipoEvento === "acompanhamento_comunitario" ? (
             <div className="grid gap-1.5">
