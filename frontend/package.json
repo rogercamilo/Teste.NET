@@ -6,9 +6,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "predev": "node scripts/copy-pdf-assets.mjs",
+    "predev": "node scripts/copy-pdf-assets.mjs && prisma generate",
     "dev": "next dev",
-    "prebuild": "node scripts/copy-pdf-assets.mjs",
+    "prebuild": "node scripts/copy-pdf-assets.mjs && prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
