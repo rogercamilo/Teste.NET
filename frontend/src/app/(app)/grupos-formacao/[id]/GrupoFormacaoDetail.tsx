@@ -458,17 +458,16 @@ export default function GrupoFormacaoDetail({
   async function handleSaveFormando() {
     if (!formandoForm.nome.trim()) return toast.error("Nome é obrigatório.");
     if (!formandoForm.email.trim()) return toast.error("E-mail é obrigatório.");
-    if (!formandoForm.dataNascimento) return toast.error("Data de nascimento é obrigatória.");
-    if (!formandoForm.dataIngresso) return toast.error("Data de ingresso é obrigatória.");
 
     const nivelFormativo: NivelFormativo = grupoFormacao.nivelFormativo ?? "pre-discipulado";
+    const dataIngresso = formandoForm.dataIngresso || new Date().toISOString().split("T")[0];
     const payload = {
       nome: formandoForm.nome.trim(),
-      dataNascimento: formandoForm.dataNascimento,
+      dataNascimento: formandoForm.dataNascimento || undefined,
       estadoCivil: formandoForm.estadoCivil,
       modalidade: formandoForm.modalidade,
       nivelFormativo,
-      dataIngresso: formandoForm.dataIngresso,
+      dataIngresso,
       telefone: formandoForm.telefone.trim(),
       email: formandoForm.email.trim(),
       grupoFormacaoId: grupoFormacao.id,
@@ -478,7 +477,7 @@ export default function GrupoFormacaoDetail({
           formacoesComunitariasRealizadas: 0,
           retirosComunitariosRealizados: 0,
           retirosPessoaisRealizados: 0,
-          iniciouEm: formandoForm.dataIngresso,
+          iniciouEm: dataIngresso,
         },
       ],
     };
@@ -1755,7 +1754,7 @@ export default function GrupoFormacaoDetail({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label>Data de nascimento <span className="text-destructive">*</span></Label>
+                <Label>Data de nascimento</Label>
                 <Input
                   type="date"
                   value={formandoForm.dataNascimento}
@@ -1814,7 +1813,7 @@ export default function GrupoFormacaoDetail({
                 </Select>
               </div>
               <div className="grid gap-1.5">
-                <Label>Data de ingresso <span className="text-destructive">*</span></Label>
+                <Label>Data de ingresso</Label>
                 <Input
                   type="date"
                   value={formandoForm.dataIngresso}
