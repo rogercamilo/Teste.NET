@@ -85,12 +85,51 @@ interface SendOptions extends Sender {
   stream?: EmailStream;
   /** Anexos opcionais (ex.: `.ics` de lembrete de agenda). */
   attachments?: EmailAttachment[];
+  /**
+   * URL de descadastro 1-clique (RFC 8058). Quando presente, o e-mail sai com os
+   * cabeçalhos `List-Unsubscribe` + `List-Unsubscribe-Post`, exigidos pelo
+   * Gmail/Yahoo para remetentes em massa e fortes sinais de inbox. Só faz sentido
+   * em e-mails de marketing/ciclo de vida (a URL precisa aceitar POST sem login).
+   */
+  listUnsubscribeUrl?: string;
 }
 
 /** Monta o cabeçalho "De" como `"Nome" <endereço>`, higienizando o nome. */
 function formatFrom(name: string | undefined, address: string): string {
   const clean = name?.replace(/[\r\n"<>]/g, "").trim();
   return clean ? `"${clean}" <${address}>` : address;
+}
+
+/**
+ * Deriva uma versão texto puro do HTML para enviar como parte `multipart/alternative`.
+ * E-mails só-HTML pontuam pior nos filtros de spam (regra `MIME_HTML_ONLY`); uma
+ * parte texto melhora a entregabilidade e a acessibilidade. Preserva os links como
+ * `rótulo (url)` e converte quebras de bloco em novas linhas.
+ */
+function htmlToText(html: string): string {
+  return html
+    // links viram "rótulo (url)" antes de remover as demais tags
+    .replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, inner: string) => {
+      const label = inner.replace(/<[^>]+>/g, "").trim();
+      const url = href.trim();
+      if (!url || url === "#") return label;
+      return label && label !== url ? `${label} (${url})` : url;
+    })
+    // quebras de bloco → nova linha (abertura e fechamento)
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\s*(p|div|tr|h[1-6]|li|table)\b[^>]*>/gi, "\n")
+    .replace(/<\/\s*(p|div|tr|h[1-6]|li|table)\s*>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#x27;/gi, "'")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
 }
 
 /**
@@ -123,10 +162,12 @@ async function sendViaResend(
   to: string,
   subject: string,
   html: string,
+  text: string,
   fromName: string | undefined,
   replyTo: string | undefined,
   stream: EmailStream,
-  attachments: EmailAttachment[] | undefined
+  attachments: EmailAttachment[] | undefined,
+  listUnsubscribeUrl: string | undefined
 ): Promise<{ sent: boolean; error?: string }> {
   const fromAddress = stream === "marketing" ? RESEND_FROM_MARKETING : RESEND_FROM;
   try {
@@ -135,7 +176,16 @@ async function sendViaResend(
       to,
       subject,
       html,
+      text,
       ...(replyTo ? { replyTo } : {}),
+      ...(listUnsubscribeUrl
+        ? {
+            headers: {
+              "List-Unsubscribe": `<${listUnsubscribeUrl}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+          }
+        : {}),
       ...(attachments?.length
         ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType })) }
         : {}),
@@ -171,9 +221,11 @@ async function sendViaSmtp(
   to: string,
   subject: string,
   html: string,
+  text: string,
   fromName: string | undefined,
   replyTo: string | undefined,
-  attachments: EmailAttachment[] | undefined
+  attachments: EmailAttachment[] | undefined,
+  listUnsubscribeUrl: string | undefined
 ): Promise<{ sent: boolean; error?: string }> {
   const from = formatFrom(fromName, config.from || config.user);
   try {
@@ -185,7 +237,11 @@ async function sendViaSmtp(
       to,
       subject,
       html,
+      text,
       ...(replyTo ? { replyTo } : {}),
+      ...(listUnsubscribeUrl
+        ? { list: { unsubscribe: { url: listUnsubscribeUrl, comment: "Cancelar inscrição" } } }
+        : {}),
       ...(attachments?.length
         ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, encoding: "base64", contentType: a.contentType })) }
         : {}),
@@ -237,18 +293,21 @@ async function send(
   //   3. SMTP de ambiente (fallback global via SMTP_*)
   const stream = opts.stream ?? "transactional";
   const attachments = opts.attachments;
+  const listUnsub = opts.listUnsubscribeUrl;
+  // Parte texto (multipart/alternative) — reduz a pontuação de spam de e-mails só-HTML.
+  const text = htmlToText(html);
   const { config: smtpConfig, fromDb: smtpFromDb } = await resolveSmtpConfig(organizacaoId);
   const smtpReady = isSmtpReady(smtpConfig);
 
   const attempts: Array<{ provider: string; run: () => Promise<{ sent: boolean; error?: string }> }> = [];
   if (smtpReady && smtpFromDb) {
-    attempts.push({ provider: "smtp-tenant", run: () => sendViaSmtp(smtpConfig, to, subject, html, fromName, replyTo, attachments) });
+    attempts.push({ provider: "smtp-tenant", run: () => sendViaSmtp(smtpConfig, to, subject, html, text, fromName, replyTo, attachments, listUnsub) });
   }
   if (resend) {
-    attempts.push({ provider: "resend", run: () => sendViaResend(to, subject, html, fromName, replyTo, stream, attachments) });
+    attempts.push({ provider: "resend", run: () => sendViaResend(to, subject, html, text, fromName, replyTo, stream, attachments, listUnsub) });
   }
   if (smtpReady && !smtpFromDb) {
-    attempts.push({ provider: "smtp-env", run: () => sendViaSmtp(smtpConfig, to, subject, html, fromName, replyTo, attachments) });
+    attempts.push({ provider: "smtp-env", run: () => sendViaSmtp(smtpConfig, to, subject, html, text, fromName, replyTo, attachments, listUnsub) });
   }
 
   if (attempts.length === 0) {
@@ -1073,6 +1132,7 @@ export async function sendLeadOptInEmail({
     stream: "marketing",
     brandAsOrg: false,
     replyTo: "contato@formattio.com.br",
+    listUnsubscribeUrl: unsubscribeUrl,
   });
 }
 
@@ -1122,5 +1182,6 @@ export async function sendLeadWelcomeEmail({
     stream: "marketing",
     brandAsOrg: false,
     replyTo: "contato@formattio.com.br",
+    listUnsubscribeUrl: unsubscribeUrl,
   });
 }

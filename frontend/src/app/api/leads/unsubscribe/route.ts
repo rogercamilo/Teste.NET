@@ -20,3 +20,20 @@ export async function GET(request: Request) {
   }
   return NextResponse.redirect(`${base}/materiais/descadastro`);
 }
+
+/**
+ * Descadastro 1-clique RFC 8058: Gmail/Yahoo fazem POST direto na URL do
+ * cabeçalho `List-Unsubscribe` (com `List-Unsubscribe-Post: List-Unsubscribe=One-Click`).
+ * Sem interação do usuário — apenas processa o token e responde 200.
+ */
+export async function POST(request: Request) {
+  const token = new URL(request.url).searchParams.get("token");
+  if (token) {
+    try {
+      await unsubscribeLead(token);
+    } catch (err) {
+      logError("leads/unsubscribe POST", err);
+    }
+  }
+  return new NextResponse(null, { status: 200 });
+}
