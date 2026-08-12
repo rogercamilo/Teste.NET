@@ -93,6 +93,8 @@ import {
   Flag,
   GitBranch,
   Home,
+  LayoutGrid,
+  List,
   Mail,
   MapPin,
   MessageSquare,
@@ -233,6 +235,7 @@ export default function GrupoFormacaoDetail({
   // Formandos tab CRUD state
   const [formSearch, setFormSearch] = useState("");
   const [formNivelFilter, setFormNivelFilter] = useState("todos");
+  const [formandoView, setFormandoView] = useState<"cards" | "lista">("cards");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [deleteFormandoOpen, setDeleteFormandoOpen] = useState(false);
   const [editingFormando, setEditingFormando] = useState<Formando | null>(null);
@@ -496,6 +499,17 @@ export default function GrupoFormacaoDetail({
         const err = await res.json().catch(() => ({})) as { error?: string };
         return toast.error(err.error ?? "Erro ao salvar formando.");
       }
+      // Atualiza a grade imediatamente com o registro retornado — o formando novo
+      // aparece na hora, sem depender do refresh do server component (que não
+      // reidrata este useState). O refresh segue para reconciliar dados derivados.
+      const saved = await res.json().catch(() => null) as Formando | null;
+      if (saved?.id) {
+        setAllFormandos((prev) =>
+          editingFormando
+            ? prev.map((f) => (f.id === saved.id ? saved : f))
+            : [...prev, saved]
+        );
+      }
       toast.success(editingFormando ? `${termoFormando} atualizado!` : `${termoFormando} criado!`);
       setFormDialogOpen(false);
       startTransition(() => router.refresh());
@@ -508,6 +522,8 @@ export default function GrupoFormacaoDetail({
     if (!editingFormando) return;
     const res = await fetch(`/api/formandos/${editingFormando.id}`, { method: "DELETE" });
     if (!res.ok) { toast.error("Erro ao excluir formando."); return; }
+    const removedId = editingFormando.id;
+    setAllFormandos((prev) => prev.filter((f) => f.id !== removedId));
     setDeleteFormandoOpen(false);
     setEditingFormando(null);
     toast.success(`${termoFormando} excluído.`);
@@ -951,6 +967,32 @@ export default function GrupoFormacaoDetail({
                 ))}
               </SelectContent>
             </Select>
+            <div className="inline-flex h-9 items-center rounded-md border border-border bg-background p-0.5">
+              <button
+                type="button"
+                aria-label="Visualização em cards"
+                aria-pressed={formandoView === "cards"}
+                onClick={() => setFormandoView("cards")}
+                className={cn(
+                  "inline-flex h-8 w-8 items-center justify-center rounded-[5px] transition-colors",
+                  formandoView === "cards" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Visualização em lista"
+                aria-pressed={formandoView === "lista"}
+                onClick={() => setFormandoView("lista")}
+                className={cn(
+                  "inline-flex h-8 w-8 items-center justify-center rounded-[5px] transition-colors",
+                  formandoView === "lista" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
             <Button size="sm" onClick={openCreateFormando} className="shrink-0 gap-1.5">
               <Plus className="h-4 w-4" />
               Novo {termoFormando}
@@ -974,7 +1016,7 @@ export default function GrupoFormacaoDetail({
                 )}
               </CardContent>
             </Card>
-          ) : (
+          ) : formandoView === "cards" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredFormandos.map((formando) => {
                 const progresso = formando.totalFormacoes > 0 ? Math.round((formando.formacoesRealizadas / formando.totalFormacoes) * 100) : 0;
@@ -1048,6 +1090,68 @@ export default function GrupoFormacaoDetail({
                 );
               })}
             </div>
+          ) : (
+            <Card className="border-0 shadow-sm overflow-hidden">
+              <div className="divide-y divide-border/60">
+                {filteredFormandos.map((formando) => {
+                  const progresso = formando.totalFormacoes > 0 ? Math.round((formando.formacoesRealizadas / formando.totalFormacoes) * 100) : 0;
+                  const initials = formando.nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+                  return (
+                    <div key={formando.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors group">
+                      <Avatar className="h-9 w-9 shrink-0">
+                        <AvatarFallback className={`text-xs font-semibold ${NIVEL_CORES[formando.nivelFormativo]}`}>
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          href={`/formandos/${formando.id}`}
+                          className="text-sm font-semibold hover:text-primary transition-colors truncate block"
+                        >
+                          {formando.nome}
+                        </Link>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {MODALIDADE_LABELS[formando.modalidade]}
+                          {" · Desde "}
+                          {format(parseISO(formando.dataIngresso), "MMM yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className={`hidden sm:inline-flex text-xs shrink-0 ${NIVEL_CORES[formando.nivelFormativo]}`}>
+                        {etapaLabels[formando.nivelFormativo]}
+                      </Badge>
+                      <div className="hidden md:flex items-center gap-2 w-32 shrink-0">
+                        <Progress value={progresso} className="h-1.5 flex-1" />
+                        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                          {formando.formacoesRealizadas}/{formando.totalFormacoes}
+                        </span>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs shrink-0 ${formando.ativo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500"}`}
+                      >
+                        {formando.ativo ? "Ativo" : "Inativo"}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted shrink-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => openEditFormando(formando, e)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" onClick={(e) => openDeleteFormandoDialog(formando, e)}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
           )}
         </TabsContent>
 
