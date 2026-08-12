@@ -261,6 +261,15 @@ function renderHeader(eyebrow: string, logoUrl?: string): string {
 
 const RODAPE_PADRAO = "Este é um e-mail automático — por favor, não responda a esta mensagem.";
 
+/**
+ * Dica de allowlisting no rodapé de TODOS os e-mails. Pedir para adicionar o
+ * remetente aos contatos é um dos sinais mais fortes de "não é spam" para
+ * Gmail/Outlook — treina o filtro a entregar na caixa de entrada. O endereço é o
+ * remetente transacional canônico (`RESEND_FROM` = contato@formattio.com.br).
+ */
+const DICA_CONTATOS =
+  'Para garantir o recebimento na caixa de entrada, adicione <strong>contato@formattio.com.br</strong> aos seus contatos.';
+
 export function renderEmail(opts: RenderEmailOptions): string {
   const eyebrow = opts.eyebrow ?? "Plataforma Formativa";
   const preheader = opts.preheader ?? opts.titulo;
@@ -302,6 +311,7 @@ export function renderEmail(opts: RenderEmailOptions): string {
         <!-- Rodapé -->
         <tr><td style="background:${BRAND.surface};border-top:1px solid ${BRAND.border};padding:22px 36px;text-align:center;">
           ${notaRodape}
+          <p style="margin:0 0 6px;font-size:12px;line-height:1.5;color:${BRAND.muted};">${DICA_CONTATOS}</p>
           <p style="margin:0 0 10px;font-size:12px;color:${BRAND.muted};">${RODAPE_PADRAO}</p>
           ${marcaRodape}
         </td></tr>

@@ -275,7 +275,17 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install Railway CLI
-        run: npm i -g @railway/cli
+        # O postinstall baixa o binário do CLI do GitHub Releases e às vezes cai por
+        # rede (socket hang up) — falha transitória que deixava o deploy Skipped. Até
+        # 3 tentativas com backoff evita re-run manual da pipeline por causa disso.
+        run: |
+          for i in 1 2 3; do
+            npm i -g @railway/cli && exit 0
+            echo "Tentativa $i de instalar o Railway CLI falhou; aguardando ${i}0s…"
+            sleep "${i}0"
+          done
+          echo "Falha ao instalar o Railway CLI após 3 tentativas." >&2
+          exit 1
 
       - name: Deploy (railway up)
         env:
