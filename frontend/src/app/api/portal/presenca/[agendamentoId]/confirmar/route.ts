@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { limiters } from "@/lib/rate-limit";
-import { logError } from "@/lib/audit-log";
 import { isValidId } from "@/lib/schemas";
+import { registrarRespostaPresencaPortal } from "@/lib/rsvp";
 
 type Params = { params: Promise<{ agendamentoId: string }> };
 
@@ -29,23 +28,15 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Agendamento não encontrado" }, { status: 404 });
   }
 
-  try {
-    const presenca = await prisma.presencaFormacao.findFirst({
-      where: { agendamentoId, formandoId, organizacaoId },
-    });
-
-    if (!presenca) {
-      return NextResponse.json({ error: "Presença não encontrada" }, { status: 404 });
-    }
-
-    const updated = await prisma.presencaFormacao.update({
-      where: { id: presenca.id },
-      data: { confirmacaoFormando: true },
-    });
-
-    return NextResponse.json({ confirmacaoFormando: updated.confirmacaoFormando });
-  } catch (err) {
-    logError("portal/presenca/confirmar POST", err);
-    return NextResponse.json({ error: "Falha ao confirmar presença" }, { status: 500 });
-  }
+  // UPSERT: a linha de presença pode ainda não existir (o formando confirma antes
+  // de o formador marcar). O escopo garante que só responde a evento em que está
+  // envolvido. Fecha o ciclo push → portal → confirmação.
+  const r = await registrarRespostaPresencaPortal({
+    formandoId,
+    organizacaoId,
+    agendamentoId,
+    resposta: "sim",
+  });
+  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+  return NextResponse.json({ confirmacaoFormando: true });
 }

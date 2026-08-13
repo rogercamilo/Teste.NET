@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "./prisma";
 import { criarNotificacao } from "./notificacoes";
 import { logError } from "./audit-log";
+import { agendamentoRelevanteOR } from "./agendamento-scope";
 
 /**
  * RSVP público por deep link (item 1.3).
@@ -82,42 +83,7 @@ export async function registrarRsvpPorToken(input: {
       return { ok: false, status: 404, error: "Encontro não encontrado" };
     }
 
-    const confirmacaoFormando = resposta === "sim";
-
-    await prisma.presencaFormacao.upsert({
-      where: { agendamentoId_formandoId: { agendamentoId: agendamento.id, formandoId: formando.id } },
-      create: {
-        organizacaoId: formando.organizacaoId,
-        agendamentoId: agendamento.id,
-        formacaoTema: agendamento.formacaoTema,
-        data: agendamento.dataInicio,
-        formandoId: formando.id,
-        formandoNome: formando.nome,
-        nivelFormativo: formando.nivelFormativo,
-        presente: false,
-        confirmacaoFormando,
-        justificativaFormando: !confirmacaoFormando && justificativa ? justificativa : null,
-      },
-      update: {
-        confirmacaoFormando,
-        ...(!confirmacaoFormando ? { justificativaFormando: justificativa || null } : {}),
-      },
-    });
-
-    // Ausência avisada → notifica o formador responsável (best-effort).
-    if (!confirmacaoFormando && agendamento.formadorId) {
-      const corpo = justificativa
-        ? `"${justificativa.slice(0, 100)}${justificativa.length > 100 ? "…" : ""}"`
-        : `${formando.nome} avisou que não poderá comparecer.`;
-      criarNotificacao({
-        organizacaoId: formando.organizacaoId,
-        destinatarioId: agendamento.formadorId,
-        tipo: "justificativa_formando",
-        titulo: `${formando.nome} não vai comparecer`,
-        corpo,
-        linkAcao: `/presenca?agendamento=${agendamento.id}`,
-      }).catch((err) => logError("rsvp:notificar", err));
-    }
+    await aplicarRespostaPresenca(formando, agendamento, resposta, justificativa);
 
     return {
       ok: true,
@@ -128,6 +94,132 @@ export async function registrarRsvpPorToken(input: {
     };
   } catch (err) {
     logError("rsvp:registrar", err, { agendamentoId });
+    return { ok: false, status: 500, error: "Falha ao registrar resposta" };
+  }
+}
+
+/** Formando resolvido para gravar a resposta de presença. */
+type FormandoResposta = {
+  id: string;
+  nome: string;
+  organizacaoId: string;
+  nivelFormativo: string;
+};
+
+/** Agendamento já validado (escopo do formando) para gravar a resposta. */
+type AgendamentoResposta = {
+  id: string;
+  formacaoTema: string;
+  dataInicio: Date;
+  formadorId: string | null;
+};
+
+/**
+ * Grava a resposta do formando (UPSERT — a linha de presença normalmente ainda
+ * não existe) e, quando é ausência, avisa o formador responsável. Núcleo
+ * compartilhado pelo RSVP por token (e-mail/deep link) e pelo RSVP autenticado
+ * do portal. A "verdade" de `presente` continua sendo do formador.
+ */
+async function aplicarRespostaPresenca(
+  formando: FormandoResposta,
+  agendamento: AgendamentoResposta,
+  resposta: RsvpResposta,
+  justificativa: string
+): Promise<void> {
+  const confirmacaoFormando = resposta === "sim";
+
+  await prisma.presencaFormacao.upsert({
+    where: { agendamentoId_formandoId: { agendamentoId: agendamento.id, formandoId: formando.id } },
+    create: {
+      organizacaoId: formando.organizacaoId,
+      agendamentoId: agendamento.id,
+      formacaoTema: agendamento.formacaoTema,
+      data: agendamento.dataInicio,
+      formandoId: formando.id,
+      formandoNome: formando.nome,
+      nivelFormativo: formando.nivelFormativo,
+      presente: false,
+      confirmacaoFormando,
+      justificativaFormando: !confirmacaoFormando && justificativa ? justificativa : null,
+    },
+    update: {
+      confirmacaoFormando,
+      ...(!confirmacaoFormando ? { justificativaFormando: justificativa || null } : {}),
+    },
+  });
+
+  // Ausência avisada → notifica o formador responsável (best-effort).
+  if (!confirmacaoFormando && agendamento.formadorId) {
+    const corpo = justificativa
+      ? `"${justificativa.slice(0, 100)}${justificativa.length > 100 ? "…" : ""}"`
+      : `${formando.nome} avisou que não poderá comparecer.`;
+    criarNotificacao({
+      organizacaoId: formando.organizacaoId,
+      destinatarioId: agendamento.formadorId,
+      tipo: "justificativa_formando",
+      titulo: `${formando.nome} não vai comparecer`,
+      corpo,
+      linkAcao: `/presenca?agendamento=${agendamento.id}`,
+    }).catch((err) => logError("rsvp:notificar", err));
+  }
+}
+
+/**
+ * RSVP autenticado do Portal do Formando/Vocacionado — fecha o ciclo do web
+ * push: o formando abre o portal e confirma presença (ou avisa ausência) em
+ * qualquer evento FUTURO em que está envolvido, mesmo antes de o formador marcar
+ * (a linha de presença é criada aqui via UPSERT). O escopo de "envolvido" é o
+ * mesmo da visibilidade (`agendamentoRelevanteOR`), então "o que vê, pode
+ * responder".
+ */
+export async function registrarRespostaPresencaPortal(input: {
+  formandoId: string;
+  organizacaoId: string;
+  agendamentoId: string;
+  resposta: RsvpResposta;
+  justificativa?: string;
+}): Promise<RsvpResultado> {
+  const { formandoId, organizacaoId, agendamentoId, resposta } = input;
+
+  if (resposta !== "sim" && resposta !== "nao") {
+    return { ok: false, status: 400, error: "Resposta inválida" };
+  }
+  const justificativa =
+    typeof input.justificativa === "string" ? input.justificativa.trim() : "";
+  // Ausência exige motivo; confirmação nunca envia motivo.
+  if (resposta === "nao" && (justificativa.length < 3 || justificativa.length > 500)) {
+    return { ok: false, status: 400, error: "Justificativa deve ter entre 3 e 500 caracteres." };
+  }
+
+  try {
+    const formando = await prisma.formando.findFirst({
+      where: { id: formandoId, organizacaoId, deletedAt: null },
+      select: { id: true, nome: true, organizacaoId: true, grupoFormacaoId: true, nivelFormativo: true },
+    });
+    if (!formando) return { ok: false, status: 404, error: "Formando não encontrado" };
+
+    const agendamento = await prisma.agendamento.findFirst({
+      where: {
+        id: agendamentoId,
+        organizacaoId,
+        deletedAt: null,
+        OR: agendamentoRelevanteOR(formando),
+      },
+      select: { id: true, formacaoTema: true, dataInicio: true, formadorId: true },
+    });
+    if (!agendamento) return { ok: false, status: 404, error: "Encontro não encontrado" };
+
+    await aplicarRespostaPresenca(formando, agendamento, resposta, justificativa);
+
+    return {
+      ok: true,
+      status: 200,
+      formandoNome: formando.nome,
+      agendamentoTema: agendamento.formacaoTema,
+      resposta,
+    };
+  } catch (err) {
+    logError("rsvp:portal", err, { agendamentoId });
     return { ok: false, status: 500, error: "Falha ao registrar resposta" };
   }
 }

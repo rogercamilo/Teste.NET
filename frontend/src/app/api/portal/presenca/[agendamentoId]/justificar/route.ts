@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { limiters } from "@/lib/rate-limit";
-import { logError } from "@/lib/audit-log";
-import { criarNotificacao } from "@/lib/notificacoes";
 import { isValidId } from "@/lib/schemas";
+import { registrarRespostaPresencaPortal } from "@/lib/rsvp";
 
 type Params = { params: Promise<{ agendamentoId: string }> };
 
@@ -30,53 +28,19 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Agendamento não encontrado" }, { status: 404 });
   }
 
-  try {
-    const body = await request.json().catch(() => ({}));
-    const texto =
-      typeof body?.justificativa === "string" ? body.justificativa.trim() : "";
+  const body = await request.json().catch(() => ({}));
+  const justificativa =
+    typeof body?.justificativa === "string" ? body.justificativa.trim() : "";
 
-    if (!texto || texto.length < 3 || texto.length > 500) {
-      return NextResponse.json(
-        { error: "Justificativa deve ter entre 3 e 500 caracteres." },
-        { status: 400 }
-      );
-    }
-
-    const presenca = await prisma.presencaFormacao.findFirst({
-      where: { agendamentoId, formandoId, organizacaoId },
-      include: {
-        agendamento: { select: { formadorId: true, formacaoTema: true } },
-      },
-    });
-
-    if (!presenca) {
-      return NextResponse.json({ error: "Presença não encontrada" }, { status: 404 });
-    }
-
-    await prisma.presencaFormacao.update({
-      where: { id: presenca.id },
-      data: {
-        confirmacaoFormando: false,
-        justificativaFormando: texto,
-      },
-    });
-
-    // C7 — fire-and-forget: falha na notificação não reverte a gravação
-    const formadorId = presenca.agendamento?.formadorId;
-    if (formadorId) {
-      criarNotificacao({
-        organizacaoId,
-        destinatarioId: formadorId,
-        tipo: "justificativa_formando",
-        titulo: `${presenca.formandoNome} justificou ausência`,
-        corpo: `"${texto.slice(0, 100)}${texto.length > 100 ? "…" : ""}"`,
-        linkAcao: `/presenca?agendamento=${agendamentoId}`,
-      }).catch((err) => logError("portal/justificar notificacao", err));
-    }
-
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    logError("portal/presenca/justificar POST", err);
-    return NextResponse.json({ error: "Falha ao enviar justificativa" }, { status: 500 });
-  }
+  // UPSERT: a linha de presença pode ainda não existir. A validação do motivo
+  // (3–500) e a notificação ao formador ficam no núcleo compartilhado (rsvp).
+  const r = await registrarRespostaPresencaPortal({
+    formandoId,
+    organizacaoId,
+    agendamentoId,
+    resposta: "nao",
+    justificativa,
+  });
+  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+  return NextResponse.json({ ok: true });
 }

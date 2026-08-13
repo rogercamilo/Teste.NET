@@ -5,6 +5,7 @@ import type { EstadoCivil, NivelFormativo, TipoFormacao, Modalidade } from "@/ty
 import type { PortalAudiencia } from "@/lib/portal-routes";
 import { R2_ENABLED, getImageR2Url, readLocalFile } from "@/lib/storage";
 import { camposFaltantes } from "@/lib/perfil-completude";
+import { agendamentoRelevanteOR } from "@/lib/agendamento-scope";
 
 /**
  * Resolve o campo `foto` do formando (base64 legado, key R2 ou key local) em um
@@ -788,29 +789,13 @@ export async function getPortalDashboardData(
           dataInicio: { gte: agora },
           status: { not: "cancelada" },
           deletedAt: null,
-          OR: [
-            // Encontros do grupo do formando — legado (grupoFormacaoId) OU via
-            // junção multi-grupo (item 1.7).
-            ...(formando.grupoFormacaoId
-              ? [
-                  { grupoFormacaoId: formando.grupoFormacaoId },
-                  { grupos: { some: { grupoFormacaoId: formando.grupoFormacaoId } } },
-                ]
-              : []),
-            // Acompanhamento Comunitário 1:1 marcado PARA este formando (privado —
-            // não é do grupo, então entra por alvo, não por morada).
-            { tipoEvento: "acompanhamento_comunitario", acompanhadoFormandoId: formandoId },
-            // Eventos gerais da org (Convocação/Assembleia Geral) — envolvem todas
-            // as pessoas, qualquer nível.
-            { grupoFormacaoId: null, grupos: { none: {} }, tipoEvento: { in: ["convocacao", "reuniao"] } },
-            // Formação/retiro/outro org-wide ("todos os grupos") do mesmo nível.
-            {
-              grupoFormacaoId: null,
-              grupos: { none: {} },
-              tipoEvento: { in: ["formacao", "retiro", "outro"] },
-              nivelFormativo: nivel,
-            },
-          ],
+          // Fonte única da regra de "eventos relevantes ao formando" (mesma do
+          // escopo de RSVP) — grupo próprio, acompanhamento 1:1 e org-wide.
+          OR: agendamentoRelevanteOR({
+            id: formandoId,
+            grupoFormacaoId: formando.grupoFormacaoId,
+            nivelFormativo: nivel,
+          }),
         },
         select: {
           id: true,
@@ -911,7 +896,9 @@ export async function getPortalDashboardData(
       dataFim: a.dataFim.toISOString(),
       local: a.local,
       confirmacaoFormando: respostaPorAgendamento.get(a.id) ?? null,
-      podeResponder: respostaPorAgendamento.has(a.id),
+      // Todo encontro futuro em que o formando está envolvido é respondível — a
+      // linha de presença é criada no ato (UPSERT), fechando push → portal → RSVP.
+      podeResponder: true,
     })),
     progresso: requisitos
       ? {
