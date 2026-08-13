@@ -267,18 +267,22 @@ export default function GrupoFormacaoDetail({
   const grade = initialGrades.find((g) => g.id === grupoFormacao.gradeId);
   const formandosDaMorada = allFormandos.filter((f) => f.grupoFormacaoId === grupoFormacao.id);
   // Eventos coletivos que alcançam esta morada: amarrados a ela (campo legado),
-  // via junção multi-grupo (item 1.7) OU org-wide ("todos os grupos") do mesmo
-  // nível formativo. Espelha o filtro do server em page.tsx.
-  const agendamentosDaMorada = initialAgendamentos.filter(
-    (a) =>
-      a.grupoFormacaoId === grupoFormacao.id ||
-      (a.grupoFormacaoIds?.includes(grupoFormacao.id) ?? false) ||
-      (!a.grupoFormacaoId &&
-        (a.grupoFormacaoIds?.length ?? 0) === 0 &&
-        a.tipoEvento !== "acompanhamento_comunitario" &&
-        !!grupoFormacao.nivelFormativo &&
-        a.nivelFormativo === grupoFormacao.nivelFormativo)
-  );
+  // via junção multi-grupo (item 1.7) OU org-wide ("todos os grupos"). Nos
+  // org-wide, Convocação Geral e Reunião/Assembleia Geral valem para TODA a org
+  // (qualquer nível); formação/retiro/outro sem grupo valem só p/ o mesmo nível.
+  // Espelha o filtro do server em page.tsx.
+  const agendamentosDaMorada = initialAgendamentos.filter((a) => {
+    if (a.grupoFormacaoId === grupoFormacao.id) return true;
+    if (a.grupoFormacaoIds?.includes(grupoFormacao.id)) return true;
+    const isOrgWide = !a.grupoFormacaoId && (a.grupoFormacaoIds?.length ?? 0) === 0;
+    if (!isOrgWide) return false;
+    if (a.tipoEvento === "convocacao" || a.tipoEvento === "reuniao") return true;
+    return (
+      a.tipoEvento !== "acompanhamento_comunitario" &&
+      !!grupoFormacao.nivelFormativo &&
+      a.nivelFormativo === grupoFormacao.nivelFormativo
+    );
+  });
   // Concluídas — para a taxa de adesão e o card "Realizadas" (eventos que já ocorreram).
   const realizadas = agendamentosDaMorada.filter(
     (a) => a.status === "realizada" || a.status === "confirmada"

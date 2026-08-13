@@ -37,8 +37,11 @@ export type OrigemFormacao = "prevista" | "complementar";
 export type StatusRealizacao = "registrada" | "realizada";
 /**
  * Natureza do evento na Agenda. "formacao" é amarrado a uma Formação; retiro/
- * convocacao/reuniao/outro são coletivos avulsos; "acompanhamento_comunitario" é
- * um encontro 1:1 (partilha e oração) com uma pessoa específica.
+ * outro são coletivos avulsos; "convocacao" (Convocação Geral) e "reuniao"
+ * (Reunião/Assembleia Geral) são org-wide (toda a org, todos os níveis) e só
+ * FG/Admin agendam — entram na Presença de TODOS os grupos;
+ * "acompanhamento_comunitario" é um encontro 1:1 (partilha e oração) com uma
+ * pessoa específica.
  */
 export type TipoEvento =
   | "formacao"

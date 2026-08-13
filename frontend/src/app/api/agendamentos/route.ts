@@ -31,7 +31,12 @@ export async function GET(request: Request) {
       // Vê os agendamentos do próprio grupo — legado (grupoFormacaoId) OU via
       // junção multi-grupo (item 1.7). Sem grupo, mantém o escopo org-wide legado.
       if (gid) {
-        roleScope.OR = [{ grupoFormacaoId: gid }, { grupos: { some: { grupoFormacaoId: gid } } }];
+        roleScope.OR = [
+          { grupoFormacaoId: gid },
+          { grupos: { some: { grupoFormacaoId: gid } } },
+          // Eventos gerais da org (Convocação/Assembleia Geral) alcançam todo grupo.
+          { tipoEvento: { in: ["convocacao", "reuniao"] } },
+        ];
       } else {
         roleScope.grupoFormacaoId = null;
       }
@@ -118,6 +123,19 @@ export async function POST(request: Request) {
     // Eventos avulsos (retiro/convocação/reunião/outro) não exigem Formação; usam
     // formacaoTema como título. "formacao" (default) valida a Formação escolhida.
     const tipoEvento = body.tipoEvento ?? "formacao";
+
+    // Convocação Geral e Reunião/Assembleia Geral são eventos org-wide (toda a
+    // org, todos os níveis) — só FG e Admin podem agendá-los.
+    if (
+      (tipoEvento === "convocacao" || tipoEvento === "reuniao") &&
+      user.role !== "formador_geral" &&
+      user.role !== "administrador"
+    ) {
+      return NextResponse.json(
+        { error: "Sem permissão para agendar evento geral da organização" },
+        { status: 403 }
+      );
+    }
     let formacaoIdFinal: string | null = null;
     if (tipoEvento === "formacao") {
       const formacao = await prisma.formacao.findFirst({

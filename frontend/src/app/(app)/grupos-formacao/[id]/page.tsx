@@ -55,7 +55,9 @@ export default async function GrupoFormacaoDetailPage({
       prisma.agendamento.findMany({
         // Eventos coletivos que alcançam esta morada: amarrados a ela pelo campo
         // legado (1 grupo), pela junção multi-grupo (item 1.7) OU org-wide ("todos
-        // os grupos", sem grupo-alvo) do mesmo nível formativo. Acompanhamento
+        // os grupos", sem grupo-alvo). Nos org-wide, Convocação Geral e Reunião/
+        // Assembleia Geral envolvem TODA a org (qualquer nível); formação/retiro/
+        // outro sem grupo valem só para as moradas do MESMO nível. Acompanhamento
         // Comunitário (1:1 privado) nunca entra aqui.
         where: {
           organizacaoId: orgId,
@@ -64,8 +66,14 @@ export default async function GrupoFormacaoDetailPage({
           OR: [
             { grupoFormacaoId: id },
             { grupos: { some: { grupoFormacaoId: id } } },
+            { grupoFormacaoId: null, grupos: { none: {} }, tipoEvento: { in: ["convocacao", "reuniao"] } },
             ...(grupo.nivelFormativo
-              ? [{ grupoFormacaoId: null, grupos: { none: {} }, nivelFormativo: grupo.nivelFormativo }]
+              ? [{
+                  grupoFormacaoId: null,
+                  grupos: { none: {} },
+                  tipoEvento: { in: ["formacao", "retiro", "outro"] },
+                  nivelFormativo: grupo.nivelFormativo,
+                }]
               : []),
           ],
         },

@@ -504,6 +504,9 @@ function AgendamentoFormDialog({
 }) {
   // Só FC e Formador Geral agendam Acompanhamento Comunitário.
   const podeAcompanhar = isFC || isFG;
+  // Convocação Geral e Reunião/Assembleia Geral são eventos org-wide (envolvem
+  // todas as pessoas da org, todos os níveis) — só FG e Admin podem agendá-los.
+  const podeEventoOrgWide = isFG || role === "administrador";
   // FC acompanha formandos; FG acompanha formadores.
   const rotuloAlvo = isFC ? "Formando" : "Formador";
   const { grupoFormacao: termoGrupoFormacao } = useTermos();
@@ -625,8 +628,12 @@ function AgendamentoFormDialog({
                     {TIPO_EVENTO_AGENDA_LABELS.acompanhamento_comunitario}
                   </SelectItem>
                 )}
-                <SelectItem value="convocacao">{TIPO_EVENTO_AGENDA_LABELS.convocacao}</SelectItem>
-                <SelectItem value="reuniao">{TIPO_EVENTO_AGENDA_LABELS.reuniao}</SelectItem>
+                {podeEventoOrgWide && (
+                  <>
+                    <SelectItem value="convocacao">{TIPO_EVENTO_AGENDA_LABELS.convocacao}</SelectItem>
+                    <SelectItem value="reuniao">{TIPO_EVENTO_AGENDA_LABELS.reuniao}</SelectItem>
+                  </>
+                )}
                 <SelectItem value="outro">{TIPO_EVENTO_AGENDA_LABELS.outro}</SelectItem>
               </SelectContent>
             </Select>

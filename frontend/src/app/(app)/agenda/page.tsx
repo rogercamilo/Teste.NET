@@ -22,6 +22,9 @@ export default async function AgendaPage() {
       { formadorId: me },
       // Multi-grupo (item 1.7): eventos que incluem a morada do FC via junção.
       ...(gid ? [{ grupos: { some: { grupoFormacaoId: gid } } }] : []),
+      // Eventos gerais da org (Convocação/Assembleia Geral) entram na agenda de
+      // toda morada — envolvem todas as pessoas, independentemente do grupo.
+      { tipoEvento: { in: ["convocacao", "reuniao"] } },
     ];
   }
   // Acompanhamento Comunitário é privado: visível só ao criador ou ao alvo.
