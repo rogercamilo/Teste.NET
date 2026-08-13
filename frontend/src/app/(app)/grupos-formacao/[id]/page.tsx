@@ -53,7 +53,23 @@ export default async function GrupoFormacaoDetailPage({
         orderBy: { nome: "asc" },
       }),
       prisma.agendamento.findMany({
-        where: { grupoFormacaoId: id, organizacaoId: orgId, deletedAt: null },
+        // Eventos coletivos que alcançam esta morada: amarrados a ela pelo campo
+        // legado (1 grupo), pela junção multi-grupo (item 1.7) OU org-wide ("todos
+        // os grupos", sem grupo-alvo) do mesmo nível formativo. Acompanhamento
+        // Comunitário (1:1 privado) nunca entra aqui.
+        where: {
+          organizacaoId: orgId,
+          deletedAt: null,
+          tipoEvento: { not: "acompanhamento_comunitario" },
+          OR: [
+            { grupoFormacaoId: id },
+            { grupos: { some: { grupoFormacaoId: id } } },
+            ...(grupo.nivelFormativo
+              ? [{ grupoFormacaoId: null, grupos: { none: {} }, nivelFormativo: grupo.nivelFormativo }]
+              : []),
+          ],
+        },
+        include: { grupos: { select: { grupoFormacaoId: true } } },
         orderBy: { dataInicio: "desc" },
       }),
       prisma.planoFormativo.findMany({

@@ -266,11 +266,28 @@ export default function GrupoFormacaoDetail({
   const plano = initialPlanos.find((p) => p.id === grupoFormacao.planoId);
   const grade = initialGrades.find((g) => g.id === grupoFormacao.gradeId);
   const formandosDaMorada = allFormandos.filter((f) => f.grupoFormacaoId === grupoFormacao.id);
+  // Eventos coletivos que alcançam esta morada: amarrados a ela (campo legado),
+  // via junção multi-grupo (item 1.7) OU org-wide ("todos os grupos") do mesmo
+  // nível formativo. Espelha o filtro do server em page.tsx.
   const agendamentosDaMorada = initialAgendamentos.filter(
-    (a) => a.grupoFormacaoId === grupoFormacao.id
+    (a) =>
+      a.grupoFormacaoId === grupoFormacao.id ||
+      (a.grupoFormacaoIds?.includes(grupoFormacao.id) ?? false) ||
+      (!a.grupoFormacaoId &&
+        (a.grupoFormacaoIds?.length ?? 0) === 0 &&
+        a.tipoEvento !== "acompanhamento_comunitario" &&
+        !!grupoFormacao.nivelFormativo &&
+        a.nivelFormativo === grupoFormacao.nivelFormativo)
   );
+  // Concluídas — para a taxa de adesão e o card "Realizadas" (eventos que já ocorreram).
   const realizadas = agendamentosDaMorada.filter(
     (a) => a.status === "realizada" || a.status === "confirmada"
+  );
+  // Disponíveis para marcar/confirmar presença: tudo que não foi cancelado,
+  // incluindo as ainda "agendada" — o FC indica presença e o formando confirma
+  // pelo portal / web push antes do encontro.
+  const agendamentosPresenca = agendamentosDaMorada.filter(
+    (a) => a.status !== "cancelada"
   );
   const comentariosDaMorada = comentarios.filter((c) =>
     formandosDaMorada.some((f) => f.id === c.formandoId)
@@ -1182,7 +1199,7 @@ export default function GrupoFormacaoDetail({
             </Card>
           )}
 
-          {realizadas.length === 0 ? (
+          {agendamentosPresenca.length === 0 ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-0">
                 <EmptyState
@@ -1204,12 +1221,12 @@ export default function GrupoFormacaoDetail({
                 <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground mb-1.5">Selecionar Formação</p>
-                    <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)} items={Object.fromEntries(realizadas.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`]))}>
+                    <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)} items={Object.fromEntries(agendamentosPresenca.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`]))}>
                       <SelectTrigger className="w-full sm:w-96">
                         <SelectValue placeholder="Escolha uma formação..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {realizadas.map((a) => (
+                        {agendamentosPresenca.map((a) => (
                           <SelectItem key={a.id} value={a.id}>
                             {a.formacaoTema} —{" "}
                             {format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}
@@ -1237,7 +1254,7 @@ export default function GrupoFormacaoDetail({
             </Card>
           )}
 
-          {realizadas.length === 0 ? null : agendamento ? (
+          {agendamentosPresenca.length === 0 ? null : agendamento ? (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between gap-4">
