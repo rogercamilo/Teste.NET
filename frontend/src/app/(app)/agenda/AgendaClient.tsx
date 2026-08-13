@@ -471,6 +471,7 @@ export default function AgendaClient({
         userGrupoFormacaoId={userGrupoFormacaoId}
         isFC={isFC}
         isFG={isFG}
+        podeEventoOrgWide={isFG || role === "administrador"}
         onSaved={() => startTransition(() => router.refresh())}
       />
     </div>
@@ -488,6 +489,7 @@ function AgendamentoFormDialog({
   userGrupoFormacaoId,
   isFC,
   isFG,
+  podeEventoOrgWide,
   onSaved,
 }: {
   open: boolean;
@@ -500,13 +502,12 @@ function AgendamentoFormDialog({
   userGrupoFormacaoId: string | null;
   isFC: boolean;
   isFG: boolean;
+  /** FG/Admin: podem agendar eventos org-wide (Convocação/Assembleia Geral). */
+  podeEventoOrgWide: boolean;
   onSaved: () => void;
 }) {
   // Só FC e Formador Geral agendam Acompanhamento Comunitário.
   const podeAcompanhar = isFC || isFG;
-  // Convocação Geral e Reunião/Assembleia Geral são eventos org-wide (envolvem
-  // todas as pessoas da org, todos os níveis) — só FG e Admin podem agendá-los.
-  const podeEventoOrgWide = isFG || role === "administrador";
   // FC acompanha formandos; FG acompanha formadores.
   const rotuloAlvo = isFC ? "Formando" : "Formador";
   const { grupoFormacao: termoGrupoFormacao } = useTermos();
