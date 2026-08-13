@@ -92,14 +92,25 @@ async function dispatchToSubs(
   };
 }
 
+/** Opções de segmentação de audiência do push. */
+type PushAudience = {
+  /**
+   * Restringe o envio às inscrições de FORMANDOS (as que têm `formandoId`),
+   * excluindo staff (FC/formadores). Usado nos avisos de agendamento, que são
+   * um lembrete quente para o formando/vocacionado abrir no portal.
+   */
+  formandosOnly?: boolean;
+};
+
 export async function sendPushToOrg(
   organizacaoId: string,
-  payload: PushPayload
+  payload: PushPayload,
+  audience?: PushAudience
 ): Promise<{ sent: number; removed: number; failed: number }> {
   ensureVapid();
 
   const subs = await prisma.pushSubscription.findMany({
-    where: { organizacaoId },
+    where: { organizacaoId, ...(audience?.formandosOnly ? { formandoId: { not: null } } : {}) },
     select: { id: true, endpoint: true, p256dh: true, auth: true },
   });
 
@@ -109,12 +120,29 @@ export async function sendPushToOrg(
 export async function sendPushToGroup(
   organizacaoId: string,
   grupoFormacaoId: string,
+  payload: PushPayload,
+  audience?: PushAudience
+): Promise<{ sent: number; removed: number; failed: number }> {
+  ensureVapid();
+
+  const subs = await prisma.pushSubscription.findMany({
+    where: { organizacaoId, grupoFormacaoId, ...(audience?.formandosOnly ? { formandoId: { not: null } } : {}) },
+    select: { id: true, endpoint: true, p256dh: true, auth: true },
+  });
+
+  return dispatchToSubs(subs, payload);
+}
+
+/** Push a um formando específico (ex.: Acompanhamento Comunitário 1:1). */
+export async function sendPushToFormando(
+  organizacaoId: string,
+  formandoId: string,
   payload: PushPayload
 ): Promise<{ sent: number; removed: number; failed: number }> {
   ensureVapid();
 
   const subs = await prisma.pushSubscription.findMany({
-    where: { organizacaoId, grupoFormacaoId },
+    where: { organizacaoId, formandoId },
     select: { id: true, endpoint: true, p256dh: true, auth: true },
   });
 

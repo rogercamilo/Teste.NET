@@ -800,6 +800,16 @@ export async function getPortalDashboardData(
             // Acompanhamento Comunitário 1:1 marcado PARA este formando (privado —
             // não é do grupo, então entra por alvo, não por morada).
             { tipoEvento: "acompanhamento_comunitario", acompanhadoFormandoId: formandoId },
+            // Eventos gerais da org (Convocação/Assembleia Geral) — envolvem todas
+            // as pessoas, qualquer nível.
+            { grupoFormacaoId: null, grupos: { none: {} }, tipoEvento: { in: ["convocacao", "reuniao"] } },
+            // Formação/retiro/outro org-wide ("todos os grupos") do mesmo nível.
+            {
+              grupoFormacaoId: null,
+              grupos: { none: {} },
+              tipoEvento: { in: ["formacao", "retiro", "outro"] },
+              nivelFormativo: nivel,
+            },
           ],
         },
         select: {

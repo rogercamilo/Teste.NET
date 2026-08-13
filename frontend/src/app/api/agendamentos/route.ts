@@ -5,7 +5,7 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { parsePagination, paginationHeaders } from "@/lib/pagination";
 import { CreateAgendamentoSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
-import { sendPushToOrg } from "@/lib/push";
+import { sendPushToOrg, sendPushToGroup, sendPushToFormando } from "@/lib/push";
 import { formatDataBr } from "@/lib/utils";
 import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
 import { formandosAlvo } from "@/lib/agendamento-reminders";
@@ -197,12 +197,24 @@ export async function POST(request: Request) {
       }
     }
 
-    // Notificação push — fire-and-forget
-    sendPushToOrg(user.organizacaoId, {
-      titulo: `Novo evento agendado`,
+    // Web push aos FORMANDOS envolvidos — lembrete quente do agendamento que
+    // eles também veem no portal (por isso `url: "/portal"` e `formandosOnly`; o
+    // staff é avisado por bell, não por este push). Respeita o escopo do evento:
+    // Convocação/Assembleia Geral alcançam TODA a org; os demais vão aos
+    // grupos-alvo (ou toda a org quando nenhum grupo foi selecionado = "todos os
+    // grupos"). Espelha o alvo do e-mail de criação. Fire-and-forget.
+    const pushPayload = {
+      titulo: "Novo evento agendado",
       corpo: `${row.formacaoTema} — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
-      url: "/agenda",
-    }).catch(() => {});
+      url: "/portal",
+    };
+    if (tipoEvento === "convocacao" || tipoEvento === "reuniao" || targetGroups.length === 0) {
+      sendPushToOrg(user.organizacaoId, pushPayload, { formandosOnly: true }).catch(() => {});
+    } else {
+      for (const gid of targetGroups) {
+        sendPushToGroup(user.organizacaoId, gid, pushPayload, { formandosOnly: true }).catch(() => {});
+      }
+    }
 
     // E-mail de criação aos formandos — só se o FG manteve o opt-in (item 1.6).
     // Fire-and-forget: não bloqueia a resposta 201.
@@ -368,6 +380,16 @@ async function criarAcompanhamentoComunitario(
       titulo: "Acompanhamento comunitário agendado",
       corpo: `${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
       linkAcao: "/agenda",
+    }).catch(() => {});
+  }
+
+  // Fluxo FC→formando: web push ao formando acompanhado (1:1). Corpo neutro —
+  // não vaza a nota privada do encontro; leva ao Portal do Formando.
+  if (acompanhadoFormandoId) {
+    sendPushToFormando(organizacaoId, acompanhadoFormandoId, {
+      titulo: "Novo acompanhamento agendado",
+      corpo: `Seu formador agendou um acompanhamento com você — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
+      url: "/portal",
     }).catch(() => {});
   }
 
