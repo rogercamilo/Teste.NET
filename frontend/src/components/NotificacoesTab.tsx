@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, BellOff, BellRing, CheckCircle2, Copy, Loader2, Send, Smartphone, Users, XCircle } from "lucide-react";
+import { Bell, BellOff, BellRing, CheckCircle2, Copy, Loader2, Send, Smartphone, Users } from "lucide-react";
 import { toast } from "sonner";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
+import { PushUnsupportedNotice } from "@/components/PushUnsupportedNotice";
 
 interface GrupoOption { id: string; nome: string; }
 
@@ -38,7 +39,7 @@ function useSubscriptionCount() {
 
 function MeuDispositivoCard() {
   const [mounted, setMounted] = useState(false);
-  const { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
+  const { isSupported, environment, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
     usePushSubscription();
 
   useEffect(() => setMounted(true), []);
@@ -58,10 +59,7 @@ function MeuDispositivoCard() {
       </CardHeader>
       <CardContent>
         {!isSupported ? (
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
-            <XCircle className="h-4 w-4 shrink-0" />
-            Seu navegador não suporta notificações push. Tente Chrome ou Firefox.
-          </div>
+          <PushUnsupportedNotice environment={environment} compact />
         ) : permission === "denied" ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300">

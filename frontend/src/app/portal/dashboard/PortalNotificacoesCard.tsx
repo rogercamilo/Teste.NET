@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { Bell, BellOff, CheckCircle2, Loader2 } from "lucide-react";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
+import { PushUnsupportedNotice } from "@/components/PushUnsupportedNotice";
 
 /**
  * Ativação/desativação de Web Push a partir do próprio portal do formando/
@@ -14,7 +15,7 @@ import { usePushSubscription } from "@/hooks/use-push-subscription";
  */
 export function PortalNotificacoesCard() {
   const [mounted, setMounted] = useState(false);
-  const { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
+  const { isSupported, environment, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
     usePushSubscription("/api/portal/push");
 
   // Evita divergência de hidratação: Notification.permission só existe no cliente.
@@ -31,10 +32,7 @@ export function PortalNotificacoesCard() {
       </CardHeader>
       <CardContent>
         {!isSupported ? (
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground">
-            <XCircle className="h-4 w-4 shrink-0" />
-            Seu navegador não suporta notificações. Tente o Chrome ou o Firefox.
-          </div>
+          <PushUnsupportedNotice environment={environment} />
         ) : permission === "denied" ? (
           <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
             <BellOff className="h-4 w-4 shrink-0" />
@@ -66,7 +64,7 @@ export function PortalNotificacoesCard() {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               Receba notificações diretamente no seu celular sobre encontros, datas e
-              avisos da sua comunidade. Não precisa instalar nenhum aplicativo.
+              avisos da sua comunidade.
             </p>
             <Button className="w-full gap-2" onClick={subscribe} disabled={isLoading}>
               {isLoading ? (

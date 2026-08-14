@@ -1,11 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { detectPushEnvironment, type PushEnvironment } from "@/lib/push-environment";
 
 export type PushPermission = "default" | "granted" | "denied";
 
 export interface UsePushSubscriptionReturn {
   isSupported: boolean;
+  /**
+   * Diagnóstico de *por que* não dá para inscrever, quando `isSupported` é
+   * `false` — para a UI orientar o usuário (instalar como app no iPhone, abrir
+   * no navegador real, atualizar o iOS). Vale `"ready"` quando há suporte.
+   */
+  environment: PushEnvironment;
   permission: PushPermission;
   isSubscribed: boolean;
   isLoading: boolean;
@@ -52,6 +59,8 @@ export function usePushSubscription(
   );
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Detecção depende de APIs do cliente; inicializa no cliente e não muda depois.
+  const [environment] = useState<PushEnvironment>(() => detectPushEnvironment());
 
   useEffect(() => {
     if (!isSupported) return;
@@ -122,5 +131,5 @@ export function usePushSubscription(
     }
   }
 
-  return { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe };
+  return { isSupported, environment, permission, isSubscribed, isLoading, subscribe, unsubscribe };
 }
