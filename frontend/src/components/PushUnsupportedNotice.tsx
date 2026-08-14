@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { ExternalLink, Share, Smartphone, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PushInstallGuide } from "@/components/PushInstallGuide";
 import type { PushEnvironment } from "@/lib/push-environment";
 
 /**
  * Orientação exibida quando o Web Push não está disponível. Em vez de uma única
  * mensagem "tente outro navegador" (enganosa no iPhone, onde todo navegador é
- * WebKit), mostra o próximo passo certo para cada ambiente — ver
- * `detectPushEnvironment`.
+ * WebKit), mostra o próximo passo certo para cada ambiente. Nos casos que têm
+ * solução na mão do usuário (instalar como app no iOS, abrir no navegador),
+ * abre um guia visual passo a passo — ver `PushInstallGuide`.
  */
 export function PushUnsupportedNotice({
   environment,
@@ -16,47 +20,54 @@ export function PushUnsupportedNotice({
   environment: PushEnvironment;
   compact?: boolean;
 }) {
+  const [guideOpen, setGuideOpen] = useState(false);
   const text = compact ? "text-xs" : "text-sm";
 
   if (environment === "ios-needs-install") {
     return (
-      <div className={`rounded-lg border border-border bg-muted/30 px-3 py-2.5 ${text} text-muted-foreground space-y-2.5`}>
-        <div className="flex items-center gap-2 font-medium text-foreground">
-          <Share className="h-4 w-4 shrink-0 text-primary" />
-          Ativar no iPhone
+      <>
+        <div className={`rounded-lg border border-border bg-muted/30 px-3 py-3 ${text} space-y-3`}>
+          <div className="flex items-center gap-2 font-medium text-foreground">
+            <Share className="h-4 w-4 shrink-0 text-primary" />
+            Ative as notificações no seu iPhone
+          </div>
+          <p className="text-muted-foreground">
+            No iPhone, as notificações funcionam adicionando o Formattio à tela
+            inicial. Mostramos como — são 3 passos rápidos.
+          </p>
+          <Button className="w-full gap-2" onClick={() => setGuideOpen(true)}>
+            <Share className="h-4 w-4" />
+            Ver como ativar
+          </Button>
         </div>
-        <ol className="space-y-1.5 list-decimal pl-4">
-          <li>
-            Toque em <strong>Compartilhar</strong> (o quadrado com a seta ↑) na
-            barra do Safari.
-          </li>
-          <li>
-            Escolha <strong>Adicionar à Tela de Início</strong>.
-          </li>
-          <li>Abra o Formattio pelo novo ícone e toque em ativar aqui.</li>
-        </ol>
-        <p className="text-xs">
-          O iPhone só entrega notificações quando o site é aberto como app pela
-          tela inicial.
-        </p>
-      </div>
+        <PushInstallGuide variant="ios-install" open={guideOpen} onOpenChange={setGuideOpen} />
+      </>
     );
   }
 
   if (environment === "in-app-browser") {
     return (
-      <div className={`rounded-lg border border-border bg-muted/30 px-3 py-2.5 ${text} text-muted-foreground space-y-1.5`}>
-        <div className="flex items-center gap-2 font-medium text-foreground">
-          <ExternalLink className="h-4 w-4 shrink-0 text-primary" />
-          Abra no navegador
+      <>
+        <div className={`rounded-lg border border-border bg-muted/30 px-3 py-3 ${text} space-y-3`}>
+          <div className="flex items-center gap-2 font-medium text-foreground">
+            <ExternalLink className="h-4 w-4 shrink-0 text-primary" />
+            Abra no navegador para ativar
+          </div>
+          <p className="text-muted-foreground">
+            Este link foi aberto dentro de outro app (como o WhatsApp), que não
+            permite notificações. É só abrir no navegador do celular.
+          </p>
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => setGuideOpen(true)}
+          >
+            <ExternalLink className="h-4 w-4" />
+            Ver como fazer
+          </Button>
         </div>
-        <p>
-          Você abriu este link dentro de outro app (WhatsApp, Instagram…), que
-          não permite notificações. Toque no menu <strong>⋯</strong> e escolha
-          <strong> Abrir no Safari</strong> (iPhone) ou <strong>Abrir no Chrome</strong>{" "}
-          (Android). Depois ative as notificações por lá.
-        </p>
-      </div>
+        <PushInstallGuide variant="in-app" open={guideOpen} onOpenChange={setGuideOpen} />
+      </>
     );
   }
 
