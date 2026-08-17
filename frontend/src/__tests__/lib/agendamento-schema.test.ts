@@ -11,13 +11,13 @@ describe("CreateAgendamentoSchema — tipos de evento", () => {
     ).toBe(true);
   });
 
-  it("evento avulso (retiro/convocação/reunião/outro) exige título, não formação", () => {
+  it("evento avulso (retiro/complementar/convocação/reunião/outro) exige título, não formação", () => {
     // sem título → inválido
     expect(
       CreateAgendamentoSchema.safeParse({ ...base, tipoEvento: "retiro" }).success
     ).toBe(false);
     // com título → válido, sem precisar de formacaoId
-    for (const tipoEvento of ["retiro", "convocacao", "reuniao", "outro"] as const) {
+    for (const tipoEvento of ["retiro", "formacao_complementar", "convocacao", "reuniao", "outro"] as const) {
       const r = CreateAgendamentoSchema.safeParse({
         ...base,
         tipoEvento,

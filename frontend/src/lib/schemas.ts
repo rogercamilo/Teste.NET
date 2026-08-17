@@ -420,6 +420,7 @@ export const CreateConviteSchema = z.object({
 
 const TipoEventoAgendaEnum = z.enum([
   "formacao",
+  "formacao_complementar",
   "retiro",
   "convocacao",
   "reuniao",

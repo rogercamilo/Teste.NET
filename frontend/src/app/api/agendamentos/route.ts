@@ -136,6 +136,19 @@ export async function POST(request: Request) {
         { status: 403 }
       );
     }
+
+    // Formação Complementar é exclusiva de FG e FC (formadores de campo) — espelha
+    // a trava da UI no servidor, como em Convocação/Assembleia e Acompanhamento.
+    if (
+      tipoEvento === "formacao_complementar" &&
+      user.role !== "formador_geral" &&
+      user.role !== "formador_comunitario"
+    ) {
+      return NextResponse.json(
+        { error: "Sem permissão para agendar Formação Complementar" },
+        { status: 403 }
+      );
+    }
     let formacaoIdFinal: string | null = null;
     if (tipoEvento === "formacao") {
       const formacao = await prisma.formacao.findFirst({

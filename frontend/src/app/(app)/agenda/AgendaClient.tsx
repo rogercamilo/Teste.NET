@@ -623,6 +623,11 @@ function AgendamentoFormDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="formacao">{TIPO_EVENTO_AGENDA_LABELS.formacao}</SelectItem>
+                {(isFC || isFG) && (
+                  <SelectItem value="formacao_complementar">
+                    {TIPO_EVENTO_AGENDA_LABELS.formacao_complementar}
+                  </SelectItem>
+                )}
                 <SelectItem value="retiro">{TIPO_EVENTO_AGENDA_LABELS.retiro}</SelectItem>
                 {podeAcompanhar && (
                   <SelectItem value="acompanhamento_comunitario">
@@ -686,11 +691,13 @@ function AgendamentoFormDialog({
                 placeholder={
                   form.tipoEvento === "retiro"
                     ? "Ex.: Retiro de Advento"
-                    : form.tipoEvento === "convocacao"
-                      ? "Ex.: Convocação Geral da Comunidade"
-                      : form.tipoEvento === "reuniao"
-                        ? "Ex.: Assembleia de formadores"
-                        : "Nome do evento"
+                    : form.tipoEvento === "formacao_complementar"
+                      ? "Ex.: Palestra sobre São José"
+                      : form.tipoEvento === "convocacao"
+                        ? "Ex.: Convocação Geral da Comunidade"
+                        : form.tipoEvento === "reuniao"
+                          ? "Ex.: Assembleia de formadores"
+                          : "Nome do evento"
                 }
               />
             </div>

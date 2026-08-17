@@ -71,7 +71,7 @@ export default async function GrupoFormacaoDetailPage({
               ? [{
                   grupoFormacaoId: null,
                   grupos: { none: {} },
-                  tipoEvento: { in: ["formacao", "retiro", "outro"] },
+                  tipoEvento: { in: ["formacao", "formacao_complementar", "retiro", "outro"] },
                   nivelFormativo: grupo.nivelFormativo,
                 }]
               : []),

@@ -36,15 +36,17 @@ export type OrigemFormacao = "prevista" | "complementar";
 /** Estado de realização da formação pontual (G5/G6). */
 export type StatusRealizacao = "registrada" | "realizada";
 /**
- * Natureza do evento na Agenda. "formacao" é amarrado a uma Formação; retiro/
- * outro são coletivos avulsos; "convocacao" (Convocação Geral) e "reuniao"
- * (Reunião/Assembleia Geral) são org-wide (toda a org, todos os níveis) e só
- * FG/Admin agendam — entram na Presença de TODOS os grupos;
- * "acompanhamento_comunitario" é um encontro 1:1 (partilha e oração) com uma
- * pessoa específica.
+ * Natureza do evento na Agenda. "formacao" é amarrado a uma Formação;
+ * "formacao_complementar" é uma formação avulsa (título livre, fora da grade)
+ * que só FG/FC agendam; retiro/outro são coletivos avulsos; "convocacao"
+ * (Convocação Geral) e "reuniao" (Reunião/Assembleia Geral) são org-wide (toda a
+ * org, todos os níveis) e só FG/Admin agendam — entram na Presença de TODOS os
+ * grupos; "acompanhamento_comunitario" é um encontro 1:1 (partilha e oração) com
+ * uma pessoa específica.
  */
 export type TipoEvento =
   | "formacao"
+  | "formacao_complementar"
   | "retiro"
   | "convocacao"
   | "reuniao"
@@ -432,6 +434,7 @@ export const TIPOS_COMPROMISSO: TipoCompromisso[] = ["reuniao", "visita", "forma
 
 export const TIPO_EVENTO_AGENDA_LABELS: Record<TipoEvento, string> = {
   formacao: "Formação Comunitária",
+  formacao_complementar: "Formação - Complementar",
   retiro: "Retiro Comunitário",
   convocacao: "Convocação Geral",
   reuniao: "Reunião / Assembleia Geral",
@@ -441,6 +444,7 @@ export const TIPO_EVENTO_AGENDA_LABELS: Record<TipoEvento, string> = {
 
 export const TIPO_EVENTO_AGENDA_CORES: Record<TipoEvento, string> = {
   formacao: "bg-slate-100 text-slate-700",
+  formacao_complementar: "bg-teal-100 text-teal-700",
   retiro: "bg-violet-100 text-violet-700",
   convocacao: "bg-amber-100 text-amber-800",
   reuniao: "bg-blue-100 text-blue-700",

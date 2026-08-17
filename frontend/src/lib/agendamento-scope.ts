@@ -16,7 +16,8 @@ export interface FormandoScope {
  *  - encontros do próprio grupo (campo legado + junção multi-grupo, item 1.7);
  *  - Acompanhamento Comunitário 1:1 marcado para ele (privado, por alvo);
  *  - eventos org-wide ("todos os grupos"): Convocação/Assembleia Geral valem para
- *    qualquer nível; formação/retiro/outro sem grupo valem só p/ o mesmo nível.
+ *    qualquer nível; formação (incl. complementar)/retiro/outro sem grupo valem
+ *    só p/ o mesmo nível.
  */
 export function agendamentoRelevanteOR(
   formando: FormandoScope
@@ -33,7 +34,7 @@ export function agendamentoRelevanteOR(
     {
       grupoFormacaoId: null,
       grupos: { none: {} },
-      tipoEvento: { in: ["formacao", "retiro", "outro"] },
+      tipoEvento: { in: ["formacao", "formacao_complementar", "retiro", "outro"] },
       nivelFormativo: formando.nivelFormativo,
     },
   ];
