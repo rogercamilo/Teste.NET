@@ -80,7 +80,7 @@
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10",
-    "globals": "^16.5.0",
+    "globals": "^17.11.0",
     "playwright": "^1.60.0",
     "prisma": "7.9.1",
     "shadcn": "^4.16.2",
