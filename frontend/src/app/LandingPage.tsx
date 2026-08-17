@@ -971,7 +971,12 @@ function LeadMagnetSection() {
       setDone(true);
       // Conversão de lead capturada — informa o Meta Pixel (no-op se pixel
       // ausente ou sem consentimento de marketing) para otimização de anúncios.
-      trackMetaEvent("Lead");
+      // Parâmetros padrão do evento "Lead" da Meta (identificam o conteúdo
+      // convertido; melhoram a qualidade do evento e a otimização de campanhas).
+      trackMetaEvent("Lead", {
+        content_name: EBOOK_TITULO,
+        content_category: "eBook",
+      });
     } catch {
       setErro("Erro de conexão. Tente novamente.");
     } finally {

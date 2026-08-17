@@ -34,6 +34,13 @@ interface FbqShim {
 // PROPAGAÇÃO do strict-dynamic — não precisa de nonce nem de allowlist de host
 // em script-src. As chamadas de rede do pixel usam img-src (https:) e
 // connect-src (facebook), ambos liberados em src/proxy.ts.
+//
+// MODO DE CONSENTIMENTO (Meta Consent Mode): o pixel é carregado já no load da
+// página, mas em estado `consent: 'revoke'` — presente e DETECTÁVEL pelas
+// ferramentas da Meta (Configurar eventos, Eventos de Teste, Pixel Helper), sem
+// enviar NENHUM evento nem gravar cookie de marketing até o consentimento ser
+// concedido. O `revoke` é chamado ANTES do `init` justamente para impedir o
+// PageView/cookie automático. Só após o opt-in de marketing chamamos `grant`.
 function loadPixel(): void {
   const w = window as unknown as { fbq?: FbqShim; _fbq?: FbqShim };
   if (w.fbq) return;
@@ -58,40 +65,62 @@ function loadPixel(): void {
   script.src = "https://connect.facebook.net/en_US/fbevents.js";
   document.head.appendChild(script);
 
+  // Consentimento NEGADO por padrão (antes do init): nada é enviado nem gravado
+  // até o grant. É o que torna o pixel compatível com LGPD sem escondê-lo da Meta.
+  fbq("consent", "revoke");
   fbq("init", META_PIXEL_ID);
-  fbq("track", "PageView");
 }
 
 /**
- * Carrega o Meta Pixel de forma condicionada ao consentimento de marketing.
- * Montado uma vez no layout raiz. Reage ao evento de consentimento para ativar
- * sem recarregar a página quando o usuário aceita marketing no banner.
+ * Meta Pixel com consent mode. Montado uma vez no layout raiz.
+ * - No mount: carrega o pixel em `revoke` (detectável, mas mudo).
+ * - Ao consentir marketing: `grant` + PageView. Reage ao vivo ao banner.
+ * - Ao revogar marketing (via "Gerenciar cookies"): volta para `revoke`.
  */
 export default function MetaPixel() {
   const pathname = usePathname();
-  const loaded = useRef(false);
+  const loadedRef = useRef(false);
+  const grantedRef = useRef(false);
   const firstNav = useRef(true);
 
   useEffect(() => {
     if (!META_PIXEL_ID) return;
-    const activate = () => {
-      if (loaded.current || !hasMarketingConsent()) return;
-      loaded.current = true;
+
+    if (!loadedRef.current) {
+      loadedRef.current = true;
       loadPixel();
+    }
+
+    // Sincroniza o estado de consentimento do pixel com a escolha do usuário,
+    // nos dois sentidos (conceder e revogar).
+    const syncConsent = () => {
+      const w = window as unknown as { fbq?: FbqShim };
+      if (!w.fbq) return;
+      const consented = hasMarketingConsent();
+      if (consented && !grantedRef.current) {
+        grantedRef.current = true;
+        w.fbq("consent", "grant");
+        w.fbq("track", "PageView");
+      } else if (!consented && grantedRef.current) {
+        grantedRef.current = false;
+        w.fbq("consent", "revoke");
+      }
     };
-    activate();
-    window.addEventListener(CONSENT_EVENT, activate);
-    return () => window.removeEventListener(CONSENT_EVENT, activate);
+
+    syncConsent();
+    window.addEventListener(CONSENT_EVENT, syncConsent);
+    return () => window.removeEventListener(CONSENT_EVENT, syncConsent);
   }, []);
 
-  // PageView em navegações SPA (o PageView inicial é disparado no loadPixel).
+  // PageView em navegações SPA — só após o consentimento (o PageView inicial é
+  // disparado no grant). Sob `revoke` o trackMetaEvent é retido pelo fbevents.
   useEffect(() => {
     if (!META_PIXEL_ID) return;
     if (firstNav.current) {
       firstNav.current = false;
       return;
     }
-    if (!loaded.current) return;
+    if (!grantedRef.current) return;
     trackMetaEvent("PageView");
   }, [pathname]);
 
