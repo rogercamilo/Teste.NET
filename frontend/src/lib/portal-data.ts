@@ -579,8 +579,8 @@ export async function getPortalAudiencia(
   formandoId: string,
   organizacaoId: string
 ): Promise<PortalAudiencia> {
-  const formando = await prisma.formando.findUnique({
-    where: { id: formandoId },
+  const formando = await prisma.formando.findFirst({
+    where: { id: formandoId, organizacaoId },
     select: { grupoFormacaoId: true },
   });
   if (!formando?.grupoFormacaoId) return "formando";
