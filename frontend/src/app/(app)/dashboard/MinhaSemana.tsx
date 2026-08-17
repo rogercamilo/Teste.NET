@@ -164,6 +164,9 @@ export function MinhaSemana({ stats, perfil, termos }: Props) {
           <VazioLinha>Sem aniversários ou marcos formativos esta semana.</VazioLinha>
         ) : (
           <>
+            {/* Cada item traz um subtítulo com a natureza do destaque ("Aniversário"
+                / "Marco formativo") — sob o rótulo genérico "Destaques", a linha
+                precisa ser autoexplicativa mesmo lida isoladamente. */}
             {aniversarios.map((a) => (
               <Link
                 key={`b-${a.id}`}
@@ -171,8 +174,9 @@ export function MinhaSemana({ stats, perfil, termos }: Props) {
                 className="flex items-center gap-2.5 rounded-lg p-2 -mx-2 transition-colors hover:bg-muted/60"
               >
                 <Cake className="h-4 w-4 shrink-0 text-rose-500" />
-                <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                  <span className="font-medium">{a.nome}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-foreground">{a.nome}</span>
+                  <span className="block text-xs text-rose-500">Aniversário</span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">{a.quando}</span>
               </Link>
@@ -184,9 +188,11 @@ export function MinhaSemana({ stats, perfil, termos }: Props) {
                 className="flex items-center gap-2.5 rounded-lg p-2 -mx-2 transition-colors hover:bg-muted/60"
               >
                 <TrendingUp className="h-4 w-4 shrink-0 text-emerald-500" />
-                <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                  <span className="font-medium">{m.nome}</span>
-                  <span className="text-muted-foreground"> · {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-foreground">{m.nome}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    Marco formativo · {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]}
+                  </span>
                 </span>
                 <span className="shrink-0 text-xs font-semibold text-emerald-600">{m.progresso}%</span>
               </Link>
