@@ -707,6 +707,18 @@ export function isAdminOrAbove(role: string | undefined): boolean {
   return role === "administrador" || role === "formador_geral" || role === "super_admin";
 }
 
+// Perfis de gestão: concedem (ou representam) acesso administrativo. Criar, atribuir
+// ou editar uma conta desse nível é privilégio de administrador/super_admin — impede
+// que formador_geral (que fica ABAIXO de administrador) escale privilégios, promova a
+// si mesmo ou tome uma conta de administrador via redefinição de senha.
+export function isPerfilGestaoElevado(perfil: string | undefined): boolean {
+  return perfil === "administrador" || perfil === "formador_geral" || perfil === "super_admin";
+}
+
+export function podeGerenciarGestao(actorRole: string | undefined): boolean {
+  return actorRole === "administrador" || actorRole === "super_admin";
+}
+
 export const TIPO_COMENTARIO_LABELS: Record<TipoComentario, string> = {
   adesao: "Adesão",
   dificuldade: "Dificuldade",

@@ -8,7 +8,7 @@ import { CreateUserSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import { canAddUser, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 
-import { isAdminOrAbove, SessionUser } from "@/lib/auth-helpers";
+import { isAdminOrAbove, isPerfilGestaoElevado, podeGerenciarGestao, SessionUser } from "@/lib/auth-helpers";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -84,6 +84,13 @@ export async function POST(request: Request) {
     }
 
     const perfilSanitizado = perfil ?? "formador_comunitario";
+
+    // Só administrador/super_admin pode criar contas de nível de gestão
+    // (administrador/formador_geral). Impede que formador_geral crie um par ou
+    // superior e escale privilégios. Consistente com o enforcement do PUT/DELETE.
+    if (!podeGerenciarGestao(actor.role) && isPerfilGestaoElevado(perfilSanitizado)) {
+      return NextResponse.json({ error: "Sem permissão para atribuir perfil de gestão" }, { status: 403 });
+    }
 
     const { user, tempPassword } = await createUser({
       nome,

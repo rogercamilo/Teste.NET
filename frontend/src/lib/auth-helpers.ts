@@ -8,4 +8,4 @@
   primeiroAcesso?: boolean;
 };
 
-export { isGestao, isAdminOrAbove, podeElaborarConteudo } from "@/types";
+export { isGestao, isAdminOrAbove, podeElaborarConteudo, isPerfilGestaoElevado, podeGerenciarGestao } from "@/types";

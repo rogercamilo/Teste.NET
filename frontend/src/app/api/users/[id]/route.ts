@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { findById, updateUser, deleteUser, toPublic, EmailConflictError } from "@/lib/users-store";
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
-import { isAdminOrAbove, SessionUser } from "@/lib/auth-helpers";
+import { isAdminOrAbove, isPerfilGestaoElevado, podeGerenciarGestao, SessionUser } from "@/lib/auth-helpers";
 import { PerfilEnum } from "@/lib/schemas";
 import { z } from "zod";
 
@@ -72,6 +72,19 @@ export async function PUT(request: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
+    // Enforcement por camada de privilégio: só administrador/super_admin gerem contas
+    // de nível de gestão. Um formador_geral não pode editar um administrador/formador_geral
+    // (exceto a própria conta, para nome/foto/senha) nem promover alguém a esse nível —
+    // fecha o escalonamento de privilégio e a tomada de conta via redefinição de senha.
+    if (!podeGerenciarGestao(actor.role)) {
+      if (id !== actor.id && isPerfilGestaoElevado(target.perfil)) {
+        return NextResponse.json({ error: "Sem permissão para editar contas de gestão" }, { status: 403 });
+      }
+      if (isPerfilGestaoElevado(perfil)) {
+        return NextResponse.json({ error: "Sem permissão para atribuir perfil de gestão" }, { status: 403 });
+      }
+    }
+
     // Guarda de auto-bloqueio: espelha a proteção do DELETE (não excluir a própria
     // conta). Um admin não pode se desativar nem se rebaixar para um perfil sem
     // acesso de gestão pela própria edição — evita a org ficar sem quem administre.
@@ -128,6 +141,10 @@ export async function DELETE(request: Request, ctx: Ctx) {
     if (!target) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
     if ((target.perfil as string) === "super_admin") {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
+    // Só administrador/super_admin pode excluir contas de nível de gestão.
+    if (!podeGerenciarGestao(actor.role) && isPerfilGestaoElevado(target.perfil)) {
+      return NextResponse.json({ error: "Sem permissão para excluir contas de gestão" }, { status: 403 });
     }
 
     const ok = await deleteUser(id, actor.organizacaoId);
