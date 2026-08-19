@@ -111,6 +111,12 @@ export async function PUT(request: Request, { params }: Params) {
   } catch (err) { logError("agendamentos/:id PUT", err); return NextResponse.json({ error: "Falha ao atualizar agendamento" }, { status: 500 }); }
 }
 
+// PATCH: atualização parcial (mudança de status, reagendamento, edição de campos).
+// Mesma lógica do PUT — o UpdateAgendamentoSchema já é `.partial()`, então aceita
+// payloads enxutos como `{ status }`. Sem este handler, o Next.js respondia 405 e a
+// UI mostrava "Erro ao atualizar status." ao confirmar/cancelar.
+export const PATCH = PUT;
+
 export async function DELETE(request: Request, { params }: Params) {
   const session = await auth();
   const user = session?.user as SU | undefined;

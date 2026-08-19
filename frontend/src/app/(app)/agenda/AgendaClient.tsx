@@ -53,6 +53,7 @@ import {
   Clock,
   Loader2,
   MapPin,
+  Pencil,
   Plus,
   Search,
 } from "lucide-react";
@@ -240,7 +241,17 @@ export default function AgendaClient({
         headers: JSON_HEADERS,
         body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) return toast.error("Erro ao atualizar status.");
+      if (!res.ok) {
+        // Blindagem: mostra o motivo real do servidor (403 sem permissão,
+        // 429 rate-limit, 404 não encontrado…) em vez de um genérico.
+        const err = await res.json().catch(() => ({}));
+        const fallback =
+          res.status === 403 ? "Você não tem permissão para alterar este evento."
+          : res.status === 404 ? "Evento não encontrado. Atualize a página."
+          : res.status === 429 ? "Muitas requisições. Tente novamente em instantes."
+          : "Não foi possível atualizar o status. Tente novamente.";
+        return toast.error((err as { error?: string }).error ?? fallback);
+      }
       toast.success(
         newStatus === "confirmada" ? "Formação confirmada."
         : newStatus === "realizada" ? "Formação concluída."
@@ -445,7 +456,13 @@ export default function AgendaClient({
               ) : (
                 <>
                   {filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((ag) => (
-                    <AgendamentoCard key={ag.id} ag={ag} canEdit onStatusChange={handleStatusChange} />
+                    <AgendamentoCard
+                      key={ag.id}
+                      ag={ag}
+                      canEdit
+                      onStatusChange={handleStatusChange}
+                      onEdited={() => startTransition(() => router.refresh())}
+                    />
                   ))}
                   <Pagination total={filteredSorted.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
                 </>
@@ -777,11 +794,17 @@ function AgendamentoCard({
   ag,
   canEdit,
   onStatusChange,
+  onEdited,
 }: {
   ag: Agendamento;
   canEdit: boolean;
   onStatusChange: (id: string, status: StatusFormacao) => void;
+  onEdited: () => void;
 }) {
+  const [editOpen, setEditOpen] = useState(false);
+  // Editar/reagendar só faz sentido enquanto o evento está ativo (não cancelado/realizado).
+  const podeEditar =
+    canEdit && (ag.status === "agendada" || ag.status === "confirmada" || ag.status === "reagendada");
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group">
       <CardContent className="p-4">
@@ -831,7 +854,19 @@ function AgendamentoCard({
                     location: ag.local ?? ag.linkOnline ?? undefined,
                   }}
                 />
-                {canEdit && ag.status === "agendada" && (
+                {podeEditar && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setEditOpen(true)}
+                    title="Editar ou reagendar"
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    Editar
+                  </Button>
+                )}
+                {canEdit && (ag.status === "agendada" || ag.status === "reagendada") && (
                   <>
                     <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onStatusChange(ag.id, "confirmada")}>
                       Confirmar
@@ -860,6 +895,136 @@ function AgendamentoCard({
           </div>
         </div>
       </CardContent>
+      {podeEditar && (
+        <AgendamentoEditDialog
+          open={editOpen}
+          ag={ag}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => { setEditOpen(false); onEdited(); }}
+        />
+      )}
     </Card>
+  );
+}
+
+/** Converte um ISO (UTC) para o valor de um <input datetime-local> na hora local. */
+function toDatetimeLocal(iso: string): string {
+  try { return format(parseISO(iso), "yyyy-MM-dd'T'HH:mm"); }
+  catch { return ""; }
+}
+
+/**
+ * Edição/reagendamento de um evento existente. Foca nos campos que fazem sentido
+ * remarcar (data/hora, local, observações e título de eventos avulsos). Ao mudar a
+ * data, o servidor rearma os lembretes automaticamente (ver PUT da rota).
+ */
+function AgendamentoEditDialog({
+  open,
+  ag,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  ag: Agendamento;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  // Eventos ligados a uma Formação têm o tema derivado do plano — não editável aqui.
+  const isFormacao = (ag.tipoEvento ?? "formacao") === "formacao";
+  const [titulo, setTitulo] = useState(ag.formacaoTema);
+  const [dataInicio, setDataInicio] = useState(toDatetimeLocal(ag.dataInicio));
+  const [dataFim, setDataFim] = useState(toDatetimeLocal(ag.dataFim));
+  const [local, setLocal] = useState(ag.local ?? "");
+  const [observacoes, setObservacoes] = useState(ag.observacoes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!isFormacao && !titulo.trim()) return toast.error("Informe o título do evento.");
+    if (!dataInicio) return toast.error("Informe a data e hora de início.");
+    if (dataFim && new Date(dataFim).getTime() < new Date(dataInicio).getTime()) {
+      return toast.error("A data de fim não pode ser anterior à de início.");
+    }
+    setSaving(true);
+    try {
+      const dataInicioISO = new Date(dataInicio).toISOString();
+      const remarcado = dataInicioISO !== new Date(ag.dataInicio).toISOString();
+      const payload = {
+        formacaoTema: isFormacao ? undefined : titulo.trim(),
+        dataInicio: dataInicioISO,
+        dataFim: dataFim ? new Date(dataFim).toISOString() : dataInicioISO,
+        local: local.trim() || null,
+        observacoes: observacoes.trim() || null,
+        // Remarcação de um evento já confirmado volta ao estado "reagendada"
+        // (dispara push de remarcação e sinaliza que precisa nova confirmação).
+        ...(remarcado && ag.status === "confirmada" ? { status: "reagendada" as StatusFormacao } : {}),
+      };
+      const res = await fetch(`/api/agendamentos/${ag.id}`, {
+        method: "PATCH",
+        headers: JSON_HEADERS,
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const fallback =
+          res.status === 403 ? "Você não tem permissão para editar este evento."
+          : res.status === 404 ? "Evento não encontrado. Atualize a página."
+          : res.status === 429 ? "Muitas requisições. Tente novamente em instantes."
+          : "Não foi possível salvar as alterações. Tente novamente.";
+        return toast.error((err as { error?: string }).error ?? fallback);
+      }
+      toast.success("Evento atualizado.");
+      onSaved();
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar evento</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+          {!isFormacao && (
+            <div className="grid gap-1.5">
+              <Label>Título <span className="text-destructive">*</span></Label>
+              <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Nome do evento" />
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Data e hora de início <span className="text-destructive">*</span></Label>
+              <Input type="datetime-local" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Data e hora de fim</Label>
+              <Input type="datetime-local" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Local</Label>
+            <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Salão, online, endereço..." />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Observações</Label>
+            <Textarea
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              placeholder="Instruções, avisos ou contexto..."
+              className="min-h-[60px] resize-none text-sm"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Fechar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando…</> : "Salvar alterações"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
