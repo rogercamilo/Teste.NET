@@ -89,7 +89,7 @@ export async function POST(request: Request) {
       nome,
       email,
       password: password || undefined,
-      perfil: perfilSanitizado as "administrador" | "formador_geral" | "formador_comunitario",
+      perfil: perfilSanitizado as "administrador" | "formador_geral" | "formador_comunitario" | "formador_pedagogico",
       grupoFormacaoId,
       ativo: ativo ?? true,
       foto: foto ?? undefined,
