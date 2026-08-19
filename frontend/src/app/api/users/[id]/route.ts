@@ -4,11 +4,14 @@ import { findById, updateUser, deleteUser, toPublic, EmailConflictError } from "
 import { logAction, getClientIp, logError } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { isAdminOrAbove, SessionUser } from "@/lib/auth-helpers";
+import { PerfilEnum } from "@/lib/schemas";
+import { z } from "zod";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-type AssignablePerfil = "administrador" | "formador_geral" | "formador_comunitario";
-const VALID_PERFIS: AssignablePerfil[] = ["administrador", "formador_geral", "formador_comunitario"];
+// Fonte única dos perfis atribuíveis (mesma da criação) — evita drift como o que
+// deixava "formador_pedagogico" fora e quebrava a edição com "Perfil inválido".
+type AssignablePerfil = z.infer<typeof PerfilEnum>;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -52,7 +55,7 @@ export async function PUT(request: Request, ctx: Ctx) {
     if (email !== undefined && !EMAIL_RE.test(email)) {
       return NextResponse.json({ error: "E-mail inválido" }, { status: 400 });
     }
-    if (perfilRaw !== undefined && !VALID_PERFIS.includes(perfilRaw as AssignablePerfil)) {
+    if (perfilRaw !== undefined && !PerfilEnum.safeParse(perfilRaw).success) {
       return NextResponse.json({ error: "Perfil inválido" }, { status: 400 });
     }
     const perfil = perfilRaw as AssignablePerfil | undefined;
