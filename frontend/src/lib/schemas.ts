@@ -433,7 +433,11 @@ const AgendamentoBaseSchema = z.object({
   // formacaoId; os demais (retiro/convocacao/reuniao/outro) exigem título.
   tipoEvento: TipoEventoAgendaEnum.optional(),
   formacaoId: z.string().optional().nullable(),
-  formacaoTema: optionalString(500).default(""),
+  // Sem `.default("")`: com o default, `UpdateAgendamentoSchema.partial()` ainda
+  // injetava "" quando o campo era omitido (ex.: PATCH de status), apagando o
+  // nome do evento. O POST usa `?? ""` como fallback próprio, então o create não
+  // depende do default. Ver histórico: perda do nome ao confirmar/editar.
+  formacaoTema: optionalString(500),
   nivelFormativo: NivelFormativoEnum.optional(),
   tipoFormacao: TipoFormacaoEnum.optional(),
   grupoFormacaoId: z.string().optional().nullable(),
