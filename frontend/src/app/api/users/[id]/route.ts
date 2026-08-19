@@ -60,10 +60,28 @@ export async function PUT(request: Request, ctx: Ctx) {
     }
     const perfil = perfilRaw as AssignablePerfil | undefined;
 
+    // Paridade com a criação (CreateUserSchema exige mín. 8): sem isso, a edição
+    // aceitava definir senhas fracas de 1 caractere, contornando a política.
+    if (password !== undefined && (password.length < 8 || password.length > 128)) {
+      return NextResponse.json({ error: "Senha deve ter entre 8 e 128 caracteres" }, { status: 400 });
+    }
+
     const target = await findById(id, actor.organizacaoId);
     if (!target) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
     if ((target.perfil as string) === "super_admin") {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
+
+    // Guarda de auto-bloqueio: espelha a proteção do DELETE (não excluir a própria
+    // conta). Um admin não pode se desativar nem se rebaixar para um perfil sem
+    // acesso de gestão pela própria edição — evita a org ficar sem quem administre.
+    if (id === actor.id) {
+      if (ativo === false) {
+        return NextResponse.json({ error: "Não é possível desativar a própria conta" }, { status: 400 });
+      }
+      if (perfil !== undefined && !isAdminOrAbove(perfil)) {
+        return NextResponse.json({ error: "Não é possível rebaixar o próprio perfil de gestão" }, { status: 400 });
+      }
     }
 
     // Quando o admin define uma senha explícita pela edição, ela é definitiva:

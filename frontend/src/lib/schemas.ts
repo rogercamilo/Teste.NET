@@ -77,15 +77,6 @@ export const CreateUserSchema = z.object({
   foto: z.string().max(2_000_000).nullable().optional(),
 });
 
-export const UpdateUserSchema = z.object({
-  nome: nonEmptyString(255).optional(),
-  email: z.string().email("E-mail inválido").max(255).optional(),
-  perfil: PerfilEnum.optional(),
-  grupoFormacaoId: z.string().optional().nullable(),
-  ativo: z.boolean().optional(),
-  foto: z.string().max(2_000_000).nullable().optional(),
-});
-
 // ── Formando ──────────────────────────────────────────────────────────────────
 
 export const CreateFormandoSchema = z.object({
