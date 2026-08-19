@@ -1043,6 +1043,17 @@ export default function FormandoDetailClient({
 
       <Tabs defaultValue="visao-geral">
         <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/*
+          Ordem das abas por narrativa progressiva de uso, do mais consultado ao
+          referencial/administrativo:
+            1) Jornada (quem é / onde está): Visão geral → Jornada Formativa
+            2) Avaliação da jornada (para onde vai / de onde veio):
+               Perspectivas → Histórico de evolução
+            3) Acompanhamento humano (ação recorrente do formador):
+               Acompanhamento → Comentários do formador
+            4) Registros e referência: Documentos → Dados Pessoais
+            5) Administrativo: Registro de solicitações
+        */}
         <TabsList className="bg-muted/50 h-9 min-w-max">
           <TabsTrigger value="visao-geral" className="text-xs h-7">
             Visão geral
@@ -1050,23 +1061,23 @@ export default function FormandoDetailClient({
           <TabsTrigger value="jornada" className="text-xs h-7">
             Jornada Formativa
           </TabsTrigger>
-          {mostraDocumentos && (
-            <TabsTrigger value="documentos" className="text-xs h-7">
-              Documentos
-            </TabsTrigger>
-          )}
           <TabsTrigger value="perspectivas" className="text-xs h-7">
             Perspectivas
           </TabsTrigger>
           <TabsTrigger value="historico" className="text-xs h-7">
             Histórico de evolução
           </TabsTrigger>
-          <TabsTrigger value="comentarios" className="text-xs h-7">
-            Comentários do formador
-          </TabsTrigger>
           <TabsTrigger value="acompanhamento" className="text-xs h-7">
             Acompanhamento
           </TabsTrigger>
+          <TabsTrigger value="comentarios" className="text-xs h-7">
+            Comentários do formador
+          </TabsTrigger>
+          {mostraDocumentos && (
+            <TabsTrigger value="documentos" className="text-xs h-7">
+              Documentos
+            </TabsTrigger>
+          )}
           <TabsTrigger value="dados" className="text-xs h-7">
             Dados Pessoais
           </TabsTrigger>
