@@ -11,6 +11,8 @@ import {
   PERFIL_USUARIO_LABELS,
   TIPO_ORGANIZACAO_LABELS,
   isGestao as roleIsGestao,
+  isPerfilGestaoElevado,
+  podeGerenciarGestao,
   type PerfilUsuario,
   type NivelFormativo,
   type TipoOrganizacao,
@@ -247,7 +249,7 @@ export default function ConfiguracoesClient({
 
         {isGestao && (
           <TabsContent value="usuarios" className="mt-4">
-            <UsuariosTab currentUserId={userId} initialGruposFormacao={initialGruposFormacao} />
+            <UsuariosTab currentUserId={userId} currentUserRole={userRole} initialGruposFormacao={initialGruposFormacao} />
           </TabsContent>
         )}
 
@@ -812,8 +814,13 @@ const EMPTY_USUARIO_FORM: UsuarioForm = {
   gerarSenhaAuto: true,
 };
 
-function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: string; initialGruposFormacao: GrupoFormacao[] }) {
+function UsuariosTab({ currentUserId, currentUserRole, initialGruposFormacao }: { currentUserId: string; currentUserRole: string; initialGruposFormacao: GrupoFormacao[] }) {
   const router = useRouter();
+  // Só administrador/super_admin atribui/edita contas de nível de gestão
+  // (administrador/formador_geral). Espelha o enforcement do servidor em /api/users:
+  // um formador_geral gere apenas formador_comunitario/pedagogico. Ver
+  // isPerfilGestaoElevado/podeGerenciarGestao em types (fonte única).
+  const podeAtribuirGestao = podeGerenciarGestao(currentUserRole);
   const etapaLabels = useEtapaLabels();
   const { grupoFormacao: termoGrupoFormacao } = useTermos();
   const [usuarios, setUsuarios] = useState<UserPublic[]>([]);
@@ -858,6 +865,17 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
   const totalAtivos = usuarios.filter((u) => u.ativo).length;
   const totalAdmins = usuarios.filter((u) => u.perfil === "administrador").length;
   const totalFormadores = usuarios.filter((u) => u.perfil === "formador_comunitario").length;
+
+  // Opções do seletor de perfil conforme o papel do ator. Se um ator sem poder de
+  // gestão edita a PRÓPRIA conta de gestão (ex.: FG editando a si), o seletor fica
+  // travado no perfil atual — ele pode ajustar nome/foto/senha, não o perfil.
+  const perfilSelectTravado = !podeAtribuirGestao && isPerfilGestaoElevado(form.perfil);
+  const PERFIS_ATRIBUIVEIS: PerfilUsuario[] = ["administrador", "formador_geral", "formador_pedagogico", "formador_comunitario"];
+  const perfilOptions: [PerfilUsuario, string][] = perfilSelectTravado
+    ? [[form.perfil, PERFIL_USUARIO_LABELS[form.perfil]]]
+    : PERFIS_ATRIBUIVEIS
+        .filter((p) => podeAtribuirGestao || !isPerfilGestaoElevado(p))
+        .map((p) => [p, PERFIL_USUARIO_LABELS[p]]);
 
   function openCreate() {
     setEditing(null);
@@ -1129,6 +1147,10 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
             {filtered.map((usuario) => {
               const grupoFormacao = allMoradas.find((m) => m.id === usuario.grupoFormacaoId);
               const isCurrentUser = usuario.id === currentUserId;
+              // Ator sem poder de gestão não gere contas de nível administrativo de
+              // terceiros (espelha o 403 do servidor). Editar/desativar a própria conta
+              // segue o fluxo normal (com as guardas de auto-bloqueio no backend).
+              const alvoGestaoBloqueado = isPerfilGestaoElevado(usuario.perfil) && !podeAtribuirGestao && !isCurrentUser;
               return (
                 <TableRow key={usuario.id} className="hover:bg-muted/20 transition-colors">
                   <TableCell>
@@ -1206,11 +1228,11 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
                         <MoreHorizontal className="h-4 w-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEdit(usuario)}>
+                        <DropdownMenuItem onClick={() => openEdit(usuario)} disabled={alvoGestaoBloqueado}>
                           <Pencil className="h-4 w-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleAtivo(usuario)}>
+                        <DropdownMenuItem onClick={() => handleToggleAtivo(usuario)} disabled={alvoGestaoBloqueado || isCurrentUser}>
                           {usuario.ativo ? (
                             <XCircle className="h-4 w-4 mr-2" />
                           ) : (
@@ -1222,7 +1244,7 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
                         <DropdownMenuItem
                           variant="destructive"
                           onClick={() => openDelete(usuario)}
-                          disabled={isCurrentUser}
+                          disabled={isCurrentUser || alvoGestaoBloqueado}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Excluir
@@ -1417,23 +1439,14 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
             )}
             <div className="grid gap-1.5">
               <Label>Perfil de acesso</Label>
-              <Select value={form.perfil} onValueChange={(v) => v && set("perfil")(v)} items={{ administrador: PERFIL_USUARIO_LABELS.administrador, formador_geral: PERFIL_USUARIO_LABELS.formador_geral, formador_pedagogico: PERFIL_USUARIO_LABELS.formador_pedagogico, formador_comunitario: PERFIL_USUARIO_LABELS.formador_comunitario }}>
+              <Select value={form.perfil} onValueChange={(v) => v && set("perfil")(v)} disabled={perfilSelectTravado} items={Object.fromEntries(perfilOptions)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="administrador">
-                    {PERFIL_USUARIO_LABELS["administrador"]}
-                  </SelectItem>
-                  <SelectItem value="formador_geral">
-                    {PERFIL_USUARIO_LABELS["formador_geral"]}
-                  </SelectItem>
-                  <SelectItem value="formador_pedagogico">
-                    {PERFIL_USUARIO_LABELS["formador_pedagogico"]}
-                  </SelectItem>
-                  <SelectItem value="formador_comunitario">
-                    {PERFIL_USUARIO_LABELS["formador_comunitario"]}
-                  </SelectItem>
+                  {perfilOptions.map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1724,10 +1737,13 @@ function UsuariosTab({ currentUserId, initialGruposFormacao }: { currentUserId: 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* Formador Geral não é convidável (criado por cadastro direto); Administrador
+                      só por quem tem poder de gestão — espelha o enforcement de /api/convites. */}
                   <SelectItem value="formador_comunitario">Formador Comunitário</SelectItem>
                   <SelectItem value="formador_pedagogico">Formador Pedagógico</SelectItem>
-                  <SelectItem value="formador_geral">Formador Geral</SelectItem>
-                  <SelectItem value="administrador">Administrador</SelectItem>
+                  {podeAtribuirGestao && (
+                    <SelectItem value="administrador">Administrador</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

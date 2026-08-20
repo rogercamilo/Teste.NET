@@ -10,7 +10,7 @@ import { CreateConviteSchema, parseJson } from "@/lib/schemas";
 import { findByEmailGlobal } from "@/lib/users-store";
 import type { PerfilUsuario } from "@prisma/client";
 
-import { isAdminOrAbove, SessionUser as SU } from "@/lib/auth-helpers";
+import { isAdminOrAbove, podeGerenciarGestao, SessionUser as SU } from "@/lib/auth-helpers";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -60,8 +60,14 @@ export async function POST(request: Request) {
     const parsed = await parseJson(request, CreateConviteSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { email, nome, grupoFormacaoId, perfil } = parsed.data;
+    // Formador Geral é criado por cadastro direto (Admin), não por convite.
     if (perfil === "formador_geral") {
-      return NextResponse.json({ error: "Perfil inválido para convite. Use formador_comunitario ou administrador." }, { status: 400 });
+      return NextResponse.json({ error: "Formador Geral é criado pelo cadastro direto, não por convite." }, { status: 400 });
+    }
+    // Fecha a escalada: só administrador/super_admin pode convidar administradores —
+    // sem isto, um formador_geral (isAdminOrAbove) podia convidar alguém como Admin.
+    if (perfil === "administrador" && !podeGerenciarGestao(user.role)) {
+      return NextResponse.json({ error: "Sem permissão para convidar administradores" }, { status: 403 });
     }
 
     // Invariante multi-tenant: 1 e-mail = 1 organização. Checagem GLOBAL (não por-org):
