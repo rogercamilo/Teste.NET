@@ -515,7 +515,11 @@ export default function PerfilClient({
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" disabled={saving} render={<Link href="/portal/dashboard" />}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            Voltar ao portal
+          </Button>
           <Button onClick={handleSalvar} disabled={saving}>
             {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Salvar alterações
