@@ -41,3 +41,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Falha ao solicitar acompanhamento" }, { status: 500 });
   }
 }
+
+/**
+ * Desmarca (revoga) o pedido de acompanhamento do próprio formando. Remove
+ * durablemente a solicitação pendente, escopada à identidade do portal (headers
+ * do proxy, não spoofáveis) — anti-IDOR. Idempotente: se não há pendência, ainda
+ * responde ok (a intenção "não quero mais" vale). Só afeta pedidos `pendente`;
+ * pedidos já `agendada`/`recusada` pelo formador ficam intactos (histórico).
+ */
+export async function DELETE(request: Request) {
+  const formandoId = request.headers.get("x-formando-id");
+  const organizacaoId = request.headers.get("x-formando-org");
+  if (!formandoId || !organizacaoId) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  const rl = await limiters.mutation(formandoId);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
+  }
+
+  try {
+    await prisma.solicitacaoAcompanhamentoFormando.deleteMany({
+      where: { formandoId, organizacaoId, status: "pendente" },
+    });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    logError("portal acompanhamento/solicitar DELETE", err);
+    return NextResponse.json({ error: "Falha ao cancelar solicitação" }, { status: 500 });
+  }
+}

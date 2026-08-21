@@ -50,3 +50,43 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Falha ao solicitar acompanhamento" }, { status: 500 });
   }
 }
+
+/**
+ * Desmarca (revoga) o pedido de acompanhamento do próprio vocacionado. Remove
+ * durablemente a solicitação pendente, escopada à participação vocacional em
+ * andamento da identidade do portal (headers do proxy, não spoofáveis) —
+ * anti-IDOR. Idempotente: sem pendência, ainda responde ok. Só afeta pedidos
+ * `pendente`; pedidos já `agendada`/`recusada` pelo formador ficam intactos.
+ */
+export async function DELETE(request: Request) {
+  const formandoId = request.headers.get("x-formando-id");
+  const organizacaoId = request.headers.get("x-formando-org");
+  if (!formandoId || !organizacaoId) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  const rl = await limiters.mutation(formandoId);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
+  }
+
+  try {
+    const participacao = await prisma.participacaoVocacional.findFirst({
+      where: { formandoId, organizacaoId, status: { in: [...STATUS_ATIVOS] } },
+      orderBy: { criadoEm: "desc" },
+      select: { id: true },
+    });
+    if (!participacao) {
+      return NextResponse.json({ error: "Nenhuma participação vocacional em andamento" }, { status: 404 });
+    }
+
+    await prisma.solicitacaoAcompanhamento.deleteMany({
+      where: { participacaoId: participacao.id, status: "pendente" },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    logError("portal solicitar-acompanhamento DELETE", err);
+    return NextResponse.json({ error: "Falha ao cancelar solicitação" }, { status: 500 });
+  }
+}

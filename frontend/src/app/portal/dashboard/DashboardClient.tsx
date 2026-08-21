@@ -115,9 +115,11 @@ export default function DashboardClient({
   const camposFaltantes = formando.perfilCamposFaltantes;
   const [nudgeDispensado, setNudgeDispensado] = useState(false);
   const [solicitando, setSolicitando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
   const [solicitado, setSolicitado] = useState(vocacional?.solicitacaoPendente ?? false);
   // Acompanhamento formativo (Portal do Formando): estado do pedido do formando.
   const [solicitandoFormativo, setSolicitandoFormativo] = useState(false);
+  const [cancelandoFormativo, setCancelandoFormativo] = useState(false);
   const [solicitadoFormativo, setSolicitadoFormativo] = useState(
     acompanhamentoFormativo?.solicitacaoPendente ?? false
   );
@@ -159,6 +161,19 @@ export default function DashboardClient({
     }
   }
 
+  async function cancelarAcompanhamento() {
+    setCancelando(true);
+    try {
+      const res = await fetch("/api/portal/vocacional/solicitar-acompanhamento", { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setSolicitado(false);
+    } catch {
+      // silencioso — o pedido continua exibido como enviado
+    } finally {
+      setCancelando(false);
+    }
+  }
+
   async function solicitarAcompanhamentoFormativo() {
     setSolicitandoFormativo(true);
     try {
@@ -169,6 +184,19 @@ export default function DashboardClient({
       // silencioso — botão volta a ficar disponível
     } finally {
       setSolicitandoFormativo(false);
+    }
+  }
+
+  async function cancelarAcompanhamentoFormativo() {
+    setCancelandoFormativo(true);
+    try {
+      const res = await fetch("/api/portal/acompanhamento/solicitar", { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setSolicitadoFormativo(false);
+    } catch {
+      // silencioso — o pedido continua exibido como enviado
+    } finally {
+      setCancelandoFormativo(false);
     }
   }
 
@@ -336,9 +364,19 @@ export default function DashboardClient({
                 {vocacional.acompanhamentoOferecido && (
                   <div className="mt-auto">
                     {solicitado ? (
-                      <p className="inline-flex items-center gap-1.5 text-sm text-primary">
-                        <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
-                      </p>
+                      <div className="space-y-1.5">
+                        <p className="inline-flex items-center gap-1.5 text-sm text-primary">
+                          <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={cancelarAcompanhamento}
+                          disabled={cancelando}
+                          className="text-xs text-muted-foreground hover:text-foreground hover:underline disabled:opacity-60"
+                        >
+                          {cancelando ? "Desmarcando…" : "Desmarcar solicitação"}
+                        </button>
+                      </div>
                     ) : (
                       <Button size="sm" variant="outline" className="w-full" onClick={solicitarAcompanhamento} disabled={solicitando}>
                         {solicitando ? "Enviando…" : "Solicitar acompanhamento"}
@@ -373,9 +411,19 @@ export default function DashboardClient({
                 )}
                 <div className="mt-auto">
                   {solicitadoFormativo ? (
-                    <p className="inline-flex items-center gap-1.5 text-sm text-primary">
-                      <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
-                    </p>
+                    <div className="space-y-1.5">
+                      <p className="inline-flex items-center gap-1.5 text-sm text-primary">
+                        <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={cancelarAcompanhamentoFormativo}
+                        disabled={cancelandoFormativo}
+                        className="text-xs text-muted-foreground hover:text-foreground hover:underline disabled:opacity-60"
+                      >
+                        {cancelandoFormativo ? "Desmarcando…" : "Desmarcar solicitação"}
+                      </button>
+                    </div>
                   ) : (
                     <Button size="sm" variant="outline" className="w-full" onClick={solicitarAcompanhamentoFormativo} disabled={solicitandoFormativo}>
                       {solicitandoFormativo ? "Enviando…" : "Solicitar acompanhamento"}
