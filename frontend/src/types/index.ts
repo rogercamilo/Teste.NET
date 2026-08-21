@@ -663,14 +663,6 @@ export const FORMADOR_PEDAGOGICO_ROTAS_BLOQUEADAS: string[] = [
   "/vitrine",
 ];
 
-export const NIVEL_FORMATIVO_ICONS: Record<NivelFormativo, string> = {
-  "pre-discipulado": "🌱",
-  discipulado: "📖",
-  "primeiras-promessas": "🌟",
-  "formacao-permanente": "🔥",
-  vocacional: "🧭",
-};
-
 export const STATUS_PLANO_STYLES: Record<StatusPlano, string> = {
   rascunho: "bg-slate-100 text-slate-600 border-slate-200",
   "em-revisao": "bg-amber-100 text-amber-700 border-amber-200",

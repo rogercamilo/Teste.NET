@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useTermos } from "@/lib/data-store";
 import {
   NIVEL_FORMATIVO_LABELS,
-  NIVEL_FORMATIVO_ICONS,
   NIVEL_CORES,
   type GrupoFormacao,
   type NivelFormativo,
@@ -13,6 +12,7 @@ import {
   type GradeFormativa,
   type Usuario,
 } from "@/types";
+import { NivelFormativoIcon } from "@/components/nivel-formativo-icon";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -212,7 +212,7 @@ export default function GruposFormacaoClient({
           const count = initialGruposFormacao.filter((m) => m.nivelFormativo === nivel).length;
           return (
             <div key={nivel} className="p-3 rounded-xl border border-border/60 shadow-sm bg-card flex items-center gap-2.5">
-              <span className="text-xl">{NIVEL_FORMATIVO_ICONS[nivel]}</span>
+              <NivelFormativoIcon nivel={nivel} className="size-6 shrink-0 text-muted-foreground" />
               <div>
                 <p className="text-lg font-bold text-foreground leading-none">{count}</p>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
@@ -273,8 +273,8 @@ export default function GruposFormacaoClient({
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-xl">
-                      {grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"}
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+                      <NivelFormativoIcon nivel={grupoFormacao.nivelFormativo} className="size-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

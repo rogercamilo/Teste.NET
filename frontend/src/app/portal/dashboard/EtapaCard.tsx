@@ -5,10 +5,10 @@ import { Check, TrendingUp, Users, Tent, HeartHandshake, Award } from "lucide-re
 import type { LucideIcon } from "lucide-react";
 import {
   NIVEL_FORMATIVO_LABELS,
-  NIVEL_FORMATIVO_ICONS,
   getProximaEtapa,
   type NivelFormativo,
 } from "@/types";
+import { NivelFormativoIcon } from "@/components/nivel-formativo-icon";
 import type { PortalDashboardData } from "@/lib/portal-data";
 
 type Progresso = NonNullable<PortalDashboardData["progresso"]>;
@@ -103,7 +103,10 @@ export function EtapaCard({
                   <>
                     <div className="text-xs text-muted-foreground">Próxima etapa</div>
                     <div className="text-sm font-medium text-foreground">
-                      <span className="mr-1">{NIVEL_FORMATIVO_ICONS[proxima]}</span>
+                      <NivelFormativoIcon
+                        nivel={proxima}
+                        className="mr-1 inline size-4 align-text-bottom"
+                      />
                       {NIVEL_FORMATIVO_LABELS[proxima]}
                     </div>
                   </>
@@ -122,7 +125,7 @@ export function EtapaCard({
                 <span className="text-sm font-semibold text-foreground">Requisitos da etapa</span>
                 <span className="text-xs text-muted-foreground">
                   {completo ? (
-                    <span className="font-medium text-primary">Requisitos cumpridos! 🎉</span>
+                    <span className="font-medium text-primary">Requisitos cumpridos!</span>
                   ) : (
                     <>
                       Faltam{" "}

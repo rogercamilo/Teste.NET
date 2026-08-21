@@ -21,10 +21,10 @@ import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import {
   ESTADO_CIVIL_LABELS,
   NIVEL_FORMATIVO_LABELS,
-  NIVEL_FORMATIVO_ICONS,
   MODALIDADE_LABELS,
 } from "@/types";
 import type { EstadoCivil } from "@/types";
+import { NivelFormativoIcon } from "@/components/nivel-formativo-icon";
 import { applyPhoneMask } from "@/lib/utils";
 import type { PublicBranding } from "@/lib/public-branding";
 import { type PortalAudiencia } from "@/lib/portal-routes";
@@ -247,7 +247,10 @@ export default function PerfilClient({
             <div className="min-w-0">
               <p className="truncate text-base font-semibold text-foreground">{perfil.nome}</p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                <span className="mr-1">{NIVEL_FORMATIVO_ICONS[perfil.nivelFormativo]}</span>
+                <NivelFormativoIcon
+                  nivel={perfil.nivelFormativo}
+                  className="mr-1 inline size-4 align-text-bottom"
+                />
                 {NIVEL_FORMATIVO_LABELS[perfil.nivelFormativo]}
                 {perfil.grupoNome && <> · {perfil.grupoNome}</>}
               </p>

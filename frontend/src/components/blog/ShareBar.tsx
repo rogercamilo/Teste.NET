@@ -11,7 +11,7 @@ export function ShareBar({ url, title }: { url: string; title: string }) {
   const [copied, setCopied] = useState(false);
   // Enfatiza o ATO de compartilhar o artigo (indicação pessoal), não um link
   // cru do site — reduz a objeção de "mais um comercial da plataforma".
-  const shareText = `Li este artigo e quis compartilhar com você:\n\n📖 ${title}\n${url}`;
+  const shareText = `Li este artigo e quis compartilhar com você:\n\n${title}\n${url}`;
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
   async function copy() {

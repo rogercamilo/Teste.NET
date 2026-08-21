@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       subject: "Teste de conexão SMTP — Formattio",
       html: `
         <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f9fafb;border-radius:12px;">
-          <h2 style="margin:0 0 12px;color:#1d4ed8;font-size:20px;">✅ Conexão SMTP confirmada</h2>
+          <h2 style="margin:0 0 12px;color:#1d4ed8;font-size:20px;">Conexão SMTP confirmada</h2>
           <p style="margin:0 0 12px;color:#374151;font-size:15px;line-height:1.6;">
             Este e-mail confirma que o servidor SMTP está corretamente configurado no Formattio.
           </p>

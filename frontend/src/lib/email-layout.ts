@@ -152,7 +152,7 @@ export function featureList(items: [string, string][]): string {
     .map(
       ([feat, desc]) => `
       <tr>
-        <td width="22" valign="top" style="padding:6px 0;"><span style="color:${BRAND.clay};font-size:16px;font-weight:700;">✓</span></td>
+        <td width="22" valign="top" style="padding:6px 0;"><span style="display:inline-block;width:7px;height:7px;margin-top:5px;border-radius:50%;background:${BRAND.clay};"></span></td>
         <td valign="top" style="padding:6px 8px;">
           <strong style="font-size:13px;color:${BRAND.ink};">${feat}</strong><br/>
           <span style="font-size:12px;color:${BRAND.muted};">${desc}</span>

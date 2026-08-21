@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { FileText } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import type { Metadata } from "next";
 import { TERMS_VERSION, TERMS_DATE } from "@/lib/legal-versions";
 import { LegalSectionHeader } from "@/components/LegalSectionHeader";
@@ -491,8 +491,8 @@ export default function TermosDeUsoPage() {
                         key={item}
                         className="flex items-start gap-2 text-xs text-red-800/80 dark:text-red-300/80"
                       >
-                        <span className="mt-0.5 flex-none w-3.5 h-3.5 rounded-full border border-red-300 dark:border-red-700 flex items-center justify-center text-[8px] shrink-0">
-                          ✕
+                        <span className="mt-0.5 flex-none w-3.5 h-3.5 rounded-full border border-red-300 dark:border-red-700 flex items-center justify-center shrink-0">
+                          <X aria-hidden className="size-2.5" />
                         </span>
                         {item}
                       </div>

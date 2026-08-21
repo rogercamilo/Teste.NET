@@ -55,28 +55,38 @@ import {
   ArrowUp,
   ArrowUpDown,
   BookOpen,
+  Building2,
   Clock,
   Eye,
   FileText,
   Filter,
   GitBranch,
+  Layers,
   LayoutGrid,
   List,
+  Monitor,
   MoreHorizontal,
   Paperclip,
   Pencil,
   Plus,
   Search,
   Trash2,
+  type LucideProps,
 } from "lucide-react";
+import type { ComponentType } from "react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
 
-const MODALIDADE_ICON: Record<Modalidade, string> = {
-  presencial: "🏛️",
-  online: "💻",
-  hibrida: "🔄",
+const MODALIDADE_ICON: Record<Modalidade, ComponentType<LucideProps>> = {
+  presencial: Building2,
+  online: Monitor,
+  hibrida: Layers,
 };
+
+function ModalidadeIcon({ modalidade, ...props }: { modalidade: Modalidade } & LucideProps) {
+  const Icon = MODALIDADE_ICON[modalidade];
+  return <Icon aria-hidden {...props} />;
+}
 
 const NIVEIS_ORDEM: NivelFormativo[] = [
   "pre-discipulado",
@@ -516,8 +526,8 @@ function FormacaoCard({ formacao, canEdit, onView, onEdit, onViewDoc, onDelete }
     <Card className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-base">
-            {MODALIDADE_ICON[formacao.modalidade]}
+          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+            <ModalidadeIcon modalidade={formacao.modalidade} className="size-4" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -675,7 +685,7 @@ function FormacaoRow({ formacao, canEdit, showNivel, nivelLabel, onView, onEdit,
       </TableCell>
       <TableCell className="max-w-xs">
         <div className="flex items-center gap-2.5">
-          <span className="text-base shrink-0">{MODALIDADE_ICON[formacao.modalidade]}</span>
+          <ModalidadeIcon modalidade={formacao.modalidade} className="size-4 shrink-0 text-muted-foreground" />
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
               {formacao.tema}

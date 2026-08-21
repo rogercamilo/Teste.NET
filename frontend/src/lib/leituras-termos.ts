@@ -30,7 +30,7 @@ const VOCACIONAL: LeituraTermos = {
   frutoSingular: "Fruto da Travessia",
   frutoPlural: "Frutos da Travessia",
   trilhaTitulo: "Trilha da Travessia",
-  concluido: "Travessia concluída! 🎉",
+  concluido: "Travessia concluída!",
   mostrarEvangelizacao: true,
   mostrarMural: true,
 };
@@ -42,7 +42,7 @@ const FORMATIVO: LeituraTermos = {
   frutoSingular: "Fruto de leitura",
   frutoPlural: "Frutos de leitura",
   trilhaTitulo: "Trilha de leitura",
-  concluido: "Leitura concluída! 🎉",
+  concluido: "Leitura concluída!",
   mostrarEvangelizacao: false,
   mostrarMural: false,
 };

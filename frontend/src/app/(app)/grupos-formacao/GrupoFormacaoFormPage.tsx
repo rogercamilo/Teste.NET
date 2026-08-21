@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useComunidade, useEtapaLabels } from "@/lib/data-store";
 import {
   NIVEL_CORES,
-  NIVEL_FORMATIVO_ICONS,
   TIPO_GRUPO_FORMACAO_LABELS,
   type PlanoFormativo,
   type GradeFormativa,
@@ -13,6 +12,7 @@ import {
   type TipoGrupoFormacao,
   type Usuario,
 } from "@/types";
+import { NivelFormativoIcon } from "@/components/nivel-formativo-icon";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -256,7 +256,7 @@ export default function GrupoFormacaoFormPage({
                             : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
                         }`}
                       >
-                        <span className="text-lg">{NIVEL_FORMATIVO_ICONS[nivel]}</span>
+                        <NivelFormativoIcon nivel={nivel} className="size-5 shrink-0 text-muted-foreground" />
                         <span
                           className={`text-xs font-medium leading-tight ${
                             form.nivelFormativo === nivel
@@ -443,8 +443,11 @@ export default function GrupoFormacaoFormPage({
             >
               <CardContent className="p-5">
                 <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-xl">
-                    {form.tipo === "estruturado" ? NIVEL_FORMATIVO_ICONS[form.nivelFormativo] : "🕊️"}
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+                    <NivelFormativoIcon
+                      nivel={form.tipo === "estruturado" ? form.nivelFormativo : null}
+                      className="size-5"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-foreground truncate">

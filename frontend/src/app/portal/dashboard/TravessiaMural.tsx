@@ -50,7 +50,7 @@ export function MuralSection({
                 {muralInicial.turmaFrutosTotal}
               </div>
               <div className="text-xs text-muted-foreground">
-                Frutos colhidos pela turma inteira 🌱
+                Frutos colhidos pela turma inteira
               </div>
             </div>
           </div>

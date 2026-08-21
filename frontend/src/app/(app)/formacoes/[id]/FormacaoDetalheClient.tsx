@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft,
+  Building2,
   CalendarCheck,
   CheckCircle2,
   Clock,
@@ -30,12 +31,15 @@ import {
   Hash,
   Layers,
   Link,
+  Monitor,
   Paperclip,
   Pencil,
   Route,
   Trash2,
   User,
+  type LucideProps,
 } from "lucide-react";
+import type { ComponentType } from "react";
 import { toast } from "sonner";
 
 export type Realizacao = {
@@ -46,11 +50,16 @@ export type Realizacao = {
   participantes: number;
 };
 
-const MODALIDADE_ICON: Record<string, string> = {
-  presencial: "🏛️",
-  online: "💻",
-  hibrida: "🔄",
+const MODALIDADE_ICON: Record<string, ComponentType<LucideProps>> = {
+  presencial: Building2,
+  online: Monitor,
+  hibrida: Layers,
 };
+
+function ModalidadeIcon({ modalidade, ...props }: { modalidade: string } & LucideProps) {
+  const Icon = MODALIDADE_ICON[modalidade] ?? Layers;
+  return <Icon aria-hidden {...props} />;
+}
 
 /** Exibe YYYY-MM-DD como dd/MM/yyyy sem cruzar fuso (data-only). */
 function fmtData(d: string): string {
@@ -124,8 +133,8 @@ export default function FormacaoDetalheClient({
       <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6 space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-xl">
-              {MODALIDADE_ICON[formacao.modalidade]}
+            <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+              <ModalidadeIcon modalidade={formacao.modalidade} className="size-5" />
             </div>
             <div>
               <h1 className="text-xl font-semibold text-foreground">{formacao.tema}</h1>

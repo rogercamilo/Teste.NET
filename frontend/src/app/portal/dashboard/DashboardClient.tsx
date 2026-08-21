@@ -27,9 +27,9 @@ import {
 import Link from "next/link";
 import {
   NIVEL_FORMATIVO_LABELS,
-  NIVEL_FORMATIVO_ICONS,
   TIPO_FORMACAO_LABELS,
 } from "@/types";
+import { NivelFormativoIcon } from "@/components/nivel-formativo-icon";
 import type { PublicBranding } from "@/lib/public-branding";
 import { portalHomeFor } from "@/lib/portal-routes";
 import type { LeituraContexto } from "@/lib/leituras-termos";
@@ -278,7 +278,10 @@ export default function DashboardClient({
           <div className="min-w-0">
             <h1 className="text-xl font-bold text-foreground">Olá, {primeiroNome}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              <span className="mr-1">{NIVEL_FORMATIVO_ICONS[formando.nivelFormativo]}</span>
+              <NivelFormativoIcon
+                nivel={formando.nivelFormativo}
+                className="mr-1 inline size-4 align-text-bottom"
+              />
               {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
               {formando.grupoFormacao && (
                 <> · Grupo {formando.grupoFormacao.nome}</>
@@ -604,7 +607,7 @@ function AniversariantesCard({ aniversariantes }: { aniversariantes: PortalAnive
                     (a.hoje ? "font-semibold text-primary" : "text-muted-foreground")
                   }
                 >
-                  {a.hoje ? "hoje! 🎂" : `dia ${a.dia}`}
+                  {a.hoje ? "hoje!" : `dia ${a.dia}`}
                 </span>
               </li>
             ))}

@@ -11,7 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Star, Plus, Pencil, Trash2, MessageSquareQuote, CheckCircle2, FileEdit, ImagePlus } from "lucide-react";
+import { Loader2, Star, Plus, Pencil, Trash2, MessageSquareQuote, CheckCircle2, FileEdit, ImagePlus, AlertTriangle } from "lucide-react";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { fmtDate } from "../_utils";
 import type { DepoimentosData, DepoimentoRow, DepoimentoStatus } from "../_types";
@@ -284,7 +284,12 @@ export function TabDepoimentos({ depoimentos, onReload }: Props) {
                       <p className="text-sm text-foreground/80 mt-1.5 line-clamp-3">{d.texto}</p>
                       <p className="text-[11px] text-muted-foreground mt-1.5">
                         {d.publicadoEm ? `Publicado ${fmtDate(d.publicadoEm)}` : `Criado ${fmtDate(d.criadoEm)}`}
-                        {!d.consentimento && <span className="text-amber-600 ml-2">⚠ sem consentimento registrado</span>}
+                        {!d.consentimento && (
+                          <span className="text-amber-600 ml-2 inline-flex items-center gap-1">
+                            <AlertTriangle aria-hidden className="size-3" />
+                            sem consentimento registrado
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div className="flex flex-col gap-1.5 shrink-0">

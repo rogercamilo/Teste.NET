@@ -729,7 +729,7 @@ export async function sendDbPoolAlertEmail({
 }): Promise<{ sent: boolean; error?: string }> {
   const pct = Number(percentUso).toFixed(0);
   const conteudo = [
-    banner("danger", `⚠️ Pool de conexões do banco em ${pct}%`),
+    banner("danger", `Pool de conexões do banco em ${pct}%`),
     paragraph(`Olá, ${escapeHtml(nome)}.`),
     paragraph(
       `O PostgreSQL está usando <strong>${total} de ${max}</strong> conexões disponíveis (<strong>${pct}%</strong>), acima do limite de alerta de 80%.`
@@ -747,7 +747,7 @@ export async function sendDbPoolAlertEmail({
     notaRodape:
       "Você está recebendo este alerta porque é administrador da plataforma. Novo alerta só será enviado após algumas horas, mesmo que a condição persista.",
   });
-  return send(organizacaoId, email, `⚠️ Pool de conexões em ${pct}% — Formattio`, html, {
+  return send(organizacaoId, email, `Pool de conexões em ${pct}% — Formattio`, html, {
     brandAsOrg: false,
   });
 }
@@ -774,7 +774,7 @@ export async function sendSecurityAlertEmail({
     )
     .join("");
   const conteudo = [
-    banner("danger", "⚠️ Pico de eventos de segurança detectado"),
+    banner("danger", "Pico de eventos de segurança detectado"),
     paragraph(`Olá, ${escapeHtml(nome)}.`),
     paragraph(
       `Nos últimos <strong>${windowMinutes} minutos</strong> um ou mais indicadores de possível ataque cruzaram o limiar de alerta:`
@@ -793,7 +793,7 @@ export async function sendSecurityAlertEmail({
     notaRodape:
       "Você está recebendo este alerta porque é administrador da plataforma. Novo alerta só será enviado após algumas horas, mesmo que a condição persista.",
   });
-  return send(organizacaoId, email, "⚠️ Pico de eventos de segurança — Formattio", html, {
+  return send(organizacaoId, email, "Pico de eventos de segurança — Formattio", html, {
     brandAsOrg: false,
   });
 }

@@ -54,7 +54,7 @@ export const DEFAULT_EMAIL_TEMPLATE: EmailTemplate = {
   ],
   textoBotao: "Acessar a Plataforma",
   avisoSeguranca:
-    "⚠️ Atenção: A senha provisória é de uso único. Por segurança, deverá alterá-la no primeiro acesso. Não a partilhe com ninguém.",
+    "Atenção: A senha provisória é de uso único. Por segurança, deverá alterá-la no primeiro acesso. Não a partilhe com ninguém.",
   rodape: "Este é um e-mail automático — por favor, não responda a esta mensagem.",
 };
 

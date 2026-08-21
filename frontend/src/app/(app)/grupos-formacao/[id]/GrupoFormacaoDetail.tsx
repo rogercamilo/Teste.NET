@@ -25,7 +25,6 @@ import {
   type Usuario,
   type Agendamento,
   NIVEL_FORMATIVO_LABELS,
-  NIVEL_FORMATIVO_ICONS,
   STATUS_FORMACAO_STYLES,
   ESTADO_CIVIL_LABELS,
   STATUS_RELATORIO_CORES,
@@ -35,6 +34,7 @@ import {
   RECOMENDACAO_LABELS,
   RECOMENDACAO_CORES,
 } from "@/types";
+import { NivelFormativoIcon } from "@/components/nivel-formativo-icon";
 import { RelatorioDialog } from "./RelatorioDialog";
 import { LeiturasManager, type Leitura } from "@/components/leituras/LeiturasManager";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -668,7 +668,7 @@ export default function GrupoFormacaoDetail({
           <div className="relative shrink-0 group/imagem">
             <div
               className={cn(
-                "h-14 w-14 rounded-xl overflow-hidden flex items-center justify-center text-2xl",
+                "h-14 w-14 rounded-xl overflow-hidden flex items-center justify-center text-primary",
                 grupoFormacao.imagemUrl ? "bg-muted" : "bg-primary/10",
                 (isFC || isAdmin) && "cursor-pointer"
               )}
@@ -679,7 +679,7 @@ export default function GrupoFormacaoDetail({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={resolveImageSrc(grupoFormacao.imagemUrl)!} alt={grupoFormacao.nome} className="h-full w-full object-cover" />
               ) : (
-                grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"
+                <NivelFormativoIcon nivel={grupoFormacao.nivelFormativo} className="size-7" />
               )}
               {(isFC || isAdmin) && (
                 <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/imagem:opacity-100 transition-opacity flex items-center justify-center">
@@ -852,7 +852,7 @@ export default function GrupoFormacaoDetail({
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"}</span>
+                  <NivelFormativoIcon nivel={grupoFormacao.nivelFormativo} className="size-5 shrink-0 text-muted-foreground" />
                   <div>
                     <p className="text-xs font-medium text-foreground">
                       {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}
@@ -1702,7 +1702,10 @@ export default function GrupoFormacaoDetail({
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
               <p className="font-medium mb-1">Etapa a encerrar:</p>
-              <p>{grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"} {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}</p>
+              <p>
+                <NivelFormativoIcon nivel={grupoFormacao.nivelFormativo} className="mr-1 inline size-4 align-text-bottom" />
+                {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}
+              </p>
             </div>
             <p className="text-sm text-muted-foreground">
               Esta ação registará a data de encerramento da etapa atual na {termoGrupoFormacao.toLowerCase()} e em todos os {termoFormando.toLowerCase()}s associados. Após o encerramento, o botão <span className="font-medium text-foreground">Nova Etapa</span> ficará disponível.
@@ -1739,8 +1742,8 @@ export default function GrupoFormacaoDetail({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-              <p>Etapa atual encerrada: <span className="font-medium text-foreground">{grupoFormacao.nivelFormativo ? NIVEL_FORMATIVO_ICONS[grupoFormacao.nivelFormativo] : "🕊️"} {grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}</span></p>
-              <p className="mt-1">Próxima etapa: <span className="font-medium text-foreground">{NIVEL_FORMATIVO_ICONS[nextEtapaOptions[0]] ?? ""} {etapaLabels[nextEtapaOptions[0]]}</span></p>
+              <p>Etapa atual encerrada: <span className="font-medium text-foreground"><NivelFormativoIcon nivel={grupoFormacao.nivelFormativo} className="mr-1 inline size-4 align-text-bottom" />{grupoFormacao.nivelFormativo ? etapaLabels[grupoFormacao.nivelFormativo] : "Grupo Livre"}</span></p>
+              <p className="mt-1">Próxima etapa: <span className="font-medium text-foreground">{nextEtapaOptions[0] && <NivelFormativoIcon nivel={nextEtapaOptions[0]} className="mr-1 inline size-4 align-text-bottom" />}{etapaLabels[nextEtapaOptions[0]]}</span></p>
             </div>
             <p className="text-sm text-muted-foreground">
               Ao confirmar, declaro que não há pendências administrativas, formativas ou documentais neste grupo formativo e que estamos prontos para avançar.

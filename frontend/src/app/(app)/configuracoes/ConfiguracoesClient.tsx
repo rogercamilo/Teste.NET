@@ -2141,14 +2141,14 @@ function ComunidadeTab() {
             <p className="text-xs font-medium text-muted-foreground">Prévia na navegação</p>
             <div className="flex flex-wrap gap-2">
               {[
-                { emoji: "🏠", label: `${form.termoGrupoFormacao?.trim() || "Grupo de Formação"}s` },
-                { emoji: "👥", label: `${form.termoFormando?.trim() || "Formando"}s` },
-              ].map(({ emoji, label }) => (
+                { icon: Home, label: `${form.termoGrupoFormacao?.trim() || "Grupo de Formação"}s` },
+                { icon: Users, label: `${form.termoFormando?.trim() || "Formando"}s` },
+              ].map(({ icon: Icon, label }) => (
                 <span
                   key={label}
                   className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground shadow-sm"
                 >
-                  <span>{emoji}</span>
+                  <Icon aria-hidden className="size-3.5 text-muted-foreground" />
                   {label}
                 </span>
               ))}
