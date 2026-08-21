@@ -369,6 +369,6 @@ export const config = {
     // proxy): o portal (formando deslogado em /portal/ativar, /portal/recuperar)
     // registra o service worker, e um redirect 307 → /login quebra o registro.
     // Mesma razão para o manifesto PWA.
-    "/((?!_next/static|_next/image|favicon.ico|public|brand|sw.js|site.webmanifest).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|brand|sw.js|site.webmanifest|portal-formando.webmanifest|portal-vocacional.webmanifest).*)",
   ],
 };

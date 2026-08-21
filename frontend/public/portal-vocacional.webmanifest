@@ -1,0 +1,31 @@
+{
+  "id": "/portal/vocacional",
+  "name": "Formattio — Portal do Vocacionado",
+  "short_name": "Formattio",
+  "description": "Portal do Vocacionado — Travessia, acompanhamento e avisos da sua comunidade",
+  "start_url": "/portal/vocacional",
+  "scope": "/portal/",
+  "display": "standalone",
+  "background_color": "#FBF8F4",
+  "theme_color": "#B25433",
+  "icons": [
+    {
+      "src": "/brand/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

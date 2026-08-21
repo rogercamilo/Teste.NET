@@ -4,6 +4,9 @@ import { getPublicBranding } from "@/lib/public-branding";
 
 export const metadata = {
   title: "Portal do Vocacionado",
+  // Garante que o atalho na Tela de Início do iPhone abra o Portal do Vocacionado
+  // (start_url), mesmo quando adicionado a partir desta landing (sem sessão).
+  manifest: "/portal-vocacional.webmanifest",
 };
 
 // Entrada distinta e favoritável do Portal do Vocacionado. A autenticação e a
