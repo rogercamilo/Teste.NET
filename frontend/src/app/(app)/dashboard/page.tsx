@@ -8,8 +8,9 @@ import { toAgendamento } from "@/lib/converters";
 import { SessionUser } from "@/lib/auth-helpers";
 import { getUserName } from "@/lib/current-user";
 import { aniversariantesNaJanela } from "@/lib/dashboard-semana";
-import { totalRequerido } from "@/types";
-import type { DashboardStats, NivelFormativo, NotaAdesao, PerfilUsuario } from "@/types";
+import { totalRequerido, REQUISITOS_ETAPAS } from "@/types";
+import { progressoNaEtapa, avaliarRiscoFormando } from "@/lib/jornada-progresso";
+import type { DashboardStats, NivelFormativo, NotaAdesao, PerfilUsuario, ProgressoEtapa } from "@/types";
 
 const PERFIL_FC = "formador_comunitario" as const;
 
@@ -142,12 +143,23 @@ async function getDashboardData(
     const [formandosDaMorada, presencas90d, avaliacoesPerspectiva] = await Promise.all([
       prisma.formando.findMany({
         where: { organizacaoId, grupoFormacaoId, ativo: true },
-        select: { id: true, nome: true, nivelFormativo: true },
+        select: {
+          id: true, nome: true, nivelFormativo: true,
+          progressoEtapas: {
+            select: {
+              nivelFormativo: true,
+              formacoesComunitariasRealizadas: true,
+              retirosComunitariosRealizados: true,
+              retirosPessoaisRealizados: true,
+              iniciouEm: true,
+            },
+          },
+        },
         orderBy: { nome: "asc" },
       }),
       prisma.presencaFormacao.findMany({
         where: { organizacaoId, data: { gte: threeMonthsAgo, lte: now }, formando: { grupoFormacaoId } },
-        select: { formandoId: true, presente: true },
+        select: { formandoId: true, data: true, presente: true },
       }),
       // Última avaliação de adesão por formando × perspectiva
       prisma.eventoFormando.findMany({
@@ -197,10 +209,65 @@ async function getDashboardData(
     const totalS = presencas90d.length;
     const totalP = presencas90d.filter((p) => p.presente).length;
 
+    // ── Jornada da morada — motor unificado (lib/jornada-progresso) ──
+    // Mesma régua da tela da morada: progresso na etapa, risco (atraso no ritmo
+    // e/ou presença baixa) e "pronto para avançar" (cumpriu os requisitos).
+    const presParaRisco = presencas90d.map((p) => ({
+      formandoId: p.formandoId,
+      data: p.data.toISOString(),
+      presente: p.presente,
+    }));
+    const formandosAtencao: NonNullable<DashboardStats["formandosAtencao"]> = [];
+    const formandosProntos: NonNullable<DashboardStats["formandosProntos"]> = [];
+    let somaPct = 0;
+    for (const f of formandosDaMorada) {
+      const nivel = f.nivelFormativo as NivelFormativo;
+      const prog: ProgressoEtapa[] = f.progressoEtapas.map((p) => ({
+        nivel: p.nivelFormativo as NivelFormativo,
+        formacoesComunitariasRealizadas: p.formacoesComunitariasRealizadas,
+        retirosComunitariosRealizados: p.retirosComunitariosRealizados,
+        retirosPessoaisRealizados: p.retirosPessoaisRealizados,
+        iniciouEm: p.iniciouEm?.toISOString(),
+      }));
+      const { done, total, pct } = progressoNaEtapa(nivel, prog);
+      somaPct += pct;
+
+      // Pronto para avançar: cumpriu os requisitos da etapa atual (mesma lógica
+      // de podeAvancarEtapa, aplicada aos campos de progresso carregados).
+      const req = REQUISITOS_ETAPAS[nivel];
+      const progAtual = prog.find((p) => p.nivel === nivel);
+      const podeAvancar =
+        nivel !== "formacao-permanente" &&
+        !!progAtual &&
+        progAtual.formacoesComunitariasRealizadas >= req.formacoesComunitarias &&
+        progAtual.retirosComunitariosRealizados >= req.retirosComunitarios &&
+        progAtual.retirosPessoaisRealizados >= req.retirosPessoais;
+
+      if (podeAvancar) {
+        formandosProntos.push({ id: f.id, nome: f.nome, nivelFormativo: nivel, done, total });
+      } else {
+        const { emRisco, motivos } = avaliarRiscoFormando(
+          { nivelFormativo: nivel, progressoEtapas: prog },
+          presParaRisco.filter((p) => p.formandoId === f.id),
+          now,
+          f.id,
+        );
+        if (emRisco) formandosAtencao.push({ id: f.id, nome: f.nome, nivelFormativo: nivel, pct, motivos });
+      }
+    }
+    formandosAtencao.sort((a, b) => a.pct - b.pct);
+    formandosProntos.sort((a, b) => b.done - a.done);
+    const progressoMedioEtapa = formandosDaMorada.length
+      ? Math.round(somaPct / formandosDaMorada.length)
+      : 0;
+
     return {
       ...baseStats,
       taxaPresencaGrupoFormacao: totalS > 0 ? Math.round((totalP / totalS) * 100) : null,
       formandosPresenca,
+      progressoMedioEtapa,
+      formandosAtencao,
+      formandosProntos,
     };
   }
 

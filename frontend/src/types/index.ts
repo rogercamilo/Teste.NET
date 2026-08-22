@@ -467,6 +467,17 @@ export interface DashboardStats {
   aniversariantesSemana?: { id: string; nome: string; quando: string }[];
   marcosFormativos?: { id: string; nome: string; nivelFormativo: NivelFormativo; progresso: number }[];
 
+  // FC — jornada da morada (motor unificado com a tela da morada:
+  // lib/jornada-progresso). Progresso médio na etapa, quem precisa de atenção
+  // (atraso no ritmo e/ou presença baixa) e quem já cumpriu os requisitos.
+  progressoMedioEtapa?: number;
+  formandosAtencao?: {
+    id: string; nome: string; nivelFormativo: NivelFormativo; pct: number; motivos: string[];
+  }[];
+  formandosProntos?: {
+    id: string; nome: string; nivelFormativo: NivelFormativo; done: number; total: number;
+  }[];
+
   // FC — presença e acompanhamento (últimos 90 dias)
   taxaPresencaGrupoFormacao?: number | null;
   formandosPresenca?: {

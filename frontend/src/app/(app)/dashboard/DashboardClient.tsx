@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import type { ReactNode } from "react";
 import {
   NIVEL_FORMATIVO_LABELS,
   STATUS_FORMACAO_LABELS,
@@ -191,6 +192,203 @@ function FunilFormativoCard({ stats, termos }: { stats: DashboardStats; termos: 
   );
 }
 
+// ── Próximas Formações (compartilhado FC / FG / Admin) ──────────────────────
+
+function ProximasFormacoesCard({ stats }: { stats: DashboardStats }) {
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold text-foreground">Próximas Formações</CardTitle>
+          <Link href="/agenda" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+            Ver todas
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {stats.proximasFormacoes.length === 0 ? (
+          <div className="flex flex-col items-center py-8 text-center">
+            <Calendar className="h-8 w-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Nenhuma formação agendada</p>
+          </div>
+        ) : (
+          stats.proximasFormacoes.map((ag) => (
+            <div key={ag.id} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer">
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <BookOpen className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate leading-tight">{ag.formacaoTema}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {format(parseISO(ag.dataInicio), "d 'de' MMM, HH:mm", { locale: ptBR })}
+                </p>
+                <p className="text-xs text-muted-foreground">{ag.formadorNome}</p>
+              </div>
+              <Badge variant="outline" className={`text-xs shrink-0 ${STATUS_COLORS[ag.status]}`}>
+                {STATUS_FORMACAO_LABELS[ag.status]}
+              </Badge>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── FC: Perspectivas Formativas (adesão por perspectiva) ────────────────────
+
+function PerspectivasCard({ stats, termos }: { stats: DashboardStats; termos: ReturnType<typeof useTermos> }) {
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-semibold text-foreground">Perspectivas Formativas</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Última avaliação de adesão por perspectiva</p>
+          </div>
+          <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+            <Users className="h-3.5 w-3.5 mr-1" />
+            Ver {termos.formando.toLowerCase()}s
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="hidden sm:grid sm:grid-cols-[1fr_90px_90px_100px] gap-2 mb-2 px-1">
+          <span className="text-xs text-muted-foreground font-medium">{termos.formando}</span>
+          {PERSPECTIVAS.map((p) => (
+            <span key={p} className="text-xs text-muted-foreground font-medium text-center">
+              {PERSPECTIVA_LABELS[p]}
+            </span>
+          ))}
+        </div>
+        <div className="space-y-2">
+          {(stats.formandosPresenca ?? []).map((f) => (
+            <div key={f.id} className="rounded-lg px-1 py-2 hover:bg-muted/40 transition-colors">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className={`h-2 w-2 rounded-full shrink-0 ${semaforoClasses(f.taxa).dot}`} />
+                <span className="text-sm font-medium text-foreground truncate">{f.nome}</span>
+              </div>
+              <div className="sm:grid sm:grid-cols-[1fr_90px_90px_100px] gap-2 flex flex-col gap-y-1 pl-4 sm:pl-0">
+                <div className="hidden sm:block" />
+                {PERSPECTIVAS.map((persp) => (
+                  <div key={persp} className="flex items-center justify-between sm:justify-center gap-2">
+                    <span className="text-xs text-muted-foreground sm:hidden">{PERSPECTIVA_LABELS[persp]}</span>
+                    <NotaBadge nota={f.perspectivas?.[persp] as NotaAdesao | undefined} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── FC: Acompanhamento de Presença (semáforo por formando, 90 dias) ─────────
+
+function AcompanhamentoPresencaCard({ stats, termos }: { stats: DashboardStats; termos: ReturnType<typeof useTermos> }) {
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-semibold text-foreground">Acompanhamento de Presença</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Últimos 90 dias</p>
+          </div>
+          <Link href="/presenca" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+            Gestão de Presença
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2.5">
+          {(stats.formandosPresenca ?? []).map((f) => {
+            const s = semaforoClasses(f.taxa);
+            return (
+              <div key={f.id} className="flex items-center gap-3">
+                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${s.dot}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-foreground truncate">{f.nome}</span>
+                    <span className="text-xs font-semibold text-foreground ml-2 shrink-0">{s.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${s.bar}`}
+                        style={{ width: f.taxa === -1 ? "0%" : `${f.taxa}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0 w-16 text-right">
+                      {f.taxa === -1 ? "—" : `${f.sessoesCom}/${f.totalSessoes} sessões`}
+                    </span>
+                  </div>
+                </div>
+                <Badge variant="outline" className={`text-xs shrink-0 ${NIVEL_CORES[f.nivelFormativo]}`}>
+                  {NIVEL_FORMATIVO_LABELS[f.nivelFormativo]}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── FC: sinais de pessoa (hero) + painéis de jornada ────────────────────────
+
+function KpiPessoa({
+  valor, label, sub, alerta = false, onClick,
+}: {
+  valor: string | number; label: string; sub?: string; alerta?: boolean; onClick?: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} className="text-left" disabled={!onClick}>
+      <Card className={cn("border-0 shadow-sm h-full transition-shadow", onClick && "hover:shadow-md", alerta && "bg-amber-50/70")}>
+        <CardContent className="pt-5 pb-4 px-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+          <p className={cn("text-3xl font-bold mt-1 flex items-center gap-1.5", alerta ? "text-amber-700" : "text-foreground")}>
+            {alerta && <AlertTriangle className="h-5 w-5" />}
+            {valor}
+          </p>
+          {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+        </CardContent>
+      </Card>
+    </button>
+  );
+}
+
+function iniciais(nome: string) {
+  return nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+}
+
+function JornadaListaCard({
+  titulo, icon: Icon, tone, count, children,
+}: {
+  titulo: string; icon: LucideIcon; tone: "amber" | "emerald"; count: number; children: ReactNode;
+}) {
+  const borda = tone === "amber" ? "border-l-amber-400" : "border-l-emerald-400";
+  const iconColor = tone === "amber" ? "text-amber-500" : "text-emerald-500";
+  const badgeColor = tone === "amber"
+    ? "bg-amber-50 text-amber-700 border-amber-200"
+    : "bg-emerald-50 text-emerald-700 border-emerald-200";
+  return (
+    <Card className={cn("border-0 shadow-sm border-l-2", borda)}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+          <Icon className={cn("h-4 w-4", iconColor)} />
+          {titulo}
+          <Badge variant="outline" className={cn("ml-1", badgeColor)}>{count}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">{children}</CardContent>
+    </Card>
+  );
+}
+
 // ── Props ──────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -353,6 +551,127 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
     );
   }
 
+  // ── Formador Comunitário: cockpit da morada (pessoas e jornada primeiro) ────
+  if (isFC) {
+    const atencao = stats.formandosAtencao ?? [];
+    const prontos = stats.formandosProntos ?? [];
+    const temPresenca = (stats.formandosPresenca?.length ?? 0) > 0;
+    return (
+      <div className="space-y-6 animate-in-fast">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">{tituloSaudacao}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5 capitalize">
+              {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+              <span className="normal-case text-muted-foreground/80"> · {subtitulo}</span>
+            </p>
+          </div>
+          <Link href="/agenda" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            <Calendar className="h-4 w-4 mr-1.5" />
+            Ver Agenda
+          </Link>
+        </div>
+
+        {/* Sinais de pessoa — cada card salta para a área correspondente */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiPessoa
+            valor={stats.formandosAtivos}
+            label={`${termos.formando}s ativos`}
+            sub={`de ${stats.totalFormandos} ${termos.formando.toLowerCase()}s`}
+            onClick={() => router.push("/formandos")}
+          />
+          <KpiPessoa
+            valor={`${stats.progressoMedioEtapa ?? 0}%`}
+            label="Progresso da etapa"
+            sub="Média da morada"
+          />
+          <KpiPessoa
+            valor={stats.taxaPresencaGrupoFormacao != null ? `${stats.taxaPresencaGrupoFormacao}%` : "—"}
+            label="Presença"
+            sub="Últimos 90 dias"
+            onClick={() => router.push("/presenca")}
+          />
+          <KpiPessoa
+            valor={atencao.length}
+            label="Precisam de atenção"
+            alerta={atencao.length > 0}
+            sub={atencao.length > 0 ? "Requerem acompanhamento" : "Todos no ritmo"}
+          />
+        </div>
+
+        {/* Precisam de atenção — motor de risco unificado (ritmo + presença) */}
+        {atencao.length > 0 && (
+          <JornadaListaCard titulo="Precisam de atenção" icon={AlertTriangle} tone="amber" count={atencao.length}>
+            {atencao.map((m) => (
+              <Link
+                key={m.id}
+                href={`/formandos/${m.id}`}
+                className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors"
+              >
+                <span className={cn("h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0", NIVEL_CORES[m.nivelFormativo])}>
+                  {iniciais(m.nome)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{m.nome}</p>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
+                    {m.motivos.map((motivo, i) => (
+                      <span key={i} className="text-[11px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                        {motivo}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground tabular-nums shrink-0">{m.pct}%</span>
+              </Link>
+            ))}
+          </JornadaListaCard>
+        )}
+
+        {/* Prontos para avançar — cumpriram os requisitos da etapa */}
+        {prontos.length > 0 && (
+          <JornadaListaCard titulo="Prontos para avançar" icon={CheckCircle2} tone="emerald" count={prontos.length}>
+            {prontos.map((m) => (
+              <Link
+                key={m.id}
+                href={`/formandos/${m.id}`}
+                className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors"
+              >
+                <span className={cn("h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0", NIVEL_CORES[m.nivelFormativo])}>
+                  {iniciais(m.nome)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{m.nome}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {NIVEL_FORMATIVO_LABELS[m.nivelFormativo]} · {m.done}/{m.total} requisitos
+                  </p>
+                </div>
+                <span className="text-xs font-medium text-emerald-600 tabular-nums shrink-0">Concluiu</span>
+              </Link>
+            ))}
+          </JornadaListaCard>
+        )}
+
+        {/* Minha semana (item 2.2) */}
+        <MinhaSemana stats={stats} perfil={perfil} termos={termos} />
+
+        {/* Acompanhamento de presença + perspectivas (evolução de cada um) */}
+        {temPresenca && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <AcompanhamentoPresencaCard stats={stats} termos={termos} />
+            <PerspectivasCard stats={stats} termos={termos} />
+          </div>
+        )}
+
+        {/* Contexto — próximos encontros + funil da jornada */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ProximasFormacoesCard stats={stats} />
+          <FunilFormativoCard stats={stats} termos={termos} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in-fast">
       {/* ── Header ── */}
@@ -369,12 +688,10 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
             <Calendar className="h-4 w-4 mr-1.5" />
             Ver Agenda
           </Link>
-          {!isFC && (
-            <Link href="/formacoes/novo" className={cn(buttonVariants({ size: "sm" }))}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              Nova Formação
-            </Link>
-          )}
+          <Link href="/formacoes/novo" className={cn(buttonVariants({ size: "sm" }))}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Nova Formação
+          </Link>
         </div>
       </div>
 
@@ -432,17 +749,9 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
           <CardContent className="pt-5 pb-4 px-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  {isFC ? "Presença nas Formações" : "Taxa de Realização"}
-                </p>
-                <p className="text-3xl font-bold text-foreground mt-1">
-                  {isFC
-                    ? (stats.taxaPresencaGrupoFormacao != null ? `${stats.taxaPresencaGrupoFormacao}%` : "—")
-                    : `${stats.taxaRealizacao}%`}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isFC ? "Últimos 90 dias" : "Realizadas ÷ decididas este mês"}
-                </p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Taxa de Realização</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{stats.taxaRealizacao}%</p>
+                <p className="text-xs text-muted-foreground mt-1">Realizadas ÷ decididas este mês</p>
               </div>
               <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
                 <TrendingUp className="h-4.5 w-4.5 text-primary" />
@@ -529,168 +838,11 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
         termoFormando={termos.formando}
       />
 
-      {/* ── Bottom row — próximas + funil/presença ── */}
+      {/* ── Bottom row — próximas + funil ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-foreground">Próximas Formações</CardTitle>
-              <Link href="/agenda" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
-                Ver todas
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {stats.proximasFormacoes.length === 0 ? (
-              <div className="flex flex-col items-center py-8 text-center">
-                <Calendar className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">Nenhuma formação agendada</p>
-              </div>
-            ) : (
-              stats.proximasFormacoes.map((ag) => (
-                <div key={ag.id} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <BookOpen className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate leading-tight">{ag.formacaoTema}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {format(parseISO(ag.dataInicio), "d 'de' MMM, HH:mm", { locale: ptBR })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{ag.formadorNome}</p>
-                  </div>
-                  <Badge variant="outline" className={`text-xs shrink-0 ${STATUS_COLORS[ag.status]}`}>
-                    {STATUS_FORMACAO_LABELS[ag.status]}
-                  </Badge>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
+        <ProximasFormacoesCard stats={stats} />
         <FunilFormativoCard stats={stats} termos={termos} />
       </div>
-
-      {/* ── FC: Perspectivas Formativas ── */}
-      {isFC && (stats.formandosPresenca?.length ?? 0) > 0 && (
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold text-foreground">Perspectivas Formativas</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Última avaliação de adesão por perspectiva</p>
-              </div>
-              <Link href="/formandos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
-                <Users className="h-3.5 w-3.5 mr-1" />
-                Ver {termos.formando.toLowerCase()}s
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Cabeçalho das colunas */}
-            <div className="hidden sm:grid sm:grid-cols-[1fr_90px_90px_100px] gap-2 mb-2 px-1">
-              <span className="text-xs text-muted-foreground font-medium">{termos.formando}</span>
-              {PERSPECTIVAS.map((p) => (
-                <span key={p} className="text-xs text-muted-foreground font-medium text-center">
-                  {PERSPECTIVA_LABELS[p]}
-                </span>
-              ))}
-            </div>
-            <div className="space-y-2">
-              {(stats.formandosPresenca ?? []).map((f) => (
-                <div key={f.id} className="rounded-lg px-1 py-2 hover:bg-muted/40 transition-colors">
-                  {/* Nome + semáforo de presença */}
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className={`h-2 w-2 rounded-full shrink-0 ${semaforoClasses(f.taxa).dot}`} />
-                    <span className="text-sm font-medium text-foreground truncate">{f.nome}</span>
-                  </div>
-                  {/* Perspectivas — grid em sm+, coluna em mobile */}
-                  <div className="sm:grid sm:grid-cols-[1fr_90px_90px_100px] gap-2 flex flex-col gap-y-1 pl-4 sm:pl-0">
-                    <div className="hidden sm:block" />
-                    {PERSPECTIVAS.map((persp) => (
-                      <div key={persp} className="flex items-center justify-between sm:justify-center gap-2">
-                        <span className="text-xs text-muted-foreground sm:hidden">{PERSPECTIVA_LABELS[persp]}</span>
-                        <NotaBadge nota={f.perspectivas?.[persp] as NotaAdesao | undefined} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── FC: Presença e Acompanhamento ── */}
-      {isFC && (stats.formandosPresenca?.length ?? 0) > 0 && (
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold text-foreground">Acompanhamento de Presença</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Últimos 90 dias</p>
-              </div>
-              <Link href="/presenca" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
-                Gestão de Presença
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Alertas — formandos com presença crítica */}
-            {(() => {
-              const criticos = (stats.formandosPresenca ?? []).filter(
-                (f) => f.taxa !== -1 && f.taxa < 50 && f.totalSessoes >= 2
-              );
-              if (criticos.length === 0) return null;
-              return (
-                <div className="mb-4 flex items-start gap-2.5 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
-                  <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-semibold text-red-700">
-                      {criticos.length} {termos.formando.toLowerCase()}{criticos.length > 1 ? "s" : ""} com presença crítica (&lt;50%)
-                    </p>
-                    <p className="text-xs text-red-600 mt-0.5">
-                      {criticos.map((f) => f.nome).join(", ")}
-                    </p>
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div className="space-y-2.5">
-              {(stats.formandosPresenca ?? []).map((f) => {
-                const s = semaforoClasses(f.taxa);
-                return (
-                  <div key={f.id} className="flex items-center gap-3">
-                    <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${s.dot}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-foreground truncate">{f.nome}</span>
-                        <span className="text-xs font-semibold text-foreground ml-2 shrink-0">{s.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${s.bar}`}
-                            style={{ width: f.taxa === -1 ? "0%" : `${f.taxa}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground shrink-0 w-16 text-right">
-                          {f.taxa === -1 ? "—" : `${f.sessoesCom}/${f.totalSessoes} sessões`}
-                        </span>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className={`text-xs shrink-0 ${NIVEL_CORES[f.nivelFormativo]}`}>
-                      {NIVEL_FORMATIVO_LABELS[f.nivelFormativo]}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ── FG/Admin: Moradas ── */}
       {isAdmin && (stats.gruposFormacaoResumo?.length ?? 0) > 0 && (
