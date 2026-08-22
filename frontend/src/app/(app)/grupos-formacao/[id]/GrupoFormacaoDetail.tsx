@@ -196,6 +196,9 @@ export default function GrupoFormacaoDetail({
   const [comentarios, setComentarios] = useState<ComentarioFormando[]>(initialComentarios);
   const [relatorios, setRelatorios] = useState<RelatorioEtapa[]>(initialRelatorios);
 
+  // Aba controlada — a faixa de sinais de saúde (topo) salta para a aba certa.
+  const [activeTab, setActiveTab] = useState("resumo");
+
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação";
@@ -328,6 +331,19 @@ export default function GrupoFormacaoDetail({
       : 0,
     atencao: jornadaMembros.filter((m) => m.motivos.length > 0).sort((a, b) => a.pct - b.pct),
   };
+
+  // ── Sinais de saúde do topo (Fase 1) ──
+  // Adesão média 90d: média das taxas de presença dos membros ativos com registro.
+  const adesaoTaxas = jornadaAtivos
+    .map((f) => taxaPresenca90d(presencas, f.id))
+    .filter((t): t is number => t !== null);
+  const adesaoMedia = adesaoTaxas.length
+    ? Math.round(adesaoTaxas.reduce((s, t) => s + t, 0) / adesaoTaxas.length)
+    : null;
+  // Prontos para avançar: cumpriram os requisitos da etapa atual (maior pct primeiro).
+  const prontosParaAvancar = jornada.membros
+    .filter((m) => m.podeAvancar)
+    .sort((a, b) => b.pct - a.pct);
 
   const filteredFormandos = formandosDaMorada.filter((f) => {
     const matchSearch =
@@ -761,28 +777,61 @@ export default function GrupoFormacaoDetail({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{formandosDaMorada.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{termoFormando}s</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{agendamentosDaMorada.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Agendamentos</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{realizadas.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Realizadas</p>
-          </CardContent>
-        </Card>
+      {/* Sinais de saúde da morada — cada card salta para a aba correspondente. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button type="button" onClick={() => setActiveTab("formandos")} className="text-left">
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow h-full">
+            <CardContent className="p-4">
+              <p className="text-2xl font-bold text-foreground">
+                {jornada.totalAtivos}
+                <span className="text-sm font-medium text-muted-foreground"> de {formandosDaMorada.length}</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{termoFormando}s ativos</p>
+            </CardContent>
+          </Card>
+        </button>
+        <button type="button" onClick={() => setActiveTab("jornada")} className="text-left">
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow h-full">
+            <CardContent className="p-4">
+              <p className="text-2xl font-bold text-foreground">{jornada.progressoMedio}%</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Progresso da etapa</p>
+            </CardContent>
+          </Card>
+        </button>
+        <button type="button" onClick={() => setActiveTab("presenca")} className="text-left">
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow h-full">
+            <CardContent className="p-4">
+              <p className="text-2xl font-bold text-foreground">
+                {adesaoMedia === null ? "—" : `${adesaoMedia}%`}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Adesão (90 dias)</p>
+            </CardContent>
+          </Card>
+        </button>
+        <button type="button" onClick={() => setActiveTab("jornada")} className="text-left">
+          <Card
+            className={cn(
+              "border-0 shadow-sm hover:shadow-md transition-shadow h-full",
+              jornada.atencao.length > 0 && "bg-amber-50/60"
+            )}
+          >
+            <CardContent className="p-4">
+              <p
+                className={cn(
+                  "text-2xl font-bold flex items-center gap-1.5",
+                  jornada.atencao.length > 0 ? "text-amber-700" : "text-foreground"
+                )}
+              >
+                {jornada.atencao.length > 0 && <AlertTriangle className="h-5 w-5" />}
+                {jornada.atencao.length}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Precisam de atenção</p>
+            </CardContent>
+          </Card>
+        </button>
       </div>
 
-      <Tabs defaultValue="resumo">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <TabsList className="bg-muted/50 h-9 min-w-max">
           <TabsTrigger value="resumo" className="text-xs h-7 gap-1.5">
@@ -818,6 +867,88 @@ export default function GrupoFormacaoDetail({
 
         {/* TAB RESUMO */}
         <TabsContent value="resumo" className="mt-4 space-y-4">
+          {/* Precisam de atenção — atrasados no ritmo e/ou presença baixa (item 3.3). */}
+          {jornada.atencao.length > 0 && (
+            <Card className="border-0 shadow-sm border-l-2 border-l-amber-400">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Precisam de atenção
+                  <Badge variant="outline" className="ml-1 bg-amber-50 text-amber-700 border-amber-200">
+                    {jornada.atencao.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {jornada.atencao.map((m) => (
+                  <Link
+                    key={m.id}
+                    href={`/formandos/${m.id}`}
+                    className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors"
+                  >
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarFallback className={`text-xs font-semibold ${NIVEL_CORES[m.nivelFormativo]}`}>
+                        {m.nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{m.nome}</p>
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {m.motivos.map((motivo, i) => (
+                          <Badge
+                            key={i}
+                            variant="outline"
+                            className="text-[11px] bg-amber-50 text-amber-700 border-amber-200 font-normal"
+                          >
+                            {motivo}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground tabular-nums shrink-0">{m.pct}%</span>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Prontos para avançar — cumpriram os requisitos da etapa atual. */}
+          {prontosParaAvancar.length > 0 && (
+            <Card className="border-0 shadow-sm border-l-2 border-l-emerald-400">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  Prontos para avançar
+                  <Badge variant="outline" className="ml-1 bg-emerald-50 text-emerald-700 border-emerald-200">
+                    {prontosParaAvancar.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {prontosParaAvancar.map((m) => (
+                  <Link
+                    key={m.id}
+                    href={`/formandos/${m.id}`}
+                    className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors"
+                  >
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarFallback className={`text-xs font-semibold ${NIVEL_CORES[m.nivelFormativo]}`}>
+                        {m.nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{m.nome}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {etapaLabels[m.nivelFormativo]} · {m.done}/{m.total} requisitos
+                      </p>
+                    </div>
+                    <span className="text-xs font-medium text-emerald-600 tabular-nums shrink-0">Concluiu</span>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
