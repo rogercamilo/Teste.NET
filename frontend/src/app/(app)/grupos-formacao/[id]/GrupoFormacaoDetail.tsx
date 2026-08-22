@@ -93,6 +93,7 @@ import {
   Flag,
   GitBranch,
   Home,
+  Info,
   LayoutGrid,
   List,
   Mail,
@@ -621,7 +622,24 @@ export default function GrupoFormacaoDetail({
 
   // Datas da Etapa Atual
   function openDatasEtapa() {
-    setDatasEtapaForm({ dataMissaCompromisso: "", iniciouEm: grupoFormacao?.vigenciaInicio?.split("T")[0] ?? "" });
+    // Pré-preenche com o que já foi registrado na etapa vigente (as datas são
+    // iguais para toda a morada — qualquer formando serve de fonte), para que o
+    // diálogo funcione como edição até o encerramento, não só como 1º registro.
+    const nivel = grupoFormacao.nivelFormativo;
+    let missa = "";
+    let inicio = "";
+    if (nivel) {
+      for (const f of formandosDaMorada) {
+        const prog = (f.progressoEtapas ?? []).find((p) => p.nivel === nivel);
+        if (!missa && prog?.dataMissaCompromisso) missa = prog.dataMissaCompromisso;
+        if (!inicio && prog?.iniciouEm) inicio = prog.iniciouEm;
+        if (missa && inicio) break;
+      }
+    }
+    setDatasEtapaForm({
+      dataMissaCompromisso: missa,
+      iniciouEm: inicio || (grupoFormacao?.vigenciaInicio?.split("T")[0] ?? ""),
+    });
     setDatasEtapaOpen(true);
   }
 
@@ -1915,11 +1933,24 @@ export default function GrupoFormacaoDetail({
             <DialogTitle>Datas da Etapa Atual</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              As datas serão registradas para todos os {termoFormando.toLowerCase()}s da {termoGrupoFormacao.toLowerCase()}.
-            </p>
+            <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+              <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+              <div className="space-y-1.5">
+                <p className="text-foreground font-medium">Marcos da etapa vigente</p>
+                <p>
+                  Registre estas datas no <span className="font-medium text-foreground">início da etapa</span>. Elas
+                  valem para todos os {termoFormando.toLowerCase()}s da {termoGrupoFormacao.toLowerCase()} e ficam
+                  disponíveis para edição até o encerramento da etapa.
+                </p>
+                <p>
+                  A <span className="font-medium text-foreground">data de início</span> alimenta o cálculo de ritmo e
+                  progresso da jornada — é o que permite sinalizar quem está avançando no tempo esperado e quem precisa
+                  de atenção.
+                </p>
+              </div>
+            </div>
             <div className="grid gap-1.5">
-              <Label>Data da Missa de Compromisso <span className="text-destructive">*</span></Label>
+              <Label>Data da Missa de Compromisso desta etapa <span className="text-destructive">*</span></Label>
               <Input
                 type="date"
                 value={datasEtapaForm.dataMissaCompromisso}
@@ -1927,12 +1958,13 @@ export default function GrupoFormacaoDetail({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>Data de início das atividades <span className="text-destructive">*</span></Label>
+              <Label>Data de início das atividades desta etapa <span className="text-destructive">*</span></Label>
               <Input
                 type="date"
                 value={datasEtapaForm.iniciouEm}
                 onChange={(e) => setDatasEtapaForm((p) => ({ ...p, iniciouEm: e.target.value }))}
               />
+              <p className="text-xs text-muted-foreground">Quando as atividades formativas desta etapa começaram.</p>
             </div>
           </div>
           <DialogFooter className="gap-2">
