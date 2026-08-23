@@ -1217,6 +1217,23 @@ export default function GrupoFormacaoDetail({
 
         {/* TAB FORMANDOS */}
         <TabsContent value="formandos" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">{termoFormando}s da {termoGrupoFormacao.toLowerCase()}</p>
+              <p>
+                Cadastre e mantenha aqui as pessoas em formação nesta {termoGrupoFormacao.toLowerCase()}: cada{" "}
+                {termoFormando.toLowerCase()} entra com um cadastro mínimo (o próprio completa os dados no portal) e
+                mostra, num relance, a etapa, o progresso e a presença. Clique no nome para abrir a ficha completa.
+              </p>
+              <p>
+                É a base de todo o acompanhamento — presença, jornada, comentários e relatórios partem de quem está
+                aqui. Mantenha a lista atualizada (inativando quem sai) para que os indicadores reflitam a realidade da
+                {" "}{termoGrupoFormacao.toLowerCase()}.
+              </p>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
