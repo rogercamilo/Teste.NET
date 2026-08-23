@@ -1720,6 +1720,25 @@ export default function GrupoFormacaoDetail({
                 </DropdownMenu>
               </div>
 
+              <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                <div className="space-y-1.5">
+                  <p className="text-foreground font-medium">Visão panorâmica da caminhada formativa</p>
+                  <p>
+                    Reúne num só lugar como a {termoGrupoFormacao.toLowerCase()} evolui: a distribuição dos{" "}
+                    {termoFormando.toLowerCase()}s por etapa, o progresso médio e individual (quem já cumpriu os
+                    requisitos e pode avançar) e quem precisa de atenção (atraso no ritmo e/ou presença baixa).
+                  </p>
+                  <p>
+                    Serve ao formador comunitário para conduzir o grupo com base em dados — antecipar as transições de
+                    etapa e agir cedo sobre quem está ficando para trás — e à coordenação (formador geral e
+                    administrador) para acompanhar as {termoGrupoFormacao.toLowerCase()}s. Use{" "}
+                    <span className="font-medium text-foreground">Exportar</span> para gerar o relatório (PDF/CSV) do
+                    acompanhamento.
+                  </p>
+                </div>
+              </div>
+
               {/* Funil de etapas */}
               <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2">
@@ -1734,7 +1753,7 @@ export default function GrupoFormacaoDetail({
                       <div key={f.nivel} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
                           <span className={cn("font-medium", atual ? "text-primary" : "text-foreground")}>
-                            {etapaLabels[f.nivel]}{atual ? " · atual" : ""}
+                            {etapaLabels[f.nivel]}{atual ? " · etapa formativa atual" : ""}
                           </span>
                           <span className="text-muted-foreground">{f.quantidade} · {f.percentual}%</span>
                         </div>
