@@ -20,6 +20,7 @@ import {
   type ComentarioFormando,
   type TipoComentario,
   type RelatorioEtapa,
+  type StatusPresenca,
   type PlanoFormativo,
   type GradeFormativa,
   type Usuario,
@@ -147,6 +148,24 @@ const NIVEL_BAR_COLORS: Record<NivelFormativo, string> = {
   vocacional: "bg-rose-500",
 };
 
+// Presença — rótulos e cores por estado da chamada.
+const STATUS_PRESENCA_LABELS: Record<StatusPresenca, string> = {
+  presente: "Presente",
+  ausente: "Ausente",
+  justificado: "Justificado",
+};
+// Cor da célula na grade (bg + texto) por estado; não-marcado é neutro.
+const STATUS_PRESENCA_CELL: Record<StatusPresenca, string> = {
+  presente: "bg-emerald-500 text-white",
+  ausente: "bg-red-500 text-white",
+  justificado: "bg-amber-400 text-white",
+};
+const STATUS_PRESENCA_INICIAL: Record<StatusPresenca, string> = {
+  presente: "P",
+  ausente: "F",
+  justificado: "J",
+};
+
 type FormandoFormState = {
   nome: string;
   dataNascimento: string;
@@ -209,6 +228,8 @@ export default function GrupoFormacaoDetail({
   const [editForm, setEditForm] = useState({ nome: "", localReuniao: "" });
 
   const [agendamentoId, setAgendamentoId] = useState<string>("");
+  const [presencaView, setPresencaView] = useState<"chamada" | "grade">("chamada");
+  const [savingChamada, setSavingChamada] = useState(false);
   const [comentarioOpen, setComentarioOpen] = useState(false);
   const [novoFormandoId, setNovoFormandoId] = useState("");
   const [novoTipo, setNovoTipo] = useState<TipoComentario>("observacao");
@@ -364,65 +385,107 @@ export default function GrupoFormacaoDetail({
       ? [NIVEL_SEQUENCE[currentNivelIdx + 1]]
       : ["formacao-permanente"];
 
-  function getPresenca(formandoId: string): boolean {
-    return (
-      presencas.find((p) => p.agendamentoId === agendamentoId && p.formandoId === formandoId)
-        ?.presente ?? false
-    );
+  // Estado da chamada do formador para a sessão selecionada (undefined = não marcado).
+  function getStatus(formandoId: string): StatusPresenca | undefined {
+    return presencas.find((p) => p.agendamentoId === agendamentoId && p.formandoId === formandoId)?.statusFormador;
+  }
+  // RSVP do formando (portal) para a sessão selecionada.
+  function getRsvp(formandoId: string): { confirmacao: boolean | null; justificativa?: string } {
+    const p = presencas.find((x) => x.agendamentoId === agendamentoId && x.formandoId === formandoId);
+    return { confirmacao: p?.confirmacaoFormando ?? null, justificativa: p?.justificativaFormando };
   }
 
-  function togglePresenca(formandoId: string, formandoNome: string) {
-    const newPresente = !getPresenca(formandoId);
-    const snapshot = presencas;
-    // Optimistic local update for instant feedback
-    setPresencas((prev) => {
-      const existente = prev.find(
-        (p) => p.agendamentoId === agendamentoId && p.formandoId === formandoId
+  // Aplica um estado a UMA linha no estado local (otimista), preservando o RSVP.
+  function aplicarStatusLocal(
+    prev: PresencaFormacao[],
+    formandoId: string,
+    status: StatusPresenca,
+    justificativa?: string | null
+  ): PresencaFormacao[] {
+    const presente = status === "presente";
+    const just = status === "justificado" ? (justificativa ?? undefined) : undefined;
+    const existente = prev.find((p) => p.agendamentoId === agendamentoId && p.formandoId === formandoId);
+    if (existente) {
+      return prev.map((p) =>
+        p.agendamentoId === agendamentoId && p.formandoId === formandoId
+          ? { ...p, statusFormador: status, presente, justificativa: just }
+          : p
       );
-      if (existente) {
-        return prev.map((p) =>
-          p.agendamentoId === agendamentoId && p.formandoId === formandoId
-            ? { ...p, presente: newPresente }
-            : p
-        );
-      }
-      const formando = allFormandos.find((f) => f.id === formandoId);
-      return [
-        ...prev,
-        {
-          id: `pr-${Date.now()}`,
-          agendamentoId,
-          formacaoTema: agendamento?.formacaoTema ?? "",
-          data: agendamento?.dataInicio.split("T")[0] ?? "",
-          formandoId,
-          formandoNome,
-          nivelFormativo: formando?.nivelFormativo ?? "pre-discipulado",
-          presente: newPresente,
-        },
-      ];
-    });
-    // Persist to server (upsert); rollback optimistic update on failure
+    }
+    const f = allFormandos.find((x) => x.id === formandoId);
+    return [
+      ...prev,
+      {
+        id: `pr-${Date.now()}-${formandoId}`,
+        agendamentoId,
+        formacaoTema: agendamento?.formacaoTema ?? "",
+        data: agendamento?.dataInicio.split("T")[0] ?? "",
+        formandoId,
+        formandoNome: f?.nome ?? "",
+        nivelFormativo: f?.nivelFormativo ?? "pre-discipulado",
+        presente,
+        statusFormador: status,
+        justificativa: just,
+      },
+    ];
+  }
+
+  // Marca UM formando (otimista + persistência single).
+  function marcarPresenca(formandoId: string, status: StatusPresenca, justificativa?: string | null) {
+    if (!agendamentoId) return;
+    const snapshot = presencas;
+    setPresencas((prev) => aplicarStatusLocal(prev, formandoId, status, justificativa));
     fetch("/api/presencas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        agendamentoId,
-        formandoId,
-        presente: newPresente,
-        formacaoTema: agendamento?.formacaoTema ?? "",
-        data: agendamento?.dataInicio.split("T")[0] ?? "",
-      }),
-    }).catch(() => {
-      setPresencas(snapshot);
-      toast.error("Erro ao salvar presença. Tente novamente.");
+      body: JSON.stringify({ agendamentoId, formandoId, statusFormador: status, justificativa: justificativa ?? null }),
+    })
+      .then((r) => { if (!r.ok) throw new Error(); })
+      .catch(() => { setPresencas(snapshot); toast.error("Erro ao salvar presença. Tente novamente."); });
+  }
+
+  // Marca VÁRIOS de uma vez (otimista + endpoint em lote, 1 request).
+  async function marcarLote(marcacoes: { formandoId: string; status: StatusPresenca; justificativa?: string | null }[]) {
+    if (!agendamentoId || marcacoes.length === 0) return;
+    const snapshot = presencas;
+    setPresencas((prev) => {
+      let next = prev;
+      for (const m of marcacoes) next = aplicarStatusLocal(next, m.formandoId, m.status, m.justificativa);
+      return next;
     });
+    setSavingChamada(true);
+    try {
+      const res = await fetch("/api/presencas/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agendamentoId,
+          marcacoes: marcacoes.map((m) => ({ formandoId: m.formandoId, status: m.status, justificativa: m.justificativa ?? null })),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Chamada salva.");
+    } catch {
+      setPresencas(snapshot);
+      toast.error("Erro ao salvar a chamada. Tente novamente.");
+    } finally {
+      setSavingChamada(false);
+    }
   }
 
   function calcPresencaFormando(formandoId: string) {
-    const total = realizadas.length;
-    const presentes = realizadas.filter((ag) =>
-      presencas.find((p) => p.agendamentoId === ag.id && p.formandoId === formandoId && p.presente)
-    ).length;
+    // Só sessões realizadas efetivamente marcadas (presente/ausente) contam;
+    // "justificado" e não marcadas ficam fora do denominador — coerente com o
+    // KPI de Presença e o Dashboard (taxaPresenca90d).
+    const realizadaIds = new Set(realizadas.map((a) => a.id));
+    const marcadas = presencas.filter(
+      (p) =>
+        p.formandoId === formandoId &&
+        realizadaIds.has(p.agendamentoId) &&
+        (p.statusFormador === "presente" || p.statusFormador === "ausente")
+    );
+    const total = marcadas.length;
+    const presentes = marcadas.filter((p) => p.statusFormador === "presente").length;
     return { total, presentes, pct: total > 0 ? Math.round((presentes / total) * 100) : 0 };
   }
 
@@ -684,8 +747,18 @@ export default function GrupoFormacaoDetail({
     startTransition(() => router.refresh());
   }
 
-  const presentes = formandosDaMorada.filter((f) => getPresenca(f.id)).length;
-  const ausentes = formandosDaMorada.length - presentes;
+  // Contagem da chamada da sessão selecionada, por estado.
+  const contagemChamada = formandosDaMorada.reduce(
+    (acc, f) => {
+      const s = getStatus(f.id);
+      if (s === "presente") acc.presente++;
+      else if (s === "ausente") acc.ausente++;
+      else if (s === "justificado") acc.justificado++;
+      else acc.naoMarcado++;
+      return acc;
+    },
+    { presente: 0, ausente: 0, justificado: 0, naoMarcado: 0 }
+  );
 
   return (
     <div className="space-y-5">
@@ -1327,31 +1400,6 @@ export default function GrupoFormacaoDetail({
 
         {/* TAB PRESENÇA */}
         <TabsContent value="presenca" className="mt-4 space-y-4">
-          {formandosDaMorada.length > 0 && realizadas.length > 0 && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Presença por {termoFormando}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {formandosDaMorada.map((f) => {
-                    const { total, presentes: pres, pct } = calcPresencaFormando(f.id);
-                    if (total === 0) return null;
-                    return (
-                      <div key={f.id} className="flex items-center gap-3">
-                        <p className="text-xs font-medium w-32 truncate shrink-0">{f.nome.split(" ")[0]}</p>
-                        <Progress value={pct} className="h-2 flex-1" />
-                        <span className="text-xs text-muted-foreground w-16 text-right shrink-0">
-                          {pres}/{total} ({pct}%)
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {agendamentosPresenca.length === 0 ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-0">
@@ -1369,109 +1417,259 @@ export default function GrupoFormacaoDetail({
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="pt-5">
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground mb-1.5">Selecionar Formação</p>
-                    <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)} items={Object.fromEntries(agendamentosPresenca.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`]))}>
-                      <SelectTrigger className="w-full sm:w-96">
-                        <SelectValue placeholder="Escolha uma formação..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {agendamentosPresenca.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>
-                            {a.formacaoTema} —{" "}
-                            {format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {agendamento && (
-                    <div className="flex gap-3 text-sm">
-                      <span className="flex items-center gap-1.5 text-emerald-600">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span className="font-semibold">{presentes}</span>
-                        <span className="text-muted-foreground">presentes</span>
-                      </span>
-                      <span className="flex items-center gap-1.5 text-red-500">
-                        <XCircle className="h-4 w-4" />
-                        <span className="font-semibold">{ausentes}</span>
-                        <span className="text-muted-foreground">ausentes</span>
-                      </span>
-                    </div>
+            <>
+              {/* Sub-visões: Chamada (marcar 1 sessão) × Grade (diário formando × sessões) */}
+              <div className="inline-flex h-9 items-center rounded-md border border-border bg-background p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setPresencaView("chamada")}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-1.5 rounded-[5px] px-3 text-xs font-medium transition-colors",
+                    presencaView === "chamada" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                >
+                  <ClipboardList className="h-3.5 w-3.5" /> Chamada
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPresencaView("grade")}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-1.5 rounded-[5px] px-3 text-xs font-medium transition-colors",
+                    presencaView === "grade" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" /> Grade
+                </button>
+              </div>
 
-          {agendamentosPresenca.length === 0 ? null : agendamento ? (
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-sm">{agendamento.formacaoTema}</CardTitle>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {format(parseISO(agendamento.dataInicio), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                      {agendamento.local && ` · ${agendamento.local}`}
-                    </p>
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0">Salvo automaticamente</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {formandosDaMorada.map((formando) => {
-                    const presente = getPresenca(formando.id);
-                    return (
-                      <div
-                        key={formando.id}
-                        className={cn(
-                          "flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer select-none",
-                          presente
-                            ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30"
-                            : "border-border bg-card hover:bg-muted/40"
+              {presencaView === "chamada" ? (
+                <>
+                  {/* Seletor de sessão + contagem por estado */}
+                  <Card className="border-0 shadow-sm">
+                    <CardContent className="pt-5">
+                      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground mb-1.5">Selecionar Formação</p>
+                          <Select value={agendamentoId} onValueChange={(v) => v && setAgendamentoId(v)} items={Object.fromEntries(agendamentosPresenca.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`]))}>
+                            <SelectTrigger className="w-full sm:w-96">
+                              <SelectValue placeholder="Escolha uma formação..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {agendamentosPresenca.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.formacaoTema} —{" "}
+                                  {format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {agendamento && (
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                            <span className="flex items-center gap-1 text-emerald-600"><CheckCircle2 className="h-3.5 w-3.5" /><span className="font-semibold">{contagemChamada.presente}</span> presentes</span>
+                            <span className="flex items-center gap-1 text-red-500"><XCircle className="h-3.5 w-3.5" /><span className="font-semibold">{contagemChamada.ausente}</span> ausentes</span>
+                            <span className="flex items-center gap-1 text-amber-600"><Info className="h-3.5 w-3.5" /><span className="font-semibold">{contagemChamada.justificado}</span> justificados</span>
+                            {contagemChamada.naoMarcado > 0 && (
+                              <span className="text-muted-foreground"><span className="font-semibold">{contagemChamada.naoMarcado}</span> a marcar</span>
+                            )}
+                          </div>
                         )}
-                        onClick={() => togglePresenca(formando.id, formando.nome)}
-                      >
-                        <Avatar className="h-8 w-8 shrink-0">
-                          <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
-                            {formando.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{formando.nome}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {etapaLabels[formando.nivelFormativo]}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={cn("text-xs font-medium", presente ? "text-emerald-600" : "text-muted-foreground")}>
-                            {presente ? "Presente" : "Ausente"}
-                          </span>
-                          {presente ? (
-                            <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-                          ) : (
-                            <XCircle className="h-5 w-5 text-muted-foreground/50 shrink-0" />
-                          )}
-                        </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                <ClipboardList className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">
-                  Selecione uma formação para registrar a presença
-                </p>
-              </CardContent>
-            </Card>
+                    </CardContent>
+                  </Card>
+
+                  {agendamento ? (
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <CardTitle className="text-sm">{agendamento.formacaoTema}</CardTitle>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {format(parseISO(agendamento.dataInicio), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                              {agendamento.local && ` · ${agendamento.local}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {formandosDaMorada.some((f) => getRsvp(f.id).confirmacao !== null) && (
+                              <Button
+                                variant="outline" size="sm" className="h-8 text-xs gap-1.5" disabled={savingChamada}
+                                onClick={() => marcarLote(
+                                  formandosDaMorada
+                                    .filter((f) => getRsvp(f.id).confirmacao !== null)
+                                    .map((f) => {
+                                      const r = getRsvp(f.id);
+                                      return r.confirmacao
+                                        ? { formandoId: f.id, status: "presente" as StatusPresenca }
+                                        : { formandoId: f.id, status: "justificado" as StatusPresenca, justificativa: r.justificativa ?? null };
+                                    })
+                                )}
+                              >
+                                <Mail className="h-3.5 w-3.5" /> Aplicar respostas do portal
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline" size="sm" className="h-8 text-xs gap-1.5" disabled={savingChamada}
+                              onClick={() => marcarLote(formandosDaMorada.map((f) => ({ formandoId: f.id, status: "presente" as StatusPresenca })))}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Todos presentes
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-xs text-muted-foreground mb-2">Salvo automaticamente a cada marcação.</p>
+                        <div className="space-y-2">
+                          {formandosDaMorada.map((formando) => {
+                            const status = getStatus(formando.id);
+                            const rsvp = getRsvp(formando.id);
+                            return (
+                              <div
+                                key={formando.id}
+                                className={cn(
+                                  "flex items-center gap-3 p-3 rounded-lg border transition-colors",
+                                  status === "presente" ? "border-emerald-200 bg-emerald-50/60"
+                                  : status === "ausente" ? "border-red-200 bg-red-50/50"
+                                  : status === "justificado" ? "border-amber-200 bg-amber-50/50"
+                                  : "border-border bg-card"
+                                )}
+                              >
+                                <Avatar className="h-8 w-8 shrink-0">
+                                  <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+                                    {formando.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{formando.nome}</p>
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                    <span className="text-xs text-muted-foreground">{etapaLabels[formando.nivelFormativo]}</span>
+                                    {rsvp.confirmacao === true && (
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200 font-normal">confirmou presença</Badge>
+                                    )}
+                                    {rsvp.confirmacao === false && (
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-amber-50 text-amber-700 border-amber-200 font-normal" title={rsvp.justificativa}>
+                                        avisou ausência{rsvp.justificativa ? `: ${rsvp.justificativa.slice(0, 40)}${rsvp.justificativa.length > 40 ? "…" : ""}` : ""}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="inline-flex rounded-md border border-border overflow-hidden shrink-0">
+                                  {(["presente", "ausente", "justificado"] as StatusPresenca[]).map((st) => (
+                                    <button
+                                      key={st}
+                                      type="button"
+                                      onClick={() => marcarPresenca(formando.id, st, st === "justificado" ? (rsvp.justificativa ?? null) : null)}
+                                      className={cn(
+                                        "px-2.5 py-1 text-xs font-medium transition-colors",
+                                        status === st
+                                          ? st === "presente" ? "bg-emerald-500 text-white"
+                                            : st === "ausente" ? "bg-red-500 text-white"
+                                            : "bg-amber-400 text-white"
+                                          : "bg-background text-muted-foreground hover:bg-muted"
+                                      )}
+                                    >
+                                      {STATUS_PRESENCA_LABELS[st]}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="border-0 shadow-sm">
+                      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                        <ClipboardList className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Selecione uma formação para registrar a presença
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              ) : realizadas.length === 0 ? (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                    <LayoutGrid className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                    <p className="text-sm font-medium text-muted-foreground">Nenhuma sessão realizada ainda</p>
+                    <p className="text-xs text-muted-foreground mt-1">O diário aparece quando houver formações realizadas com presença registrada.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                (() => {
+                  const sessoes = [...realizadas].sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
+                  const statusDe = (fid: string, aid: string): StatusPresenca | undefined =>
+                    presencas.find((p) => p.agendamentoId === aid && p.formandoId === fid)?.statusFormador;
+                  return (
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader className="pb-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <CardTitle className="text-sm font-semibold">Diário de presença</CardTitle>
+                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />Presente</span>
+                            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-red-500" />Ausente</span>
+                            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-amber-400" />Justificado</span>
+                            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-muted border border-border" />—</span>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="overflow-x-auto">
+                        <table className="border-separate border-spacing-1 text-xs">
+                          <thead>
+                            <tr>
+                              <th className="text-left font-medium text-muted-foreground sticky left-0 bg-card z-10 min-w-[9rem] pr-2">{termoFormando}</th>
+                              {sessoes.map((s) => (
+                                <th key={s.id} className="font-medium text-muted-foreground px-1 whitespace-nowrap" title={s.formacaoTema}>
+                                  {format(parseISO(s.dataInicio), "dd/MM", { locale: ptBR })}
+                                </th>
+                              ))}
+                              <th className="font-medium text-muted-foreground px-1">%</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {formandosDaMorada.map((f) => {
+                              const { pct, total } = calcPresencaFormando(f.id);
+                              const seq = sessoes.map((s) => statusDe(f.id, s.id)).filter((st) => st === "presente" || st === "ausente");
+                              let consec = 0;
+                              for (let i = seq.length - 1; i >= 0; i--) { if (seq[i] === "ausente") consec++; else break; }
+                              const alerta = consec >= 2;
+                              return (
+                                <tr key={f.id}>
+                                  <td className={cn("text-left sticky left-0 bg-card z-10 pr-2 font-medium truncate max-w-[11rem]", alerta && "text-red-600")}>
+                                    <span className="flex items-center gap-1">
+                                      {alerta && <AlertTriangle className="h-3 w-3 shrink-0" />}
+                                      <span className="truncate">{f.nome}</span>
+                                    </span>
+                                  </td>
+                                  {sessoes.map((s) => {
+                                    const st = statusDe(f.id, s.id);
+                                    return (
+                                      <td key={s.id} className="text-center">
+                                        <span
+                                          className={cn(
+                                            "inline-flex h-6 w-6 items-center justify-center rounded-sm text-[10px] font-semibold",
+                                            st ? STATUS_PRESENCA_CELL[st] : "bg-muted text-muted-foreground/50"
+                                          )}
+                                          title={`${s.formacaoTema} · ${st ? STATUS_PRESENCA_LABELS[st] : "não marcado"}`}
+                                        >
+                                          {st ? STATUS_PRESENCA_INICIAL[st] : "·"}
+                                        </span>
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="text-center font-semibold tabular-nums">{total > 0 ? `${pct}%` : "—"}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </CardContent>
+                    </Card>
+                  );
+                })()
+              )}
+            </>
           )}
         </TabsContent>
 
