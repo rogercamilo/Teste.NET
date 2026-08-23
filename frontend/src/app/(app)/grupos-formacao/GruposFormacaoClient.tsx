@@ -278,7 +278,12 @@ export default function GruposFormacaoClient({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-semibold text-foreground">{grupoFormacao.nome}</h3>
+                        <Link
+                          href={`/grupos-formacao/${grupoFormacao.id}`}
+                          className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                        >
+                          {grupoFormacao.nome}
+                        </Link>
                         {grupoFormacao.nivelFormativo ? (
                           <Badge variant="outline" className={`text-xs ${NIVEL_CORES[grupoFormacao.nivelFormativo]}`}>
                             {NIVEL_FORMATIVO_LABELS[grupoFormacao.nivelFormativo]}
