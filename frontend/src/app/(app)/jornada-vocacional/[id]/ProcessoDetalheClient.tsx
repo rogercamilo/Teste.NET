@@ -785,6 +785,7 @@ function DimensaoParecer({
               disabled={disabled}
               value={(dados[campo] as string) || undefined}
               onValueChange={(v) => onChange(campo, v)}
+              items={Object.fromEntries(NOTA_OPTIONS.map((n) => [n, n.charAt(0).toUpperCase() + n.slice(1)]))}
             >
               <SelectTrigger className="text-sm">
                 <SelectValue placeholder="— Selecionar —" />

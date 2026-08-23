@@ -60,7 +60,7 @@ export default function LivroPromessasClient({ orgNome, registros }: Props) {
           </div>
         </div>
         {tiposPresentes.length > 0 && (
-          <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v ?? "todos")}>
+          <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v ?? "todos")} items={{ todos: "Todos os tipos", ...Object.fromEntries(tiposPresentes.map((t) => [t, TIPO_REGISTRO_PROMESSA_LABELS[t]])) }}>
             <SelectTrigger className="w-52 text-sm shrink-0">
               <SelectValue />
             </SelectTrigger>

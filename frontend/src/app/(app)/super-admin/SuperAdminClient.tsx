@@ -772,7 +772,7 @@ export default function SuperAdminClient() {
             <DialogTitle>Alterar plano — {selectedOrg?.nome}</DialogTitle>
             <DialogDescription>Plano atual: <strong>{selectedOrg?.planoAssinatura}</strong></DialogDescription>
           </DialogHeader>
-          <Select value={novoPlano} onValueChange={(v) => v && setNovoPlano(v)}>
+          <Select value={novoPlano} onValueChange={(v) => v && setNovoPlano(v)} items={{ GRATUITO: "Gratuito — sem assinatura ativa", BASICO: "Básico — até 60 usuários (R$ 97/mês)", INTERMEDIARIO: "Intermediário — até 140 usuários (R$ 197/mês)", AVANCADO: "Avançado — até 350 usuários (R$ 397/mês)", PERSONALIZADO: "Personalizado — ilimitado (negociado)" }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="GRATUITO">Gratuito — sem assinatura ativa</SelectItem>

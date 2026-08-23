@@ -392,7 +392,7 @@ export default function FormandosClient({
             className="pl-8 h-9 text-sm"
           />
         </div>
-        <Select value={nivel} onValueChange={(v) => pushParams({ nivel: v ?? "todos", page: 1 })}>
+        <Select value={nivel} onValueChange={(v) => pushParams({ nivel: v ?? "todos", page: 1 })} items={{ todos: "Todos os níveis", ...etapaLabels }}>
           <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
             <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue placeholder="Etapa formativa" />
@@ -781,7 +781,7 @@ export default function FormandosClient({
                     Nenhuma grade ativa encontrada para este nível.
                   </p>
                 ) : (
-                  <Select value={selectedGradeId} onValueChange={(v) => v && setSelectedGradeId(v)}>
+                  <Select value={selectedGradeId} onValueChange={(v) => v && setSelectedGradeId(v)} items={Object.fromEntries(gradesFiltradas.map((g) => [g.id, g.nome || g.planoNome]))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a grade..." />
                     </SelectTrigger>

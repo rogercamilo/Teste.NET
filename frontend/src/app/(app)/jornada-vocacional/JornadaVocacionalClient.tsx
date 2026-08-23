@@ -104,7 +104,7 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <Filter className="hidden sm:block h-4 w-4 text-muted-foreground shrink-0" />
-          <Select value={tipoFiltro} onValueChange={(v) => { setTipoFiltro(v ?? "todos"); setPage(1); }}>
+          <Select value={tipoFiltro} onValueChange={(v) => { setTipoFiltro(v ?? "todos"); setPage(1); }} items={{ todos: "Todos os tipos", ...Object.fromEntries(tiposUnicos.map((tipo) => [tipo, getTipoLabel(tipo, termos)])) }}>
             <SelectTrigger className="w-full sm:w-52">
               <SelectValue placeholder="Tipo de processo" />
             </SelectTrigger>
@@ -117,7 +117,7 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
               ))}
             </SelectContent>
           </Select>
-          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v ?? "todos"); setPage(1); }}>
+          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v ?? "todos"); setPage(1); }} items={{ todos: "Todos os status", ...Object.fromEntries(statusUnicos.map((s) => [s, STATUS_PROCESSO_LABELS[s as StatusProcessoEclesiastico]])) }}>
             <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="Status" />
             </SelectTrigger>

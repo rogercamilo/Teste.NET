@@ -145,7 +145,7 @@ export default function DocumentosPage() {
         </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v ?? "todos")}>
+          <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v ?? "todos")} items={{ todos: "Todos os tipos", ...TIPO_EVENTO_LABELS }}>
             <SelectTrigger className="w-56">
               <SelectValue placeholder="Tipo de evento" />
             </SelectTrigger>

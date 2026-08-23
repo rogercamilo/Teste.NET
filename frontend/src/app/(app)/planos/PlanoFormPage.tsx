@@ -318,7 +318,7 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label>Etapa Formativa <span className="text-destructive">*</span></Label>
-              <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)}>
+              <Select value={form.nivelFormativo} onValueChange={(v) => v && set("nivelFormativo")(v)} items={etapaLabels}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {NIVEIS.map((n) => (
@@ -330,7 +330,7 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
 
             <div className="grid gap-1.5">
               <Label>Status</Label>
-              <Select value={form.status} onValueChange={(v) => v && set("status")(v)}>
+              <Select value={form.status} onValueChange={(v) => v && set("status")(v)} items={STATUS_PLANO_LABELS}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(STATUS_PLANO_LABELS) as StatusPlano[]).map((s) => (

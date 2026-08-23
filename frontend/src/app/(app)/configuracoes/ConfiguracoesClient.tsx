@@ -1732,6 +1732,7 @@ function UsuariosTab({ currentUserId, currentUserRole, initialGruposFormacao }: 
               <Select
                 value={inviteForm.perfil}
                 onValueChange={(v) => v && setInviteForm((f) => ({ ...f, perfil: v }))}
+                items={{ formador_comunitario: "Formador Comunitário", formador_pedagogico: "Formador Pedagógico", administrador: "Administrador" }}
               >
                 <SelectTrigger className="h-9">
                   <SelectValue />
@@ -1753,6 +1754,7 @@ function UsuariosTab({ currentUserId, currentUserRole, initialGruposFormacao }: 
                 <Select
                   value={inviteForm.grupoFormacaoId || "none"}
                   onValueChange={(v) => v && setInviteForm((f) => ({ ...f, grupoFormacaoId: v === "none" ? "" : v }))}
+                  items={{ none: "Nenhuma", ...Object.fromEntries(allMoradas.map((m) => [m.id, m.nome])) }}
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Selecionar morada" />
