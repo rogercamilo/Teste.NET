@@ -78,6 +78,8 @@ function makeRetiro(tipo: "comunitario" | "pessoal", numero: number, planoId = "
     cargaHoraria: tipo === "comunitario" ? 16 : 4,
     materialAnexo: "",
     materialAnexoId: "",
+    materialFormandoAnexo: "",
+    materialFormandoAnexoId: "",
   };
 }
 
@@ -108,8 +110,10 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
     return EMPTY_FORM;
   });
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
-  // Arquivo pendente de material de direcionamento, por retiro (chave = retiro.id).
+  // Arquivos pendentes por retiro (chave = retiro.id): material do formador e
+  // material do formando (liberado por grupo depois).
   const [retiroFiles, setRetiroFiles] = useState<Record<string, File | null>>({});
+  const [retiroFormandoFiles, setRetiroFormandoFiles] = useState<Record<string, File | null>>({});
   const [saving, setSaving] = useState(false);
 
   const set = (field: keyof Omit<FormState, "eixos" | "retiros">) => (value: string) =>
@@ -190,6 +194,27 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
     }));
   }
 
+  function selectRetiroFormandoMaterial(retiroId: string, file: File) {
+    setRetiroFormandoFiles((prev) => ({ ...prev, [retiroId]: file }));
+    setForm((prev) => ({
+      ...prev,
+      retiros: prev.retiros.map((r) =>
+        r.id === retiroId ? { ...r, materialFormandoAnexo: file.name, materialFormandoAnexoId: "" } : r
+      ),
+    }));
+    toast.success("Material do formando selecionado. Será salvo ao confirmar.");
+  }
+
+  function removeRetiroFormandoMaterial(retiroId: string) {
+    setRetiroFormandoFiles((prev) => ({ ...prev, [retiroId]: null }));
+    setForm((prev) => ({
+      ...prev,
+      retiros: prev.retiros.map((r) =>
+        r.id === retiroId ? { ...r, materialFormandoAnexo: "", materialFormandoAnexoId: "" } : r
+      ),
+    }));
+  }
+
   // ── Documento ──────────────────────────────────────────────────────────────
   function handleDocumentoInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -243,29 +268,45 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
         return { nome: form.documentoNome || undefined, id: form.documentoId || undefined };
       };
 
-      // Para cada retiro: sobe o material de direcionamento pendente (entityType
-      // "plano" é genérico — o vínculo real é a FK materialAnexoId no retiro),
-      // substitui/limpa o arquivo antigo e devolve o retiro com o par resolvido.
+      // Sobe um arquivo pendente (entityType "plano" é genérico — o vínculo real
+      // é a FK no retiro), remove o antigo substituído/limpo e devolve {nome,id}.
+      const resolveArquivo = async (
+        planoId: string,
+        pending: File | null,
+        currentNome: string | undefined,
+        currentId: string | undefined,
+        originalId: string | undefined,
+      ): Promise<{ nome?: string; id?: string }> => {
+        if (pending) {
+          const fd = new FormData();
+          fd.append("file", pending);
+          fd.append("entityType", "plano");
+          fd.append("entityId", planoId);
+          const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
+          if (!uploadRes.ok) throw new Error(`Erro ao enviar material do retiro: ${await uploadRes.text()}`);
+          const uploaded = await uploadRes.json() as { id: string; nome: string };
+          if (originalId) fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          return { nome: uploaded.nome, id: uploaded.id };
+        }
+        if (!currentNome && originalId) {
+          fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          return { nome: undefined, id: undefined };
+        }
+        return { nome: currentNome || undefined, id: currentId || undefined };
+      };
+
+      // Cada retiro carrega 2 anexos: material do formador (interno) e material
+      // do formando (liberado por grupo depois). Ambos seguem a mesma lógica.
       const resolveRetiros = async (planoId: string): Promise<RetiroPlano[]> =>
         Promise.all(form.retiros.map(async (r) => {
-          const pending = retiroFiles[r.id];
-          const originalId = initialPlano?.retiros?.find((o) => o.id === r.id)?.materialAnexoId;
-          if (pending) {
-            const fd = new FormData();
-            fd.append("file", pending);
-            fd.append("entityType", "plano");
-            fd.append("entityId", planoId);
-            const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
-            if (!uploadRes.ok) throw new Error(`Erro ao enviar material do retiro: ${await uploadRes.text()}`);
-            const uploaded = await uploadRes.json() as { id: string; nome: string };
-            if (originalId) fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
-            return { ...r, materialAnexo: uploaded.nome, materialAnexoId: uploaded.id };
-          }
-          if (!r.materialAnexo && originalId) {
-            fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
-            return { ...r, materialAnexo: undefined, materialAnexoId: undefined };
-          }
-          return r;
+          const original = initialPlano?.retiros?.find((o) => o.id === r.id);
+          const formador = await resolveArquivo(planoId, retiroFiles[r.id] ?? null, r.materialAnexo, r.materialAnexoId, original?.materialAnexoId);
+          const formando = await resolveArquivo(planoId, retiroFormandoFiles[r.id] ?? null, r.materialFormandoAnexo, r.materialFormandoAnexoId, original?.materialFormandoAnexoId);
+          return {
+            ...r,
+            materialAnexo: formador.nome, materialAnexoId: formador.id,
+            materialFormandoAnexo: formando.nome, materialFormandoAnexoId: formando.id,
+          };
         }));
 
       // 1) Garante o plano com id real (cria no fluxo novo).
@@ -283,16 +324,18 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
       const documento = await resolveDocumento(planoId);
       const resolvedRetiros = await resolveRetiros(planoId);
 
-      // 3) Retiros removidos que tinham material → apaga o arquivo órfão no R2.
+      // 3) Retiros removidos que tinham material → apaga os arquivos órfãos no R2.
       const currentIds = new Set(form.retiros.map((r) => r.id));
       (initialPlano?.retiros ?? []).forEach((o) => {
-        if (!currentIds.has(o.id) && o.materialAnexoId) {
-          fetch(`/api/arquivos/${o.materialAnexoId}`, { method: "DELETE" }).catch(() => null);
-        }
+        if (currentIds.has(o.id)) return;
+        [o.materialAnexoId, o.materialFormandoAnexoId].forEach((aid) => {
+          if (aid) fetch(`/api/arquivos/${aid}`, { method: "DELETE" }).catch(() => null);
+        });
       });
 
       // 4) Persiste. No create sem anexos o plano já está completo (pula PUT).
-      const hasRetiroFiles = Object.values(retiroFiles).some(Boolean);
+      const hasRetiroFiles =
+        Object.values(retiroFiles).some(Boolean) || Object.values(retiroFormandoFiles).some(Boolean);
       if (isEditing || documentoFile || hasRetiroFiles) {
         const res = await fetch(`/api/planos/${planoId}`, {
           method: "PUT",
@@ -537,6 +580,9 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
                 pendingMaterial={retiroFiles[retiro.id] ?? null}
                 onSelectMaterial={(file) => selectRetiroMaterial(retiro.id, file)}
                 onRemoveMaterial={() => removeRetiroMaterial(retiro.id)}
+                pendingFormandoMaterial={retiroFormandoFiles[retiro.id] ?? null}
+                onSelectFormandoMaterial={(file) => selectRetiroFormandoMaterial(retiro.id, file)}
+                onRemoveFormandoMaterial={() => removeRetiroFormandoMaterial(retiro.id)}
               />
             ))}
           </div>
@@ -586,6 +632,9 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
                 pendingMaterial={retiroFiles[retiro.id] ?? null}
                 onSelectMaterial={(file) => selectRetiroMaterial(retiro.id, file)}
                 onRemoveMaterial={() => removeRetiroMaterial(retiro.id)}
+                pendingFormandoMaterial={retiroFormandoFiles[retiro.id] ?? null}
+                onSelectFormandoMaterial={(file) => selectRetiroFormandoMaterial(retiro.id, file)}
+                onRemoveFormandoMaterial={() => removeRetiroFormandoMaterial(retiro.id)}
               />
             ))}
           </div>
@@ -666,6 +715,9 @@ function RetiroCard({
   pendingMaterial,
   onSelectMaterial,
   onRemoveMaterial,
+  pendingFormandoMaterial,
+  onSelectFormandoMaterial,
+  onRemoveFormandoMaterial,
 }: {
   retiro: RetiroPlano;
   onRemove: () => void;
@@ -673,6 +725,9 @@ function RetiroCard({
   pendingMaterial: File | null;
   onSelectMaterial: (file: File) => void;
   onRemoveMaterial: () => void;
+  pendingFormandoMaterial: File | null;
+  onSelectFormandoMaterial: (file: File) => void;
+  onRemoveFormandoMaterial: () => void;
 }) {
   return (
     <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-2">
@@ -745,44 +800,78 @@ function RetiroCard({
         </div>
       </div>
 
-      {/* Material de direcionamento — só para retiros comunitários */}
+      {/* Materiais de direcionamento — só para retiros comunitários */}
       {retiro.tipo === "comunitario" && (
-        <div className="grid gap-1 pt-1">
-          <Label className="text-xs">Material de direcionamento para retiro comunitário</Label>
-          <p className="text-[11px] text-muted-foreground -mt-0.5">
-            Uso do formador — fica disponível na grade. Não é exibido ao formando.
-          </p>
-          {retiro.materialAnexo ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card">
-              <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span className="text-xs truncate flex-1">{retiro.materialAnexo}</span>
-              {pendingMaterial && (
-                <span className="text-[11px] text-amber-600 shrink-0">pendente de salvar</span>
-              )}
-              <button
-                type="button"
-                onClick={onRemoveMaterial}
-                className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ) : (
-            <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-card cursor-pointer hover:bg-muted/40 transition-colors">
-              <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span className="text-xs text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
-              <input
-                type="file"
-                accept=".pdf,.docx,.doc"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onSelectMaterial(file);
-                }}
-              />
-            </label>
-          )}
+        <div className="space-y-2 pt-1">
+          <RetiroMaterialField
+            label="Material de direcionamento para retiro comunitário"
+            hint="Uso do formador — fica disponível na grade. Não é exibido ao formando."
+            nome={retiro.materialAnexo}
+            pending={pendingMaterial}
+            onSelect={onSelectMaterial}
+            onRemove={onRemoveMaterial}
+          />
+          <RetiroMaterialField
+            label="Material de direcionamento para o formando"
+            hint="Fica no portal do formando quando um formador liberar (por grupo). Antes disso, só o formador vê."
+            nome={retiro.materialFormandoAnexo}
+            pending={pendingFormandoMaterial}
+            onSelect={onSelectFormandoMaterial}
+            onRemove={onRemoveFormandoMaterial}
+          />
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Campo de upload de material do retiro (formador ou formando) ─────────────
+function RetiroMaterialField({
+  label,
+  hint,
+  nome,
+  pending,
+  onSelect,
+  onRemove,
+}: {
+  label: string;
+  hint: string;
+  nome?: string;
+  pending: File | null;
+  onSelect: (file: File) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="grid gap-1">
+      <Label className="text-xs">{label}</Label>
+      <p className="text-[11px] text-muted-foreground -mt-0.5">{hint}</p>
+      {nome ? (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card">
+          <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <span className="text-xs truncate flex-1">{nome}</span>
+          {pending && <span className="text-[11px] text-amber-600 shrink-0">pendente de salvar</span>}
+          <button
+            type="button"
+            onClick={onRemove}
+            className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : (
+        <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-card cursor-pointer hover:bg-muted/40 transition-colors">
+          <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <span className="text-xs text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
+          <input
+            type="file"
+            accept=".pdf,.docx,.doc"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onSelect(file);
+            }}
+          />
+        </label>
       )}
     </div>
   );

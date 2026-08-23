@@ -45,7 +45,7 @@ export default async function GrupoFormacaoDetailPage({
 
   if (!grupo) redirect("/grupos-formacao");
 
-  const [formandos, agendamentos, planos, grades, usuarios, relatorios, leituras] =
+  const [formandos, agendamentos, planos, grades, usuarios, relatorios, leituras, retirosLiberados] =
     await Promise.all([
       prisma.formando.findMany({
         where: { grupoFormacaoId: id, organizacaoId: orgId, deletedAt: null },
@@ -113,6 +113,10 @@ export default async function GrupoFormacaoDetailPage({
         orderBy: { ordem: "asc" },
         include: { capitulos: { orderBy: { numero: "asc" }, select: capituloCampos } },
       }),
+      prisma.retiroMaterialLiberacao.findMany({
+        where: { grupoFormacaoId: id, organizacaoId: orgId },
+        select: { retiroPlanoId: true },
+      }),
     ]);
 
   const formandoIds = formandos.map((f) => f.id);
@@ -157,6 +161,7 @@ export default async function GrupoFormacaoDetailPage({
       initialGrades={grades.map(toGrade)}
       initialUsuarios={initialUsuarios}
       initialRelatorios={relatorios.map(toRelatorio)}
+      initialRetirosLiberados={retirosLiberados.map((l) => l.retiroPlanoId)}
       initialLeituras={leituras.map((l) => ({
         id: l.id,
         titulo: l.titulo,

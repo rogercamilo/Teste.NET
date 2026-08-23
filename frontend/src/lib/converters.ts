@@ -113,7 +113,7 @@ export type PrismaPlano = {
   nivelFormativo: string; vigenciaInicio: Date; vigenciaFim: Date; status: string;
   documentoAnexo: string | null; documentoAnexoId: string | null; criadoEm: Date; atualizadoEm: Date;
   eixos: { id: string; nome: string; nomeEtapa: string | null; objetivo: string; intervaloEncontros: string; cargaHoraria: number; areaFormacao: string; ordem: number }[];
-  retiros: { id: string; planoId: string; tipo: string; numero: number; tema: string; trechoBiblico: string | null; objetivo: string; quandoRealizar: string; cargaHoraria: number; materialAnexo: string | null; materialAnexoId: string | null }[];
+  retiros: { id: string; planoId: string; tipo: string; numero: number; tema: string; trechoBiblico: string | null; objetivo: string; quandoRealizar: string; cargaHoraria: number; materialAnexo: string | null; materialAnexoId: string | null; materialFormandoAnexo: string | null; materialFormandoAnexoId: string | null }[];
 };
 
 export type PrismaPresenca = {
@@ -318,6 +318,7 @@ export function toPlano(p: PrismaPlano): PlanoFormativo {
       numero: r.numero, tema: r.tema, trechoBiblico: r.trechoBiblico ?? undefined,
       objetivo: r.objetivo, quandoRealizar: r.quandoRealizar, cargaHoraria: r.cargaHoraria,
       materialAnexo: r.materialAnexo ?? undefined, materialAnexoId: r.materialAnexoId ?? undefined,
+      materialFormandoAnexo: r.materialFormandoAnexo ?? undefined, materialFormandoAnexoId: r.materialFormandoAnexoId ?? undefined,
     })),
     vigenciaInicio: p.vigenciaInicio.toISOString().split("T")[0],
     vigenciaFim: p.vigenciaFim.toISOString().split("T")[0],

@@ -245,7 +245,8 @@ export default function PlanoDetalheClient({
                   <Th className="w-[30%]">Objetivo</Th>
                   <Th>Quando Realizar</Th>
                   <Th className="text-center">CH</Th>
-                  <Th className="text-center">Material</Th>
+                  <Th className="text-center">Mat. formador</Th>
+                  <Th className="text-center">Mat. formando</Th>
                 </tr>
               </thead>
               <tbody>
@@ -261,21 +262,10 @@ export default function PlanoDetalheClient({
                     <Td>{retiro.quandoRealizar || "—"}</Td>
                     <Td className="text-center font-medium">{retiro.cargaHoraria > 0 ? `${retiro.cargaHoraria}h` : "—"}</Td>
                     <Td className="text-center whitespace-nowrap">
-                      {retiro.materialAnexo && retiro.materialAnexoId ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            router.push(
-                              `/viewer?arquivoId=${retiro.materialAnexoId}&nome=${encodeURIComponent(retiro.materialAnexo!)}&origem=/planos/${id}`
-                            )
-                          }
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
-                        >
-                          <Eye className="h-3 w-3" /> Ver
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      <MaterialLink nome={retiro.materialAnexo} arquivoId={retiro.materialAnexoId} origem={`/planos/${id}`} router={router} />
+                    </Td>
+                    <Td className="text-center whitespace-nowrap">
+                      <MaterialLink nome={retiro.materialFormandoAnexo} arquivoId={retiro.materialFormandoAnexoId} origem={`/planos/${id}`} router={router} />
                     </Td>
                   </tr>
                 ))}
@@ -348,6 +338,30 @@ export default function PlanoDetalheClient({
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ── Link "Ver" para um anexo de retiro (ou "—" quando ausente) ──────────────
+function MaterialLink({
+  nome,
+  arquivoId,
+  origem,
+  router,
+}: {
+  nome?: string;
+  arquivoId?: string;
+  origem: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  if (!nome || !arquivoId) return <span className="text-muted-foreground">—</span>;
+  return (
+    <button
+      type="button"
+      onClick={() => router.push(`/viewer?arquivoId=${arquivoId}&nome=${encodeURIComponent(nome)}&origem=${origem}`)}
+      className="inline-flex items-center gap-1 text-primary hover:underline"
+    >
+      <Eye className="h-3 w-3" /> Ver
+    </button>
   );
 }
 

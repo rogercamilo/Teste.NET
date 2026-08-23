@@ -180,6 +180,9 @@ export interface RetiroPlano {
   // Material de direcionamento (retiro comunitário) — uso do formador.
   materialAnexo?: string;
   materialAnexoId?: string;
+  // Material de direcionamento destinado ao formando — liberado por grupo.
+  materialFormandoAnexo?: string;
+  materialFormandoAnexoId?: string;
 }
 
 export interface EixoPlano {

@@ -81,6 +81,10 @@ export interface PortalDashboardData {
     historico: PortalHistoricoItem[];
   };
   proximosEncontros: PortalProximoEncontro[];
+  // Materiais de direcionamento de retiro liberados para o grupo do formando.
+  // O download é por rota dedicada (`/api/portal/retiros/[retiroPlanoId]/material`),
+  // então aqui só viaja o retiroPlanoId + nome — nunca o id do arquivo cru.
+  retirosMateriais: { retiroPlanoId: string; numero: number; tema: string; nome: string }[];
   progresso: {
     formacoesComunitariasRealizadas: number;
     retirosComunitariosRealizados: number;
@@ -834,6 +838,31 @@ export async function getPortalDashboardData(
     presencasProximos.map((p) => [p.agendamentoId, p.confirmacaoFormando])
   );
 
+  // Materiais de direcionamento de retiro LIBERADOS para o grupo do formando.
+  // A liberação (RetiroMaterialLiberacao) já escopa por grupo; aqui só trazemos
+  // os retiros comunitários com material do formando anexado. O download é
+  // servido por rota própria que reautoriza pela ponte (nunca pelo id do arquivo).
+  const retirosMateriaisRaw = formando.grupoFormacaoId
+    ? await prisma.retiroMaterialLiberacao.findMany({
+        where: { grupoFormacaoId: formando.grupoFormacaoId, organizacaoId },
+        select: {
+          retiroPlanoId: true,
+          retiroPlano: {
+            select: { numero: true, tema: true, tipo: true, materialFormandoAnexo: true, materialFormandoAnexoId: true },
+          },
+        },
+      })
+    : [];
+  const retirosMateriais = retirosMateriaisRaw
+    .filter((l) => l.retiroPlano.tipo === "comunitario" && l.retiroPlano.materialFormandoAnexoId)
+    .map((l) => ({
+      retiroPlanoId: l.retiroPlanoId,
+      numero: l.retiroPlano.numero,
+      tema: l.retiroPlano.tema,
+      nome: l.retiroPlano.materialFormandoAnexo ?? "Material do retiro",
+    }))
+    .sort((a, b) => a.numero - b.numero);
+
   const percentual = total > 0 ? Math.round((presentes / total) * 100) : 0;
   // O progresso por etapa não se aplica ao candidato em período vocacional
   // (ele é pré-formativo): o card "Meu período vocacional" carrega o contexto.
@@ -900,6 +929,7 @@ export async function getPortalDashboardData(
       // linha de presença é criada no ato (UPSERT), fechando push → portal → RSVP.
       podeResponder: true,
     })),
+    retirosMateriais,
     progresso: requisitos
       ? {
           formacoesComunitariasRealizadas:

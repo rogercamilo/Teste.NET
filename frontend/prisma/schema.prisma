@@ -270,6 +270,7 @@ model Organizacao {
   acoesLeitura              AcaoLeitura[]
   acompanhamentosFormando   AcompanhamentoFormando[]
   solicitacoesAcompanhamentoFormando SolicitacaoAcompanhamentoFormando[]
+  retiroMateriaisLiberacoes RetiroMaterialLiberacao[]
 
   @@index([status])
   @@index([planoAssinatura])
@@ -403,6 +404,7 @@ model GrupoFormacao {
   agendamentos            Agendamento[]
   agendamentoGrupos       AgendamentoGrupo[]
   participacoesVocacional ParticipacaoVocacional[]
+  retiroMateriaisLiberados RetiroMaterialLiberacao[]
   leiturasVocacionais     LeituraVocacional[]
   // Usuários vinculados a este grupo de formação (formadores_comunitarios)
   usuarios                Usuario[]                @relation("UsuarioGrupoFormacao")
@@ -591,10 +593,40 @@ model RetiroPlano {
   // exibido na aplicação (plano e grade). Nunca vai ao portal do formando.
   materialAnexo   String?
   materialAnexoId String?
+  // Material de direcionamento destinado ao FORMANDO — só chega ao portal do
+  // formando quando LIBERADO por grupo (ver RetiroMaterialLiberacao). Enquanto
+  // não liberado, é visível apenas ao formador (plano e grupo).
+  materialFormandoAnexo   String?
+  materialFormandoAnexoId String?
 
-  plano PlanoFormativo @relation(fields: [planoId], references: [id], onDelete: Cascade)
+  plano      PlanoFormativo            @relation(fields: [planoId], references: [id], onDelete: Cascade)
+  liberacoes RetiroMaterialLiberacao[]
 
   @@index([planoId])
+}
+
+// ==========================================================
+// RETIRO MATERIAL LIBERAÇÃO (N:N RetiroPlano × GrupoFormacao)
+// A existência da linha = material do formando LIBERADO para aquele grupo.
+// Recolher = apagar a linha. Escopo por grupo porque a grade é compartilhada
+// por vários grupos e o FC libera só para o próprio grupo.
+// ==========================================================
+
+model RetiroMaterialLiberacao {
+  id              String   @id @default(cuid())
+  organizacaoId   String
+  retiroPlanoId   String
+  grupoFormacaoId String
+  liberadoEm      DateTime @default(now())
+  liberadoPor     String? // Usuario.id (quem liberou; null se ator sem FK)
+
+  organizacao   Organizacao   @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  retiroPlano   RetiroPlano   @relation(fields: [retiroPlanoId], references: [id], onDelete: Cascade)
+  grupoFormacao GrupoFormacao @relation(fields: [grupoFormacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([retiroPlanoId, grupoFormacaoId])
+  @@index([organizacaoId])
+  @@index([grupoFormacaoId])
 }
 
 // ==========================================================

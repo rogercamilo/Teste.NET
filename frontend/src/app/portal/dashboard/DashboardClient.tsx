@@ -20,6 +20,7 @@ import {
   BookOpen,
   Paperclip,
   ChevronDown,
+  Download,
   Eye,
   Cake,
   UserRound,
@@ -108,7 +109,7 @@ export default function DashboardClient({
   branding: PublicBranding;
 }) {
   const router = useRouter();
-  const { formando, presenca, proximosEncontros, progresso, vocacional, acompanhamentoFormativo } = data;
+  const { formando, presenca, proximosEncontros, progresso, vocacional, acompanhamentoFormativo, retirosMateriais } = data;
   const [loggingOut, setLoggingOut] = useState(false);
   // Nudge de completude do cadastro (Fase 3): some sozinho quando a pessoa
   // preenche os dados; dispensável por sessão para não incomodar quem já sabe.
@@ -502,6 +503,40 @@ export default function DashboardClient({
                 : null
             }
           />
+        )}
+
+        {/* Materiais de direcionamento dos retiros liberados para o grupo */}
+        {retirosMateriais.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                Materiais dos retiros
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {retirosMateriais.map((r) => (
+                  <li key={r.retiroPlanoId}>
+                    <a
+                      href={`/api/portal/retiros/${r.retiroPlanoId}/material`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm transition-colors hover:bg-muted/60"
+                    >
+                      <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">
+                        {r.numero}º Retiro{r.tema ? ` — ${r.tema}` : ""}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1 text-primary">
+                        <Download className="h-3.5 w-3.5" /> Baixar
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         )}
 
         {/* Materiais + Histórico lado a lado no desktop */}

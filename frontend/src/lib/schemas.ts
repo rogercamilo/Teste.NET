@@ -553,6 +553,14 @@ export const RetiroPlanoSchema = z.object({
   cargaHoraria: z.number().int().min(0).default(0),
   materialAnexo: optionalString(500).nullable(),
   materialAnexoId: optionalString(255).nullable(),
+  materialFormandoAnexo: optionalString(500).nullable(),
+  materialFormandoAnexoId: optionalString(255).nullable(),
+});
+
+// Liberação (por grupo) do material de direcionamento do retiro para o formando.
+export const LiberarRetiroMaterialSchema = z.object({
+  retiroPlanoId: z.string().min(1).max(255),
+  liberado: z.boolean(),
 });
 
 export const UpdatePlanoSchema = z.object({

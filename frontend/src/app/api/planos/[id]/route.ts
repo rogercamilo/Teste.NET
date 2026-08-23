@@ -70,6 +70,7 @@ export async function PUT(request: Request, { params }: Params) {
                 trechoBiblico: r.trechoBiblico || null, objetivo: r.objetivo,
                 quandoRealizar: r.quandoRealizar, cargaHoraria: r.cargaHoraria,
                 materialAnexo: r.materialAnexo || null, materialAnexoId: r.materialAnexoId || null,
+                materialFormandoAnexo: r.materialFormandoAnexo || null, materialFormandoAnexoId: r.materialFormandoAnexoId || null,
               })),
             },
           }),

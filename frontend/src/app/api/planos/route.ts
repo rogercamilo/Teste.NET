@@ -84,6 +84,8 @@ export async function POST(request: Request) {
             cargaHoraria: r.cargaHoraria,
             materialAnexo: r.materialAnexo || null,
             materialAnexoId: r.materialAnexoId || null,
+            materialFormandoAnexo: r.materialFormandoAnexo || null,
+            materialFormandoAnexoId: r.materialFormandoAnexoId || null,
           })),
         },
       },

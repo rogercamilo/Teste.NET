@@ -90,6 +90,7 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  Eye,
   FileSpreadsheet,
   FileText,
   Flag,
@@ -98,8 +99,11 @@ import {
   Info,
   LayoutGrid,
   List,
+  Lock,
+  LockOpen,
   Mail,
   MapPin,
+  Paperclip,
   MessageSquare,
   MoreHorizontal,
   Pencil,
@@ -129,6 +133,7 @@ interface GrupoFormacaoDetailProps {
   initialGrades: GradeFormativa[];
   initialUsuarios: Usuario[];
   initialRelatorios: RelatorioEtapa[];
+  initialRetirosLiberados: string[];
   initialLeituras: Leitura[];
 }
 
@@ -209,6 +214,7 @@ export default function GrupoFormacaoDetail({
   initialGrades,
   initialUsuarios,
   initialRelatorios,
+  initialRetirosLiberados,
   initialLeituras,
 }: GrupoFormacaoDetailProps) {
   const router = useRouter();
@@ -225,6 +231,34 @@ export default function GrupoFormacaoDetail({
   const [presencas, setPresencas] = useState<PresencaFormacao[]>(initialPresencas);
   const [comentarios, setComentarios] = useState<ComentarioFormando[]>(initialComentarios);
   const [relatorios, setRelatorios] = useState<RelatorioEtapa[]>(initialRelatorios);
+  // Retiros com material do formando LIBERADO para este grupo (set de retiroPlanoId).
+  const [retirosLiberados, setRetirosLiberados] = useState<Set<string>>(() => new Set(initialRetirosLiberados));
+  const [liberandoRetiro, setLiberandoRetiro] = useState<string | null>(null);
+
+  async function toggleLiberacaoRetiro(retiroPlanoId: string, liberado: boolean) {
+    setLiberandoRetiro(retiroPlanoId);
+    try {
+      const res = await fetch(`/api/grupos-formacao/${id}/liberar-retiro`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ retiroPlanoId, liberado }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(err.error || "Não foi possível atualizar a liberação.");
+        return;
+      }
+      setRetirosLiberados((prev) => {
+        const next = new Set(prev);
+        if (liberado) next.add(retiroPlanoId);
+        else next.delete(retiroPlanoId);
+        return next;
+      });
+      toast.success(liberado ? "Material liberado para os formandos." : "Material recolhido.");
+    } finally {
+      setLiberandoRetiro(null);
+    }
+  }
 
   // Aba controlada — a faixa de sinais (topo) salta para a aba certa e links
   // externos podem abrir numa aba específica via ?tab= (ex.: RSVP → presenca,
@@ -1168,6 +1202,61 @@ export default function GrupoFormacaoDetail({
               )}
             </CardContent>
           </Card>
+
+          {(() => {
+            const retirosComMaterial = (plano?.retiros ?? []).filter(
+              (r) => r.tipo === "comunitario" && r.materialFormandoAnexo && r.materialFormandoAnexoId
+            );
+            if (retirosComMaterial.length === 0) return null;
+            return (
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">Materiais dos retiros — liberação para os {termoFormando.toLowerCase()}s</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Ao liberar, o material fica disponível para download no portal do {termoFormando.toLowerCase()}. Vale só para este grupo.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {[...retirosComMaterial]
+                    .sort((a, b) => a.numero - b.numero)
+                    .map((r) => {
+                      const liberado = retirosLiberados.has(r.id);
+                      const busy = liberandoRetiro === r.id;
+                      return (
+                        <div key={r.id} className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/30">
+                          <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-foreground truncate">
+                              {r.numero}º Retiro{r.tema ? ` — ${r.tema}` : ""}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {liberado ? "Liberado para os formandos" : "Ainda não liberado (só o formador vê)"}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="shrink-0 h-7 text-xs gap-1 text-muted-foreground"
+                            onClick={() => router.push(`/viewer?arquivoId=${r.materialFormandoAnexoId}&nome=${encodeURIComponent(r.materialFormandoAnexo!)}&origem=/grupos-formacao/${id}`)}
+                          >
+                            <Eye className="h-3 w-3" /> Ver
+                          </Button>
+                          <Button
+                            variant={liberado ? "outline" : "default"}
+                            size="sm"
+                            className="shrink-0 h-7 text-xs gap-1"
+                            disabled={busy}
+                            onClick={() => toggleLiberacaoRetiro(r.id, !liberado)}
+                          >
+                            {liberado ? <><LockOpen className="h-3 w-3" /> Recolher</> : <><Lock className="h-3 w-3" /> Liberar</>}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {grade && grade.eixos.length > 0 && (
             <Card className="border-0 shadow-sm">
