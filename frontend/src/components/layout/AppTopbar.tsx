@@ -58,8 +58,7 @@ function buildBreadcrumbs(pathname: string, grupoFormacao: string, formando: str
     "grupos-formacao": { parent: "Gestão Comunitária", parentHref: "/grupos-formacao",   label: `${grupoFormacao}s`          },
     documentos:          { parent: "Gestão Comunitária", parentHref: "/grupos-formacao",   label: "Auditoria Documental" },
     "jornada-vocacional": { parent: "Gestão Comunitária", parentHref: "/jornada-vocacional", label: "Jornada Vocacional"  },
-    presenca:   { parent: "Gestão Comunitária",  parentHref: "/presenca",  label: "Gestão de Presença"  },
-    comentarios:{ parent: "Gestão Comunitária",  parentHref: "/presenca",  label: "Comentários"         },
+    comentarios:{ parent: "Gestão Comunitária",  parentHref: "/comentarios",  label: "Comentários"         },
   };
 
   const subLabels: Record<string, Record<string, string>> = {

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { useComunidade, useEtapaLabels } from "@/lib/data-store";
 import {
@@ -216,8 +216,13 @@ export default function GrupoFormacaoDetail({
   const [comentarios, setComentarios] = useState<ComentarioFormando[]>(initialComentarios);
   const [relatorios, setRelatorios] = useState<RelatorioEtapa[]>(initialRelatorios);
 
-  // Aba controlada — a faixa de sinais de saúde (topo) salta para a aba certa.
-  const [activeTab, setActiveTab] = useState("resumo");
+  // Aba controlada — a faixa de sinais (topo) salta para a aba certa e links
+  // externos podem abrir numa aba específica via ?tab= (ex.: RSVP → presenca,
+  // alerta de risco → jornada).
+  const searchParams = useSearchParams();
+  const ABAS_VALIDAS = ["resumo", "formandos", "presenca", "jornada", "comentarios", "relatorios", "leituras"];
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(tabParam && ABAS_VALIDAS.includes(tabParam) ? tabParam : "resumo");
 
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";

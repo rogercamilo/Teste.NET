@@ -20,7 +20,6 @@ export default function robots(): MetadataRoute.Robots {
         "/grades",
         "/planos",
         "/agenda",
-        "/presenca",
         "/comentarios",
         "/documentos",
         "/vocacional",

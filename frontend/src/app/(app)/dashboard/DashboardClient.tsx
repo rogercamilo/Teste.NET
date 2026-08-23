@@ -288,7 +288,7 @@ function PerspectivasCard({ stats, termos }: { stats: DashboardStats; termos: Re
 
 // ── FC: Acompanhamento de Presença (semáforo por formando, 90 dias) ─────────
 
-function AcompanhamentoPresencaCard({ stats, termos }: { stats: DashboardStats; termos: ReturnType<typeof useTermos> }) {
+function AcompanhamentoPresencaCard({ stats, termos, presencaHref }: { stats: DashboardStats; termos: ReturnType<typeof useTermos>; presencaHref: string }) {
   return (
     <Card className="border-0 shadow-sm">
       <CardHeader className="pb-3">
@@ -297,7 +297,7 @@ function AcompanhamentoPresencaCard({ stats, termos }: { stats: DashboardStats; 
             <CardTitle className="text-sm font-semibold text-foreground">Acompanhamento de Presença</CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">Últimos 90 dias</p>
           </div>
-          <Link href="/presenca" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
+          <Link href={presencaHref} className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 text-xs")}>
             Gestão de Presença
           </Link>
         </div>
@@ -394,6 +394,7 @@ function JornadaListaCard({
 interface Props {
   stats: DashboardStats | null;
   perfil: PerfilUsuario;
+  grupoFormacaoId?: string | null;
   grupoFormacaoNome?: string | null;
   semMorada?: boolean;
   nomeUsuario?: string | null;
@@ -401,7 +402,7 @@ interface Props {
 
 // ── Componente principal ───────────────────────────────────────────────────
 
-export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, semMorada, nomeUsuario }: Props) {
+export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grupoFormacaoNome, semMorada, nomeUsuario }: Props) {
   const router = useRouter();
   const termos = useTermos();
   const stats = rawStats ?? EMPTY_STATS;
@@ -556,6 +557,8 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
     const atencao = stats.formandosAtencao ?? [];
     const prontos = stats.formandosProntos ?? [];
     const temPresenca = (stats.formandosPresenca?.length ?? 0) > 0;
+    // Presença agora vive na aba da morada (a tela /presenca foi removida).
+    const moradaPresencaHref = grupoFormacaoId ? `/grupos-formacao/${grupoFormacaoId}?tab=presenca` : "/grupos-formacao";
     return (
       <div className="space-y-6 animate-in-fast">
         {/* Header */}
@@ -590,7 +593,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
             valor={stats.taxaPresencaGrupoFormacao != null ? `${stats.taxaPresencaGrupoFormacao}%` : "—"}
             label="Presença"
             sub="Últimos 90 dias"
-            onClick={() => router.push("/presenca")}
+            onClick={() => router.push(moradaPresencaHref)}
           />
           <KpiPessoa
             valor={atencao.length}
@@ -653,12 +656,12 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoNome, se
         )}
 
         {/* Minha semana (item 2.2) */}
-        <MinhaSemana stats={stats} perfil={perfil} termos={termos} />
+        <MinhaSemana stats={stats} perfil={perfil} termos={termos} presencaHref={moradaPresencaHref} />
 
         {/* Acompanhamento de presença + perspectivas (evolução de cada um) */}
         {temPresenca && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <AcompanhamentoPresencaCard stats={stats} termos={termos} />
+            <AcompanhamentoPresencaCard stats={stats} termos={termos} presencaHref={moradaPresencaHref} />
             <PerspectivasCard stats={stats} termos={termos} />
           </div>
         )}

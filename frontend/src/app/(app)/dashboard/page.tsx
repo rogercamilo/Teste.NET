@@ -501,5 +501,5 @@ export default async function DashboardPage() {
   const grupoFormacaoNome = grupoFormacao?.nome ?? null;
   const nomeUsuario = nomeBanco ?? user.name ?? null;
 
-  return <DashboardClient stats={stats} perfil={perfil} grupoFormacaoNome={grupoFormacaoNome} semMorada={semMorada} nomeUsuario={nomeUsuario} />;
+  return <DashboardClient stats={stats} perfil={perfil} grupoFormacaoId={grupoFormacaoId} grupoFormacaoNome={grupoFormacaoNome} semMorada={semMorada} nomeUsuario={nomeUsuario} />;
 }

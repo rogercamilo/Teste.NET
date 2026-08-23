@@ -104,6 +104,7 @@ type FormandoResposta = {
   nome: string;
   organizacaoId: string;
   nivelFormativo: string;
+  grupoFormacaoId: string | null;
 };
 
 /** Agendamento já validado (escopo do formando) para gravar a resposta. */
@@ -159,7 +160,10 @@ async function aplicarRespostaPresenca(
       tipo: "justificativa_formando",
       titulo: `${formando.nome} não vai comparecer`,
       corpo,
-      linkAcao: `/presenca?agendamento=${agendamento.id}`,
+      // Chamada agora vive na aba Presença da morada.
+      linkAcao: formando.grupoFormacaoId
+        ? `/grupos-formacao/${formando.grupoFormacaoId}?tab=presenca`
+        : `/grupos-formacao`,
     }).catch((err) => logError("rsvp:notificar", err));
   }
 }

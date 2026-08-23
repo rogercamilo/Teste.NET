@@ -21,6 +21,8 @@ interface Props {
   stats: DashboardStats;
   perfil: PerfilUsuario;
   termos: ReturnType<typeof useTermos>;
+  /** Destino da presença (aba da morada); a tela /presenca foi removida. */
+  presencaHref?: string;
 }
 
 interface Pendencia {
@@ -57,7 +59,7 @@ function VazioLinha({ children }: { children: React.ReactNode }) {
   return <p className="py-3 text-sm text-muted-foreground">{children}</p>;
 }
 
-export function MinhaSemana({ stats, perfil, termos }: Props) {
+export function MinhaSemana({ stats, perfil, termos, presencaHref = "/grupos-formacao" }: Props) {
   const isFC = perfil === "formador_comunitario";
   const agora = new Date();
   const fimSemana = addDays(agora, 7);
@@ -75,7 +77,7 @@ export function MinhaSemana({ stats, perfil, termos }: Props) {
     if (risco > 0) {
       pendencias.push({
         label: `${risco} ${termos.formando.toLowerCase()}${risco > 1 ? "s" : ""} com presença abaixo de 50%`,
-        href: "/presenca",
+        href: presencaHref,
       });
     }
   } else {

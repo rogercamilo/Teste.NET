@@ -3,7 +3,6 @@
   BookMarked,
   BookOpen,
   Calendar,
-  ClipboardList,
   FolderOpen,
   Home,
   LayoutDashboard,
@@ -244,7 +243,6 @@ export const navGroupsFormador: NavGroup[] = [
     label: "Gestão Comunitária",
     items: [
       { title: "Formandos", href: "/formandos", icon: Users },
-      { title: "Gestão de Presença", href: "/presenca", icon: ClipboardList },
       {
         title: "Jornada Vocacional",
         href: "/jornada-vocacional",
