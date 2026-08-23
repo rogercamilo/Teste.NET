@@ -95,9 +95,16 @@ export function funilPorEtapa(
  * Taxa de presença (%) de um membro nos últimos `dias`; `null` se sem registros.
  * Ignora eventos futuros (`data > hoje`) — não se pode ter faltado a um encontro
  * que ainda não aconteceu (linhas de RSVP criadas antes do evento, item 1.3).
+ *
+ * Só conta sessões efetivamente marcadas pelo formador como "presente" ou
+ * "ausente" (`statusFormador`). "justificado" e sessões não marcadas (status
+ * ausente/`null` — ex.: linha criada só por RSVP) ficam FORA do denominador:
+ * falta avisada não é falta, e o que o formador não chamou não conta contra o
+ * membro. Sem `statusFormador` (chamadas antigas), cai no comportamento por
+ * `presente` para retrocompatibilidade.
  */
 export function taxaPresenca90d(
-  presencas: { formandoId: string; data: string; presente: boolean }[],
+  presencas: { formandoId: string; data: string; presente: boolean; statusFormador?: string | null }[],
   formandoId: string,
   hoje: Date = new Date(),
   dias = 90
@@ -110,8 +117,15 @@ export function taxaPresenca90d(
     if (p.formandoId !== formandoId) continue;
     const t = new Date(p.data).getTime();
     if (Number.isNaN(t) || t < limite || t > agora) continue;
+    if (p.statusFormador === undefined) {
+      // Retrocompat: sem o estado explícito, usa o booleano `presente`.
+      total++;
+      if (p.presente) presentes++;
+      continue;
+    }
+    if (p.statusFormador !== "presente" && p.statusFormador !== "ausente") continue; // justificado / não marcado
     total++;
-    if (p.presente) presentes++;
+    if (p.statusFormador === "presente") presentes++;
   }
   return total > 0 ? Math.round((presentes / total) * 100) : null;
 }

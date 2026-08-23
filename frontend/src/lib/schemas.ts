@@ -657,18 +657,38 @@ export const CreateComentarioSchema = z.object({
 
 // ── Presença ──────────────────────────────────────────────────────────────────
 
+export const StatusPresencaSchema = z.enum(["presente", "ausente", "justificado"]);
+
 export const CreatePresencaSchema = z.object({
   agendamentoId: z.string().min(1, "agendamentoId obrigatório"),
   formandoId: z.string().min(1, "formandoId obrigatório"),
   formacaoTema: optionalString(500),
   data: isoDate.optional(),
   presente: z.boolean().optional(),
+  statusFormador: StatusPresencaSchema.optional(),
   justificativa: optionalString(1000).nullable(),
 });
 
 export const UpdatePresencaSchema = z.object({
   presente: z.boolean().optional(),
+  statusFormador: StatusPresencaSchema.optional(),
   justificativa: optionalString(1000).nullable(),
+});
+
+// Chamada em lote: uma sessão, várias marcações — salva numa transação única
+// (evita N requests que estouram o rate-limit; ver feedback batch-mutations).
+export const BulkPresencaSchema = z.object({
+  agendamentoId: z.string().min(1, "agendamentoId obrigatório"),
+  marcacoes: z
+    .array(
+      z.object({
+        formandoId: z.string().min(1),
+        status: StatusPresencaSchema,
+        justificativa: optionalString(1000).nullable(),
+      })
+    )
+    .min(1, "Envie ao menos uma marcação")
+    .max(500),
 });
 
 // ── Plano (create) ────────────────────────────────────────────────────────────

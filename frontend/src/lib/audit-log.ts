@@ -59,6 +59,7 @@ export type AuditAction =
   | "agendamento_updated"
   | "agendamento_deleted"
   | "presenca_registrada"
+  | "presenca_lote_registrada"
   | "presenca_updated"
   | "presenca_deleted"
   | "comentario_created"

@@ -119,7 +119,8 @@ export type PrismaPlano = {
 export type PrismaPresenca = {
   id: string; organizacaoId: string; agendamentoId: string; formacaoTema: string;
   data: Date; formandoId: string; formandoNome: string; nivelFormativo: string;
-  presente: boolean; justificativa: string | null;
+  presente: boolean; statusFormador: string | null; justificativa: string | null;
+  confirmacaoFormando: boolean | null; justificativaFormando: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -331,7 +332,11 @@ export function toPresenca(p: PrismaPresenca): PresencaFormacao {
     data: p.data.toISOString().split("T")[0], formandoId: p.formandoId,
     formandoNome: p.formandoNome,
     nivelFormativo: p.nivelFormativo as PresencaFormacao["nivelFormativo"],
-    presente: p.presente, justificativa: p.justificativa ?? undefined,
+    presente: p.presente,
+    statusFormador: (p.statusFormador ?? undefined) as PresencaFormacao["statusFormador"],
+    justificativa: p.justificativa ?? undefined,
+    confirmacaoFormando: p.confirmacaoFormando,
+    justificativaFormando: p.justificativaFormando ?? undefined,
   };
 }
 

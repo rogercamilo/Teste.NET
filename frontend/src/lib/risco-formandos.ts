@@ -62,12 +62,12 @@ export async function checkFormandosEmRisco(now: Date = new Date()): Promise<Ris
   const limite = new Date(now.getTime() - DIAS_PRESENCA * 86_400_000);
   const presencas = await prisma.presencaFormacao.findMany({
     where: { formandoId: { in: formandos.map((f) => f.id) }, data: { gte: limite } },
-    select: { formandoId: true, data: true, presente: true },
+    select: { formandoId: true, data: true, presente: true, statusFormador: true },
   });
-  const presMap = new Map<string, { formandoId: string; data: string; presente: boolean }[]>();
+  const presMap = new Map<string, { formandoId: string; data: string; presente: boolean; statusFormador: string | null }[]>();
   for (const p of presencas) {
     const arr = presMap.get(p.formandoId) ?? [];
-    arr.push({ formandoId: p.formandoId, data: p.data.toISOString(), presente: p.presente });
+    arr.push({ formandoId: p.formandoId, data: p.data.toISOString(), presente: p.presente, statusFormador: p.statusFormador });
     presMap.set(p.formandoId, arr);
   }
 

@@ -70,6 +70,13 @@ export async function POST(request: Request) {
     });
     if (!formando) return NextResponse.json({ error: "Formando não encontrado" }, { status: 404 });
 
+    // Estado da chamada: usa statusFormador quando enviado; senão deriva do
+    // booleano `presente` (compat com chamadas antigas). `presente` é mantido em
+    // sincronia com o status, e a justificativa só persiste no estado "justificado".
+    const status = body.statusFormador ?? (body.presente ? "presente" : "ausente");
+    const presente = status === "presente";
+    const justificativa = status === "justificado" ? (body.justificativa || null) : null;
+
     const row = await prisma.presencaFormacao.upsert({
       where: { agendamentoId_formandoId: { agendamentoId: body.agendamentoId, formandoId: body.formandoId } },
       create: {
@@ -80,12 +87,14 @@ export async function POST(request: Request) {
         formandoId: body.formandoId,
         formandoNome: formando.nome,
         nivelFormativo: formando.nivelFormativo,
-        presente: body.presente ?? false,
-        justificativa: body.justificativa || null,
+        presente,
+        statusFormador: status,
+        justificativa,
       },
       update: {
-        presente: body.presente ?? false,
-        justificativa: body.justificativa || null,
+        presente,
+        statusFormador: status,
+        justificativa,
       },
     });
     logAction("presenca_registrada", user.id, getClientIp(request), { agendamentoId: body.agendamentoId, formandoId: body.formandoId }, user.organizacaoId);

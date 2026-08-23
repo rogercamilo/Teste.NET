@@ -312,8 +312,17 @@ export interface PresencaFormacao {
   formandoNome: string;
   nivelFormativo: NivelFormativo;
   presente: boolean;
+  // Estado da chamada pelo formador; undefined = ainda não marcado (≠ ausente).
+  statusFormador?: StatusPresenca;
   justificativa?: string;
+  // RSVP do formando (portal / deep link): null/undefined = sem resposta,
+  // true = confirmou presença, false = avisou ausência (com justificativaFormando).
+  confirmacaoFormando?: boolean | null;
+  justificativaFormando?: string;
 }
+
+/** Estado da chamada registrado pelo formador. */
+export type StatusPresenca = "presente" | "ausente" | "justificado";
 
 export interface ComentarioFormando {
   id: string;

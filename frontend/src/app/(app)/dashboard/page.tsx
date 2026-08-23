@@ -159,7 +159,7 @@ async function getDashboardData(
       }),
       prisma.presencaFormacao.findMany({
         where: { organizacaoId, data: { gte: threeMonthsAgo, lte: now }, formando: { grupoFormacaoId } },
-        select: { formandoId: true, data: true, presente: true },
+        select: { formandoId: true, data: true, presente: true, statusFormador: true },
       }),
       // Última avaliação de adesão por formando × perspectiva
       prisma.eventoFormando.findMany({
@@ -185,11 +185,14 @@ async function getDashboardData(
       perspMap.set(ev.formandoId, entry);
     }
 
+    // Só sessões efetivamente marcadas (presente/ausente) entram no denominador;
+    // "justificado" e não marcadas ficam de fora (falta avisada não é falta).
     const presMap = new Map<string, { total: number; com: number }>();
     for (const p of presencas90d) {
+      if (p.statusFormador !== "presente" && p.statusFormador !== "ausente") continue;
       const e = presMap.get(p.formandoId) ?? { total: 0, com: 0 };
       e.total++;
-      if (p.presente) e.com++;
+      if (p.statusFormador === "presente") e.com++;
       presMap.set(p.formandoId, e);
     }
 
@@ -206,8 +209,9 @@ async function getDashboardData(
       };
     });
 
-    const totalS = presencas90d.length;
-    const totalP = presencas90d.filter((p) => p.presente).length;
+    const marcadas90d = presencas90d.filter((p) => p.statusFormador === "presente" || p.statusFormador === "ausente");
+    const totalS = marcadas90d.length;
+    const totalP = marcadas90d.filter((p) => p.statusFormador === "presente").length;
 
     // ── Jornada da morada — motor unificado (lib/jornada-progresso) ──
     // Mesma régua da tela da morada: progresso na etapa, risco (atraso no ritmo
@@ -216,6 +220,7 @@ async function getDashboardData(
       formandoId: p.formandoId,
       data: p.data.toISOString(),
       presente: p.presente,
+      statusFormador: p.statusFormador,
     }));
     const formandosAtencao: NonNullable<DashboardStats["formandosAtencao"]> = [];
     const formandosProntos: NonNullable<DashboardStats["formandosProntos"]> = [];
