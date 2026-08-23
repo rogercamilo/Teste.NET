@@ -587,6 +587,10 @@ model RetiroPlano {
   objetivo       String
   quandoRealizar String
   cargaHoraria   Int     @default(0)
+  // Material de direcionamento do retiro (comunitário) — uso do FORMADOR,
+  // exibido na aplicação (plano e grade). Nunca vai ao portal do formando.
+  materialAnexo   String?
+  materialAnexoId String?
 
   plano PlanoFormativo @relation(fields: [planoId], references: [id], onDelete: Cascade)
 

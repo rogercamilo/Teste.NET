@@ -113,7 +113,7 @@ export type PrismaPlano = {
   nivelFormativo: string; vigenciaInicio: Date; vigenciaFim: Date; status: string;
   documentoAnexo: string | null; documentoAnexoId: string | null; criadoEm: Date; atualizadoEm: Date;
   eixos: { id: string; nome: string; nomeEtapa: string | null; objetivo: string; intervaloEncontros: string; cargaHoraria: number; areaFormacao: string; ordem: number }[];
-  retiros: { id: string; planoId: string; tipo: string; numero: number; tema: string; trechoBiblico: string | null; objetivo: string; quandoRealizar: string; cargaHoraria: number }[];
+  retiros: { id: string; planoId: string; tipo: string; numero: number; tema: string; trechoBiblico: string | null; objetivo: string; quandoRealizar: string; cargaHoraria: number; materialAnexo: string | null; materialAnexoId: string | null }[];
 };
 
 export type PrismaPresenca = {
@@ -317,6 +317,7 @@ export function toPlano(p: PrismaPlano): PlanoFormativo {
       id: r.id, planoId: r.planoId, tipo: r.tipo as RetiroPlano["tipo"],
       numero: r.numero, tema: r.tema, trechoBiblico: r.trechoBiblico ?? undefined,
       objetivo: r.objetivo, quandoRealizar: r.quandoRealizar, cargaHoraria: r.cargaHoraria,
+      materialAnexo: r.materialAnexo ?? undefined, materialAnexoId: r.materialAnexoId ?? undefined,
     })),
     vigenciaInicio: p.vigenciaInicio.toISOString().split("T")[0],
     vigenciaFim: p.vigenciaFim.toISOString().split("T")[0],

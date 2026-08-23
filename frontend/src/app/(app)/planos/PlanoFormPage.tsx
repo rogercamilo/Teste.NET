@@ -76,6 +76,8 @@ function makeRetiro(tipo: "comunitario" | "pessoal", numero: number, planoId = "
     objetivo: "",
     quandoRealizar: "",
     cargaHoraria: tipo === "comunitario" ? 16 : 4,
+    materialAnexo: "",
+    materialAnexoId: "",
   };
 }
 
@@ -106,6 +108,8 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
     return EMPTY_FORM;
   });
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
+  // Arquivo pendente de material de direcionamento, por retiro (chave = retiro.id).
+  const [retiroFiles, setRetiroFiles] = useState<Record<string, File | null>>({});
   const [saving, setSaving] = useState(false);
 
   const set = (field: keyof Omit<FormState, "eixos" | "retiros">) => (value: string) =>
@@ -165,6 +169,27 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
     }));
   }
 
+  function selectRetiroMaterial(retiroId: string, file: File) {
+    setRetiroFiles((prev) => ({ ...prev, [retiroId]: file }));
+    setForm((prev) => ({
+      ...prev,
+      retiros: prev.retiros.map((r) =>
+        r.id === retiroId ? { ...r, materialAnexo: file.name, materialAnexoId: "" } : r
+      ),
+    }));
+    toast.success("Material selecionado. Será salvo ao confirmar.");
+  }
+
+  function removeRetiroMaterial(retiroId: string) {
+    setRetiroFiles((prev) => ({ ...prev, [retiroId]: null }));
+    setForm((prev) => ({
+      ...prev,
+      retiros: prev.retiros.map((r) =>
+        r.id === retiroId ? { ...r, materialAnexo: "", materialAnexoId: "" } : r
+      ),
+    }));
+  }
+
   // ── Documento ──────────────────────────────────────────────────────────────
   function handleDocumentoInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -185,6 +210,7 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
 
     setSaving(true);
     try {
+      const JSON_H = { "Content-Type": "application/json" };
       const basePayload = {
         nome: form.nome.trim(),
         objetivos: form.objetivos.trim(),
@@ -195,90 +221,100 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
         retiros: form.retiros,
       };
 
-      if (isEditing && id) {
-        // EDIT: entity already exists — upload document first, then PUT
-        const original = initialPlano;
-        let documentoAnexo = form.documentoNome || undefined;
-        let documentoAnexoId = form.documentoId || undefined;
-
+      // Envia o documento pendente do plano (se houver) e remove o antigo
+      // substituído/limpo. Retorna o par {nome,id} final a persistir.
+      const resolveDocumento = async (planoId: string): Promise<{ nome?: string; id?: string }> => {
+        const originalId = initialPlano?.documentoAnexoId;
         if (documentoFile) {
           const fd = new FormData();
           fd.append("file", documentoFile);
           fd.append("entityType", "plano");
-          fd.append("entityId", id);
+          fd.append("entityId", planoId);
           const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
-          if (!uploadRes.ok) {
-            toast.error(`Erro ao enviar documento: ${await uploadRes.text()}`);
-            return;
-          }
+          if (!uploadRes.ok) throw new Error(`Erro ao enviar documento: ${await uploadRes.text()}`);
           const uploaded = await uploadRes.json() as { id: string; nome: string };
-          if (original?.documentoAnexoId) {
-            fetch(`/api/arquivos/${original.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-          }
-          documentoAnexo = uploaded.nome;
-          documentoAnexoId = uploaded.id;
-        } else if (!form.documentoNome && original?.documentoAnexoId) {
-          fetch(`/api/arquivos/${original.documentoAnexoId}`, { method: "DELETE" }).catch(() => null);
-          documentoAnexo = undefined;
-          documentoAnexoId = undefined;
+          if (originalId) fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          return { nome: uploaded.nome, id: uploaded.id };
         }
+        if (!form.documentoNome && originalId) {
+          fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          return { nome: undefined, id: undefined };
+        }
+        return { nome: form.documentoNome || undefined, id: form.documentoId || undefined };
+      };
 
-        const res = await fetch(`/api/planos/${id}`, {
+      // Para cada retiro: sobe o material de direcionamento pendente (entityType
+      // "plano" é genérico — o vínculo real é a FK materialAnexoId no retiro),
+      // substitui/limpa o arquivo antigo e devolve o retiro com o par resolvido.
+      const resolveRetiros = async (planoId: string): Promise<RetiroPlano[]> =>
+        Promise.all(form.retiros.map(async (r) => {
+          const pending = retiroFiles[r.id];
+          const originalId = initialPlano?.retiros?.find((o) => o.id === r.id)?.materialAnexoId;
+          if (pending) {
+            const fd = new FormData();
+            fd.append("file", pending);
+            fd.append("entityType", "plano");
+            fd.append("entityId", planoId);
+            const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
+            if (!uploadRes.ok) throw new Error(`Erro ao enviar material do retiro: ${await uploadRes.text()}`);
+            const uploaded = await uploadRes.json() as { id: string; nome: string };
+            if (originalId) fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+            return { ...r, materialAnexo: uploaded.nome, materialAnexoId: uploaded.id };
+          }
+          if (!r.materialAnexo && originalId) {
+            fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+            return { ...r, materialAnexo: undefined, materialAnexoId: undefined };
+          }
+          return r;
+        }));
+
+      // 1) Garante o plano com id real (cria no fluxo novo).
+      let planoId = id ?? "";
+      if (!isEditing) {
+        const createRes = await fetch("/api/planos", { method: "POST", headers: JSON_H, body: JSON.stringify(basePayload) });
+        if (!createRes.ok) {
+          const err = await createRes.json().catch(() => ({})) as { error?: string };
+          throw new Error(err.error || "Erro ao criar plano");
+        }
+        planoId = (await createRes.json() as { id: string }).id;
+      }
+
+      // 2) Resolve anexos (documento do plano + material por retiro).
+      const documento = await resolveDocumento(planoId);
+      const resolvedRetiros = await resolveRetiros(planoId);
+
+      // 3) Retiros removidos que tinham material → apaga o arquivo órfão no R2.
+      const currentIds = new Set(form.retiros.map((r) => r.id));
+      (initialPlano?.retiros ?? []).forEach((o) => {
+        if (!currentIds.has(o.id) && o.materialAnexoId) {
+          fetch(`/api/arquivos/${o.materialAnexoId}`, { method: "DELETE" }).catch(() => null);
+        }
+      });
+
+      // 4) Persiste. No create sem anexos o plano já está completo (pula PUT).
+      const hasRetiroFiles = Object.values(retiroFiles).some(Boolean);
+      if (isEditing || documentoFile || hasRetiroFiles) {
+        const res = await fetch(`/api/planos/${planoId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...basePayload, documentoAnexo, documentoAnexoId }),
+          headers: JSON_H,
+          body: JSON.stringify({
+            ...basePayload,
+            retiros: resolvedRetiros,
+            documentoAnexo: documento.nome,
+            documentoAnexoId: documento.id,
+          }),
         });
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          toast.error((err as { error?: string }).error || "Erro ao atualizar plano");
-          return;
+          const err = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(err.error || (isEditing ? "Erro ao atualizar plano" : "Erro ao salvar anexos do plano"));
         }
-        toast.success("Plano atualizado com sucesso!");
-        router.push(`/planos/${id}`);
-        router.refresh();
-      } else {
-        // CREATE: create plan first to get real ID, then upload document
-        const createRes = await fetch("/api/planos", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(basePayload),
-        });
-        if (!createRes.ok) {
-          const err = await createRes.json().catch(() => ({}));
-          toast.error((err as { error?: string }).error || "Erro ao criar plano");
-          return;
-        }
-        let created = await createRes.json();
-
-        if (documentoFile) {
-          const fd = new FormData();
-          fd.append("file", documentoFile);
-          fd.append("entityType", "plano");
-          fd.append("entityId", created.id);
-          const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
-          if (!uploadRes.ok) {
-            // Plan created but document failed — navigate anyway, user can add later
-            toast.warning(`Plano criado, mas o documento não pôde ser anexado: ${await uploadRes.text()}`);
-            router.push("/planos");
-            router.refresh();
-            return;
-          }
-          const uploaded = await uploadRes.json() as { id: string; nome: string };
-          // Link document to the newly created plan
-          const updateRes = await fetch(`/api/planos/${created.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...basePayload, documentoAnexo: uploaded.nome, documentoAnexoId: uploaded.id }),
-          });
-          if (updateRes.ok) created = await updateRes.json();
-        }
-
-        toast.success("Plano criado com sucesso!");
-        router.push("/planos");
-        router.refresh();
       }
-    } catch {
-      toast.error("Falha de rede. Verifique sua conexão e tente novamente.");
+
+      toast.success(isEditing ? "Plano atualizado com sucesso!" : "Plano criado com sucesso!");
+      router.push(isEditing ? `/planos/${planoId}` : "/planos");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha de rede. Verifique sua conexão e tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -498,6 +534,9 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
                 retiro={retiro}
                 onRemove={() => removeRetiro(retiro.id)}
                 onUpdate={(field, value) => updateRetiro(retiro.id, field, value)}
+                pendingMaterial={retiroFiles[retiro.id] ?? null}
+                onSelectMaterial={(file) => selectRetiroMaterial(retiro.id, file)}
+                onRemoveMaterial={() => removeRetiroMaterial(retiro.id)}
               />
             ))}
           </div>
@@ -544,6 +583,9 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
                 retiro={retiro}
                 onRemove={() => removeRetiro(retiro.id)}
                 onUpdate={(field, value) => updateRetiro(retiro.id, field, value)}
+                pendingMaterial={retiroFiles[retiro.id] ?? null}
+                onSelectMaterial={(file) => selectRetiroMaterial(retiro.id, file)}
+                onRemoveMaterial={() => removeRetiroMaterial(retiro.id)}
               />
             ))}
           </div>
@@ -621,10 +663,16 @@ function RetiroCard({
   retiro,
   onRemove,
   onUpdate,
+  pendingMaterial,
+  onSelectMaterial,
+  onRemoveMaterial,
 }: {
   retiro: RetiroPlano;
   onRemove: () => void;
   onUpdate: (field: keyof RetiroPlano, value: string) => void;
+  pendingMaterial: File | null;
+  onSelectMaterial: (file: File) => void;
+  onRemoveMaterial: () => void;
 }) {
   return (
     <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-2">
@@ -696,6 +744,46 @@ function RetiroCard({
           />
         </div>
       </div>
+
+      {/* Material de direcionamento — só para retiros comunitários */}
+      {retiro.tipo === "comunitario" && (
+        <div className="grid gap-1 pt-1">
+          <Label className="text-xs">Material de direcionamento para retiro comunitário</Label>
+          <p className="text-[11px] text-muted-foreground -mt-0.5">
+            Uso do formador — fica disponível na grade. Não é exibido ao formando.
+          </p>
+          {retiro.materialAnexo ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card">
+              <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs truncate flex-1">{retiro.materialAnexo}</span>
+              {pendingMaterial && (
+                <span className="text-[11px] text-amber-600 shrink-0">pendente de salvar</span>
+              )}
+              <button
+                type="button"
+                onClick={onRemoveMaterial}
+                className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border bg-card cursor-pointer hover:bg-muted/40 transition-colors">
+              <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground">Selecionar PDF ou Word (.pdf, .docx, .doc)</span>
+              <input
+                type="file"
+                accept=".pdf,.docx,.doc"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) onSelectMaterial(file);
+                }}
+              />
+            </label>
+          )}
+        </div>
+      )}
     </div>
   );
 }

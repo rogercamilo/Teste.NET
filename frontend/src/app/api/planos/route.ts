@@ -82,6 +82,8 @@ export async function POST(request: Request) {
             objetivo: r.objetivo,
             quandoRealizar: r.quandoRealizar,
             cargaHoraria: r.cargaHoraria,
+            materialAnexo: r.materialAnexo || null,
+            materialAnexoId: r.materialAnexoId || null,
           })),
         },
       },

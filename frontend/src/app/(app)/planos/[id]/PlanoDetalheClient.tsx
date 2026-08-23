@@ -245,6 +245,7 @@ export default function PlanoDetalheClient({
                   <Th className="w-[30%]">Objetivo</Th>
                   <Th>Quando Realizar</Th>
                   <Th className="text-center">CH</Th>
+                  <Th className="text-center">Material</Th>
                 </tr>
               </thead>
               <tbody>
@@ -259,6 +260,23 @@ export default function PlanoDetalheClient({
                     <Td className="leading-relaxed text-muted-foreground">{retiro.objetivo || "—"}</Td>
                     <Td>{retiro.quandoRealizar || "—"}</Td>
                     <Td className="text-center font-medium">{retiro.cargaHoraria > 0 ? `${retiro.cargaHoraria}h` : "—"}</Td>
+                    <Td className="text-center whitespace-nowrap">
+                      {retiro.materialAnexo && retiro.materialAnexoId ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/viewer?arquivoId=${retiro.materialAnexoId}&nome=${encodeURIComponent(retiro.materialAnexo!)}&origem=/planos/${id}`
+                            )
+                          }
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <Eye className="h-3 w-3" /> Ver
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </Td>
                   </tr>
                 ))}
               </tbody>

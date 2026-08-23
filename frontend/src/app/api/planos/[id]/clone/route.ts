@@ -59,6 +59,8 @@ export async function POST(request: Request, { params }: Params) {
             objetivo: r.objetivo,
             quandoRealizar: r.quandoRealizar,
             cargaHoraria: r.cargaHoraria,
+            materialAnexo: r.materialAnexo || null,
+            materialAnexoId: r.materialAnexoId || null,
           })),
         },
       },

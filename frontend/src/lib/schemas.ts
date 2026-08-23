@@ -551,6 +551,8 @@ export const RetiroPlanoSchema = z.object({
   objetivo: optionalString(2000).default(""),
   quandoRealizar: nonEmptyString(255),
   cargaHoraria: z.number().int().min(0).default(0),
+  materialAnexo: optionalString(500).nullable(),
+  materialAnexoId: optionalString(255).nullable(),
 });
 
 export const UpdatePlanoSchema = z.object({

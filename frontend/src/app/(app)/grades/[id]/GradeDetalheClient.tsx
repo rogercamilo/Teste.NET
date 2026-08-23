@@ -314,6 +314,43 @@ export default function GradeDetalheClient({
           </div>
         )}
 
+        {plano?.retiros?.some((r) => r.tipo === "comunitario" && r.materialAnexo && r.materialAnexoId) && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Materiais de direcionamento — Retiros Comunitários
+            </p>
+            <div className="space-y-2">
+              {plano.retiros
+                .filter((r) => r.tipo === "comunitario" && r.materialAnexo && r.materialAnexoId)
+                .sort((a, b) => a.numero - b.numero)
+                .map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2.5"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-foreground truncate">
+                        {r.numero}º Retiro{r.tema ? ` — ${r.tema}` : ""}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 ml-2 h-7 text-xs gap-1 text-primary"
+                      onClick={() =>
+                        router.push(`/viewer?arquivoId=${r.materialAnexoId}&nome=${encodeURIComponent(r.materialAnexo!)}&origem=/grades/${id}`)
+                      }
+                    >
+                      <Eye className="h-3 w-3" />
+                      Ver material
+                    </Button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
         {grade.documentoAnexo && grade.documentoAnexoId && (
           <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2.5">
             <div className="flex items-center gap-2 min-w-0">

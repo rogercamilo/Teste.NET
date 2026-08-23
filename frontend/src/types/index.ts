@@ -177,6 +177,9 @@ export interface RetiroPlano {
   objetivo: string;
   quandoRealizar: string;
   cargaHoraria: number;
+  // Material de direcionamento (retiro comunitário) — uso do formador.
+  materialAnexo?: string;
+  materialAnexoId?: string;
 }
 
 export interface EixoPlano {
