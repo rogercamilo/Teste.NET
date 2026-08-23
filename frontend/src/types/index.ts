@@ -731,10 +731,18 @@ export function podeGerenciarGestao(actorRole: string | undefined): boolean {
 }
 
 export const TIPO_COMENTARIO_LABELS: Record<TipoComentario, string> = {
-  adesao: "Adesão",
+  adesao: "Adesão ao Plano Formativo/Carisma",
   dificuldade: "Dificuldade",
   progresso: "Progresso",
   observacao: "Observação",
+};
+
+/** Descrição curta de cada tipo de comentário (orienta o formador na escolha). */
+export const TIPO_COMENTARIO_DESC: Record<TipoComentario, string> = {
+  adesao: "Compromisso com o plano e o carisma",
+  dificuldade: "Ponto de atenção a acompanhar",
+  progresso: "Avanço ou fruto na caminhada",
+  observacao: "Registro geral",
 };
 
 export const TIPO_COMENTARIO_CORES: Record<TipoComentario, string> = {

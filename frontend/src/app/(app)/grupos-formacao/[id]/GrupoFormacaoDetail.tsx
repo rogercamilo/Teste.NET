@@ -10,6 +10,7 @@ import {
   STATUS_FORMACAO_LABELS,
   TIPO_COMENTARIO_CORES,
   TIPO_COMENTARIO_LABELS,
+  TIPO_COMENTARIO_DESC,
   podeAvancarEtapa,
   type GrupoFormacao,
   type Formando,
@@ -164,6 +165,15 @@ const STATUS_PRESENCA_INICIAL: Record<StatusPresenca, string> = {
   presente: "P",
   ausente: "F",
   justificado: "J",
+};
+
+// Ordem e cor sólida (bolinha) dos tipos de comentário no seletor do diálogo.
+const TIPO_COMENTARIO_ORDEM: TipoComentario[] = ["progresso", "adesao", "dificuldade", "observacao"];
+const TIPO_COMENTARIO_DOT: Record<TipoComentario, string> = {
+  progresso: "bg-blue-500",
+  adesao: "bg-emerald-500",
+  dificuldade: "bg-red-500",
+  observacao: "bg-amber-500",
 };
 
 type FormandoFormState = {
@@ -2205,15 +2215,18 @@ export default function GrupoFormacaoDetail({
 
       {/* Comentário Dialog */}
       <Dialog open={comentarioOpen} onOpenChange={setComentarioOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Novo Comentário</DialogTitle>
+            <DialogTitle>Novo comentário</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Registre uma observação do acompanhamento formativo — fica no histórico do {termoFormando.toLowerCase()}.
+            </p>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-5 py-1">
             <div className="space-y-1.5">
               <Label>{termoFormando}</Label>
               <Select value={novoFormandoId} onValueChange={(v) => setNovoFormandoId(v ?? "")} items={Object.fromEntries(formandosDaMorada.filter((f) => f.ativo).map((f) => [f.id, f.nome]))}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder={`Selecione o ${termoFormando.toLowerCase()}...`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -2224,21 +2237,32 @@ export default function GrupoFormacaoDetail({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Tipo</Label>
-              <Select value={novoTipo} onValueChange={(v) => v && setNovoTipo(v as TipoComentario)} items={TIPO_COMENTARIO_LABELS}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(["adesao", "dificuldade", "progresso", "observacao"] as TipoComentario[]).map((t) => (
-                    <SelectItem key={t} value={t}>{TIPO_COMENTARIO_LABELS[t]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Tipo de comentário</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {TIPO_COMENTARIO_ORDEM.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setNovoTipo(t)}
+                    className={cn(
+                      "flex items-start gap-2.5 rounded-lg border p-3 text-left transition-colors",
+                      novoTipo === t ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border hover:bg-muted/40"
+                    )}
+                  >
+                    <span className={cn("mt-1 h-2 w-2 rounded-full shrink-0", TIPO_COMENTARIO_DOT[t])} />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium leading-tight">{TIPO_COMENTARIO_LABELS[t]}</span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">{TIPO_COMENTARIO_DESC[t]}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Comentário</Label>
               <Textarea
-                placeholder="Descreva sua observação..."
-                className="min-h-24 resize-none"
+                placeholder="O que você observou? Seja concreto e objetivo…"
+                className="min-h-28 resize-none"
                 value={novoTexto}
                 onChange={(e) => setNovoTexto(e.target.value)}
               />

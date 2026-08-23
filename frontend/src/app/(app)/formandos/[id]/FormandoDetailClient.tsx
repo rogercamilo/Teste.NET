@@ -2695,7 +2695,7 @@ export default function FormandoDetailClient({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="adesao">Adesão</SelectItem>
+                  <SelectItem value="adesao">Adesão ao Plano Formativo/Carisma</SelectItem>
                   <SelectItem value="progresso">Progresso</SelectItem>
                   <SelectItem value="dificuldade">Dificuldade</SelectItem>
                   <SelectItem value="observacao">Observação</SelectItem>
