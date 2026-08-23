@@ -760,44 +760,48 @@ export default function FormandosClient({
 
       {/* Link Grade Dialog */}
       <Dialog open={!!linkGradeState} onOpenChange={(open) => { if (!open) { setLinkGradeState(null); setSelectedGradeId(""); } }}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Vincular grade ao {termoGrupoFormacao.toLowerCase()}</DialogTitle>
+            <DialogTitle>Vincular grade formativa</DialogTitle>
+            {linkGradeState && (
+              <p className="text-sm text-muted-foreground">
+                Escolha a grade da etapa{" "}
+                <span className="font-medium text-foreground">{etapaLabels[linkGradeState.nivelFormativo]}</span>{" "}
+                para esta {termoGrupoFormacao.toLowerCase()}.
+              </p>
+            )}
           </DialogHeader>
           {linkGradeState && (() => {
             const gradesFiltradas = initialGrades.filter(
               (g) => g.nivelFormativo === linkGradeState.nivelFormativo && g.ativo
             );
             return (
-              <div className="space-y-4 py-2">
-                <p className="text-sm text-muted-foreground">
-                  Selecione a grade formativa para{" "}
-                  <span className="font-medium text-foreground">
-                    {etapaLabels[linkGradeState.nivelFormativo]}
-                  </span>.
-                </p>
+              <div className="py-1">
                 {gradesFiltradas.length === 0 ? (
-                  <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                    Nenhuma grade ativa encontrada para este nível.
+                  <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2.5">
+                    Nenhuma grade ativa encontrada para esta etapa. Crie ou ative uma grade em Grades Formativas.
                   </p>
                 ) : (
-                  <Select value={selectedGradeId} onValueChange={(v) => v && setSelectedGradeId(v)} items={Object.fromEntries(gradesFiltradas.map((g) => [g.id, g.nome || g.planoNome]))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a grade..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {gradesFiltradas.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>
-                          <span>{g.nome || g.planoNome}</span>
-                          {g.totalFormacoes > 0 && (
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              · {g.totalFormacoes} formações
-                            </span>
-                          )}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-1.5">
+                    <Label>Grade formativa</Label>
+                    <Select value={selectedGradeId} onValueChange={(v) => v && setSelectedGradeId(v)} items={Object.fromEntries(gradesFiltradas.map((g) => [g.id, g.nome || g.planoNome]))}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione a grade..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {gradesFiltradas.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            <span>{g.nome || g.planoNome}</span>
+                            {g.totalFormacoes > 0 && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                · {g.totalFormacoes} formações
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               </div>
             );
