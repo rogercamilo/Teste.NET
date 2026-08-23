@@ -2081,6 +2081,22 @@ export default function GrupoFormacaoDetail({
 
         {/* TAB LEITURAS — livros indicados ao grupo (jornada de leitura do formando) */}
         <TabsContent value="leituras" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Leituras formativas da {termoGrupoFormacao.toLowerCase()}</p>
+              <p>
+                Monte e organize aqui as leituras (livros) que apoiam a formação da {termoGrupoFormacao.toLowerCase()} —
+                com capítulos, materiais de apoio e perguntas de reflexão.
+              </p>
+              <p>
+                Os {termoFormando.toLowerCase()}s acompanham essas leituras pelo portal, capítulo a capítulo: dá um
+                roteiro comum de estudo, enriquece a caminhada e permite acompanhar o progresso da leitura. Os
+                formadores organizam a lista; os {termoFormando.toLowerCase()}s leem e registram o avanço no portal.
+              </p>
+            </div>
+          </div>
+
           <LeiturasManager
             apiBase={`/api/grupos-formacao/${id}/leituras`}
             leituras={initialLeituras}
