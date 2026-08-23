@@ -287,7 +287,7 @@ export default function GrupoFormacaoDetail({
       a.nivelFormativo === grupoFormacao.nivelFormativo
     );
   });
-  // Concluídas — para a taxa de adesão e o card "Realizadas" (eventos que já ocorreram).
+  // Concluídas — para a taxa de presença e o card "Realizadas" (eventos que já ocorreram).
   const realizadas = agendamentosDaMorada.filter(
     (a) => a.status === "realizada" || a.status === "confirmada"
   );
@@ -334,12 +334,12 @@ export default function GrupoFormacaoDetail({
   };
 
   // ── Sinais de saúde do topo (Fase 1) ──
-  // Adesão média 90d: média das taxas de presença dos membros ativos com registro.
-  const adesaoTaxas = jornadaAtivos
+  // Presença média 90d: média das taxas de presença dos membros ativos com registro.
+  const presencaTaxas = jornadaAtivos
     .map((f) => taxaPresenca90d(presencas, f.id))
     .filter((t): t is number => t !== null);
-  const adesaoMedia = adesaoTaxas.length
-    ? Math.round(adesaoTaxas.reduce((s, t) => s + t, 0) / adesaoTaxas.length)
+  const presencaMedia = presencaTaxas.length
+    ? Math.round(presencaTaxas.reduce((s, t) => s + t, 0) / presencaTaxas.length)
     : null;
   // Prontos para avançar: cumpriram os requisitos da etapa atual (maior pct primeiro).
   const prontosParaAvancar = jornada.membros
@@ -820,9 +820,9 @@ export default function GrupoFormacaoDetail({
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow h-full">
             <CardContent className="p-4">
               <p className="text-2xl font-bold text-foreground">
-                {adesaoMedia === null ? "—" : `${adesaoMedia}%`}
+                {presencaMedia === null ? "—" : `${presencaMedia}%`}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Adesão (90 dias)</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Presença (90 dias)</p>
             </CardContent>
           </Card>
         </button>
@@ -1330,7 +1330,7 @@ export default function GrupoFormacaoDetail({
           {formandosDaMorada.length > 0 && realizadas.length > 0 && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Adesão por {termoFormando}</CardTitle>
+                <CardTitle className="text-sm font-semibold">Presença por {termoFormando}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
