@@ -853,6 +853,12 @@ model PresencaFormacao {
   formandoNome          String
   nivelFormativo        String // NivelFormativo
   presente              Boolean  @default(false)
+  // Estado registrado PELO FORMADOR: "presente" | "ausente" | "justificado".
+  // null = o formador ainda não fez a chamada (distinto de "ausente"). Uma linha
+  // pode existir só por RSVP do formando (confirmacaoFormando) sem o FC ter
+  // marcado — nesse caso statusFormador continua null. `presente` é mantido em
+  // sincronia (presente = statusFormador === "presente") para compatibilidade.
+  statusFormador        String?
   justificativa         String?
   // Campos do Portal do Formando — fonte de verdade continua sendo o formador
   confirmacaoFormando   Boolean? // null=sem resposta, true=confirmou presença, false=avisou ausência
