@@ -322,7 +322,7 @@ function AcompanhamentoPresencaCard({ stats, termos, presencaHref }: { stats: Da
                       />
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0 w-16 text-right">
-                      {f.taxa === -1 ? "—" : `${f.sessoesCom}/${f.totalSessoes} sessões`}
+                      {f.taxa === -1 ? "—" : `${f.sessoesCom}/${f.totalSessoes} encontros`}
                     </span>
                   </div>
                 </div>

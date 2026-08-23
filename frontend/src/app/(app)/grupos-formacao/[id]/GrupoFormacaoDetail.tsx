@@ -1597,7 +1597,7 @@ export default function GrupoFormacaoDetail({
                 <Card className="border-0 shadow-sm">
                   <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                     <LayoutGrid className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                    <p className="text-sm font-medium text-muted-foreground">Nenhuma sessão realizada ainda</p>
+                    <p className="text-sm font-medium text-muted-foreground">Nenhum encontro realizado ainda</p>
                     <p className="text-xs text-muted-foreground mt-1">O diário aparece quando houver formações realizadas com presença registrada.</p>
                   </CardContent>
                 </Card>
