@@ -1811,6 +1811,30 @@ export default function GrupoFormacaoDetail({
 
         {/* TAB COMENTÁRIOS */}
         <TabsContent value="comentarios" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Diário de acompanhamento da {termoGrupoFormacao.toLowerCase()}</p>
+              <p>
+                Registre aqui a caminhada formativa de cada {termoFormando.toLowerCase()}. O histórico fica preservado
+                e vira memória viva da {termoGrupoFormacao.toLowerCase()}: alimenta os relatórios de etapa, embasa as
+                decisões de avanço e garante continuidade quando outro formador assumir. Anote logo após os encontros —
+                não dependa da memória.
+              </p>
+              <p>
+                Use os tipos para organizar: <span className="font-medium text-foreground">Progresso</span> (avanços e
+                frutos), <span className="font-medium text-foreground">Dificuldade</span> (pontos de atenção a
+                acompanhar), <span className="font-medium text-foreground">Adesão</span> (participação e compromisso com
+                o carisma) e <span className="font-medium text-foreground">Observação</span> (registros gerais).
+              </p>
+              <p>
+                Registre o que é <span className="font-medium text-foreground">observável na vida comunitária</span>{" "}
+                (participação, serviço, vivência do carisma). Não transcreva conteúdo de foro íntimo nem de
+                direção/acompanhamento espiritual — esse sigilo não é coletado pela plataforma.
+              </p>
+            </div>
+          </div>
+
           <div className="flex justify-end">
             <Button size="sm" onClick={() => setComentarioOpen(true)} className="gap-1.5">
               <MessageSquare className="h-4 w-4" />
