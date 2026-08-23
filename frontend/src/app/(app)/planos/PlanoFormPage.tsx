@@ -246,8 +246,13 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
         retiros: form.retiros,
       };
 
-      // Envia o documento pendente do plano (se houver) e remove o antigo
-      // substituído/limpo. Retorna o par {nome,id} final a persistir.
+      // Arquivos antigos a remover — só executamos DEPOIS que o PUT persistir a
+      // nova referência (e nunca um id ainda em uso). Assim uma falha no meio do
+      // salvamento nunca deixa o plano sem o arquivo que "já estava anexado".
+      const arquivosParaRemover: string[] = [];
+
+      // Envia o documento pendente do plano (se houver) e agenda a remoção do
+      // antigo substituído/limpo. Retorna o par {nome,id} final a persistir.
       const resolveDocumento = async (planoId: string): Promise<{ nome?: string; id?: string }> => {
         const originalId = initialPlano?.documentoAnexoId;
         if (documentoFile) {
@@ -258,18 +263,18 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
           const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
           if (!uploadRes.ok) throw new Error(`Erro ao enviar documento: ${await uploadRes.text()}`);
           const uploaded = await uploadRes.json() as { id: string; nome: string };
-          if (originalId) fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          if (originalId) arquivosParaRemover.push(originalId);
           return { nome: uploaded.nome, id: uploaded.id };
         }
         if (!form.documentoNome && originalId) {
-          fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          arquivosParaRemover.push(originalId);
           return { nome: undefined, id: undefined };
         }
         return { nome: form.documentoNome || undefined, id: form.documentoId || undefined };
       };
 
       // Sobe um arquivo pendente (entityType "plano" é genérico — o vínculo real
-      // é a FK no retiro), remove o antigo substituído/limpo e devolve {nome,id}.
+      // é a FK no retiro), agenda a remoção do antigo e devolve {nome,id}.
       const resolveArquivo = async (
         planoId: string,
         pending: File | null,
@@ -285,11 +290,11 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
           const uploadRes = await fetch("/api/arquivos", { method: "POST", body: fd });
           if (!uploadRes.ok) throw new Error(`Erro ao enviar material do retiro: ${await uploadRes.text()}`);
           const uploaded = await uploadRes.json() as { id: string; nome: string };
-          if (originalId) fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          if (originalId) arquivosParaRemover.push(originalId);
           return { nome: uploaded.nome, id: uploaded.id };
         }
         if (!currentNome && originalId) {
-          fetch(`/api/arquivos/${originalId}`, { method: "DELETE" }).catch(() => null);
+          arquivosParaRemover.push(originalId);
           return { nome: undefined, id: undefined };
         }
         return { nome: currentNome || undefined, id: currentId || undefined };
@@ -324,12 +329,12 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
       const documento = await resolveDocumento(planoId);
       const resolvedRetiros = await resolveRetiros(planoId);
 
-      // 3) Retiros removidos que tinham material → apaga os arquivos órfãos no R2.
+      // 3) Retiros removidos que tinham material → agenda remoção dos órfãos.
       const currentIds = new Set(form.retiros.map((r) => r.id));
       (initialPlano?.retiros ?? []).forEach((o) => {
         if (currentIds.has(o.id)) return;
         [o.materialAnexoId, o.materialFormandoAnexoId].forEach((aid) => {
-          if (aid) fetch(`/api/arquivos/${aid}`, { method: "DELETE" }).catch(() => null);
+          if (aid) arquivosParaRemover.push(aid);
         });
       });
 
@@ -352,6 +357,19 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
           throw new Error(err.error || (isEditing ? "Erro ao atualizar plano" : "Erro ao salvar anexos do plano"));
         }
       }
+
+      // 5) SÓ agora (PUT confirmado) apaga os arquivos superados — e nunca um id
+      // que ainda esteja referenciado no estado final (guarda contra apagar por
+      // engano o arquivo que continua em uso).
+      const referenciados = new Set<string>();
+      if (documento.id) referenciados.add(documento.id);
+      resolvedRetiros.forEach((r) => {
+        if (r.materialAnexoId) referenciados.add(r.materialAnexoId);
+        if (r.materialFormandoAnexoId) referenciados.add(r.materialFormandoAnexoId);
+      });
+      [...new Set(arquivosParaRemover)].forEach((aid) => {
+        if (!referenciados.has(aid)) fetch(`/api/arquivos/${aid}`, { method: "DELETE" }).catch(() => null);
+      });
 
       toast.success(isEditing ? "Plano atualizado com sucesso!" : "Plano criado com sucesso!");
       router.push(isEditing ? `/planos/${planoId}` : "/planos");
