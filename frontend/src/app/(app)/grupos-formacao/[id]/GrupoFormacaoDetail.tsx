@@ -973,6 +973,23 @@ export default function GrupoFormacaoDetail({
 
         {/* TAB RESUMO */}
         <TabsContent value="resumo" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Visão geral da {termoGrupoFormacao.toLowerCase()}</p>
+              <p>
+                Ponto de partida do acompanhamento: num relance, reúne os sinais de saúde (ativos, progresso da etapa,
+                presença e quem precisa de atenção), quem já pode avançar, o formador responsável, o período/etapa, o
+                plano e a grade em vigor e os próximos encontros.
+              </p>
+              <p>
+                Serve ao formador comunitário para ter o controle geral da {termoGrupoFormacao.toLowerCase()} e decidir
+                o próximo passo; formador geral e administrador usam para acompanhar. Os detalhes de cada tema ficam nas
+                abas específicas.
+              </p>
+            </div>
+          </div>
+
           {/* Precisam de atenção — atrasados no ritmo e/ou presença baixa (item 3.3). */}
           {jornada.atencao.length > 0 && (
             <Card className="border-0 shadow-sm border-l-2 border-l-amber-400">
