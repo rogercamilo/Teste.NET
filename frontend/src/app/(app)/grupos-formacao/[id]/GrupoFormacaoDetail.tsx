@@ -1920,6 +1920,28 @@ export default function GrupoFormacaoDetail({
 
         {/* TAB RELATÓRIOS */}
         <TabsContent value="relatorios" className="mt-4 space-y-3">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Parecer de etapa formativa</p>
+              <p>
+                Ao fim de cada etapa, registre aqui o parecer de cada {termoFormando.toLowerCase()}: a avaliação por
+                perspectiva (humana, espiritual e comunitária) e a recomendação (avançar, repetir a etapa, licença ou
+                desligamento).
+              </p>
+              <p>
+                É o documento que <span className="font-medium text-foreground">embasa a decisão de avanço de etapa</span>,
+                dá continuidade quando outro formador assume e compõe o registro da caminhada. O formador comunitário
+                elabora os pareceres da sua {termoGrupoFormacao.toLowerCase()}; formador geral e administrador acompanham.
+              </p>
+              <p>
+                Baseie-se no que é <span className="font-medium text-foreground">observável na vida comunitária</span>;
+                não registre foro íntimo nem direção/acompanhamento espiritual — esse sigilo não é coletado pela
+                plataforma.
+              </p>
+            </div>
+          </div>
+
           {formandosDaMorada.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
