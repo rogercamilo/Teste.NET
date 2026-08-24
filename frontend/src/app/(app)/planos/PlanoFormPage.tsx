@@ -818,27 +818,25 @@ function RetiroCard({
         </div>
       </div>
 
-      {/* Materiais de direcionamento — só para retiros comunitários */}
-      {retiro.tipo === "comunitario" && (
-        <div className="space-y-2 pt-1">
-          <RetiroMaterialField
-            label="Material de direcionamento para retiro comunitário"
-            hint="Uso do formador — fica disponível na grade. Não é exibido ao formando."
-            nome={retiro.materialAnexo}
-            pending={pendingMaterial}
-            onSelect={onSelectMaterial}
-            onRemove={onRemoveMaterial}
-          />
-          <RetiroMaterialField
-            label="Material de direcionamento para o formando"
-            hint="Fica no portal do formando quando um formador liberar (por grupo). Antes disso, só o formador vê."
-            nome={retiro.materialFormandoAnexo}
-            pending={pendingFormandoMaterial}
-            onSelect={onSelectFormandoMaterial}
-            onRemove={onRemoveFormandoMaterial}
-          />
-        </div>
-      )}
+      {/* Materiais de direcionamento — comunitários e pessoais */}
+      <div className="space-y-2 pt-1">
+        <RetiroMaterialField
+          label={`Material de direcionamento para retiro ${retiro.tipo === "comunitario" ? "comunitário" : "pessoal"}`}
+          hint="Uso do formador — fica disponível na grade. Não é exibido ao formando."
+          nome={retiro.materialAnexo}
+          pending={pendingMaterial}
+          onSelect={onSelectMaterial}
+          onRemove={onRemoveMaterial}
+        />
+        <RetiroMaterialField
+          label="Material de direcionamento para o formando"
+          hint="Fica no portal do formando quando um formador liberar (por grupo). Antes disso, só o formador vê."
+          nome={retiro.materialFormandoAnexo}
+          pending={pendingFormandoMaterial}
+          onSelect={onSelectFormandoMaterial}
+          onRemove={onRemoveFormandoMaterial}
+        />
+      </div>
     </div>
   );
 }

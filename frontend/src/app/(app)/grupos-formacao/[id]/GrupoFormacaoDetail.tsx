@@ -1205,7 +1205,7 @@ export default function GrupoFormacaoDetail({
 
           {(() => {
             const retirosComMaterial = (plano?.retiros ?? []).filter(
-              (r) => r.tipo === "comunitario" && r.materialFormandoAnexo && r.materialFormandoAnexoId
+              (r) => r.materialFormandoAnexo && r.materialFormandoAnexoId
             );
             if (retirosComMaterial.length === 0) return null;
             return (
@@ -1227,7 +1227,7 @@ export default function GrupoFormacaoDetail({
                           <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-medium text-foreground truncate">
-                              {r.numero}º Retiro{r.tema ? ` — ${r.tema}` : ""}
+                              {r.numero}º Retiro {r.tipo === "comunitario" ? "Comunitário" : "Pessoal"}{r.tema ? ` — ${r.tema}` : ""}
                             </p>
                             <p className="text-[11px] text-muted-foreground">
                               {liberado ? "Liberado para os formandos" : "Ainda não liberado (só o formador vê)"}

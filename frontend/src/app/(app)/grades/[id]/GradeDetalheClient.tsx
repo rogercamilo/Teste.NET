@@ -314,14 +314,14 @@ export default function GradeDetalheClient({
           </div>
         )}
 
-        {plano?.retiros?.some((r) => r.tipo === "comunitario" && r.materialAnexo && r.materialAnexoId) && (
+        {plano?.retiros?.some((r) => r.materialAnexo && r.materialAnexoId) && (
           <div className="space-y-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Materiais de direcionamento — Retiros Comunitários
+              Materiais de direcionamento — Retiros
             </p>
             <div className="space-y-2">
               {plano.retiros
-                .filter((r) => r.tipo === "comunitario" && r.materialAnexo && r.materialAnexoId)
+                .filter((r) => r.materialAnexo && r.materialAnexoId)
                 .sort((a, b) => a.numero - b.numero)
                 .map((r) => (
                   <div
@@ -331,7 +331,7 @@ export default function GradeDetalheClient({
                     <div className="flex items-center gap-2 min-w-0">
                       <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       <span className="text-xs text-foreground truncate">
-                        {r.numero}º Retiro{r.tema ? ` — ${r.tema}` : ""}
+                        {r.numero}º Retiro {r.tipo === "comunitario" ? "Comunitário" : "Pessoal"}{r.tema ? ` — ${r.tema}` : ""}
                       </span>
                     </div>
                     <Button

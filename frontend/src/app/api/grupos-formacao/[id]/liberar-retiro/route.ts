@@ -10,7 +10,7 @@ import { temPermissao } from "@/types";
 type Params = { params: Promise<{ id: string }> };
 
 /**
- * Libera/recolhe o MATERIAL DO FORMANDO de um retiro comunitário PARA UM GRUPO.
+ * Libera/recolhe o MATERIAL DO FORMANDO de um retiro (comunitário ou pessoal) PARA UM GRUPO.
  * A existência de RetiroMaterialLiberacao(retiro, grupo) = liberado. O escopo é
  * por grupo (a grade é compartilhada por vários grupos); por isso a chave é o
  * grupo, não o plano. Autoriza: gestão (FG/FP/admin) OU o FC responsável pelo

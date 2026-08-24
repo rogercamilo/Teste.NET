@@ -839,22 +839,22 @@ export async function getPortalDashboardData(
   );
 
   // Materiais de direcionamento de retiro LIBERADOS para o grupo do formando.
-  // A liberação (RetiroMaterialLiberacao) já escopa por grupo; aqui só trazemos
-  // os retiros comunitários com material do formando anexado. O download é
-  // servido por rota própria que reautoriza pela ponte (nunca pelo id do arquivo).
+  // A liberação (RetiroMaterialLiberacao) já escopa por grupo; aqui trazemos os
+  // retiros (comunitários e pessoais) com material do formando anexado. O download
+  // é servido por rota própria que reautoriza pela ponte (nunca pelo id do arquivo).
   const retirosMateriaisRaw = formando.grupoFormacaoId
     ? await prisma.retiroMaterialLiberacao.findMany({
         where: { grupoFormacaoId: formando.grupoFormacaoId, organizacaoId },
         select: {
           retiroPlanoId: true,
           retiroPlano: {
-            select: { numero: true, tema: true, tipo: true, materialFormandoAnexo: true, materialFormandoAnexoId: true },
+            select: { numero: true, tema: true, materialFormandoAnexo: true, materialFormandoAnexoId: true },
           },
         },
       })
     : [];
   const retirosMateriais = retirosMateriaisRaw
-    .filter((l) => l.retiroPlano.tipo === "comunitario" && l.retiroPlano.materialFormandoAnexoId)
+    .filter((l) => l.retiroPlano.materialFormandoAnexoId)
     .map((l) => ({
       retiroPlanoId: l.retiroPlanoId,
       numero: l.retiroPlano.numero,

@@ -298,6 +298,8 @@ export default function PlanoDetalheClient({
                   <Th className="w-[30%]">Objetivo</Th>
                   <Th>Quando Realizar</Th>
                   <Th className="text-center">CH</Th>
+                  <Th className="text-center">Mat. formador</Th>
+                  <Th className="text-center">Mat. formando</Th>
                 </tr>
               </thead>
               <tbody>
@@ -312,6 +314,12 @@ export default function PlanoDetalheClient({
                     <Td className="leading-relaxed text-muted-foreground">{retiro.objetivo || "—"}</Td>
                     <Td>{retiro.quandoRealizar || "—"}</Td>
                     <Td className="text-center font-medium">{retiro.cargaHoraria > 0 ? `${retiro.cargaHoraria}h` : "—"}</Td>
+                    <Td className="text-center whitespace-nowrap">
+                      <MaterialLink nome={retiro.materialAnexo} arquivoId={retiro.materialAnexoId} origem={`/planos/${id}`} router={router} />
+                    </Td>
+                    <Td className="text-center whitespace-nowrap">
+                      <MaterialLink nome={retiro.materialFormandoAnexo} arquivoId={retiro.materialFormandoAnexoId} origem={`/planos/${id}`} router={router} />
+                    </Td>
                   </tr>
                 ))}
               </tbody>

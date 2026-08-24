@@ -7,7 +7,7 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 type Params = { params: Promise<{ retiroPlanoId: string }> };
 
 /**
- * Serve o MATERIAL DO FORMANDO de um retiro comunitário para o formando do
+ * Serve o MATERIAL DO FORMANDO de um retiro (comunitário ou pessoal) para o formando do
  * portal. Autorização pela PONTE de dados (nunca pelo id do arquivo, anti-IDOR):
  * só serve se existir RetiroMaterialLiberacao(retiro, grupoDoFormando) — ou seja,
  * um formador liberou o material para o grupo deste formando. O arquivo é buscado
