@@ -37,6 +37,7 @@ import {
   Calendar,
   Eye,
   FileText,
+  Info,
   MoreHorizontal,
   Paperclip,
   Pencil,
@@ -127,6 +128,24 @@ export default function PlanosClient({ role, grupoFormacaoId, initialPlanos, ini
             Novo Plano
           </Button>
         )}
+      </div>
+
+      {/* Nota: objetivo e ganho da estrutura para o formador */}
+      <div className="flex gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            Por que estruturar o plano formativo?
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            O plano formativo reúne toda a caminhada de uma etapa num só lugar —
+            encontros semanais, retiros comunitários e retiros pessoais. Para o
+            formador, isso significa clareza sobre o que trabalhar e quando,
+            continuidade quando muda quem conduz a formação (o plano não se perde na
+            troca de formadores) e materiais de direcionamento sempre à mão. Menos
+            improviso, mais intencionalidade na formação da comunidade.
+          </p>
+        </div>
       </div>
 
       {/* Status Summary */}
