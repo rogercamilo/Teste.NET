@@ -22,6 +22,7 @@ import {
   Clock,
   Eye,
   GitBranch,
+  Info,
   Layers,
   Paperclip,
   Pencil,
@@ -161,6 +162,24 @@ export default function GradeDetalheClient({
         Voltar
       </Button>
 
+      {/* ── Nota: objetivo e ganho da grade para o formador ─────────────── */}
+      <div className="flex gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            O que você encontra nesta grade?
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Esta tela detalha o plano formativo em formações concretas — a sequência de
+            encontros que dá vida à etapa, organizada por eixo. Para o formador, é o
+            roteiro operacional da caminhada: cada formação já traz tema, objetivo e
+            observações, os materiais de direcionamento ficam à mão e a versão/revisão
+            garante que o conteúdo evolua sem se perder. Clique em qualquer formação
+            para abrir o conteúdo completo.
+          </p>
+        </div>
+      </div>
+
       <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6 space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -264,6 +283,11 @@ export default function GradeDetalheClient({
         {grade.eixos.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Eixos Pedagógicos</p>
+            <p className="text-xs text-muted-foreground/90 leading-relaxed">
+              Herdados do plano formativo, os eixos organizam as formações por área.
+              Servem de mapa: o formador enxerga de relance como o conteúdo se
+              distribui e garante que nenhuma dimensão da formação fique de fora.
+            </p>
             <div className="flex flex-wrap gap-2">
               {grade.eixos.map((eixo, idx) => (
                 <div
@@ -300,6 +324,12 @@ export default function GradeDetalheClient({
 
         {linkedFormacoes.length > 0 && (
           <div className="space-y-4">
+            <p className="text-xs text-muted-foreground/90 leading-relaxed">
+              As formações são a espinha do caminho: a sequência de encontros que
+              estrutura a etapa. As comunitárias formam a coluna central; retiros e
+              atividades entram como auxiliares. Numeradas e ligadas ao seu conteúdo,
+              dão ao formador um roteiro pronto do que conduzir a cada encontro.
+            </p>
             {/* Espinha do caminho (regra 4): formações comunitárias = coluna central */}
             {renderTabelaFormacoes(
               "Espinha do caminho — Formações Comunitárias",

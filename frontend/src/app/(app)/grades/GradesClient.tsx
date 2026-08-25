@@ -36,6 +36,7 @@ import {
   Eye,
   FileText,
   GitBranch,
+  Info,
   Layers,
   MoreHorizontal,
   Paperclip,
@@ -115,6 +116,25 @@ export default function GradesClient({ role, grupoFormacaoId, initialGrades, ini
             Nova Grade
           </Button>
         )}
+      </div>
+
+      {/* Nota: objetivo e ganho da grade para o formador */}
+      <div className="flex gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            Por que detalhar a grade formativa?
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            A grade traduz o plano formativo em formações concretas — cada encontro
+            com tema, objetivo, carga horária e observações para quem conduz. Enquanto
+            o plano diz o que trabalhar e quando, a grade entrega o roteiro pronto para
+            executar. Para o formador, isso significa chegar ao encontro com o conteúdo
+            já preparado, versão e revisão registradas (nada se perde entre edições) e
+            as formações alimentando diretamente a agenda e o diário. Menos preparação
+            repetida, mais continuidade na caminhada da comunidade.
+          </p>
+        </div>
       </div>
 
       {/* Summary */}

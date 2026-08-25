@@ -30,6 +30,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronRight,
+  Info,
   Loader2,
   Paperclip,
   Plus,
@@ -456,6 +457,24 @@ export default function GradeFormPage({
         Voltar
       </Button>
 
+      {/* ── Nota: objetivo e ganho da grade para o formador ─────────────── */}
+      <div className="flex gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            Por que montar a grade formativa?
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            A grade traduz um plano formativo em formações concretas — os encontros que
+            serão de fato conduzidos na etapa. Você parte dos eixos já definidos no
+            plano e, dentro de cada um, cadastra as formações com tema, objetivo, carga
+            horária e observações. O ganho para o formador: um roteiro operacional
+            pronto, que evita improviso, alimenta a agenda e o diário, e preserva o
+            trabalho entre versões (o que foi construído não se perde na próxima edição).
+          </p>
+        </div>
+      </div>
+
       {/* ── Dados da grade ── */}
       <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6">
         <h1 className="text-xl font-semibold text-foreground mb-6">
@@ -632,6 +651,12 @@ export default function GradeFormPage({
               {totalFormacoesCadastradas} formação
               {totalFormacoesCadastradas !== 1 ? "ões" : ""} cadastrada
               {totalFormacoesCadastradas !== 1 ? "s" : ""}
+            </p>
+            <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
+              Cadastre aqui os encontros de cada eixo — esta é a sequência que o
+              formador vai conduzir na etapa. Quanto mais completos o tema, o objetivo
+              e as observações, mais pronto o encontro chega na hora de aplicar. Os
+              eixos vêm do plano; aqui você só distribui as formações dentro deles.
             </p>
           </div>
 
