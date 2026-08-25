@@ -446,7 +446,7 @@ export default function GradeFormPage({
   const planoTemEixos = grupos.some((g) => g.eixoPlano !== null);
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="space-y-5">
       <Button
         variant="ghost"
         size="sm"
