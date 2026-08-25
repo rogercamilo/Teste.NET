@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, BellOff, CheckCircle2, Loader2 } from "lucide-react";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { PushUnsupportedNotice } from "@/components/PushUnsupportedNotice";
+import { isStandaloneDisplay, notificacoesBloqueadasHint } from "@/lib/push-environment";
 
 /**
  * Ativação/desativação de Web Push a partir do próprio portal do formando/
@@ -18,8 +19,14 @@ export function PortalNotificacoesCard() {
   const { isSupported, environment, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
     usePushSubscription("/api/portal/push");
 
-  // Evita divergência de hidratação: Notification.permission só existe no cliente.
-  useEffect(() => setMounted(true), []);
+  const [standalone, setStandalone] = useState(false);
+
+  // Evita divergência de hidratação: Notification.permission e display-mode só
+  // existem no cliente.
+  useEffect(() => {
+    setMounted(true);
+    setStandalone(isStandaloneDisplay());
+  }, []);
   if (!mounted) return null;
 
   return (
@@ -36,8 +43,7 @@ export function PortalNotificacoesCard() {
         ) : permission === "denied" ? (
           <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
             <BellOff className="h-4 w-4 shrink-0" />
-            Notificações bloqueadas neste navegador. Para ativar, desbloqueie nas
-            configurações do site (ícone de cadeado na barra de endereço).
+            {notificacoesBloqueadasHint(standalone)}
           </div>
         ) : isSubscribed ? (
           <div className="space-y-3">

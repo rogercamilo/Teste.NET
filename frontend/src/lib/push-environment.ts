@@ -55,3 +55,32 @@ export function detectPushEnvironment(): PushEnvironment {
   if (isInApp) return "in-app-browser";
   return "unsupported";
 }
+
+/**
+ * `true` quando a página roda como app instalado (PWA em modo standalone, sem
+ * barra de endereço) — inclui o `navigator.standalone` legado do iOS. Usado para
+ * orientar o desbloqueio de notificações pelo caminho certo: no app instalado
+ * não existe "cadeado na barra de endereço"; o ajuste fica nas configurações do
+ * sistema. Deve ser chamado no cliente (após montar).
+ */
+export function isStandaloneDisplay(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return false;
+  }
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches === true ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
+/**
+ * Texto de orientação para quando a permissão de notificações está `"denied"`.
+ * Cobre os dois contextos: navegador (desbloqueio pelo cadeado da barra de
+ * endereço) e app instalado / PWA standalone (desbloqueio pelas configurações do
+ * sistema, onde não há barra de endereço).
+ */
+export function notificacoesBloqueadasHint(standalone: boolean): string {
+  return standalone
+    ? "Notificações bloqueadas para este app. Para ativar, abra as configurações do seu celular → Apps → este app → Notificações e permita."
+    : "Notificações bloqueadas neste navegador. Para ativar, toque no ícone de cadeado ao lado do endereço → Permissões → Notificações e permita.";
+}

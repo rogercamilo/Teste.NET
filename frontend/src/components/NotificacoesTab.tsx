@@ -13,6 +13,7 @@ import { Bell, BellOff, BellRing, CheckCircle2, Copy, Loader2, Send, Smartphone,
 import { toast } from "sonner";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { PushUnsupportedNotice } from "@/components/PushUnsupportedNotice";
+import { isStandaloneDisplay, notificacoesBloqueadasHint } from "@/lib/push-environment";
 
 interface GrupoOption { id: string; nome: string; }
 
@@ -39,10 +40,14 @@ function useSubscriptionCount() {
 
 function MeuDispositivoCard() {
   const [mounted, setMounted] = useState(false);
+  const [standalone, setStandalone] = useState(false);
   const { isSupported, environment, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
     usePushSubscription();
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    setStandalone(isStandaloneDisplay());
+  }, []);
 
   if (!mounted) return null;
 
@@ -64,7 +69,7 @@ function MeuDispositivoCard() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300">
               <BellOff className="h-4 w-4 shrink-0" />
-              Notificações bloqueadas neste navegador. Para ativar, desbloqueie nas configurações do site (ícone de cadeado na barra de endereço).
+              {notificacoesBloqueadasHint(standalone)}
             </div>
           </div>
         ) : isSubscribed ? (
