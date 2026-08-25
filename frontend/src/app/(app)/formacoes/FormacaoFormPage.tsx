@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Paperclip, Upload, X } from "lucide-react";
+import { ArrowLeft, Info, Loader2, Paperclip, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 type FormState = {
@@ -301,6 +301,25 @@ export default function FormacaoFormPage({
         Voltar
       </Button>
 
+      {/* ── Nota: objetivo e ganho de cadastrar a formação ──────────────── */}
+      <div className="flex gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            Por que cadastrar a formação aqui?
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Cada formação é uma unidade de conteúdo — tema, objetivo, carga e modalidade
+            — que pode ser reutilizada em várias grades e agendada quantas vezes forem
+            necessárias. Ao vinculá-la a uma grade e etapa, ela assume sua posição no
+            caminho formativo; sem vínculo, torna-se uma formação pontual, ainda assim
+            registrada e auditável. O ganho para o formador: um acervo reaproveitável
+            que alimenta grades e agenda, com material próprio para quem ministra e para
+            o formando.
+          </p>
+        </div>
+      </div>
+
       <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6">
         <h1 className="text-xl font-semibold text-foreground mb-6">
           {isEditing ? "Editar Formação" : "Nova Formação"}
@@ -373,6 +392,12 @@ export default function FormacaoFormPage({
           {/* ── Vínculo com o caminho formativo (Plano → Grade → Eixo) ── */}
           <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vínculo com o caminho formativo</p>
+            <p className="text-xs text-muted-foreground/90 leading-relaxed">
+              Ligar a formação a uma grade e etapa define onde ela entra no caminho —
+              herda o plano, recebe número de ordem e passa a contar na sequência do
+              formando. Deixe sem grade para registrar uma formação pontual, fora do
+              caminho, mas ainda rastreável.
+            </p>
 
             <div className="grid gap-1.5">
               <Label>Grade formativa</Label>

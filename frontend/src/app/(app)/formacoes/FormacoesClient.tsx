@@ -61,6 +61,7 @@ import {
   FileText,
   Filter,
   GitBranch,
+  Info,
   Layers,
   LayoutGrid,
   List,
@@ -264,6 +265,25 @@ export default function FormacoesClient({
             Nova Formação
           </Button>
         )}
+      </div>
+
+      {/* Nota: objetivo e ganho da biblioteca de formações para o formador */}
+      <div className="flex gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            Para que serve a biblioteca de formações?
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Aqui ficam todas as formações — as unidades concretas de conteúdo (tema,
+            objetivo, carga e modalidade) que dão corpo às grades e são agendadas na
+            agenda. Cada formação carrega seu material para o formador (uso interno) e
+            para o formando (Portal), a posição no caminho formativo e o histórico de
+            realizações. Para o formador, isso significa reaproveitar conteúdo já
+            pronto, saber exatamente o que ministrar em cada encontro e ter o rastro do
+            que já foi realizado — sem recriar formação a cada ciclo.
+          </p>
+        </div>
       </div>
 
       {!isFormadorComunitario && (
