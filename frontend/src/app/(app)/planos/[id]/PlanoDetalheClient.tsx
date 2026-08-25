@@ -64,7 +64,7 @@ export default function PlanoDetalheClient({
   }
 
   return (
-    <div className="max-w-4xl space-y-5">
+    <div className="space-y-5">
       <Button
         variant="ghost"
         size="sm"

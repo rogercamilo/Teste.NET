@@ -385,7 +385,7 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
   const retirosPessoais = form.retiros.filter((r) => r.tipo === "pessoal");
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="space-y-5">
       <Button
         variant="ghost"
         size="sm"
