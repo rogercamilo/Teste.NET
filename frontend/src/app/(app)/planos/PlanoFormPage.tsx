@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Paperclip, Plus, Upload, X } from "lucide-react";
+import { ArrowLeft, Info, Loader2, Paperclip, Plus, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 type FormState = {
@@ -460,12 +460,35 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
         </div>
       </div>
 
+      {/* ── Nota: objetivo e ganho da estrutura para o formador ─────────── */}
+      <div className="flex gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            Por que estruturar o plano formativo?
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Esta tela reúne toda a caminhada de uma etapa num só lugar — encontros
+            semanais, retiros comunitários e retiros pessoais. Para o formador, isso
+            significa clareza sobre o que trabalhar e quando, continuidade quando muda
+            quem conduz a formação (o plano não se perde na troca de formadores) e
+            materiais de direcionamento sempre à mão. Menos improviso, mais
+            intencionalidade na formação da comunidade.
+          </p>
+        </div>
+      </div>
+
       {/* ── Seção 1: Encontros Semanais (Eixos Formativos) ──────────────── */}
       <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-foreground">Encontros Semanais</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Direcionamentos para encontros
+          </p>
+          <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
+            Define os eixos e a progressão dos encontros ao longo da etapa. O ganho
+            para o formador: um roteiro claro de temas e carga horária, que evita
+            lacunas ou repetições e garante que cada área da formação seja contemplada.
           </p>
         </div>
 
@@ -581,6 +604,11 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
           <p className="text-xs text-muted-foreground mt-0.5">
             Direcionamentos para retiros comunitários
           </p>
+          <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
+            Momentos-marco vividos em comunidade. Reunidos aqui com tema, base bíblica,
+            objetivo e material de direcionamento, o formador conduz cada retiro com
+            preparo — sem reconstruir tudo a cada edição.
+          </p>
         </div>
 
         {retirosComunitarios.length === 0 ? (
@@ -632,6 +660,11 @@ export default function PlanoFormPage({ id, initialPlano }: PlanoFormPageProps) 
           <h2 className="text-base font-semibold text-foreground">Retiros Pessoais</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Direcionamentos para retiros pessoais
+          </p>
+          <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
+            Retiros feitos individualmente pelo formando. O plano registra o
+            direcionamento e o material previstos, dando ao formador uma base para
+            orientar e acompanhar essa vivência mais reservada.
           </p>
         </div>
 
