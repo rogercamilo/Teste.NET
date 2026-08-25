@@ -288,15 +288,21 @@ export default function GradeDetalheClient({
               Servem de mapa: o formador enxerga de relance como o conteúdo se
               distribui e garante que nenhuma dimensão da formação fique de fora.
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {grade.eixos.map((eixo, idx) => (
                 <div
                   key={eixo.id}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${EIXO_COLORS[idx % EIXO_COLORS.length]}`}
+                  className={`flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 px-3 py-2 rounded-lg text-xs font-medium ${EIXO_COLORS[idx % EIXO_COLORS.length]}`}
                 >
-                  <div className="h-1.5 w-1.5 rounded-full" style={{ background: eixo.cor ?? "#3B82F6" }} />
-                  {eixo.nome}
-                  {eixo.descricao && <span className="opacity-70">— {eixo.descricao}</span>}
+                  <div className="flex items-start gap-1.5 sm:w-56 sm:shrink-0">
+                    <div className="h-1.5 w-1.5 rounded-full shrink-0 mt-1" style={{ background: eixo.cor ?? "#3B82F6" }} />
+                    <span className="break-words">{eixo.nome}</span>
+                  </div>
+                  {eixo.descricao && (
+                    <span className="opacity-70 font-normal leading-relaxed sm:flex-1 sm:min-w-0">
+                      {eixo.descricao}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
