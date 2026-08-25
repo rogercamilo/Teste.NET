@@ -120,7 +120,7 @@ export default function FormacaoDetalheClient({
   }
 
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="space-y-5">
       <Button
         variant="ghost"
         size="sm"
