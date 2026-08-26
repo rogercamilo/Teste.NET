@@ -182,7 +182,7 @@ export default function FormandosClient({
   const isFC = role === "formador_comunitario";
 
   const etapaLabels = useEtapaLabels();
-  const { formando: termoFormando, grupoFormacao: termoGrupoFormacao } = useTermos();
+  const { formando: termoFormando, grupoFormacao: termoGrupoFormacao, formador: termoFormador } = useTermos();
 
   const [search, setSearch] = useState(query);
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -397,7 +397,7 @@ export default function FormandosClient({
             Busque, filtre por etapa e alterne entre cartões e lista para encontrar quem procura.
           </p>
           <p>
-            Para o formador comunitário, é o ponto de entrada do acompanhamento individual: cada cartão mostra etapa,
+            Para o {termoFormador.toLowerCase()}, é o ponto de entrada do acompanhamento individual: cada cartão mostra etapa,
             progresso e sinais de atenção (cadastro pendente, {termoGrupoFormacao.toLowerCase()} sem grade vinculada).
             Clique no nome para abrir a ficha completa — jornada, presença, pareceres e comentários da pessoa.
           </p>

@@ -919,7 +919,7 @@ export default function FormandoDetailClient({
             etapa quando os requisitos são cumpridos.
           </p>
           <p>
-            Para o formador comunitário, é onde o acompanhamento individual acontece: registrar pareceres e comentários,
+            Para o {termoFormador.toLowerCase()}, é onde o acompanhamento individual acontece: registrar pareceres e comentários,
             marcar presença, avançar etapa e agir cedo sobre quem precisa de atenção. Baseie os registros no que é{" "}
             <span className="font-medium text-foreground">observável na vida comunitária</span> — foro íntimo e direção
             espiritual não são coletados pela plataforma.
