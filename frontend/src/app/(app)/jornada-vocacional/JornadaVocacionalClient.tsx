@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Filter, FolderOpen, RefreshCw, ScrollText, Search } from "lucide-react";
+import { Filter, FolderOpen, Info, RefreshCw, ScrollText, Search } from "lucide-react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -89,6 +89,26 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
           <RefreshCw className="h-4 w-4" />
           Atualizar
         </button>
+      </div>
+
+      {/* Nota: o que é a seção e onde os processos nascem */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">A Jornada Vocacional</p>
+          <p>
+            Acompanha os processos eclesiásticos canônicos dos membros (admissões, renovações e demais ritos): é aqui
+            que os documentos oficiais de cada etapa são <span className="font-medium">gerados</span>, revisados pelo
+            Formador Geral e <span className="font-medium">validados</span> — é a geração canônica dos documentos (a
+            Auditoria Documental apenas os consulta). Abra um processo para preencher o formulário, gerar os documentos
+            e conduzir a tramitação até a conclusão, com o assento no Livro de Promessas quando houver.
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Onde os processos nascem:</span> cada processo é iniciado na
+            ficha do membro (menu <span className="font-medium">Formandos → abrir o membro</span>). Esta tela reúne
+            todos eles para busca, acompanhamento do status e acesso aos documentos.
+          </p>
+        </div>
       </div>
 
       {/* Filtros */}
