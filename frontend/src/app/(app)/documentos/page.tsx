@@ -8,6 +8,7 @@ import {
   Download,
   Eye,
   FileText,
+  Info,
   Search,
   Trash2,
   RefreshCw,
@@ -132,6 +133,21 @@ export default function DocumentosPage() {
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
+      </div>
+
+      {/* Nota: como a seção funciona (agregador reativo, sem upload próprio) */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">Como esta seção funciona</p>
+          <p>
+            Esta é uma central de <span className="font-medium">consulta</span>: ela reúne, num só lugar, todos os
+            arquivos anexados aos eventos dos {termoFormando.toLowerCase()}s (desligamentos, licenças e demais
+            registros) para busca e auditoria. Diferente das outras seções, ela não cria nem recebe documentos por
+            aqui — cada arquivo aparece automaticamente quando é anexado ao evento correspondente na sua tela de
+            origem. Aqui você pode buscar, filtrar, visualizar, baixar e, se necessário, excluir.
+          </p>
+        </div>
       </div>
 
       {/* Filters */}
