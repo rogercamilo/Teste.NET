@@ -51,6 +51,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Info,
   Loader2,
   MapPin,
   Pencil,
@@ -280,6 +281,19 @@ export default function AgendaClient({
         </Button>
       </div>
 
+      {/* Nota: objetivo e ganho da Agenda */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">A agenda da comunidade</p>
+          <p>
+            Concentra num calendário único os eventos formativos (formações, retiros, convocações e acompanhamentos) e os
+            seus compromissos pessoais. Ao agendar um evento, os participantes recebem lembretes automáticos e podem
+            adicioná-lo ao calendário pessoal.
+          </p>
+        </div>
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsList className="bg-muted/50 h-9 min-w-max">
@@ -293,6 +307,17 @@ export default function AgendaClient({
         </div>
 
         <TabsContent value="formacoes" className="space-y-5 mt-4">
+          {/* Nota: o que a aba de eventos formativos faz */}
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Formações e eventos</p>
+              <p>
+                Agende e acompanhe os eventos da comunidade no calendário do mês (cor por status) ou em lista. Confirme,
+                remarque e conclua cada evento — os participantes são notificados a cada mudança.
+              </p>
+            </div>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {STATUS_LIST.map((s) => {
               const count = s === "todos" ? meus.length : meus.filter((a) => a.status === s).length;

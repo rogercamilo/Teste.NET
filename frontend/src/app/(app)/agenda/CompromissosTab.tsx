@@ -23,7 +23,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { CalendarClock, MapPin, Video, Pencil, Trash2, Plus, User } from "lucide-react";
+import { CalendarClock, Info, MapPin, Video, Pencil, Trash2, Plus, User } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -153,10 +153,19 @@ export function CompromissosTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Sua agenda pessoal — reuniões, visitas e compromissos. Visível só para você.
-        </p>
+      {/* Nota: o que a aba de compromissos pessoais faz */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">Meus compromissos</p>
+          <p>
+            Sua agenda pessoal — reuniões, visitas e outros compromissos. Visível só para você e destacada em violeta no
+            calendário do mês.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end">
         <Button size="sm" onClick={openNovo}>
           <Plus className="h-4 w-4 mr-1.5" />
           Novo compromisso
