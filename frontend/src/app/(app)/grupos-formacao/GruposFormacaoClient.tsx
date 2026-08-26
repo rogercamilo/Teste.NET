@@ -99,7 +99,7 @@ export default function GruposFormacaoClient({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
-  const { grupoFormacao: termoGrupoFormacao } = useTermos();
+  const { grupoFormacao: termoGrupoFormacao, formando: termoFormando } = useTermos();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -216,14 +216,14 @@ export default function GruposFormacaoClient({
             Para que servem as {termoGrupoFormacao.toLowerCase()}s?
           </p>
           <p>
-            Cada {termoGrupoFormacao.toLowerCase()} reúne os formandos que caminham juntos numa mesma etapa formativa,
-            com um formador responsável, período de vigência e — nos grupos estruturados — plano e grade vinculados. É a
-            unidade viva do acompanhamento: onde as pessoas efetivamente se formam.
+            Cada {termoGrupoFormacao.toLowerCase()} reúne os {termoFormando.toLowerCase()}s que caminham juntos numa mesma
+            etapa formativa, com um formador responsável, período de vigência e — nas estruturadas — plano e grade
+            vinculados. É a unidade viva do acompanhamento: onde as pessoas efetivamente se formam.
           </p>
           <p>
             Para o formador comunitário, é o ponto de partida do dia a dia: abrir uma {termoGrupoFormacao.toLowerCase()}{" "}
-            dá acesso a presença, jornada, comentários, relatórios e leituras do grupo num só lugar. Crie novas, mantenha
-            as ativas em ordem e acompanhe a saúde de cada uma pelos indicadores dos cartões.
+            dá acesso a presença, jornada, comentários, relatórios e leituras da {termoGrupoFormacao.toLowerCase()} num só
+            lugar. Crie novas, mantenha as ativas em ordem e acompanhe a saúde de cada uma pelos indicadores dos cartões.
           </p>
         </div>
       </div>

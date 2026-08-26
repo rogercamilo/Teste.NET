@@ -1871,7 +1871,7 @@ export default function GrupoFormacaoDetail({
                     requisitos e pode avançar) e quem precisa de atenção (atraso no ritmo e/ou presença baixa).
                   </p>
                   <p>
-                    Serve ao formador comunitário para conduzir o grupo com base em dados — antecipar as transições de
+                    Serve ao formador comunitário para conduzir a {termoGrupoFormacao.toLowerCase()} com base em dados — antecipar as transições de
                     etapa e agir cedo sobre quem está ficando para trás — e à coordenação (formador geral e
                     administrador) para acompanhar as {termoGrupoFormacao.toLowerCase()}s. Use{" "}
                     <span className="font-medium text-foreground">Exportar</span> para gerar o relatório (PDF/CSV) do
@@ -2348,7 +2348,7 @@ export default function GrupoFormacaoDetail({
                 value={novaEtapaForm.vigenciaInicio}
                 onChange={(e) => setNovaEtapaForm((p) => ({ ...p, vigenciaInicio: e.target.value }))}
               />
-              <p className="text-xs text-muted-foreground">Data de início das atividades formativas do grupo.</p>
+              <p className="text-xs text-muted-foreground">Data de início das atividades formativas da {termoGrupoFormacao.toLowerCase()}.</p>
             </div>
           </div>
           <DialogFooter className="gap-2">

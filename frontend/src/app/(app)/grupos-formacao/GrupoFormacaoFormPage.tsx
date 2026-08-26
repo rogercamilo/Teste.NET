@@ -72,6 +72,7 @@ export default function GrupoFormacaoFormPage({
   const router = useRouter();
   const [comunidade] = useComunidade();
   const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação";
+  const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const tipoOrg = comunidade.tipoOrganizacao ?? "nova_comunidade";
   const etapaLabels = useEtapaLabels();
   const formadores = initialUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
@@ -200,16 +201,17 @@ export default function GrupoFormacaoFormPage({
             Por que criar uma {termoGrupoFormacao.toLowerCase()}?
           </p>
           <p>
-            Aqui você abre a turma que vai reunir os formandos: escolha se ela é{" "}
-            <span className="font-medium text-foreground">estruturada</span> (segue as etapas canônicas, com plano e
-            grade) ou <span className="font-medium text-foreground">livre</span> (oração, retiros ou cursos pontuais),
-            defina o formador responsável e o período de vigência. Sem formador, ela nasce inativa — a pré-visualização
-            ao lado mostra como ficará.
+            Aqui você abre a {termoGrupoFormacao.toLowerCase()} que vai reunir os {termoFormando.toLowerCase()}s: escolha
+            se ela é <span className="font-medium text-foreground">estruturada</span> (segue as etapas canônicas, com
+            plano e grade) ou <span className="font-medium text-foreground">livre</span> (oração, retiros ou cursos
+            pontuais), defina o formador responsável e o período de vigência. Sem formador, ela nasce inativa — a
+            pré-visualização ao lado mostra como ficará.
           </p>
           <p>
             Para o formador comunitário, é o primeiro passo do acompanhamento: uma vez criada, a{" "}
-            {termoGrupoFormacao.toLowerCase()} passa a concentrar presença, jornada, comentários e relatórios do grupo, e
-            os formandos podem ser cadastrados e progredir pelas etapas.
+            {termoGrupoFormacao.toLowerCase()} passa a concentrar presença, jornada, comentários e relatórios da{" "}
+            {termoGrupoFormacao.toLowerCase()}, e os {termoFormando.toLowerCase()}s podem ser cadastrados e progredir
+            pelas etapas.
           </p>
         </div>
       </div>
