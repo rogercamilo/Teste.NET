@@ -61,6 +61,7 @@ import {
   Camera,
   ChevronDown,
   Filter,
+  Info,
   LayoutGrid,
   Link2,
   List,
@@ -380,6 +381,27 @@ export default function FormandosClient({
           <Plus className="h-4 w-4 mr-1.5" />
           Novo {termoFormando}
         </Button>
+      </div>
+
+      {/* Nota: objetivo e ganho da tela de formandos para o formador comunitário */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">
+            Para que serve esta tela?
+          </p>
+          <p>
+            Aqui ficam todas as pessoas em formação. Cada {termoFormando.toLowerCase()} pertence a uma{" "}
+            {termoGrupoFormacao.toLowerCase()} e a uma etapa formativa, e você cadastra com o mínimo — nome, e-mail e{" "}
+            {termoGrupoFormacao.toLowerCase()} —, deixando que a própria pessoa complete os dados pessoais no portal.
+            Busque, filtre por etapa e alterne entre cartões e lista para encontrar quem procura.
+          </p>
+          <p>
+            Para o formador comunitário, é o ponto de entrada do acompanhamento individual: cada cartão mostra etapa,
+            progresso e sinais de atenção (cadastro pendente, {termoGrupoFormacao.toLowerCase()} sem grade vinculada).
+            Clique no nome para abrir a ficha completa — jornada, presença, pareceres e comentários da pessoa.
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

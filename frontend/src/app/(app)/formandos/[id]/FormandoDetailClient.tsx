@@ -89,6 +89,7 @@ import {
   Clock,
   Download,
   FileText,
+  Info,
   Lock,
   LogOut,
   Mail,
@@ -903,6 +904,26 @@ export default function FormandoDetailClient({
               Agendar
             </Button>
           </div>
+        </div>
+      </div>
+
+      {/* Nota: objetivo e ganho da ficha do formando para o formador comunitário */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">A ficha completa do {termoFormando.toLowerCase()}</p>
+          <p>
+            Reúne num só lugar toda a caminhada da pessoa: a etapa atual e o progresso nos requisitos, a trilha
+            formativa, a avaliação por perspectivas (humana, espiritual e comunitária), o histórico de evolução, os
+            acompanhamentos, os comentários do {termoFormador.toLowerCase()} e os dados pessoais — além do avanço de
+            etapa quando os requisitos são cumpridos.
+          </p>
+          <p>
+            Para o formador comunitário, é onde o acompanhamento individual acontece: registrar pareceres e comentários,
+            marcar presença, avançar etapa e agir cedo sobre quem precisa de atenção. Baseie os registros no que é{" "}
+            <span className="font-medium text-foreground">observável na vida comunitária</span> — foro íntimo e direção
+            espiritual não são coletados pela plataforma.
+          </p>
         </div>
       </div>
 
