@@ -13,6 +13,7 @@ import {
   type NivelFormativo,
   type GrupoFormacao,
 } from "@/types";
+import { useTermos } from "@/lib/data-store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ const PAGE_SIZE = 10;
 
 export default function PlanosClient({ role, grupoFormacaoId, initialPlanos, initialGruposFormacao }: PlanosClientProps) {
   const router = useRouter();
+  const { formador: termoFormador } = useTermos();
   const [, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -140,9 +142,9 @@ export default function PlanosClient({ role, grupoFormacaoId, initialPlanos, ini
           <p className="text-xs text-muted-foreground leading-relaxed">
             O plano formativo reúne toda a caminhada de uma etapa num só lugar —
             encontros semanais, retiros comunitários e retiros pessoais. Para o
-            formador, isso significa clareza sobre o que trabalhar e quando,
-            continuidade quando muda quem conduz a formação (o plano não se perde na
-            troca de formadores) e materiais de direcionamento sempre à mão. Menos
+            {" "}{termoFormador.toLowerCase()}, isso significa clareza sobre o que trabalhar e quando,
+            continuidade quando muda quem conduz a formação (o plano não se perde ao
+            trocar o {termoFormador.toLowerCase()}) e materiais de direcionamento sempre à mão. Menos
             improviso, mais intencionalidade na formação da comunidade.
           </p>
         </div>

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEtapaLabels } from "@/lib/data-store";
+import { useEtapaLabels, useTermos } from "@/lib/data-store";
 import type { PlanoFormativo, GradeFormativa } from "@/types";
 import {
   MODALIDADE_LABELS,
@@ -96,6 +96,7 @@ export default function FormacaoFormPage({
 }: FormacaoFormPageProps) {
   const router = useRouter();
   const etapaLabels = useEtapaLabels();
+  const { formador: termoFormador, formando: termoFormando } = useTermos();
   const isEditing = !!id;
 
   const [form, setForm] = useState<FormState>(() => {
@@ -313,9 +314,9 @@ export default function FormacaoFormPage({
             — que pode ser reutilizada em várias grades e agendada quantas vezes forem
             necessárias. Ao vinculá-la a uma grade e etapa, ela assume sua posição no
             caminho formativo; sem vínculo, torna-se uma formação pontual, ainda assim
-            registrada e auditável. O ganho para o formador: um acervo reaproveitável
+            registrada e auditável. O ganho para o {termoFormador.toLowerCase()}: um acervo reaproveitável
             que alimenta grades e agenda, com material próprio para quem ministra e para
-            o formando.
+            o {termoFormando.toLowerCase()}.
           </p>
         </div>
       </div>

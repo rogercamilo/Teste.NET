@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useEtapaLabels } from "@/lib/data-store";
+import { useEtapaLabels, useTermos } from "@/lib/data-store";
 import {
   NIVEL_CORES,
   MODALIDADE_LABELS,
@@ -136,6 +136,7 @@ export default function FormacoesClient({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const etapaLabels = useEtapaLabels();
+  const { formador: termoFormador, formando: termoFormando } = useTermos();
   const canEdit = podeElaborarConteudo(role);
   const isFormadorComunitario = role === "formador_comunitario";
 
@@ -277,9 +278,9 @@ export default function FormacoesClient({
           <p className="text-xs text-muted-foreground leading-relaxed">
             Aqui ficam todas as formações — as unidades concretas de conteúdo (tema,
             objetivo, carga e modalidade) que dão corpo às grades e são agendadas na
-            agenda. Cada formação carrega seu material para o formador (uso interno) e
-            para o formando (Portal), a posição no caminho formativo e o histórico de
-            realizações. Para o formador, isso significa reaproveitar conteúdo já
+            agenda. Cada formação carrega seu material para o {termoFormador.toLowerCase()} (uso interno) e
+            para o {termoFormando.toLowerCase()} (Portal), a posição no caminho formativo e o histórico de
+            realizações. Para o {termoFormador.toLowerCase()}, isso significa reaproveitar conteúdo já
             pronto, saber exatamente o que ministrar em cada encontro e ter o rastro do
             que já foi realizado — sem recriar formação a cada ciclo.
           </p>

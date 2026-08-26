@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTermos } from "@/lib/data-store";
 import type { PlanoFormativo } from "@/types";
 import {
   STATUS_PLANO_LABELS,
@@ -42,6 +43,7 @@ export default function PlanoDetalheClient({
   isAdmin: boolean;
 }) {
   const router = useRouter();
+  const { formador: termoFormador, formando: termoFormando } = useTermos();
   const id = plano.id;
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -175,9 +177,9 @@ export default function PlanoDetalheClient({
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
             Esta tela reúne toda a caminhada de uma etapa num só lugar — encontros
-            semanais, retiros comunitários e retiros pessoais. Para o formador, isso
+            semanais, retiros comunitários e retiros pessoais. Para o {termoFormador.toLowerCase()}, isso
             significa clareza sobre o que trabalhar e quando, continuidade quando muda
-            quem conduz a formação (o plano não se perde na troca de formadores) e
+            quem conduz a formação (o plano não se perde ao trocar o {termoFormador.toLowerCase()}) e
             materiais de direcionamento sempre à mão. Menos improviso, mais
             intencionalidade na formação da comunidade.
           </p>
@@ -198,7 +200,7 @@ export default function PlanoDetalheClient({
             )}
             <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
               Define os eixos e a progressão dos encontros ao longo da etapa. O ganho
-              para o formador: um roteiro claro de temas e carga horária, que evita
+              para o {termoFormador.toLowerCase()}: um roteiro claro de temas e carga horária, que evita
               lacunas ou repetições e garante que cada área da formação seja contemplada.
             </p>
           </div>
@@ -260,7 +262,7 @@ export default function PlanoDetalheClient({
             )}
             <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
               Momentos-marco vividos em comunidade. Reunidos aqui com tema, base bíblica,
-              objetivo e material de direcionamento, o formador conduz cada retiro com
+              objetivo e material de direcionamento, o {termoFormador.toLowerCase()} conduz cada retiro com
               preparo — sem reconstruir tudo a cada edição.
             </p>
           </div>
@@ -317,8 +319,8 @@ export default function PlanoDetalheClient({
               </p>
             )}
             <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
-              Retiros feitos individualmente pelo formando. O plano registra o
-              direcionamento e o material previstos, dando ao formador uma base para
+              Retiros feitos individualmente pelo {termoFormando.toLowerCase()}. O plano registra o
+              direcionamento e o material previstos, dando ao {termoFormador.toLowerCase()} uma base para
               orientar e acompanhar essa vivência mais reservada.
             </p>
           </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTermos } from "@/lib/data-store";
 import type { Formacao } from "@/types";
 import {
   NIVEL_FORMATIVO_LABELS,
@@ -77,6 +78,7 @@ export default function FormacaoDetalheClient({
   canEdit: boolean;
 }) {
   const router = useRouter();
+  const { formador: termoFormador, formando: termoFormando } = useTermos();
   const id = formacao.id;
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [revisadoEm, setRevisadoEm] = useState<string | undefined>(formacao.revisadoEm);
@@ -141,8 +143,8 @@ export default function FormacaoDetalheClient({
           <p className="text-xs text-muted-foreground leading-relaxed">
             Esta tela reúne tudo sobre uma unidade de conteúdo: objetivo, posição no
             caminho formativo (plano → grade → eixo) ou registro como pontual, materiais
-            para quem ministra e para o formando, e o histórico de realizações. Para o
-            formador, é a referência pronta na hora de preparar e conduzir o encontro —
+            para quem ministra e para o {termoFormando.toLowerCase()}, e o histórico de realizações. Para o
+            {" "}{termoFormador.toLowerCase()}, é a referência pronta na hora de preparar e conduzir o encontro —
             e o comprovante de tudo que já foi trabalhado com a comunidade.
           </p>
         </div>
