@@ -1109,7 +1109,18 @@ export default function FormandoDetailClient({
         </div>
 
         {/* Jornada Formativa */}
-        <TabsContent value="jornada" className="mt-4">
+        <TabsContent value="jornada" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Jornada formativa</p>
+              <p>
+                A trilha completa das etapas — o que já foi concluído, a etapa atual e o que falta para avançar.
+                Acompanhe aqui a progressão nos requisitos (formações e retiros) e efetive o avanço de etapa quando
+                cumpridos.
+              </p>
+            </div>
+          </div>
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-4">
               <CardTitle className="text-sm font-semibold">Trilha Formativa</CardTitle>
@@ -1309,6 +1320,16 @@ export default function FormandoDetailClient({
 
         {mostraDocumentos && (
           <TabsContent value="documentos" className="mt-4 space-y-4">
+            <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+              <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+              <div className="space-y-1.5">
+                <p className="text-foreground font-medium">Documentos</p>
+                <p>
+                  Documentos formativos do {termoFormando.toLowerCase()} — como as cartas de discernimento ao fim de cada
+                  etapa. Ficam anexados à ficha para consulta e continuidade da caminhada.
+                </p>
+              </div>
+            </div>
             {/* Cartas de etapa (P1.1) — recorrentes, reaproveitam o modelo Arquivo */}
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-3 flex flex-row items-start justify-between">
@@ -1457,6 +1478,17 @@ export default function FormandoDetailClient({
 
         {/* Perspectivas Formativas */}
         <TabsContent value="perspectivas" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Perspectivas</p>
+              <p>
+                Avaliação do {termoFormando.toLowerCase()} nas três perspectivas da formação — humana, espiritual e
+                comunitária. Registre uma nota e um parecer por perspectiva para enxergar onde a caminhada está madura e
+                onde precisa de apoio. Baseie-se no que é observável na vida comunitária.
+              </p>
+            </div>
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
               Avalie a adesão de {formando.nome} em cada perspectiva formativa.
@@ -1553,6 +1585,16 @@ export default function FormandoDetailClient({
 
         {/* Visão geral da jornada formativa */}
         <TabsContent value="visao-geral" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Visão geral</p>
+              <p>
+                Panorama do momento formativo do {termoFormando.toLowerCase()}: etapa atual, progresso nos requisitos,
+                frequência e último parecer, com atalhos de ação. É o ponto de partida para decidir o próximo passo.
+              </p>
+            </div>
+          </div>
           {/* Painel de indicadores globais */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Card className="border-0 shadow-sm">
@@ -2015,7 +2057,17 @@ export default function FormandoDetailClient({
         </TabsContent>
 
         {/* Histórico de evolução */}
-        <TabsContent value="historico" className="mt-4">
+        <TabsContent value="historico" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Histórico de evolução</p>
+              <p>
+                Linha do tempo dos registros formativos — pareceres, avanços de etapa, licenças e desligamentos. É a
+                memória da caminhada, útil para dar continuidade quando outro formador assume o acompanhamento.
+              </p>
+            </div>
+          </div>
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-3">
               <div>
@@ -2166,7 +2218,18 @@ export default function FormandoDetailClient({
         </TabsContent>
 
         {/* Comentários do formador */}
-        <TabsContent value="comentarios" className="mt-4">
+        <TabsContent value="comentarios" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Comentários do {termoFormador.toLowerCase()}</p>
+              <p>
+                Diário de observações sobre o {termoFormando.toLowerCase()} — progresso, adesão, dificuldades e
+                observações gerais. Anote logo após os encontros: alimenta os pareceres e preserva o histórico da
+                caminhada.
+              </p>
+            </div>
+          </div>
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-3 flex flex-row items-start justify-between">
               <div>
@@ -2226,7 +2289,18 @@ export default function FormandoDetailClient({
 
         {/* Acompanhamento formativo (jornada comunitária) — o formador marca
             encontros e vê os pedidos que o formando fez pelo portal. */}
-        <TabsContent value="acompanhamento" className="mt-4">
+        <TabsContent value="acompanhamento" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Acompanhamento</p>
+              <p>
+                Encontros de acompanhamento entre {termoFormador.toLowerCase()} e {termoFormando.toLowerCase()}: agende
+                encontros com nota reservada e responda às solicitações feitas pelo portal. Mantém o cuidado pessoal
+                registrado e rastreável.
+              </p>
+            </div>
+          </div>
           <AcompanhamentoSection
             formandoId={id}
             termoFormando={termoFormando}
@@ -2238,6 +2312,17 @@ export default function FormandoDetailClient({
 
         {/* Dados Pessoais */}
         <TabsContent value="dados" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Dados pessoais</p>
+              <p>
+                Cadastro do {termoFormando.toLowerCase()}: contato, endereço e dados civis. A própria pessoa completa
+                boa parte no portal; aqui você consulta e ajusta quando necessário. Restrito ao que é observável — sem
+                foro íntimo.
+              </p>
+            </div>
+          </div>
           {/* Identificação */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2">
@@ -2364,7 +2449,17 @@ export default function FormandoDetailClient({
         </TabsContent>
 
         {/* Registros */}
-        <TabsContent value="registros" className="mt-4">
+        <TabsContent value="registros" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Registro de solicitações</p>
+              <p>
+                Registro administrativo de solicitações e movimentações — desligamento, licença e processos correlatos,
+                com seus checklists e documentos. É a trilha formal dessas decisões, para transparência e continuidade.
+              </p>
+            </div>
+          </div>
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold">Marcos da caminhada formativa</CardTitle>
