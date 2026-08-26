@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEtapaLabels } from "@/lib/data-store";
+import { useEtapaLabels, useTermos } from "@/lib/data-store";
 import {
   MODALIDADE_LABELS,
   NIVEIS_FORMATIVOS_SELECIONAVEIS,
@@ -178,6 +178,7 @@ export default function GradeFormPage({
   const canManageFormacoes = isGestao(role);
 
   const etapaLabels = useEtapaLabels();
+  const { formador: termoFormador } = useTermos();
   const isEditing = !!id;
 
   const [form, setForm] = useState<FormState>(() => {
@@ -468,7 +469,7 @@ export default function GradeFormPage({
             A grade traduz um plano formativo em formações concretas — os encontros que
             serão de fato conduzidos na etapa. Você parte dos eixos já definidos no
             plano e, dentro de cada um, cadastra as formações com tema, objetivo, carga
-            horária e observações. O ganho para o formador: um roteiro operacional
+            horária e observações. O ganho para o {termoFormador.toLowerCase()}: um roteiro operacional
             pronto, que evita improviso, alimenta a agenda e o diário, e preserva o
             trabalho entre versões (o que foi construído não se perde na próxima edição).
           </p>

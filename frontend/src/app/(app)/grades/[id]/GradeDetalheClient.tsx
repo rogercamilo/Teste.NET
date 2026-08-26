@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GradeFormativa, Formacao, PlanoFormativo } from "@/types";
 import { NIVEL_FORMATIVO_LABELS, NIVEL_CORES, EIXO_COLORS, TIPO_FORMACAO_LABELS, isColunaCentral } from "@/types";
+import { useTermos } from "@/lib/data-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +46,7 @@ export default function GradeDetalheClient({
   canEdit: boolean;
 }) {
   const router = useRouter();
+  const { formador: termoFormador } = useTermos();
   const id = grade.id;
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [revisadoEm, setRevisadoEm] = useState<string | undefined>(grade.revisadoEm);
@@ -171,7 +173,7 @@ export default function GradeDetalheClient({
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
             Esta tela detalha o plano formativo em formações concretas — a sequência de
-            encontros que dá vida à etapa, organizada por eixo. Para o formador, é o
+            encontros que dá vida à etapa, organizada por eixo. Para o {termoFormador.toLowerCase()}, é o
             roteiro operacional da caminhada: cada formação já traz tema, objetivo e
             observações, os materiais de direcionamento ficam à mão e a versão/revisão
             garante que o conteúdo evolua sem se perder. Clique em qualquer formação

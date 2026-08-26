@@ -11,6 +11,7 @@ import {
   type GradeFormativa,
   type GrupoFormacao,
 } from "@/types";
+import { useTermos } from "@/lib/data-store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ interface GradesClientProps {
 
 export default function GradesClient({ role, grupoFormacaoId, initialGrades, initialGruposFormacao }: GradesClientProps) {
   const router = useRouter();
+  const { formador: termoFormador } = useTermos();
   const [, startTransition] = useTransition();
   const canEdit = podeElaborarConteudo(role);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -129,7 +131,7 @@ export default function GradesClient({ role, grupoFormacaoId, initialGrades, ini
             A grade traduz o plano formativo em formações concretas — cada encontro
             com tema, objetivo, carga horária e observações para quem conduz. Enquanto
             o plano diz o que trabalhar e quando, a grade entrega o roteiro pronto para
-            executar. Para o formador, isso significa chegar ao encontro com o conteúdo
+            executar. Para o {termoFormador.toLowerCase()}, isso significa chegar ao encontro com o conteúdo
             já preparado, versão e revisão registradas (nada se perde entre edições) e
             as formações alimentando diretamente a agenda e o diário. Menos preparação
             repetida, mais continuidade na caminhada da comunidade.
