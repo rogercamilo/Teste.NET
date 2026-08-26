@@ -9,6 +9,7 @@ import {
   type Compromisso,
   type TipoCompromisso,
 } from "@/types";
+import { useTermos } from "@/lib/data-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -61,6 +62,7 @@ export function CompromissosTab({
   formandosVinculo: { id: string; nome: string }[];
 }) {
   const router = useRouter();
+  const { formando: termoFormando } = useTermos();
   const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Compromisso | null>(null);
@@ -280,7 +282,7 @@ export function CompromissosTab({
             </div>
             {formandosVinculo.length > 0 && (
               <div className="grid gap-1.5">
-                <Label>Vincular a um formando (opcional)</Label>
+                <Label>Vincular a um {termoFormando.toLowerCase()} (opcional)</Label>
                 <Select
                   value={form.formandoId || SEM_VINCULO}
                   onValueChange={(v) => set("formandoId")(!v || v === SEM_VINCULO ? "" : v)}

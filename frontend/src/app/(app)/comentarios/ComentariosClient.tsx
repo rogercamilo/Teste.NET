@@ -12,6 +12,7 @@ import {
   type TipoComentario,
   type Formando,
 } from "@/types";
+import { useTermos } from "@/lib/data-store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ export default function ComentariosClient({
 }: ComentariosClientProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const { formando: termoFormando } = useTermos();
   const [isPending, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
   const [busca, setBusca] = useState("");
@@ -130,7 +132,7 @@ export default function ComentariosClient({
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por formando ou conteúdo..."
+            placeholder={`Buscar por ${termoFormando.toLowerCase()} ou conteúdo...`}
             className="pl-8"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
@@ -206,10 +208,10 @@ export default function ComentariosClient({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Formando</Label>
+              <Label>{termoFormando}</Label>
               <Select value={novoFormandoId} onValueChange={(v) => setNovoFormandoId(v ?? "")} items={Object.fromEntries(initialFormandos.filter((f) => f.ativo).map((f) => [f.id, f.nome]))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o formando..." />
+                  <SelectValue placeholder={`Selecione o ${termoFormando.toLowerCase()}...`} />
                 </SelectTrigger>
                 <SelectContent>
                   {initialFormandos.filter((f) => f.ativo).map((f) => (
@@ -232,7 +234,7 @@ export default function ComentariosClient({
             <div className="space-y-1.5">
               <Label>Comentário</Label>
               <Textarea
-                placeholder="Descreva sua observação sobre a adesão do formando ao plano formativo..."
+                placeholder={`Descreva sua observação sobre a adesão do ${termoFormando.toLowerCase()} ao plano formativo...`}
                 className="min-h-24 resize-none"
                 value={novoTexto}
                 onChange={(e) => setNovoTexto(e.target.value)}

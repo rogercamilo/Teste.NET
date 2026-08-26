@@ -847,7 +847,7 @@ export default function FormandoDetailClient({
               <Button
                 variant="outline"
                 size="sm"
-                title="Reenviar e-mail de acesso ao Portal do Formando"
+                title={`Reenviar e-mail de acesso ao Portal do ${termoFormando}`}
                 onClick={async () => {
                   try {
                     const res = await fetch(`/api/formandos/${formando.id}/reenviar-acesso`, { method: "POST" });
@@ -1645,7 +1645,7 @@ export default function FormandoDetailClient({
                   <div className="h-7 w-7 rounded-lg bg-blue-100 flex items-center justify-center">
                     <FileText className="h-3.5 w-3.5 text-blue-600" />
                   </div>
-                  <span className="text-xs text-muted-foreground">Pareceres do formador</span>
+                  <span className="text-xs text-muted-foreground">Pareceres do {termoFormador.toLowerCase()}</span>
                 </div>
                 <p className="text-sm font-semibold">{avaliacoesRealizadas.length}</p>
                 {ultimaAvaliacao?.notaAdesao && (
@@ -1945,7 +1945,7 @@ export default function FormandoDetailClient({
           {formandoComentarios.length > 0 && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold">Comentários do formador</CardTitle>
+                <CardTitle className="text-sm font-semibold">Comentários do {termoFormador.toLowerCase()}</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {formandoComentarios.length} comentário
                   {formandoComentarios.length !== 1 ? "s" : ""} registrado
@@ -2679,7 +2679,7 @@ export default function FormandoDetailClient({
               <div className="grid gap-1.5">
                 <Label>Observação sobre a participação neste encontro</Label>
                 <Textarea
-                  placeholder="Descreva como foi a adesão e participação do formando neste dia..."
+                  placeholder={`Descreva como foi a adesão e participação do ${termoFormando.toLowerCase()} neste dia...`}
                   value={registroForm.observacao}
                   onChange={(e) =>
                     setRegistroForm((prev) => ({ ...prev, observacao: e.target.value }))
@@ -2730,7 +2730,7 @@ export default function FormandoDetailClient({
                 Comentário <span className="text-destructive">*</span>
               </Label>
               <Textarea
-                placeholder="Descreva suas percepções sobre a adesão do formando ao plano formativo..."
+                placeholder={`Descreva suas percepções sobre a adesão do ${termoFormando.toLowerCase()} ao plano formativo...`}
                 value={comentarioForm.texto}
                 onChange={(e) =>
                   setComentarioForm((prev) => ({ ...prev, texto: e.target.value }))
@@ -2752,7 +2752,7 @@ export default function FormandoDetailClient({
       <Dialog open={avaliacaoOpen} onOpenChange={setAvaliacaoOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Parecer do formador</DialogTitle>
+            <DialogTitle>Parecer do {termoFormador.toLowerCase()}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-3">
@@ -2808,7 +2808,7 @@ export default function FormandoDetailClient({
                 Texto da avaliação <span className="text-destructive">*</span>
               </Label>
               <Textarea
-                placeholder="Descreva a adesão do formando ao plano formativo no período avaliado..."
+                placeholder={`Descreva a adesão do ${termoFormando.toLowerCase()} ao plano formativo no período avaliado...`}
                 value={avaliacaoForm.textoAvaliacao}
                 onChange={(e) =>
                   setAvaliacaoForm((p) => ({ ...p, textoAvaliacao: e.target.value }))

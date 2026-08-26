@@ -95,7 +95,7 @@ export default function GradeDetalheClient({
                 {showTipo && <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-32">Tipo</th>}
                 <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Tema</th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground hidden md:table-cell w-56">Objetivo</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground hidden lg:table-cell w-56">Obs. do formador</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground hidden lg:table-cell w-56">Obs. do {termoFormador.toLowerCase()}</th>
               </tr>
             </thead>
             <tbody>

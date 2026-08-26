@@ -384,7 +384,7 @@ export default function GruposFormacaoClient({
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Users className="h-3.5 w-3.5" />
-                    <span>{totalFormandos} formandos</span>
+                    <span>{totalFormandos} {termoFormando.toLowerCase()}s</span>
                   </div>
                   <Link
                     href={`/grupos-formacao/${grupoFormacao.id}`}
@@ -471,14 +471,14 @@ export default function GruposFormacaoClient({
             </div>
 
             <div className="grid gap-1.5">
-              <Label>Formador Responsável</Label>
+              <Label>{termoFormador} Responsável</Label>
               <Select
                 value={form.formadorId}
                 onValueChange={(v) => set("formadorId")(v ?? "")}
                 items={Object.fromEntries(initialFormadores.map((u) => [u.id, u.nome]))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o formador (opcional)..." />
+                  <SelectValue placeholder={`Selecione o ${termoFormador.toLowerCase()} (opcional)...`} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhum</SelectItem>

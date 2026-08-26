@@ -773,13 +773,13 @@ export default function GradeFormPage({
                             </div>
 
                             <div className="grid gap-1.5">
-                              <Label className="text-xs">Observações do formador</Label>
+                              <Label className="text-xs">Observações do {termoFormador.toLowerCase()}</Label>
                               <Textarea
                                 value={formacao.observacoesFormador}
                                 onChange={(e) =>
                                   updateFormacao(grupoIdx, formacao.tempId, "observacoesFormador", e.target.value)
                                 }
-                                placeholder="Observações, contexto ou instruções para o formador..."
+                                placeholder={`Observações, contexto ou instruções para o ${termoFormador.toLowerCase()}...`}
                                 className="min-h-[56px] text-sm resize-none"
                               />
                             </div>

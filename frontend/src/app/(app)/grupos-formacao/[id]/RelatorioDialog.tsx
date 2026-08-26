@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
+import { useTermos } from "@/lib/data-store";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -63,6 +64,7 @@ const RECOMENDACOES: RecomendacaoEtapa[] = ["avanca", "repete", "licenca", "desl
 export function RelatorioDialog({
   open, onClose, formando, nivelFormativo, relatorio, onSaved,
 }: RelatorioDialogProps) {
+  const { formando: termoFormando } = useTermos();
   const [form, setForm] = useState<FormState>(() => buildForm(relatorio));
   const [saving, setSaving] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
@@ -279,7 +281,7 @@ export function RelatorioDialog({
                 <Textarea
                   value={form.textoNarrativo}
                   onChange={(e) => set("textoNarrativo", e.target.value)}
-                  placeholder="Descreva a jornada do formando nesta etapa..."
+                  placeholder={`Descreva a jornada do ${termoFormando.toLowerCase()} nesta etapa...`}
                   className="min-h-[80px] text-sm resize-none"
                 />
               )}
@@ -295,7 +297,7 @@ export function RelatorioDialog({
                   <Textarea
                     value={form.pontosForteza}
                     onChange={(e) => set("pontosForteza", e.target.value)}
-                    placeholder="O que o formando demonstrou bem..."
+                    placeholder={`O que o ${termoFormando.toLowerCase()} demonstrou bem...`}
                     className="min-h-[72px] text-sm resize-none"
                   />
                 )}

@@ -142,7 +142,7 @@ export function AcompanhamentoSection({
                 rows={3}
                 value={nota}
                 onChange={(e) => setNota(e.target.value)}
-                placeholder="Observações formativas do encontro (não aparecem para o formando)."
+                placeholder={`Observações formativas do encontro (não aparecem para o ${termoFormando.toLowerCase()}).`}
                 maxLength={4000}
               />
             </div>

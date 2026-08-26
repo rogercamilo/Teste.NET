@@ -489,7 +489,7 @@ export default function FormacaoFormPage({
             )}
 
             <div className="grid gap-1.5">
-              <Label>Observações do formador</Label>
+              <Label>Observações do {termoFormador.toLowerCase()}</Label>
               <Textarea
                 value={form.observacoesFormador}
                 onChange={(e) => set("observacoesFormador")(e.target.value)}
@@ -558,9 +558,9 @@ export default function FormacaoFormPage({
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Materiais formativos (opcionais)</p>
 
             <div className="grid gap-1.5">
-              <Label>Material formativo para o formador</Label>
+              <Label>Material formativo para o {termoFormador.toLowerCase()}</Label>
               <p className="text-xs text-muted-foreground -mt-0.5">
-                Uso interno de quem ministra — não é exibido ao formando.
+                Uso interno de quem ministra — não é exibido ao {termoFormando.toLowerCase()}.
               </p>
               {form.materialFormadorNome ? (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card">
@@ -583,9 +583,9 @@ export default function FormacaoFormPage({
             </div>
 
             <div className="grid gap-1.5">
-              <Label>Material formativo para o formando</Label>
+              <Label>Material formativo para o {termoFormando.toLowerCase()}</Label>
               <p className="text-xs text-muted-foreground -mt-0.5">
-                Também fica disponível para o formando no Portal, na formação correspondente.
+                Também fica disponível para o {termoFormando.toLowerCase()} no Portal, na formação correspondente.
               </p>
               {form.documentoNome ? (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card">

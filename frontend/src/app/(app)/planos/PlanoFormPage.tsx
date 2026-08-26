@@ -781,6 +781,7 @@ function RetiroCard({
   onSelectFormandoMaterial: (file: File) => void;
   onRemoveFormandoMaterial: () => void;
 }) {
+  const { formador: termoFormador, formando: termoFormando } = useTermos();
   return (
     <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-2">
       <div className="flex items-center justify-between">
@@ -856,15 +857,15 @@ function RetiroCard({
       <div className="space-y-2 pt-1">
         <RetiroMaterialField
           label={`Material de direcionamento para retiro ${retiro.tipo === "comunitario" ? "comunitário" : "pessoal"}`}
-          hint="Uso do formador — fica disponível na grade. Não é exibido ao formando."
+          hint={`Uso do ${termoFormador.toLowerCase()} — fica disponível na grade. Não é exibido ao ${termoFormando.toLowerCase()}.`}
           nome={retiro.materialAnexo}
           pending={pendingMaterial}
           onSelect={onSelectMaterial}
           onRemove={onRemoveMaterial}
         />
         <RetiroMaterialField
-          label="Material de direcionamento para o formando"
-          hint="Fica no portal do formando quando um formador liberar (por grupo). Antes disso, só o formador vê."
+          label={`Material de direcionamento para o ${termoFormando.toLowerCase()}`}
+          hint={`Fica no portal do ${termoFormando.toLowerCase()} quando um ${termoFormador.toLowerCase()} liberar (por grupo). Antes disso, só o ${termoFormador.toLowerCase()} vê.`}
           nome={retiro.materialFormandoAnexo}
           pending={pendingFormandoMaterial}
           onSelect={onSelectFormandoMaterial}

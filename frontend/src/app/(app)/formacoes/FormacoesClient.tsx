@@ -543,6 +543,7 @@ interface FormacaoCardProps {
 }
 
 function FormacaoCard({ formacao, canEdit, onView, onEdit, onViewDoc, onDelete }: FormacaoCardProps) {
+  const { formador: termoFormador, formando: termoFormando } = useTermos();
   return (
     <Card className="border-0 shadow-sm bg-card hover:shadow-md transition-all duration-200 group">
       <CardContent className="p-4">
@@ -619,13 +620,13 @@ function FormacaoCard({ formacao, canEdit, onView, onEdit, onViewDoc, onDelete }
             {(formacao.materialFormadorAnexo || formacao.documentoAnexo) && (
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 {formacao.materialFormadorAnexo && (
-                  <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-600 border-indigo-200" title="Material para o formador (uso interno)">
+                  <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-600 border-indigo-200" title={`Material para o ${termoFormador.toLowerCase()} (uso interno)`}>
                     <Paperclip className="h-2.5 w-2.5 mr-1" />
                     Formador
                   </Badge>
                 )}
                 {formacao.documentoAnexo && (
-                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200" title="Material para o formando (também no Portal)">
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200" title={`Material para o ${termoFormando.toLowerCase()} (também no Portal)`}>
                     <Paperclip className="h-2.5 w-2.5 mr-1" />
                     Formando
                   </Badge>
@@ -693,6 +694,7 @@ interface FormacaoRowProps {
 }
 
 function FormacaoRow({ formacao, canEdit, showNivel, nivelLabel, onView, onEdit, onViewDoc, onDelete }: FormacaoRowProps) {
+  const { formador: termoFormador, formando: termoFormando } = useTermos();
   return (
     <TableRow className="group cursor-pointer" onClick={onView}>
       <TableCell>
@@ -716,12 +718,12 @@ function FormacaoRow({ formacao, canEdit, showNivel, nivelLabel, onView, onEdit,
             )}
           </div>
           {formacao.materialFormadorAnexo && (
-            <span className="shrink-0 inline-flex" title="Material para o formador (uso interno)" aria-label="Material para o formador">
+            <span className="shrink-0 inline-flex" title={`Material para o ${termoFormador.toLowerCase()} (uso interno)`} aria-label={`Material para o ${termoFormador.toLowerCase()}`}>
               <Paperclip className="h-3 w-3 text-indigo-500" />
             </span>
           )}
           {formacao.documentoAnexo && (
-            <span className="shrink-0 inline-flex" title="Material para o formando (também no Portal)" aria-label="Material para o formando">
+            <span className="shrink-0 inline-flex" title={`Material para o ${termoFormando.toLowerCase()} (também no Portal)`} aria-label={`Material para o ${termoFormando.toLowerCase()}`}>
               <Paperclip className="h-3 w-3 text-blue-500" />
             </span>
           )}

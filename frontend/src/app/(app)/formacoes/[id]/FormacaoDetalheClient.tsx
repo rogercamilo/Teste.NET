@@ -267,7 +267,7 @@ export default function FormacaoDetalheClient({
 
         {formacao.observacoesFormador && (
           <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Observações do formador</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Observações do {termoFormador.toLowerCase()}</p>
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{formacao.observacoesFormador}</p>
           </div>
         )}
@@ -334,7 +334,7 @@ export default function FormacaoDetalheClient({
 
         {formacao.materialFormadorAnexo && formacao.materialFormadorAnexoId && (
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Material para o formador · uso interno</p>
+            <p className="text-xs font-medium text-muted-foreground">Material para o {termoFormador.toLowerCase()} · uso interno</p>
             <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -355,7 +355,7 @@ export default function FormacaoDetalheClient({
 
         {formacao.documentoAnexo && formacao.documentoAnexoId && (
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Material para o formando · disponível no Portal</p>
+            <p className="text-xs font-medium text-muted-foreground">Material para o {termoFormando.toLowerCase()} · disponível no Portal</p>
             <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

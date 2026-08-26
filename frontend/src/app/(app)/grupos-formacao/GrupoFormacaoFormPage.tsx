@@ -337,17 +337,17 @@ export default function GrupoFormacaoFormPage({
           {/* Formador Responsável */}
           <Card className="border-0 shadow-sm">
             <CardContent className="pt-5 pb-5 space-y-4">
-              <SectionHeader icon={<User className="h-3.5 w-3.5 text-primary" />} title="Formador Responsável" />
+              <SectionHeader icon={<User className="h-3.5 w-3.5 text-primary" />} title={`${termoFormador} Responsável`} />
 
               <div className="space-y-1.5">
-                <Label>Formador Comunitário (Responsável)</Label>
+                <Label>{termoFormador} (Responsável)</Label>
                 <Select
                   value={form.formadorId}
                   onValueChange={(v) => set("formadorId")(v ?? "")}
                   items={Object.fromEntries(formadores.map((u) => [u.id, u.nome]))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o formador (opcional)..." />
+                    <SelectValue placeholder={`Selecione o ${termoFormador.toLowerCase()} (opcional)...`} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Nenhum</SelectItem>
@@ -553,7 +553,7 @@ export default function GrupoFormacaoFormPage({
 
                 <div className="mt-3 pt-3 border-t border-border/60 flex items-center gap-1 text-xs text-muted-foreground">
                   <Users className="h-3.5 w-3.5" />
-                  <span>0 formandos</span>
+                  <span>0 {termoFormando.toLowerCase()}s</span>
                 </div>
               </CardContent>
             </Card>

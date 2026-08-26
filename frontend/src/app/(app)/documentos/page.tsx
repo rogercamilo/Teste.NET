@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useTermos } from "@/lib/data-store";
 import type { SessionUser } from "@/lib/auth-helpers";
 
 type DocumentoMeta = {
@@ -65,6 +66,7 @@ const PAGE_SIZE = 10;
 
 export default function DocumentosPage() {
   const { data: session } = useSession();
+  const { formando: termoFormando } = useTermos();
   const user = session?.user as SessionUser | undefined;
   const isGestao =
     user?.role === "administrador" || user?.role === "formador_geral";
@@ -137,7 +139,7 @@ export default function DocumentosPage() {
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome ou formando..."
+            placeholder={`Buscar por nome ou ${termoFormando.toLowerCase()}...`}
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -178,7 +180,7 @@ export default function DocumentosPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Arquivo</TableHead>
-                  <TableHead>Formando</TableHead>
+                  <TableHead>{termoFormando}</TableHead>
                   <TableHead>Tipo de evento</TableHead>
                   {isGestao && <TableHead>Enviado por</TableHead>}
                   <TableHead>Tamanho</TableHead>

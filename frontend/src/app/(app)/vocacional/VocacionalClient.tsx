@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { isGestao } from "@/types";
+import { useTermos } from "@/lib/data-store";
 
 interface Option {
   id: string;
@@ -48,6 +49,7 @@ interface Props {
 
 export default function VocacionalClient({ userRole, termoVocacional, formadores, planos, grades, turmas }: Props) {
   const router = useRouter();
+  const { formador: termoFormador } = useTermos();
   const gestao = isGestao(userRole);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -197,7 +199,7 @@ export default function VocacionalClient({ userRole, termoVocacional, formadores
               <Input value={form.localReuniao} onChange={(e) => setForm({ ...form, localReuniao: e.target.value })} />
             </div>
             <div className="grid gap-1.5">
-              <Label>Formador responsável</Label>
+              <Label>{termoFormador} responsável</Label>
               <select
                 className="h-9 rounded-md border border-border bg-background px-2 text-sm"
                 value={form.formadorId}

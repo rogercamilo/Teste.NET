@@ -276,8 +276,8 @@ export default function PlanoDetalheClient({
                   <Th className="w-[30%]">Objetivo</Th>
                   <Th>Quando Realizar</Th>
                   <Th className="text-center">CH</Th>
-                  <Th className="text-center">Mat. formador</Th>
-                  <Th className="text-center">Mat. formando</Th>
+                  <Th className="text-center">Mat. {termoFormador.toLowerCase()}</Th>
+                  <Th className="text-center">Mat. {termoFormando.toLowerCase()}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -334,8 +334,8 @@ export default function PlanoDetalheClient({
                   <Th className="w-[30%]">Objetivo</Th>
                   <Th>Quando Realizar</Th>
                   <Th className="text-center">CH</Th>
-                  <Th className="text-center">Mat. formador</Th>
-                  <Th className="text-center">Mat. formando</Th>
+                  <Th className="text-center">Mat. {termoFormador.toLowerCase()}</Th>
+                  <Th className="text-center">Mat. {termoFormando.toLowerCase()}</Th>
                 </tr>
               </thead>
               <tbody>
