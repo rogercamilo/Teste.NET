@@ -147,6 +147,14 @@ export default function DocumentosPage() {
             aqui — cada arquivo aparece automaticamente quando é anexado ao evento correspondente na sua tela de
             origem. Aqui você pode buscar, filtrar, visualizar, baixar e, se necessário, excluir.
           </p>
+          <p>
+            <span className="font-medium text-foreground">Onde os documentos são gerados:</span> na ficha individual
+            do {termoFormando.toLowerCase()} (menu <span className="font-medium">{termoFormando}s → abrir o
+            {" "}{termoFormando.toLowerCase()}</span>), ao registrar uma <span className="font-medium">solicitação de
+            desligamento</span>, um <span className="font-medium">desligamento</span> ou uma
+            {" "}<span className="font-medium">licença</span> e anexar os arquivos. É de lá que eles fluem
+            automaticamente para esta central.
+          </p>
         </div>
       </div>
 
