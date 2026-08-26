@@ -73,6 +73,7 @@ export default function GrupoFormacaoFormPage({
   const [comunidade] = useComunidade();
   const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação";
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
+  const termoFormador = comunidade.termoFormador?.trim() || "Formador Comunitário";
   const tipoOrg = comunidade.tipoOrganizacao ?? "nova_comunidade";
   const etapaLabels = useEtapaLabels();
   const formadores = initialUsuarios.filter((u) => u.perfil === "formador_comunitario" && u.ativo);
@@ -208,7 +209,7 @@ export default function GrupoFormacaoFormPage({
             pré-visualização ao lado mostra como ficará.
           </p>
           <p>
-            Para o formador comunitário, é o primeiro passo do acompanhamento: uma vez criada, a{" "}
+            Para o {termoFormador.toLowerCase()}, é o primeiro passo do acompanhamento: uma vez criada, a{" "}
             {termoGrupoFormacao.toLowerCase()} passa a concentrar presença, jornada, comentários e relatórios da{" "}
             {termoGrupoFormacao.toLowerCase()}, e os {termoFormando.toLowerCase()}s podem ser cadastrados e progredir
             pelas etapas.

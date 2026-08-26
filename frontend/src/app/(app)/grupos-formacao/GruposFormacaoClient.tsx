@@ -99,7 +99,7 @@ export default function GruposFormacaoClient({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
-  const { grupoFormacao: termoGrupoFormacao, formando: termoFormando } = useTermos();
+  const { grupoFormacao: termoGrupoFormacao, formando: termoFormando, formador: termoFormador } = useTermos();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -221,7 +221,7 @@ export default function GruposFormacaoClient({
             vinculados. É a unidade viva do acompanhamento: onde as pessoas efetivamente se formam.
           </p>
           <p>
-            Para o formador comunitário, é o ponto de partida do dia a dia: abrir uma {termoGrupoFormacao.toLowerCase()}{" "}
+            Para o {termoFormador.toLowerCase()}, é o ponto de partida do dia a dia: abrir uma {termoGrupoFormacao.toLowerCase()}{" "}
             dá acesso a presença, jornada, comentários, relatórios e leituras da {termoGrupoFormacao.toLowerCase()} num só
             lugar. Crie novas, mantenha as ativas em ordem e acompanhe a saúde de cada uma pelos indicadores dos cartões.
           </p>

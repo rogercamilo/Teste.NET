@@ -271,6 +271,7 @@ export default function GrupoFormacaoDetail({
   const [comunidade] = useComunidade();
   const termoFormando = comunidade.termoFormando?.trim() || "Formando";
   const termoGrupoFormacao = comunidade.termoGrupoFormacao?.trim() || "Grupo de Formação";
+  const termoFormador = comunidade.termoFormador?.trim() || "Formador Comunitário";
   const etapaLabels = useEtapaLabels();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -1017,7 +1018,7 @@ export default function GrupoFormacaoDetail({
                 plano e a grade em vigor e os próximos encontros.
               </p>
               <p>
-                Serve ao formador comunitário para ter o controle geral da {termoGrupoFormacao.toLowerCase()} e decidir
+                Serve ao {termoFormador.toLowerCase()} para ter o controle geral da {termoGrupoFormacao.toLowerCase()} e decidir
                 o próximo passo; formador geral e administrador usam para acompanhar. Os detalhes de cada tema ficam nas
                 abas específicas.
               </p>
@@ -1550,7 +1551,7 @@ export default function GrupoFormacaoDetail({
                 ao longo das sessões.
               </p>
               <p>
-                Para o formador comunitário, é o registro fiel da frequência que alimenta o indicador de presença e os
+                Para o {termoFormador.toLowerCase()}, é o registro fiel da frequência que alimenta o indicador de presença e os
                 sinais de atenção — justificados e sessões não marcadas ficam fora do cálculo, para a taxa refletir a
                 realidade da {termoGrupoFormacao.toLowerCase()}.
               </p>
@@ -1871,7 +1872,7 @@ export default function GrupoFormacaoDetail({
                     requisitos e pode avançar) e quem precisa de atenção (atraso no ritmo e/ou presença baixa).
                   </p>
                   <p>
-                    Serve ao formador comunitário para conduzir a {termoGrupoFormacao.toLowerCase()} com base em dados — antecipar as transições de
+                    Serve ao {termoFormador.toLowerCase()} para conduzir a {termoGrupoFormacao.toLowerCase()} com base em dados — antecipar as transições de
                     etapa e agir cedo sobre quem está ficando para trás — e à coordenação (formador geral e
                     administrador) para acompanhar as {termoGrupoFormacao.toLowerCase()}s. Use{" "}
                     <span className="font-medium text-foreground">Exportar</span> para gerar o relatório (PDF/CSV) do
@@ -2072,7 +2073,7 @@ export default function GrupoFormacaoDetail({
               </p>
               <p>
                 É o documento que <span className="font-medium text-foreground">embasa a decisão de avanço de etapa</span>,
-                dá continuidade quando outro formador assume e compõe o registro da caminhada. O formador comunitário
+                dá continuidade quando outro formador assume e compõe o registro da caminhada. O {termoFormador.toLowerCase()}
                 elabora os pareceres da sua {termoGrupoFormacao.toLowerCase()}; formador geral e administrador acompanham.
               </p>
               <p>
