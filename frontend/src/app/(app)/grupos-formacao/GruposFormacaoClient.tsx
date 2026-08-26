@@ -44,6 +44,7 @@ import {
   Calendar,
   ChevronRight,
   Home,
+  Info,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -205,6 +206,26 @@ export default function GruposFormacaoClient({
           <Plus className="h-4 w-4 mr-1.5" />
           Nova {termoGrupoFormacao}
         </Link>
+      </div>
+
+      {/* Nota: objetivo e ganho da tela de grupos de formação para o formador comunitário */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">
+            Para que servem as {termoGrupoFormacao.toLowerCase()}s?
+          </p>
+          <p>
+            Cada {termoGrupoFormacao.toLowerCase()} reúne os formandos que caminham juntos numa mesma etapa formativa,
+            com um formador responsável, período de vigência e — nos grupos estruturados — plano e grade vinculados. É a
+            unidade viva do acompanhamento: onde as pessoas efetivamente se formam.
+          </p>
+          <p>
+            Para o formador comunitário, é o ponto de partida do dia a dia: abrir uma {termoGrupoFormacao.toLowerCase()}{" "}
+            dá acesso a presença, jornada, comentários, relatórios e leituras do grupo num só lugar. Crie novas, mantenha
+            as ativas em ordem e acompanhe a saúde de cada uma pelos indicadores dos cartões.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

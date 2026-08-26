@@ -1538,6 +1538,24 @@ export default function GrupoFormacaoDetail({
 
         {/* TAB PRESENÇA */}
         <TabsContent value="presenca" className="mt-4 space-y-4">
+          <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-foreground font-medium">Presença nos encontros</p>
+              <p>
+                Registre aqui quem esteve presente em cada formação agendada da {termoGrupoFormacao.toLowerCase()}. Use a{" "}
+                <span className="font-medium text-foreground">Chamada</span> para marcar uma sessão — presente, ausente ou
+                justificado, aproveitando o RSVP que o {termoFormando.toLowerCase()} confirma pelo portal — e a{" "}
+                <span className="font-medium text-foreground">Grade</span> para ver o diário de cada {termoFormando.toLowerCase()}{" "}
+                ao longo das sessões.
+              </p>
+              <p>
+                Para o formador comunitário, é o registro fiel da frequência que alimenta o indicador de presença e os
+                sinais de atenção — justificados e sessões não marcadas ficam fora do cálculo, para a taxa refletir a
+                realidade da {termoGrupoFormacao.toLowerCase()}.
+              </p>
+            </div>
+          </div>
           {agendamentosPresenca.length === 0 ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-0">

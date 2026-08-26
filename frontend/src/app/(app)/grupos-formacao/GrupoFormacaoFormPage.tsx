@@ -32,6 +32,7 @@ import {
   Calendar,
   CheckCircle2,
   Home,
+  Info,
   Layers,
   User,
   Users,
@@ -189,6 +190,28 @@ export default function GrupoFormacaoFormPage({
           Preencha os dados abaixo para criar uma nova{" "}
           {termoGrupoFormacao.toLowerCase()} formativa
         </p>
+      </div>
+
+      {/* Nota: objetivo e ganho de criar uma nova grupo de formação */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">
+            Por que criar uma {termoGrupoFormacao.toLowerCase()}?
+          </p>
+          <p>
+            Aqui você abre a turma que vai reunir os formandos: escolha se ela é{" "}
+            <span className="font-medium text-foreground">estruturada</span> (segue as etapas canônicas, com plano e
+            grade) ou <span className="font-medium text-foreground">livre</span> (oração, retiros ou cursos pontuais),
+            defina o formador responsável e o período de vigência. Sem formador, ela nasce inativa — a pré-visualização
+            ao lado mostra como ficará.
+          </p>
+          <p>
+            Para o formador comunitário, é o primeiro passo do acompanhamento: uma vez criada, a{" "}
+            {termoGrupoFormacao.toLowerCase()} passa a concentrar presença, jornada, comentários e relatórios do grupo, e
+            os formandos podem ser cadastrados e progredir pelas etapas.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
