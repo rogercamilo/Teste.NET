@@ -212,7 +212,7 @@ export default function VocacionalClient({ userRole, termoVocacional, formadores
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Nova turma vocacional</DialogTitle>
             <DialogDescription>
@@ -244,49 +244,41 @@ export default function VocacionalClient({ userRole, termoVocacional, formadores
                 </SelectContent>
               </Select>
             </IconField>
-            <IconField icon={BookOpen}>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <Label>Plano formativo</Label>
-                  <Select
-                    value={form.planoId || NENHUM}
-                    onValueChange={(v) => setForm({ ...form, planoId: !v || v === NENHUM ? "" : v })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue>
-                        {form.planoId ? (planos.find((p) => p.id === form.planoId)?.nome ?? "—") : "— Opcional —"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NENHUM}>— Opcional —</SelectItem>
-                      {planos.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label className="flex items-center gap-1.5">
-                    <Library className="h-3.5 w-3.5 text-muted-foreground" /> Grade formativa
-                  </Label>
-                  <Select
-                    value={form.gradeId || NENHUM}
-                    onValueChange={(v) => setForm({ ...form, gradeId: !v || v === NENHUM ? "" : v })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue>
-                        {form.gradeId ? (grades.find((g) => g.id === form.gradeId)?.nome ?? "—") : "— Opcional —"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NENHUM}>— Opcional —</SelectItem>
-                      {grades.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            <IconField icon={BookOpen} label="Plano formativo">
+              <Select
+                value={form.planoId || NENHUM}
+                onValueChange={(v) => setForm({ ...form, planoId: !v || v === NENHUM ? "" : v })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {form.planoId ? (planos.find((p) => p.id === form.planoId)?.nome ?? "—") : "— Opcional —"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NENHUM}>— Opcional —</SelectItem>
+                  {planos.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </IconField>
+            <IconField icon={Library} label="Grade formativa">
+              <Select
+                value={form.gradeId || NENHUM}
+                onValueChange={(v) => setForm({ ...form, gradeId: !v || v === NENHUM ? "" : v })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {form.gradeId ? (grades.find((g) => g.id === form.gradeId)?.nome ?? "—") : "— Opcional —"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NENHUM}>— Opcional —</SelectItem>
+                  {grades.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </IconField>
             <IconField icon={Clock}>
               <div className="grid grid-cols-3 gap-3">
