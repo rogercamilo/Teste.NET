@@ -212,7 +212,7 @@ export default function VocacionalClient({ userRole, termoVocacional, formadores
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Nova turma vocacional</DialogTitle>
             <DialogDescription>
