@@ -11,10 +11,14 @@
  * [[project-livro-registro-vocacional]].
  */
 
+import type { TipoDocumentoEclesiastico } from "@/types";
+
 export type TipoBloco = "paragrafo" | "lista";
 
 export interface BlocoDocumento {
   id: string;
+  /** Documento da Vitrine a que este bloco pertence (agrupa por aba no editor). */
+  documento: TipoDocumentoEclesiastico;
   /** Rótulo curto exibido no editor. */
   label: string;
   /** Ajuda curta no editor. */
@@ -34,6 +38,7 @@ export interface BlocoDocumento {
 export const BLOCOS: BlocoDocumento[] = [
   {
     id: "termo_consagracao.formula",
+    documento: "termo_consagracao",
     label: "Fórmula de consagração",
     descricao: "Texto proferido no Termo de Consagração. Uma linha em branco separa parágrafos.",
     tipo: "paragrafo",
@@ -44,6 +49,7 @@ export const BLOCOS: BlocoDocumento[] = [
   },
   {
     id: "termo_cerimonial.acolhimento",
+    documento: "termo_cerimonial",
     label: "Acolhimento cerimonial",
     descricao: "Palavra de acolhida no Termo Cerimonial de Admissão. Uma linha em branco separa parágrafos.",
     tipo: "paragrafo",
@@ -55,6 +61,7 @@ export const BLOCOS: BlocoDocumento[] = [
   },
   {
     id: "termo_cerimonial.compromisso",
+    documento: "termo_cerimonial",
     label: "Compromisso cerimonial",
     descricao: "Fórmula de compromisso assumida na admissão à etapa.",
     tipo: "paragrafo",
@@ -64,6 +71,7 @@ export const BLOCOS: BlocoDocumento[] = [
   },
   {
     id: "ciencia.preambulo",
+    documento: "ciencia_politicas_internas",
     label: "Preâmbulo das políticas internas",
     descricao: "Introdução da Declaração de Ciência, antes da lista de princípios.",
     tipo: "paragrafo",
@@ -73,6 +81,7 @@ export const BLOCOS: BlocoDocumento[] = [
   },
   {
     id: "ciencia.politicas",
+    documento: "ciencia_politicas_internas",
     label: "Lista de políticas internas",
     descricao: "Princípios e normas de convivência. Um item por linha.",
     tipo: "lista",

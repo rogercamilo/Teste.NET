@@ -6,12 +6,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { ITENS_VITRINE } from "@/lib/vitrine";
 import { BLOCOS } from "@/lib/documentos-eclesiasticos/blocos";
@@ -55,6 +50,8 @@ export default function VitrineClient() {
   const [previewNonce, setPreviewNonce] = useState(() => Date.now());
 
   const modelo = ITENS_VITRINE.find((i) => i.tipo === tipo) ?? ITENS_VITRINE[0];
+  // Blocos de texto editáveis do documento ativo (aba). Alguns documentos não têm.
+  const blocosDoc = BLOCOS.filter((b) => b.documento === tipo);
 
   useEffect(() => {
     let active = true;
@@ -159,57 +156,79 @@ export default function VitrineClient() {
         </div>
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
-        {/* ── Editor ─────────────────────────────────────────────────── */}
-        <div className="min-w-0">
-          {!form ? (
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-24 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              Carregando…
+      {!form ? (
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-24 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          Carregando…
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Vocabulário — global: aplica-se a todos os documentos */}
+          <section className="rounded-xl border border-border bg-card p-4">
+            <div className="mb-3">
+              <h2 className="text-sm font-semibold text-foreground">Vocabulário</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Palavras usadas nos títulos e termos de todos os documentos. Em branco = padrão.
+              </p>
             </div>
-          ) : (
-            <div className="space-y-8">
-              {/* Vocabulário */}
-              <section>
-                <div className="mb-3">
-                  <h2 className="text-sm font-semibold text-foreground">Vocabulário</h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Palavras usadas nos títulos e termos. Em branco = padrão.
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {TERMOS.map(({ campo, label, padrao, exemplos }) => (
+                <div key={campo} className="min-w-0 space-y-1.5">
+                  <Label htmlFor={campo} className="text-xs font-medium leading-tight text-foreground">
+                    {label}
+                  </Label>
+                  <Input
+                    id={campo}
+                    value={form[campo]}
+                    onChange={(e) => updTermo(campo, e.target.value)}
+                    placeholder={padrao}
+                    className="h-9 text-sm"
+                  />
+                  <p className="truncate text-[11px] text-muted-foreground" title={exemplos}>
+                    {exemplos}
                   </p>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {TERMOS.map(({ campo, label, padrao, exemplos }) => (
-                    <div key={campo} className="min-w-0 space-y-1.5">
-                      <Label htmlFor={campo} className="text-xs font-medium leading-tight text-foreground">
-                        {label}
-                      </Label>
-                      <Input
-                        id={campo}
-                        value={form[campo]}
-                        onChange={(e) => updTermo(campo, e.target.value)}
-                        placeholder={padrao}
-                        className="h-9 text-sm"
-                      />
-                      <p className="truncate text-[11px] text-muted-foreground" title={exemplos}>
-                        {exemplos}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              ))}
+            </div>
+          </section>
 
-              <div className="h-px bg-border" />
+          {/* Abas: uma por documento */}
+          <Tabs value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
+            <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <TabsList className="h-auto min-w-max flex-wrap justify-start gap-1 bg-muted/50 p-1">
+                {ITENS_VITRINE.map((item) => (
+                  <TabsTrigger key={item.tipo} value={item.tipo} className="text-xs">
+                    {item.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </Tabs>
 
-              {/* Textos */}
-              <section>
-                <div className="mb-4">
-                  <h2 className="text-sm font-semibold text-foreground">Textos</h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Reescreva as fórmulas. As variáveis entre chaves são preenchidas na emissão.
-                  </p>
+          {/* Corpo do documento ativo: editor (blocos do doc) + prévia ao vivo */}
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
+            {/* Editor do documento */}
+            <div className="min-w-0 space-y-6">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">{modelo.label}</h2>
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{modelo.descricao}</p>
+              </div>
+
+              {blocosDoc.length === 0 ? (
+                <div className="flex items-start gap-2.5 rounded-lg border border-dashed border-border bg-muted/20 p-3 text-xs leading-relaxed text-muted-foreground">
+                  <Info className="mt-px size-3.5 shrink-0 text-primary" />
+                  <span>
+                    Este documento não tem textos personalizáveis: ele é montado a partir do{" "}
+                    <span className="font-medium text-foreground">vocabulário</span> acima e dos dados preenchidos
+                    na emissão. Ajuste o vocabulário para personalizá-lo.
+                  </span>
                 </div>
+              ) : (
                 <div className="space-y-6">
-                  {BLOCOS.map((b) => (
+                  <p className="text-xs text-muted-foreground">
+                    Reescreva as fórmulas deste documento. As variáveis entre chaves são preenchidas na emissão.
+                  </p>
+                  {blocosDoc.map((b) => (
                     <div key={b.id} className="space-y-2">
                       <div>
                         <Label htmlFor={b.id} className="text-sm font-medium text-foreground">
@@ -240,9 +259,9 @@ export default function VitrineClient() {
                     </div>
                   ))}
                 </div>
-              </section>
+              )}
 
-              {/* Identidade visual — vive em Configurações (logo/cor são globais do app) */}
+              {/* Identidade visual — global (logo/cor vivem em Configurações) */}
               <div className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
                 <Palette className="mt-px size-3.5 shrink-0" />
                 <span>
@@ -257,65 +276,52 @@ export default function VitrineClient() {
                 </span>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* ── Prévia ao vivo ─────────────────────────────────────────── */}
-        <div className="lg:sticky lg:top-6 lg:self-start">
-          <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-            {/* Barra da prévia */}
-            <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2.5">
-              <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
-                <SelectTrigger className="h-9 w-full max-w-[280px] border-0 bg-transparent px-2 text-sm font-medium shadow-none focus:ring-0 focus-visible:ring-0">
-                  <span className="truncate">{modelo.label}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {ITENS_VITRINE.map((item) => (
-                    <SelectItem key={item.tipo} value={item.tipo} className="text-sm">
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-3">
-                <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
-                  <span className="relative flex size-1.5">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60" />
-                    <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
-                  </span>
-                  ao vivo
-                </span>
-                <a
-                  href={`/api/vitrine/${tipo}?v=${previewNonce}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={buttonVariants({ variant: "ghost", size: "sm" }) + " h-8 gap-1.5 text-muted-foreground"}
-                >
-                  <ExternalLink className="size-3.5" />
-                  <span className="hidden sm:inline">Abrir</span>
-                </a>
-              </div>
-            </div>
+            {/* Prévia ao vivo do documento ativo */}
+            <div className="lg:sticky lg:top-6 lg:self-start">
+              <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2.5">
+                  <span className="truncate px-1 text-sm font-medium text-foreground">{modelo.label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
+                      <span className="relative flex size-1.5">
+                        <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60" />
+                        <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
+                      </span>
+                      ao vivo
+                    </span>
+                    <a
+                      href={`/api/vitrine/${tipo}?v=${previewNonce}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={buttonVariants({ variant: "ghost", size: "sm" }) + " h-8 gap-1.5 text-muted-foreground"}
+                    >
+                      <ExternalLink className="size-3.5" />
+                      <span className="hidden sm:inline">Abrir</span>
+                    </a>
+                  </div>
+                </div>
 
-            {/* Palco do documento */}
-            <div className="bg-muted/40 p-4 sm:p-6">
-              <div className="mx-auto max-w-[620px] overflow-hidden rounded-md bg-white shadow-lg ring-1 ring-black/5">
-                <iframe
-                  key={`${tipo}-${previewNonce}`}
-                  src={previewSrc}
-                  title={`Modelo: ${modelo.label}`}
-                  className="h-[calc(100vh-15rem)] min-h-[520px] w-full"
-                />
+                <div className="bg-muted/40 p-4 sm:p-6">
+                  <div className="mx-auto max-w-[620px] overflow-hidden rounded-md bg-white shadow-lg ring-1 ring-black/5">
+                    <iframe
+                      key={`${tipo}-${previewNonce}`}
+                      src={previewSrc}
+                      title={`Modelo: ${modelo.label}`}
+                      className="h-[calc(100vh-15rem)] min-h-[520px] w-full"
+                    />
+                  </div>
+                </div>
               </div>
+              <p className="mt-2 px-1 text-xs leading-relaxed text-muted-foreground">
+                Prévia com <strong className="font-medium text-foreground">dados fictícios</strong> e marca
+                d&apos;água &ldquo;MODELO — SEM VALIDADE&rdquo; — já reflete o vocabulário, os textos e a
+                identidade visual da sua comunidade.
+              </p>
             </div>
           </div>
-          <p className="mt-2 px-1 text-xs leading-relaxed text-muted-foreground">
-            Prévia com <strong className="font-medium text-foreground">dados fictícios</strong> e marca
-            d&apos;água &ldquo;MODELO — SEM VALIDADE&rdquo; — já reflete o vocabulário, os textos e a
-            identidade visual da sua comunidade.
-          </p>
         </div>
-      </div>
+      )}
 
       {/* Barra de ações fixa — só quando há mudanças pendentes */}
       {dirty && form && (
