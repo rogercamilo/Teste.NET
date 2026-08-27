@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { BookMarked, Download, FileSignature, Lock, Plus, ScrollText } from "lucide-react";
+import { BookMarked, Download, FileSignature, Info, Lock, Plus, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -188,6 +188,27 @@ export default function LivroRegistroClient({
               <Plus className="h-4 w-4" /> Lavrar termo
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Nota: o que é o Livro e como os termos chegam aqui */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">O Livro de Registro Geral</p>
+          <p>
+            É o livro cartorial da comunidade: reúne os assentos cronológicos e imutáveis (append-only) da jornada
+            vocacional, organizados em Tomos — cada um com termo de abertura e de encerramento — e Termos numerados.
+            Nada é apagado: uma correção entra como um novo <span className="font-medium">termo de retificação</span>,
+            preservando o histórico.
+          </p>
+          <p>
+            A maior parte dos termos é lavrada <span className="font-medium">automaticamente</span> quando os atos
+            acontecem nas outras telas (ingresso e término no Período Vocacional, promessas no Livro de Promessas,
+            conclusões na Jornada Vocacional). Aqui o administrador abre e encerra tomos, exporta o PDF e lavra
+            manualmente os poucos termos sem processo de origem (falecimento, dispensa, término de licença,
+            retificação).
+          </p>
         </div>
       </div>
 
