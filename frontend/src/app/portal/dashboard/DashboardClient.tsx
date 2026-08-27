@@ -24,6 +24,7 @@ import {
   Eye,
   Cake,
   UserRound,
+  Info,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -287,6 +288,28 @@ export default function DashboardClient({
               {formando.grupoFormacao && (
                 <> · Grupo {formando.grupoFormacao.nome}</>
               )}
+            </p>
+          </div>
+        </div>
+
+        {/* Nota: o que a pessoa encontra no seu portal (texto por público) */}
+        <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+          <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+          <div className="space-y-1.5">
+            <p className="text-foreground font-medium">O que você encontra aqui</p>
+            <p>
+              {isVocacionado ? (
+                <>
+                  Este é o seu espaço no período vocacional. Acompanhe seus próximos encontros e confirme presença,
+                  avance na sua Travessia de leitura e partilhe seus frutos com a turma, e mantenha seu perfil em dia.
+                </>
+              ) : (
+                <>
+                  Este é o seu espaço na comunidade. Acompanhe seus próximos encontros e confirme presença, veja sua
+                  etapa formativa, acesse suas leituras e materiais, e mantenha seu perfil em dia.
+                </>
+              )}{" "}
+              Tudo é atualizado pela sua comunidade — quando algo muda, você é avisado por aqui.
             </p>
           </div>
         </div>
