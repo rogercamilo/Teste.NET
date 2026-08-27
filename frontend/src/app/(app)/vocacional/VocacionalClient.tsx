@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Sprout, Users, HeartHandshake } from "lucide-react";
+import { Info, Plus, Sprout, Users, HeartHandshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
@@ -116,6 +116,25 @@ export default function VocacionalClient({ userRole, termoVocacional, formadores
             <Plus className="h-4 w-4" /> Nova turma
           </Button>
         )}
+      </div>
+
+      {/* Nota: o que é a seção e como se conecta */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">Como esta seção funciona</p>
+          <p>
+            Reúne as turmas de discernimento vocacional — grupos onde os vocacionados são acompanhados por um período
+            (com retiros, leituras e acompanhamento individual) antes do pedido de ingresso. Cada turma reutiliza a
+            estrutura dos grupos de formação (agenda, presença, plano e grade), então o dia a dia é o mesmo que você já
+            conhece.
+          </p>
+          <p>
+            Abra uma turma para inscrever vocacionados, registrar a carta de discernimento e conduzir o desfecho — cada
+            passo lavra o termo correspondente no Livro de Registro. O acompanhamento individual é sigiloso (foro
+            íntimo): o vocacionado não o vê.
+          </p>
+        </div>
       </div>
 
       {turmas.length === 0 ? (

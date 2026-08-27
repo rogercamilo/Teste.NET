@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft, Plus, Users, Sprout, FileText, HeartHandshake, Lock,
-  CheckCircle2, XCircle, Upload, Calendar, Pencil,
+  CheckCircle2, XCircle, Upload, Calendar, Pencil, Info,
   Heart, MessageSquareText, ChevronDown, Send, Megaphone, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -156,6 +156,23 @@ export default function TurmaDetailClient(props: Props) {
             <Plus className="h-4 w-4" /> Inscrever vocacionado
           </Button>
         )}
+      </div>
+
+      {/* Nota: como conduzir a turma */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">Como acompanhar esta turma</p>
+          <p>
+            Aqui você conduz cada vocacionado: inscreva participantes, registre a carta de discernimento (upload) e,
+            após a decisão das autoridades, registre o desfecho — cada ação lavra o termo correspondente no Livro de
+            Registro. As leituras e a Travessia abaixo alimentam o portal do vocacionado.
+          </p>
+          <p>
+            O acompanhamento individual é confidencial (foro íntimo): fica visível só aos formadores responsáveis pelo
+            acompanhamento — o vocacionado nunca vê essas anotações.
+          </p>
+        </div>
       </div>
 
       {participacoes.length === 0 ? (
