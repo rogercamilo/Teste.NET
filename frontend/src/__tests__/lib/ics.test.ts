@@ -58,6 +58,25 @@ describe("buildEventIcs", () => {
   });
 });
 
+describe("buildEventIcs — dia inteiro", () => {
+  // Evento de dia inteiro em 15/07/2026 (fuso America/Sao_Paulo, UTC-3):
+  // início 00:00 BRT = 03:00Z; fim 23:59 BRT = 02:59Z do dia seguinte.
+  const allDay: CalendarEvent = {
+    id: "ag_dia",
+    title: "Retiro",
+    start: "2026-07-15T03:00:00.000Z",
+    end: "2026-07-16T02:59:00.000Z",
+    allDay: true,
+  };
+  const ics = buildEventIcs(allDay, "2026-07-01T12:00:00.000Z");
+
+  it("usa VALUE=DATE e DTEND exclusivo (dia seguinte), sem rolar o fuso", () => {
+    expect(ics).toContain("DTSTART;VALUE=DATE:20260715");
+    expect(ics).toContain("DTEND;VALUE=DATE:20260716");
+    expect(ics).not.toContain("DTSTART:2026");
+  });
+});
+
 describe("googleCalendarUrl", () => {
   it("monta a URL TEMPLATE com datas UTC e parâmetros codificados", () => {
     const url = googleCalendarUrl(evento);
@@ -65,6 +84,17 @@ describe("googleCalendarUrl", () => {
     expect(url).toContain("action=TEMPLATE");
     expect(url).toContain("dates=20260715T183000Z%2F20260715T200000Z");
     expect(url).toContain("location=Sal%C3%A3o+Paroquial");
+  });
+
+  it("usa datas puras (YYYYMMDD) em evento de dia inteiro", () => {
+    const url = googleCalendarUrl({
+      id: "ag_dia",
+      title: "Retiro",
+      start: "2026-07-15T03:00:00.000Z",
+      end: "2026-07-16T02:59:00.000Z",
+      allDay: true,
+    });
+    expect(url).toContain("dates=20260715%2F20260716");
   });
 });
 

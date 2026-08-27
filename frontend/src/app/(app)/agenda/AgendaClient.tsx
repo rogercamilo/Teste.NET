@@ -875,6 +875,7 @@ function AgendamentoCard({
                     title: ag.formacaoTema,
                     start: ag.dataInicio,
                     end: ag.dataFim,
+                    allDay: ag.diaInteiro,
                     description:
                       [ag.observacoes, ag.linkOnline ? `Online: ${ag.linkOnline}` : null]
                         .filter(Boolean)

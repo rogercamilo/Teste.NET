@@ -54,6 +54,16 @@ export function formatDataBr(date: Date): string {
   });
 }
 
+/** Só a data (sem hora) no fuso da comunidade — para eventos de "Dia inteiro". */
+export function formatDiaBr(date: Date): string {
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "America/Sao_Paulo",
+  });
+}
+
 /**
  * Converte o campo foto/imagemUrl do banco no src correto para <img>.
  * - base64 legado (começa com "data:"): retorna direto

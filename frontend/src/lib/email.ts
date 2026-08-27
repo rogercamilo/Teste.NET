@@ -23,7 +23,7 @@ import { isEmailSuppressed } from "./email-suppression";
 import { prisma } from "./prisma";
 import { assertPublicHost } from "./ssrf";
 import { buildEventIcs, icsFileName, type CalendarEvent } from "./ics";
-import { formatDataBr } from "./utils";
+import { formatDataBr, formatDiaBr } from "./utils";
 import {
   PLATFORM_ORG_ID,
   EBOOK_URL,
@@ -874,9 +874,15 @@ type AgendamentoEmail = {
   formacaoTema: string;
   dataInicio: Date;
   dataFim: Date;
+  diaInteiro?: boolean;
   local?: string | null;
   linkOnline?: string | null;
 };
+
+/** Texto de "quando" do encontro: data+hora, ou data + "Dia inteiro". */
+function agendamentoQuando(ag: AgendamentoEmail): string {
+  return ag.diaInteiro ? `${formatDiaBr(ag.dataInicio)} · Dia inteiro` : formatDataBr(ag.dataInicio);
+}
 
 /** Anexo `.ics` do encontro (reuso entre criação e lembrete). */
 function agendamentoIcsAttachment(ag: AgendamentoEmail): EmailAttachment {
@@ -885,6 +891,7 @@ function agendamentoIcsAttachment(ag: AgendamentoEmail): EmailAttachment {
     title: ag.formacaoTema || "Encontro formativo",
     start: ag.dataInicio,
     end: ag.dataFim,
+    allDay: ag.diaInteiro,
     location: ag.local ?? ag.linkOnline ?? undefined,
   };
   const ics = buildEventIcs(evento);
@@ -897,7 +904,7 @@ function agendamentoIcsAttachment(ag: AgendamentoEmail): EmailAttachment {
 
 /** Bloco de detalhes (Quando/Local/Online) via keyValues. */
 function agendamentoDetalhes(ag: AgendamentoEmail): string {
-  const linhas: { label: string; value: string }[] = [{ label: "Quando", value: formatDataBr(ag.dataInicio) }];
+  const linhas: { label: string; value: string }[] = [{ label: "Quando", value: agendamentoQuando(ag) }];
   if (ag.local) linhas.push({ label: "Local", value: escapeHtml(ag.local) });
   if (ag.linkOnline) {
     linhas.push({
@@ -949,7 +956,7 @@ export async function sendAgendamentoReminderEmail({
 }): Promise<{ sent: boolean; error?: string }> {
   const antecedencia = quando === "24h" ? "amanhã" : "em cerca de 2 horas";
   const tema = escapeHtml(agendamento.formacaoTema || "Encontro formativo");
-  const quandoTxt = formatDataBr(agendamento.dataInicio);
+  const quandoTxt = agendamentoQuando(agendamento);
 
   const base = appUrl.replace(/\/+$/, "");
   const agendaUrl = `${base}/agenda`;
@@ -996,7 +1003,7 @@ export async function sendAgendamentoCriadoEmail({
   rsvpToken?: string;
 }): Promise<{ sent: boolean; error?: string }> {
   const tema = escapeHtml(agendamento.formacaoTema || "Encontro formativo");
-  const quandoTxt = formatDataBr(agendamento.dataInicio);
+  const quandoTxt = agendamentoQuando(agendamento);
   const base = appUrl.replace(/\/+$/, "");
   const agendaUrl = `${base}/agenda`;
 

@@ -52,6 +52,7 @@ export interface PortalProximoEncontro {
   acompanhamentoComunitario: boolean;
   dataInicio: string; // ISO
   dataFim: string; // ISO
+  diaInteiro: boolean;
   local: string | null;
   // Estado de resposta do formando (RSVP). `podeResponder` só é true quando já
   // existe registro de presença para o agendamento — pré-requisito dos endpoints
@@ -808,6 +809,7 @@ export async function getPortalDashboardData(
           tipoEvento: true,
           dataInicio: true,
           dataFim: true,
+          diaInteiro: true,
           local: true,
         },
         orderBy: { dataInicio: "asc" },
@@ -923,6 +925,7 @@ export async function getPortalDashboardData(
       acompanhamentoComunitario: a.tipoEvento === "acompanhamento_comunitario",
       dataInicio: a.dataInicio.toISOString(),
       dataFim: a.dataFim.toISOString(),
+      diaInteiro: a.diaInteiro,
       local: a.local,
       confirmacaoFormando: respostaPorAgendamento.get(a.id) ?? null,
       // Todo encontro futuro em que o formando está envolvido é respondível — a

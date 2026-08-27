@@ -229,6 +229,7 @@ export function CompromissosTab({
                           title: c.titulo,
                           start: c.dataInicio,
                           end: c.dataFim,
+                          allDay: c.diaInteiro,
                           description: c.descricao,
                           location: c.local ?? (c.linkOnline ?? undefined),
                         }}

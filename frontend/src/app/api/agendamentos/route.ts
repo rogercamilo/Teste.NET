@@ -422,6 +422,7 @@ async function notificarCriacaoPorEmail(
     formacaoTema: string;
     dataInicio: Date;
     dataFim: Date;
+    diaInteiro: boolean;
     local: string | null;
     linkOnline: string | null;
   },
@@ -446,6 +447,7 @@ async function notificarCriacaoPorEmail(
           formacaoTema: row.formacaoTema,
           dataInicio: row.dataInicio,
           dataFim: row.dataFim,
+          diaInteiro: row.diaInteiro,
           local: row.local,
           linkOnline: row.linkOnline,
         },

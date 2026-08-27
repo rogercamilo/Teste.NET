@@ -88,9 +88,9 @@ const fmtHora = new Intl.DateTimeFormat("pt-BR", {
 });
 const fmtMes = new Intl.DateTimeFormat("pt-BR", { month: "long" });
 
-function formatEncontro(iso: string): string {
+function formatEncontro(iso: string, diaInteiro?: boolean): string {
   const d = new Date(iso);
-  return `${fmtData.format(d)} · ${fmtHora.format(d)}`;
+  return diaInteiro ? `${fmtData.format(d)} · Dia inteiro` : `${fmtData.format(d)} · ${fmtHora.format(d)}`;
 }
 
 export default function DashboardClient({
@@ -698,7 +698,7 @@ function ProximoEncontroItem({ encontro }: { encontro: PortalProximoEncontro }) 
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
-              {formatEncontro(encontro.dataInicio)}
+              {formatEncontro(encontro.dataInicio, encontro.diaInteiro)}
             </span>
             {encontro.local && (
               <span className="flex items-center gap-1">
@@ -729,6 +729,7 @@ function ProximoEncontroItem({ encontro }: { encontro: PortalProximoEncontro }) 
             title: titulo,
             start: encontro.dataInicio,
             end: encontro.dataFim,
+            allDay: encontro.diaInteiro,
             description: tipoLabel ?? undefined,
             location: encontro.local ?? undefined,
           }}

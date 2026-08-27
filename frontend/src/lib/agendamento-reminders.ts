@@ -34,6 +34,7 @@ const REMINDER_SELECT = {
   formacaoTema: true,
   dataInicio: true,
   dataFim: true,
+  diaInteiro: true,
   local: true,
   linkOnline: true,
 } as const;
@@ -46,6 +47,7 @@ type ReminderRow = {
   formacaoTema: string;
   dataInicio: Date;
   dataFim: Date;
+  diaInteiro: boolean;
   local: string | null;
   linkOnline: string | null;
 };
