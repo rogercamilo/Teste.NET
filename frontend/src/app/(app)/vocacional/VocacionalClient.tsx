@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Info, Plus, Sprout, Users, HeartHandshake } from "lucide-react";
+import { BookOpen, Clock, HeartHandshake, Info, Library, MapPin, Plus, Sprout, Type, User, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,14 +11,25 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { IconField } from "@/components/forms/icon-field";
 import { isGestao } from "@/types";
 import { useTermos } from "@/lib/data-store";
+
+/** Sentinela para a opção "nenhum" nos selects (base-ui não aceita value vazio). */
+const NENHUM = "__nenhum__";
 
 interface Option {
   id: string;
@@ -209,78 +220,101 @@ export default function VocacionalClient({ userRole, termoVocacional, formadores
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label>Nome da turma *</Label>
+            <IconField icon={Type} label="Nome da turma" required>
               <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex.: Vocacional 2026" />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Local de reunião</Label>
+            </IconField>
+            <IconField icon={MapPin} label="Local de reunião">
               <Input value={form.localReuniao} onChange={(e) => setForm({ ...form, localReuniao: e.target.value })} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>{termoFormador} responsável</Label>
-              <select
-                className="h-9 rounded-md border border-border bg-background px-2 text-sm"
-                value={form.formadorId}
-                onChange={(e) => setForm({ ...form, formadorId: e.target.value })}
+            </IconField>
+            <IconField icon={User} label={`${termoFormador} responsável`}>
+              <Select
+                value={form.formadorId || NENHUM}
+                onValueChange={(v) => setForm({ ...form, formadorId: !v || v === NENHUM ? "" : v })}
               >
-                <option value="">— Selecionar —</option>
-                {formadores.map((f) => (
-                  <option key={f.id} value={f.id}>{f.nome}</option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Plano formativo</Label>
-                <select
-                  className="h-9 rounded-md border border-border bg-background px-2 text-sm"
-                  value={form.planoId}
-                  onChange={(e) => setForm({ ...form, planoId: e.target.value })}
-                >
-                  <option value="">— Opcional —</option>
-                  {planos.map((p) => (
-                    <option key={p.id} value={p.id}>{p.nome}</option>
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {form.formadorId ? (formadores.find((f) => f.id === form.formadorId)?.nome ?? "—") : "— Selecionar —"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NENHUM}>— Selecionar —</SelectItem>
+                  {formadores.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
                   ))}
-                </select>
+                </SelectContent>
+              </Select>
+            </IconField>
+            <IconField icon={BookOpen}>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>Plano formativo</Label>
+                  <Select
+                    value={form.planoId || NENHUM}
+                    onValueChange={(v) => setForm({ ...form, planoId: !v || v === NENHUM ? "" : v })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {form.planoId ? (planos.find((p) => p.id === form.planoId)?.nome ?? "—") : "— Opcional —"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NENHUM}>— Opcional —</SelectItem>
+                      {planos.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label className="flex items-center gap-1.5">
+                    <Library className="h-3.5 w-3.5 text-muted-foreground" /> Grade formativa
+                  </Label>
+                  <Select
+                    value={form.gradeId || NENHUM}
+                    onValueChange={(v) => setForm({ ...form, gradeId: !v || v === NENHUM ? "" : v })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {form.gradeId ? (grades.find((g) => g.id === form.gradeId)?.nome ?? "—") : "— Opcional —"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NENHUM}>— Opcional —</SelectItem>
+                      {grades.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="grid gap-1.5">
-                <Label>Grade formativa</Label>
-                <select
-                  className="h-9 rounded-md border border-border bg-background px-2 text-sm"
-                  value={form.gradeId}
-                  onChange={(e) => setForm({ ...form, gradeId: e.target.value })}
-                >
-                  <option value="">— Opcional —</option>
-                  {grades.map((g) => (
-                    <option key={g.id} value={g.id}>{g.nome}</option>
-                  ))}
-                </select>
+            </IconField>
+            <IconField icon={Clock}>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>Início</Label>
+                  <Input type="date" value={form.vigenciaInicio} onChange={(e) => setForm({ ...form, vigenciaInicio: e.target.value })} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Duração (meses)</Label>
+                  <Input type="number" min={1} max={24} value={form.vocacionalDuracaoMeses} onChange={(e) => setForm({ ...form, vocacionalDuracaoMeses: parseInt(e.target.value, 10) || 0 })} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Retiros</Label>
+                  <Input type="number" min={0} max={50} value={form.vocacionalTotalRetiros} onChange={(e) => setForm({ ...form, vocacionalTotalRetiros: parseInt(e.target.value, 10) || 0 })} />
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Início</Label>
-                <Input type="date" value={form.vigenciaInicio} onChange={(e) => setForm({ ...form, vigenciaInicio: e.target.value })} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Duração (meses)</Label>
-                <Input type="number" min={1} max={24} value={form.vocacionalDuracaoMeses} onChange={(e) => setForm({ ...form, vocacionalDuracaoMeses: parseInt(e.target.value, 10) || 0 })} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Retiros</Label>
-                <Input type="number" min={0} max={50} value={form.vocacionalTotalRetiros} onChange={(e) => setForm({ ...form, vocacionalTotalRetiros: parseInt(e.target.value, 10) || 0 })} />
-              </div>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="checkbox"
-                checked={form.vocacionalAcompanhamentoAtivo}
-                onChange={(e) => setForm({ ...form, vocacionalAcompanhamentoAtivo: e.target.checked })}
-                className="h-4 w-4 rounded border-border"
-              />
-              Oferecer acompanhamento individual nesta turma
-            </label>
+            </IconField>
+            <IconField icon={HeartHandshake}>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.vocacionalAcompanhamentoAtivo}
+                  onChange={(e) => setForm({ ...form, vocacionalAcompanhamentoAtivo: e.target.checked })}
+                  className="h-4 w-4 rounded border-border"
+                />
+                Oferecer acompanhamento individual nesta turma
+              </label>
+            </IconField>
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" size="sm" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>

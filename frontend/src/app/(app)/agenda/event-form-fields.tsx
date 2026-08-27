@@ -6,42 +6,13 @@
  * toggle "Dia inteiro". Compartilhadas pelos formulários de Agendar/Editar evento
  * e de compromisso pessoal para manter o comportamento do "Dia inteiro" idêntico.
  */
-import type { ComponentType, ReactNode } from "react";
 import { Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { IconField } from "@/components/forms/icon-field";
 
-/** Linha de campo: ícone à esquerda + rótulo opcional + controle + dica opcional. */
-export function IconField({
-  icon: Icon,
-  label,
-  required,
-  hint,
-  children,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label?: string;
-  required?: boolean;
-  hint?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex gap-3">
-      <Icon className="mt-2.5 h-4 w-4 shrink-0 text-muted-foreground" />
-      <div className="grid min-w-0 flex-1 gap-1.5">
-        {label && (
-          <Label>
-            {label}
-            {required && <span className="text-destructive"> *</span>}
-          </Label>
-        )}
-        {children}
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-      </div>
-    </div>
-  );
-}
+// Re-exporta a primitiva compartilhada para os importadores existentes da Agenda.
+export { IconField };
 
 type DateTimePatch = { dataInicio?: string; dataFim?: string; diaInteiro?: boolean };
 type CampoData = "dataInicio" | "dataFim";
