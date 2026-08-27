@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ScrollText } from "lucide-react";
+import { Info, ScrollText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -72,6 +72,21 @@ export default function LivroPromessasClient({ orgNome, registros }: Props) {
             </SelectContent>
           </Select>
         )}
+      </div>
+
+      {/* Nota: o que é o Livro e como os assentos chegam aqui */}
+      <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-foreground font-medium">O Livro de Promessas</p>
+          <p>
+            Livro cartorial dedicado às consagrações da comunidade: cada assento (Tomo · Folha · Registro) guarda a
+            fórmula professada e os dados da celebração — imutável. Os assentos são lavrados{" "}
+            <span className="font-medium">automaticamente</span> na conclusão do processo de promessa na Jornada
+            Vocacional; esta tela é só de consulta (buscar e filtrar por tipo). Um termo referencial de cada promessa
+            também entra no Livro de Registro Geral.
+          </p>
+        </div>
       </div>
 
       {lista.length === 0 ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Loader2, Palette, RotateCcw, Save, Stamp } from "lucide-react";
+import { ExternalLink, Info, Loader2, Palette, RotateCcw, Save, Stamp } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -143,6 +143,20 @@ export default function VitrineClient() {
           As alterações valem para <strong className="font-medium text-foreground">emissões futuras</strong>;
           documentos já assinados permanecem inalterados.
         </p>
+
+        {/* Nota: o que é a seção e onde os documentos são de fato emitidos */}
+        <div className="mt-4 flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+          <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+          <div className="space-y-1.5">
+            <p className="text-foreground font-medium">Como esta seção funciona</p>
+            <p>
+              Esta é a tela de <span className="font-medium">personalização</span>: você adapta o vocabulário e as
+              fórmulas dos documentos canônicos às palavras da sua comunidade e confere na prévia ao vivo (dados
+              fictícios, marca d&apos;água &ldquo;MODELO&rdquo;). A <span className="font-medium">emissão oficial</span>
+              {" "}dos documentos acontece na Jornada Vocacional — aqui você só define como eles ficam.
+            </p>
+          </div>
+        </div>
       </header>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
