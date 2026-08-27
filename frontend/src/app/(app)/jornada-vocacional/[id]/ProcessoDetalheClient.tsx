@@ -54,6 +54,7 @@ import {
   type TermosProcesso,
 } from "@/lib/jornada-vocacional";
 import { DocumentoViewer } from "@/components/documentos/DocumentoViewer";
+import { useTermos } from "@/lib/data-store";
 
 // Formando extra fields not in base ProcessoEclesiastico type
 interface FormandoDetalhe {
@@ -118,6 +119,7 @@ const STATUS_ICONS: Partial<Record<StatusProcessoEclesiastico, React.ElementType
 
 export default function ProcessoDetalheClient({ processo: initial, userRole, termos, promessaTipo, promessaFormulaDefault }: Props) {
   const router = useRouter();
+  const { formando: termoFormando } = useTermos();
   const [processo, setProcesso] = useState<ProcessoCompleto>(initial);
   const [isPending, startTransition] = useTransition();
   const [dadosForm, setDadosForm] = useState<Record<string, unknown>>(
@@ -341,6 +343,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
       <ProcessoGuia
         status={processo.status}
         tipoLabel={getTipoLabel(processo.tipo, termos)}
+        termoFormando={termoFormando}
         nome={f.nome}
         minhaVez={minhaVez}
         responsavelLabel={resp?.papelLabel ?? null}
@@ -523,7 +526,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
               <CardTitle className="text-base">Dados do processo</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <InfoRow label="Membro" value={f.nome} />
+              <InfoRow label={termoFormando} value={f.nome} />
               <InfoRow label="Tipo" value={getTipoLabel(processo.tipo, termos)} />
               <InfoRow label="Etapa" value={processo.nivelFormativo} />
               <InfoRow label="Status" value={STATUS_PROCESSO_LABELS[processo.status]} />
@@ -838,7 +841,7 @@ const FLUXO_ETAPAS: { status: StatusProcessoEclesiastico; titulo: string }[] = [
   { status: "concluido",    titulo: "Concluído" },
 ];
 
-function proximoPassoTexto(status: StatusProcessoEclesiastico): string {
+function proximoPassoTexto(status: StatusProcessoEclesiastico, termoFormando: string): string {
   switch (status) {
     case "rascunho":
       return "Use “Iniciar processo” no topo para criar automaticamente a lista de documentos canônicos desta etapa e começar o preenchimento.";
@@ -851,7 +854,7 @@ function proximoPassoTexto(status: StatusProcessoEclesiastico): string {
     case "concluido":
       return "Processo concluído. Os documentos oficiais ficam disponíveis na aba Documentos.";
     case "rejeitado":
-      return "O processo foi encerrado como rejeitado. Para retomar, abra um novo processo para o membro.";
+      return `O processo foi encerrado como rejeitado. Para retomar, abra um novo processo para o ${termoFormando.toLowerCase()}.`;
     case "cancelado":
       return "Este processo foi cancelado e não terá andamento.";
     default:
@@ -884,13 +887,14 @@ function mensagemTransicao(
 }
 
 function ProcessoGuia({
-  status, tipoLabel, nome,
+  status, tipoLabel, termoFormando, nome,
   minhaVez, responsavelLabel, responsavelAcao,
   docsPendentes, totalDocs, motivoDevolucao,
   podeCriarDocumentos, criandoDocumentos, onCriarDocumentos,
 }: {
   status: StatusProcessoEclesiastico;
   tipoLabel: string;
+  termoFormando: string;
   nome: string;
   minhaVez: boolean;
   responsavelLabel: string | null;
@@ -1016,7 +1020,7 @@ function ProcessoGuia({
           <span className="text-[11px] font-semibold uppercase tracking-wide text-primary shrink-0 mt-0.5">
             Próximo passo
           </span>
-          <p className="text-sm text-foreground/90 leading-relaxed">{proximoPassoTexto(status)}</p>
+          <p className="text-sm text-foreground/90 leading-relaxed">{proximoPassoTexto(status, termoFormando)}</p>
         </div>
       </CardContent>
     </Card>
