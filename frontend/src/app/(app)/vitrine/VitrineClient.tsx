@@ -195,10 +195,10 @@ export default function VitrineClient() {
           {/* Abas: uma por documento */}
           <Tabs value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
             <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <TabsList className="h-auto min-w-max flex-wrap justify-start gap-1 bg-muted/50 p-1">
+              <TabsList className="min-w-max justify-start gap-1 bg-muted/50 p-1">
                 {ITENS_VITRINE.map((item) => (
-                  <TabsTrigger key={item.tipo} value={item.tipo} className="text-xs">
-                    {item.label}
+                  <TabsTrigger key={item.tipo} value={item.tipo} className="text-xs" title={item.label}>
+                    {item.labelCurto}
                   </TabsTrigger>
                 ))}
               </TabsList>
