@@ -64,6 +64,7 @@ export async function POST(request: Request) {
         tipo: body.tipo,
         dataInicio: new Date(body.dataInicio),
         dataFim: new Date(body.dataFim ?? body.dataInicio),
+        diaInteiro: body.diaInteiro ?? false,
         local: body.local || null,
         linkOnline: body.linkOnline || null,
         formandoId,

@@ -281,6 +281,8 @@ export interface Agendamento {
   formadorNome: string;
   dataInicio: string;
   dataFim: string;
+  /** Evento de dia inteiro (sem horário): a UI oculta a hora e exibe "Dia inteiro". */
+  diaInteiro?: boolean;
   local?: string;
   linkOnline?: string;
   status: StatusFormacao;
@@ -422,6 +424,8 @@ export interface Compromisso {
   descricao?: string;
   dataInicio: string;
   dataFim: string;
+  /** Compromisso de dia inteiro (sem horário) — ver Agendamento.diaInteiro. */
+  diaInteiro?: boolean;
   local?: string;
   linkOnline?: string;
   tipo: TipoCompromisso;

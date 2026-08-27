@@ -15,7 +15,7 @@ export type PrismaAgendamento = {
   tipoEvento: string;
   nivelFormativo: string; tipoFormacao: string; formadorId: string; formadorNome: string;
   grupoFormacaoId: string | null;
-  dataInicio: Date; dataFim: Date; local: string | null; linkOnline: string | null;
+  dataInicio: Date; dataFim: Date; diaInteiro: boolean; local: string | null; linkOnline: string | null;
   status: string; participantes: number; observacoes: string | null;
   googleCalendarEventId: string | null; criadoEm: Date;
   grupos?: { grupoFormacaoId: string }[];
@@ -27,7 +27,7 @@ export type PrismaAgendamento = {
 
 export type PrismaCompromisso = {
   id: string; organizacaoId: string; formadorId: string; titulo: string; descricao: string | null;
-  dataInicio: Date; dataFim: Date; local: string | null; linkOnline: string | null;
+  dataInicio: Date; dataFim: Date; diaInteiro: boolean; local: string | null; linkOnline: string | null;
   tipo: string; formandoId: string | null; formandoNome: string | null;
   googleCalendarEventId: string | null; criadoEm: Date;
 };
@@ -141,6 +141,7 @@ export function toAgendamento(a: PrismaAgendamento): Agendamento {
         ? [a.grupoFormacaoId]
         : [],
     dataInicio: a.dataInicio.toISOString(), dataFim: a.dataFim.toISOString(),
+    diaInteiro: a.diaInteiro,
     local: a.local ?? undefined, linkOnline: a.linkOnline ?? undefined,
     status: a.status as Agendamento["status"], participantes: a.participantes,
     acompanhadoFormandoId: a.acompanhadoFormandoId ?? undefined,
@@ -157,6 +158,7 @@ export function toCompromisso(c: PrismaCompromisso): Compromisso {
     id: c.id, formadorId: c.formadorId, titulo: c.titulo,
     descricao: c.descricao ?? undefined,
     dataInicio: c.dataInicio.toISOString(), dataFim: c.dataFim.toISOString(),
+    diaInteiro: c.diaInteiro,
     local: c.local ?? undefined, linkOnline: c.linkOnline ?? undefined,
     tipo: c.tipo as TipoCompromisso,
     formandoId: c.formandoId ?? undefined, formandoNome: c.formandoNome ?? undefined,

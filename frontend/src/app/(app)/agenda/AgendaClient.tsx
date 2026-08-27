@@ -42,7 +42,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompromissosTab } from "./CompromissosTab";
 import { FormacaoCombobox } from "./FormacaoCombobox";
+import { DateTimeRange, IconField, formatHorarioEvento } from "./event-form-fields";
 import {
+  AlignLeft,
   BookOpen,
   Calendar,
   CalendarClock,
@@ -57,6 +59,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Users,
 } from "lucide-react";
 import {
   format,
@@ -103,6 +106,7 @@ type CalItem = {
   kind: "agendamento" | "compromisso";
   status?: StatusFormacao;
   subtitle?: string;
+  diaInteiro?: boolean;
 };
 
 const PAGE_SIZE = 10;
@@ -118,6 +122,7 @@ type FormState = {
   acompanhadoId: string;
   dataInicio: string;
   dataFim: string;
+  diaInteiro: boolean;
   local: string;
   observacoes: string;
   grupoFormacaoIds: string[];
@@ -130,6 +135,7 @@ const EMPTY_FORM: FormState = {
   acompanhadoId: "",
   dataInicio: "",
   dataFim: "",
+  diaInteiro: false,
   local: "",
   observacoes: "",
   grupoFormacaoIds: [],
@@ -223,12 +229,14 @@ export default function AgendaClient({
         id: a.id, title: a.formacaoTema, dataInicio: a.dataInicio,
         kind: "agendamento", status: a.status,
         subtitle: TIPO_EVENTO_AGENDA_LABELS[a.tipoEvento ?? "formacao"],
+        diaInteiro: a.diaInteiro,
       }));
     const comps: CalItem[] = monthCompromissos
       .filter((c) => sameDay(c.dataInicio))
       .map((c) => ({
         id: c.id, title: c.titulo, dataInicio: c.dataInicio,
         kind: "compromisso", subtitle: TIPO_COMPROMISSO_LABELS[c.tipo],
+        diaInteiro: c.diaInteiro,
       }));
     return [...ags, ...comps].sort(
       (x, y) => new Date(x.dataInicio).getTime() - new Date(y.dataInicio).getTime()
@@ -411,7 +419,7 @@ export default function AgendaClient({
                               <button
                                 key={`${it.kind}-${it.id}`}
                                 type="button"
-                                title={`${format(parseISO(it.dataInicio), "HH:mm")} — ${it.title}${it.subtitle ? ` (${it.subtitle})` : ""}`}
+                                title={`${it.diaInteiro ? "Dia inteiro" : format(parseISO(it.dataInicio), "HH:mm")} — ${it.title}${it.subtitle ? ` (${it.subtitle})` : ""}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (it.kind === "compromisso") setActiveTab("compromissos");
@@ -625,6 +633,7 @@ function AgendamentoFormDialog({
         grupoFormacaoIds: grupoFormacaoIdsFinal,
         dataInicio: dataInicioISO,
         dataFim: dataFimISO,
+        diaInteiro: form.diaInteiro,
         local: form.local.trim() || undefined,
         observacoes: form.observacoes.trim() || undefined,
         status: "agendada",
@@ -744,29 +753,29 @@ function AgendamentoFormDialog({
               />
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Data e hora de início <span className="text-destructive">*</span></Label>
-              <Input type="datetime-local" value={form.dataInicio} onChange={(e) => set("dataInicio")(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Data e hora de fim</Label>
-              <Input type="datetime-local" value={form.dataFim} onChange={(e) => set("dataFim")(e.target.value)} />
-            </div>
-          </div>
-          <div className="grid gap-1.5">
-            <Label>
-              Local
-              {form.tipoEvento === "acompanhamento_comunitario" && <span className="text-destructive"> *</span>}
-            </Label>
+          <DateTimeRange
+            dataInicio={form.dataInicio}
+            dataFim={form.dataFim}
+            diaInteiro={form.diaInteiro}
+            onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+          />
+          <IconField
+            icon={MapPin}
+            label="Local"
+            required={form.tipoEvento === "acompanhamento_comunitario"}
+          >
             <Input value={form.local} onChange={(e) => set("local")(e.target.value)} placeholder="Salão, online, endereço..." />
-          </div>
+          </IconField>
           {!isFC && form.tipoEvento !== "acompanhamento_comunitario" && gruposFormacao.length > 0 && (
-            <div className="grid gap-1.5">
-              <Label>
-                {termoGrupoFormacao}s{" "}
-                <span className="font-normal text-xs text-muted-foreground">(vazio = todos)</span>
-              </Label>
+            <IconField
+              icon={Users}
+              label={`${termoGrupoFormacao}s`}
+              hint={
+                form.grupoFormacaoIds.length === 0
+                  ? "Todos os grupos da organização serão notificados."
+                  : `${form.grupoFormacaoIds.length} ${termoGrupoFormacao.toLowerCase()}(s) selecionado(s).`
+              }
+            >
               <div className="flex flex-wrap gap-2">
                 {gruposFormacao.map((m) => {
                   const selected = form.grupoFormacaoIds.includes(m.id);
@@ -787,22 +796,16 @@ function AgendamentoFormDialog({
                   );
                 })}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {form.grupoFormacaoIds.length === 0
-                  ? "Todos os grupos da organização serão notificados."
-                  : `${form.grupoFormacaoIds.length} ${termoGrupoFormacao.toLowerCase()}(s) selecionado(s).`}
-              </p>
-            </div>
+            </IconField>
           )}
-          <div className="grid gap-1.5">
-            <Label>Observações</Label>
+          <IconField icon={AlignLeft} label="Observações">
             <Textarea
               value={form.observacoes}
               onChange={(e) => set("observacoes")(e.target.value)}
               placeholder="Instruções, avisos ou contexto..."
               className="min-h-[60px] resize-none text-sm"
             />
-          </div>
+          </IconField>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
@@ -912,7 +915,7 @@ function AgendamentoCard({
             <div className="flex flex-wrap gap-4 mt-2.5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {format(parseISO(ag.dataInicio), "HH:mm")} — {format(parseISO(ag.dataFim), "HH:mm")}
+                {formatHorarioEvento(ag.dataInicio, ag.dataFim, ag.diaInteiro)}
               </span>
               {ag.local && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{ag.local}</span>}
               <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" />{ag.formadorNome}</span>
@@ -959,6 +962,7 @@ function AgendamentoEditDialog({
   const [titulo, setTitulo] = useState(ag.formacaoTema);
   const [dataInicio, setDataInicio] = useState(toDatetimeLocal(ag.dataInicio));
   const [dataFim, setDataFim] = useState(toDatetimeLocal(ag.dataFim));
+  const [diaInteiro, setDiaInteiro] = useState(ag.diaInteiro ?? false);
   const [local, setLocal] = useState(ag.local ?? "");
   const [observacoes, setObservacoes] = useState(ag.observacoes ?? "");
   const [saving, setSaving] = useState(false);
@@ -977,6 +981,7 @@ function AgendamentoEditDialog({
         formacaoTema: isFormacao ? undefined : titulo.trim(),
         dataInicio: dataInicioISO,
         dataFim: dataFim ? new Date(dataFim).toISOString() : dataInicioISO,
+        diaInteiro,
         local: local.trim() || null,
         observacoes: observacoes.trim() || null,
         // Remarcação de um evento já confirmado volta ao estado "reagendada"
@@ -1019,29 +1024,27 @@ function AgendamentoEditDialog({
               <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Nome do evento" />
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Data e hora de início <span className="text-destructive">*</span></Label>
-              <Input type="datetime-local" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Data e hora de fim</Label>
-              <Input type="datetime-local" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-            </div>
-          </div>
-          <div className="grid gap-1.5">
-            <Label>Local</Label>
+          <DateTimeRange
+            dataInicio={dataInicio}
+            dataFim={dataFim}
+            diaInteiro={diaInteiro}
+            onChange={(patch) => {
+              if (patch.dataInicio !== undefined) setDataInicio(patch.dataInicio);
+              if (patch.dataFim !== undefined) setDataFim(patch.dataFim);
+              if (patch.diaInteiro !== undefined) setDiaInteiro(patch.diaInteiro);
+            }}
+          />
+          <IconField icon={MapPin} label="Local">
             <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Salão, online, endereço..." />
-          </div>
-          <div className="grid gap-1.5">
-            <Label>Observações</Label>
+          </IconField>
+          <IconField icon={AlignLeft} label="Observações">
             <Textarea
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               placeholder="Instruções, avisos ou contexto..."
               className="min-h-[60px] resize-none text-sm"
             />
-          </div>
+          </IconField>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Fechar</Button>

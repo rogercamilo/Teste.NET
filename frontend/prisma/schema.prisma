@@ -824,6 +824,9 @@ model Agendamento {
   acompanhadoUsuarioId  String?
   dataInicio            DateTime
   dataFim               DateTime
+  // Evento de dia inteiro (sem horário): dataInicio/dataFim ancoram 00:00 e 23:59
+  // do dia; a UI oculta a hora e exibe "Dia inteiro".
+  diaInteiro            Boolean   @default(false)
   local                 String?
   linkOnline            String?
   status                String    @default("agendada") // StatusFormacao
@@ -980,6 +983,8 @@ model Compromisso {
   descricao             String?
   dataInicio            DateTime
   dataFim               DateTime
+  // Compromisso de dia inteiro (sem horário) — ver Agendamento.diaInteiro.
+  diaInteiro            Boolean  @default(false)
   local                 String?
   linkOnline            String?
   tipo                  String // TipoCompromisso

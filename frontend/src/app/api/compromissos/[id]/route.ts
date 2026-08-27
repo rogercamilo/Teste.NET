@@ -54,6 +54,7 @@ export async function PUT(request: Request, { params }: Params) {
         tipo: body.tipo,
         dataInicio: body.dataInicio ? new Date(body.dataInicio) : undefined,
         dataFim: body.dataFim ? new Date(body.dataFim) : undefined,
+        diaInteiro: body.diaInteiro,
         local: body.local !== undefined ? (body.local || null) : undefined,
         linkOnline: body.linkOnline !== undefined ? (body.linkOnline || null) : undefined,
         ...(formandoUpdate ?? {}),

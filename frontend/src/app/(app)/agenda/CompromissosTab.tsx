@@ -23,11 +23,12 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { CalendarClock, Info, MapPin, Video, Pencil, Trash2, Plus, User } from "lucide-react";
+import { AlignLeft, CalendarClock, Info, MapPin, Video, Pencil, Trash2, Plus, User } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
+import { DateTimeRange, IconField } from "./event-form-fields";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -36,6 +37,7 @@ type FormState = {
   tipo: TipoCompromisso;
   dataInicio: string;
   dataFim: string;
+  diaInteiro: boolean;
   local: string;
   linkOnline: string;
   descricao: string;
@@ -43,7 +45,7 @@ type FormState = {
 };
 
 const EMPTY: FormState = {
-  titulo: "", tipo: "reuniao", dataInicio: "", dataFim: "",
+  titulo: "", tipo: "reuniao", dataInicio: "", dataFim: "", diaInteiro: false,
   local: "", linkOnline: "", descricao: "", formandoId: "",
 };
 
@@ -90,6 +92,7 @@ export function CompromissosTab({
       tipo: c.tipo,
       dataInicio: isoToLocalInput(c.dataInicio),
       dataFim: c.dataFim ? isoToLocalInput(c.dataFim) : "",
+      diaInteiro: c.diaInteiro ?? false,
       local: c.local ?? "",
       linkOnline: c.linkOnline ?? "",
       descricao: c.descricao ?? "",
@@ -110,6 +113,7 @@ export function CompromissosTab({
         tipo: form.tipo,
         dataInicio: dataInicioISO,
         dataFim: dataFimISO,
+        diaInteiro: form.diaInteiro,
         local: form.local.trim() || null,
         linkOnline: form.linkOnline.trim() || null,
         descricao: form.descricao.trim() || null,
@@ -207,7 +211,11 @@ export function CompromissosTab({
                       </Badge>
                     </div>
                     <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>{format(inicio, "EEE, dd/MM 'às' HH:mm", { locale: ptBR })}</span>
+                      <span>
+                        {c.diaInteiro
+                          ? `${format(inicio, "EEE, dd/MM", { locale: ptBR })} · Dia inteiro`
+                          : format(inicio, "EEE, dd/MM 'às' HH:mm", { locale: ptBR })}
+                      </span>
                       {c.local && (<><span>·</span><MapPin className="h-3 w-3" /><span className="truncate">{c.local}</span></>)}
                       {!c.local && c.linkOnline && (<><span>·</span><Video className="h-3 w-3" /><span>Online</span></>)}
                       {c.formandoNome && (<><span>·</span><User className="h-3 w-3" /><span className="truncate">{c.formandoNome}</span></>)}
@@ -269,29 +277,22 @@ export function CompromissosTab({
                 </SelectContent>
               </Select>
             </div>
+            <DateTimeRange
+              dataInicio={form.dataInicio}
+              dataFim={form.dataFim}
+              diaInteiro={form.diaInteiro}
+              onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+            />
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Início <span className="text-destructive">*</span></Label>
-                <Input type="datetime-local" value={form.dataInicio} onChange={(e) => set("dataInicio")(e.target.value)} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Fim</Label>
-                <Input type="datetime-local" value={form.dataFim} onChange={(e) => set("dataFim")(e.target.value)} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Local</Label>
+              <IconField icon={MapPin} label="Local">
                 <Input value={form.local} onChange={(e) => set("local")(e.target.value)} placeholder="Endereço, sala..." />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Link online</Label>
+              </IconField>
+              <IconField icon={Video} label="Link online">
                 <Input value={form.linkOnline} onChange={(e) => set("linkOnline")(e.target.value)} placeholder="https://..." />
-              </div>
+              </IconField>
             </div>
             {formandosVinculo.length > 0 && (
-              <div className="grid gap-1.5">
-                <Label>Vincular a um {termoFormando.toLowerCase()} (opcional)</Label>
+              <IconField icon={User} label={`Vincular a um ${termoFormando.toLowerCase()} (opcional)`}>
                 <Select
                   value={form.formandoId || SEM_VINCULO}
                   onValueChange={(v) => set("formandoId")(!v || v === SEM_VINCULO ? "" : v)}
@@ -310,12 +311,11 @@ export function CompromissosTab({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </IconField>
             )}
-            <div className="grid gap-1.5">
-              <Label>Descrição</Label>
+            <IconField icon={AlignLeft} label="Descrição">
               <Textarea value={form.descricao} onChange={(e) => set("descricao")(e.target.value)} rows={3} placeholder="Detalhes (opcional)" />
-            </div>
+            </IconField>
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
