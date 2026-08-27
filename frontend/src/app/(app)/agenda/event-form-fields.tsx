@@ -44,16 +44,22 @@ export function IconField({
 }
 
 type DateTimePatch = { dataInicio?: string; dataFim?: string; diaInteiro?: boolean };
+type CampoData = "dataInicio" | "dataFim";
 
 /** Parte de data ("YYYY-MM-DD") de um valor datetime-local. */
 const dateOf = (dt: string) => (dt ? dt.slice(0, 10) : "");
+/** Parte de hora ("HH:mm") de um valor datetime-local. */
+const timeOf = (dt: string) => (dt.length >= 16 ? dt.slice(11, 16) : "");
 /** Hoje em "YYYY-MM-DD" no fuso local (sv-SE formata nesse padrão). */
 const hojeStr = () => new Date().toLocaleDateString("sv-SE");
 
+const HORA_PADRAO: Record<CampoData, string> = { dataInicio: "09:00", dataFim: "10:00" };
+
 /**
- * Faixa início–fim com toggle "Dia inteiro". O estado do pai continua sendo
- * strings datetime-local ("YYYY-MM-DDTHH:mm"); no modo dia inteiro ancoramos
- * início 00:00 e fim 23:59 e exibimos inputs de data pura.
+ * Faixa início–fim no estilo Google Agenda: campos de DATA e HORA separados,
+ * na horizontal, com toggle "Dia inteiro". O estado do pai continua sendo
+ * strings datetime-local ("YYYY-MM-DDTHH:mm"); aqui só recompomos as partes.
+ * No modo dia inteiro ancoramos início 00:00 e fim 23:59 e ocultamos a hora.
  */
 export function DateTimeRange({
   dataInicio,
@@ -66,6 +72,23 @@ export function DateTimeRange({
   diaInteiro: boolean;
   onChange: (patch: DateTimePatch) => void;
 }) {
+  const valorDe: Record<CampoData, string> = { dataInicio, dataFim };
+
+  // Recompõe a string datetime-local ao trocar a DATA (preserva a hora atual).
+  const setData = (campo: CampoData) => (data: string) => {
+    if (!data) return onChange({ [campo]: "" });
+    const hora = diaInteiro
+      ? campo === "dataInicio" ? "00:00" : "23:59"
+      : timeOf(valorDe[campo]) || HORA_PADRAO[campo];
+    onChange({ [campo]: `${data}T${hora}` });
+  };
+
+  // Recompõe ao trocar a HORA (usa a data atual, ou hoje se ainda vazia).
+  const setHora = (campo: CampoData) => (hora: string) => {
+    const data = dateOf(valorDe[campo]) || hojeStr();
+    onChange({ [campo]: `${data}T${hora || "00:00"}` });
+  };
+
   function toggleDiaInteiro(v: boolean) {
     const di = dateOf(dataInicio) || hojeStr();
     const df = dateOf(dataFim) || di;
@@ -76,53 +99,44 @@ export function DateTimeRange({
     );
   }
 
+  const linha = (campo: CampoData, rotulo: string, obrigatorio?: boolean) => (
+    <div className="flex items-center gap-2">
+      <span className="w-11 shrink-0 text-xs font-medium text-muted-foreground">
+        {rotulo}
+        {obrigatorio && <span className="text-destructive"> *</span>}
+      </span>
+      <Input
+        type="date"
+        className="min-w-0 flex-1"
+        value={dateOf(valorDe[campo])}
+        onChange={(e) => setData(campo)(e.target.value)}
+      />
+      {!diaInteiro && (
+        <Input
+          type="time"
+          className="w-[92px] shrink-0"
+          value={timeOf(valorDe[campo])}
+          onChange={(e) => setHora(campo)(e.target.value)}
+        />
+      )}
+    </div>
+  );
+
   return (
     <IconField icon={Clock}>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="grid gap-1.5">
-          <Label>
-            Início<span className="text-destructive"> *</span>
-          </Label>
-          {diaInteiro ? (
-            <Input
-              type="date"
-              value={dateOf(dataInicio)}
-              onChange={(e) => onChange({ dataInicio: e.target.value ? `${e.target.value}T00:00` : "" })}
-            />
-          ) : (
-            <Input
-              type="datetime-local"
-              value={dataInicio}
-              onChange={(e) => onChange({ dataInicio: e.target.value })}
-            />
-          )}
-        </div>
-        <div className="grid gap-1.5">
-          <Label>Fim</Label>
-          {diaInteiro ? (
-            <Input
-              type="date"
-              value={dateOf(dataFim)}
-              onChange={(e) => onChange({ dataFim: e.target.value ? `${e.target.value}T23:59` : "" })}
-            />
-          ) : (
-            <Input
-              type="datetime-local"
-              value={dataFim}
-              onChange={(e) => onChange({ dataFim: e.target.value })}
-            />
-          )}
-        </div>
+      <div className="space-y-2">
+        {linha("dataInicio", "Início", true)}
+        {linha("dataFim", "Fim")}
+        <label className="inline-flex w-fit cursor-pointer select-none items-center gap-2 pl-[52px] text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={diaInteiro}
+            onChange={(e) => toggleDiaInteiro(e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-border accent-primary"
+          />
+          Dia inteiro
+        </label>
       </div>
-      <label className="mt-1 inline-flex w-fit cursor-pointer select-none items-center gap-2 text-xs text-muted-foreground">
-        <input
-          type="checkbox"
-          checked={diaInteiro}
-          onChange={(e) => toggleDiaInteiro(e.target.checked)}
-          className="h-3.5 w-3.5 rounded border-border accent-primary"
-        />
-        Dia inteiro
-      </label>
     </IconField>
   );
 }
