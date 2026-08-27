@@ -35,6 +35,7 @@ import {
   temPermissao,
 } from "@/types";
 import { getTipoLabel, type TermosProcesso } from "@/lib/jornada-vocacional";
+import { useTermos } from "@/lib/data-store";
 
 const PAGE_SIZE = 15;
 
@@ -46,6 +47,8 @@ interface Props {
 
 export default function JornadaVocacionalClient({ initialProcessos, userRole, termos }: Props) {
   const router = useRouter();
+  const { formando: termoFormando } = useTermos();
+  const termoFormandoPlural = `${termoFormando}s`;
   const [search, setSearch] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
@@ -97,16 +100,18 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
         <div className="space-y-1.5">
           <p className="text-foreground font-medium">A Jornada Vocacional</p>
           <p>
-            Acompanha os processos eclesiásticos canônicos dos membros (admissões, renovações e demais ritos): é aqui
-            que os documentos oficiais de cada etapa são <span className="font-medium">gerados</span>, revisados pelo
-            Formador Geral e <span className="font-medium">validados</span> — é a geração canônica dos documentos (a
-            Auditoria Documental apenas os consulta). Abra um processo para preencher o formulário, gerar os documentos
-            e conduzir a tramitação até a conclusão, com o assento no Livro de Promessas quando houver.
+            Acompanha os processos eclesiásticos canônicos dos {termoFormando.toLowerCase()}s (admissões, renovações e
+            demais ritos): é aqui que os documentos oficiais de cada etapa são{" "}
+            <span className="font-medium">gerados</span>, revisados pelo Formador Geral e{" "}
+            <span className="font-medium">validados</span> — é a geração canônica dos documentos (a Auditoria
+            Documental apenas os consulta). Abra um processo para preencher o formulário, gerar os documentos e conduzir
+            a tramitação até a conclusão, com o assento no Livro de Promessas quando houver.
           </p>
           <p>
             <span className="font-medium text-foreground">Onde os processos nascem:</span> cada processo é iniciado na
-            ficha do membro (menu <span className="font-medium">Formandos → abrir o membro</span>). Esta tela reúne
-            todos eles para busca, acompanhamento do status e acesso aos documentos.
+            ficha do {termoFormando.toLowerCase()} (menu{" "}
+            <span className="font-medium">{termoFormandoPlural} → abrir o {termoFormando.toLowerCase()}</span>). Esta
+            tela reúne todos eles para busca, acompanhamento do status e acesso aos documentos.
           </p>
         </div>
       </div>
@@ -116,7 +121,7 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
         <div className="relative flex-1 min-w-52">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por membro ou tipo de processo..."
+            placeholder={`Buscar por ${termoFormando.toLowerCase()} ou tipo de processo...`}
             className="pl-9"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -161,10 +166,10 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
               <EmptyState
                 icon={FolderOpen}
                 title="Nenhum processo eclesiástico"
-                description="Os processos são iniciados na ficha de cada membro. Abra um membro para registrar o primeiro processo da jornada."
+                description={`Os processos são iniciados na ficha de cada ${termoFormando.toLowerCase()}. Abra um ${termoFormando.toLowerCase()} para registrar o primeiro processo da jornada.`}
                 action={
                   <Link href="/formandos" className={buttonVariants({ size: "sm" })}>
-                    Ir para membros
+                    Ir para {termoFormandoPlural.toLowerCase()}
                   </Link>
                 }
               />
@@ -193,7 +198,7 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Membro</TableHead>
+                  <TableHead>{termoFormando}</TableHead>
                   <TableHead>Tipo de processo</TableHead>
                   <TableHead>Etapa</TableHead>
                   <TableHead>Status</TableHead>
