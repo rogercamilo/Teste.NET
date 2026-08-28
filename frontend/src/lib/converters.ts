@@ -73,6 +73,7 @@ export type PrismaFormando = {
   id: string; organizacaoId: string; nome: string; dataNascimento: Date | null; estadoCivil: string;
   modalidade: string; nivelFormativo: string; dataIngresso: Date; telefone: string; email: string;
   ativo: boolean; motivoInatividade: string | null; foto?: string | null; turmaId: string | null;
+  passwordHash?: string | null;
   grupoFormacaoId: string | null; totalFormacoes: number; formacoesRealizadas: number;
   nomeSocial: string | null; nacionalidade: string | null; rg: string | null;
   orgaoEmissor: string | null; cep: string | null; paroquiaReferencia: string | null;
@@ -236,6 +237,7 @@ export function toFormando(f: PrismaFormando): Formando {
     dataIngresso: f.dataIngresso.toISOString().split("T")[0],
     telefone: f.telefone, email: f.email, ativo: f.ativo,
     motivoInatividade: f.motivoInatividade as Formando["motivoInatividade"] ?? undefined,
+    portalAtivado: f.passwordHash != null,
     foto: f.foto ?? undefined, turmaId: f.turmaId ?? undefined,
     grupoFormacaoId: f.grupoFormacaoId ?? undefined,
     totalFormacoes: f.totalFormacoes, formacoesRealizadas: f.formacoesRealizadas,

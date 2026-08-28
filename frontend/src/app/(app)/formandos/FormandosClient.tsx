@@ -105,6 +105,25 @@ function CadastroPendenteBadge() {
   );
 }
 
+/**
+ * Sinal de que a pessoa ainda não criou a senha do Portal (passwordHash null) —
+ * i.e., recebeu o convite mas não ativou o acesso (ou o link expirou). Distinto
+ * do "Cadastro pendente" (que é sobre completude dos dados pessoais). Ação de
+ * correção: "Reenviar acesso ao portal" no menu (⋯). Só para formando ATIVO.
+ */
+function AcessoPendenteBadge() {
+  return (
+    <Badge
+      variant="outline"
+      className="gap-1 text-xs bg-rose-50 text-rose-700 border-rose-200"
+      title="Recebeu o convite mas ainda não criou a senha de acesso ao portal"
+    >
+      <Send className="h-3 w-3" />
+      Acesso pendente
+    </Badge>
+  );
+}
+
 const NIVEL_AVATAR_BG: Record<NivelFormativo, string> = {
   "pre-discipulado": "bg-violet-100 text-violet-700",
   discipulado: "bg-blue-100 text-blue-700",
@@ -163,6 +182,8 @@ interface FormandosClientProps {
   query: string;
   /** Filtro de nível atual ("todos" quando ausente). */
   nivel: string;
+  /** Filtro de acesso ao portal ("todos" | "pendente"). */
+  acesso: string;
 }
 
 export default function FormandosClient({
@@ -177,6 +198,7 @@ export default function FormandosClient({
   pageSize,
   query,
   nivel,
+  acesso,
 }: FormandosClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -204,18 +226,20 @@ export default function FormandosClient({
   // (?q=&nivel=&page=) e cada mudança navega, refazendo a query paginada no
   // servidor. Evita carregar a organização inteira no cliente.
   const pushParams = useCallback(
-    (next: { q?: string; nivel?: string; page?: number }) => {
+    (next: { q?: string; nivel?: string; acesso?: string; page?: number }) => {
       const q = next.q ?? query;
       const nv = next.nivel ?? nivel;
+      const ac = next.acesso ?? acesso;
       const pg = next.page ?? page;
       const params = new URLSearchParams();
       if (q) params.set("q", q);
       if (nv && nv !== "todos") params.set("nivel", nv);
+      if (ac && ac !== "todos") params.set("acesso", ac);
       if (pg > 1) params.set("page", String(pg));
       const qs = params.toString();
       startTransition(() => router.push(qs ? `/formandos?${qs}` : "/formandos"));
     },
-    [query, nivel, page, router]
+    [query, nivel, acesso, page, router]
   );
 
   // Debounce da busca textual → URL (350ms). Só navega quando o texto diverge
@@ -226,7 +250,7 @@ export default function FormandosClient({
     return () => clearTimeout(t);
   }, [search, query, pushParams]);
 
-  const semFiltros = !query && nivel === "todos";
+  const semFiltros = !query && nivel === "todos" && acesso === "todos";
 
   function openCreate() {
     setEditing(null);
@@ -424,8 +448,10 @@ export default function FormandosClient({
           </p>
           <p>
             Para o {termoFormador.toLowerCase()}, é o ponto de entrada do acompanhamento individual: cada cartão mostra etapa,
-            progresso e sinais de atenção (cadastro pendente, {termoGrupoFormacao.toLowerCase()} sem grade vinculada).
-            Clique no nome para abrir a ficha completa — jornada, presença, pareceres e comentários da pessoa.
+            progresso e sinais de atenção (acesso ao portal ou cadastro pendente, {termoGrupoFormacao.toLowerCase()} sem
+            grade vinculada). Filtre por &ldquo;Sem acesso ao portal&rdquo; para achar quem ainda não criou a senha e
+            reenviar o link pelo menu (⋯). Clique no nome para abrir a ficha completa — jornada, presença, pareceres e
+            comentários da pessoa.
           </p>
         </div>
       </div>
@@ -450,6 +476,20 @@ export default function FormandosClient({
             {(Object.entries(etapaLabels) as [NivelFormativo, string][]).map(([nivel, label]) => (
               <SelectItem key={nivel} value={nivel}>{label}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={acesso}
+          onValueChange={(v) => pushParams({ acesso: v ?? "todos", page: 1 })}
+          items={{ todos: "Todo acesso ao portal", pendente: "Sem acesso ao portal" }}
+        >
+          <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
+            <Send className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue placeholder="Acesso ao portal" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todo acesso ao portal</SelectItem>
+            <SelectItem value="pendente">Sem acesso ao portal</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex rounded-md border border-border overflow-hidden h-9">
@@ -499,7 +539,7 @@ export default function FormandosClient({
                 variant="outline"
                 onClick={() => {
                   setSearch("");
-                  pushParams({ q: "", nivel: "todos", page: 1 });
+                  pushParams({ q: "", nivel: "todos", acesso: "todos", page: 1 });
                 }}
               >
                 Limpar filtros
@@ -571,9 +611,13 @@ export default function FormandosClient({
                             {formando.nome}
                           </p>
                           <p className="text-xs text-muted-foreground">{formando.email}</p>
-                          {formando.ativo && perfilIncompleto(formando) && (
-                            <div className="mt-1">
-                              <CadastroPendenteBadge />
+                          {formando.ativo && (formando.portalAtivado === false || perfilIncompleto(formando)) && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {formando.portalAtivado === false ? (
+                                <AcessoPendenteBadge />
+                              ) : (
+                                perfilIncompleto(formando) && <CadastroPendenteBadge />
+                              )}
                             </div>
                           )}
                         </div>
@@ -981,7 +1025,12 @@ function FormandoCard({
           <Badge variant="outline" className={`text-xs ${NIVEL_CORES[formando.nivelFormativo]}`}>
             {etapaLabels[formando.nivelFormativo]}
           </Badge>
-          {formando.ativo && perfilIncompleto(formando) && <CadastroPendenteBadge />}
+          {formando.ativo &&
+            (formando.portalAtivado === false ? (
+              <AcessoPendenteBadge />
+            ) : (
+              perfilIncompleto(formando) && <CadastroPendenteBadge />
+            ))}
         </div>
 
         <div className="space-y-1.5">

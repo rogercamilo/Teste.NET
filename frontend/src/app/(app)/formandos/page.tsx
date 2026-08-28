@@ -10,7 +10,7 @@ const PAGE_SIZE = 12;
 export default async function FormandosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; nivel?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; nivel?: string; acesso?: string; page?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -31,6 +31,7 @@ export default async function FormandosPage({
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const nivel = sp.nivel ?? "todos";
+  const acesso = sp.acesso ?? "todos"; // "pendente" = sem acesso ao portal
   const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
 
   // Busca/filtro/paginação no banco — a listagem nunca carrega a organização
@@ -39,6 +40,8 @@ export default async function FormandosPage({
     organizacaoId: user.organizacaoId,
     deletedAt: null,
     ...(nivel !== "todos" ? { nivelFormativo: nivel } : {}),
+    // "Sem acesso ao portal": ainda não criou a senha (passwordHash null).
+    ...(acesso === "pendente" ? { passwordHash: null } : {}),
     ...(q
       ? {
           OR: [
@@ -88,6 +91,7 @@ export default async function FormandosPage({
       pageSize={PAGE_SIZE}
       query={q}
       nivel={nivel}
+      acesso={acesso}
     />
   );
 }

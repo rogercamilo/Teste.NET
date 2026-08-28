@@ -116,6 +116,8 @@ export interface Formando {
   email: string;
   ativo: boolean;
   motivoInatividade?: "desligamento-voluntario" | "desligamento-compulsorio" | "licenca";
+  /** Já criou a senha do Portal (passwordHash != null) — i.e., ativou o acesso. */
+  portalAtivado?: boolean;
   foto?: string;
   turmaId?: string;
   grupoFormacaoId?: string;
