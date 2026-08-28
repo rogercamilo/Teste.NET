@@ -192,7 +192,7 @@ interface FormandosClientProps {
   query: string;
   /** Filtro de nível atual ("todos" quando ausente). */
   nivel: string;
-  /** Filtro de acesso ao portal ("todos" | "pendente"). */
+  /** Filtro de acesso ao portal ("todos" | "pendente" | "acessou"). */
   acesso: string;
 }
 
@@ -491,7 +491,7 @@ export default function FormandosClient({
         <Select
           value={acesso}
           onValueChange={(v) => pushParams({ acesso: v ?? "todos", page: 1 })}
-          items={{ todos: "Todo acesso ao portal", pendente: "Sem acesso ao portal" }}
+          items={{ todos: "Todo acesso ao portal", pendente: "Sem acesso ao portal", acessou: "Já acessou o portal" }}
         >
           <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
             <Send className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
@@ -500,6 +500,7 @@ export default function FormandosClient({
           <SelectContent>
             <SelectItem value="todos">Todo acesso ao portal</SelectItem>
             <SelectItem value="pendente">Sem acesso ao portal</SelectItem>
+            <SelectItem value="acessou">Já acessou o portal</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex rounded-md border border-border overflow-hidden h-9">

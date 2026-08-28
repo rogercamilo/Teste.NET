@@ -31,7 +31,7 @@ export default async function FormandosPage({
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const nivel = sp.nivel ?? "todos";
-  const acesso = sp.acesso ?? "todos"; // "pendente" = sem acesso ao portal
+  const acesso = sp.acesso ?? "todos"; // "pendente" = sem acesso | "acessou" = já entrou no portal
   const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
 
   // Busca/filtro/paginação no banco — a listagem nunca carrega a organização
@@ -42,6 +42,9 @@ export default async function FormandosPage({
     ...(nivel !== "todos" ? { nivelFormativo: nivel } : {}),
     // "Sem acesso ao portal": ainda não criou a senha (passwordHash null).
     ...(acesso === "pendente" ? { passwordHash: null } : {}),
+    // "Já acessou o portal": já abriu uma sessão (login/ativação/reset gravam
+    // ultimoAcessoEm). Campo único cobre portal do formando e do vocacionado.
+    ...(acesso === "acessou" ? { ultimoAcessoEm: { not: null } } : {}),
     ...(q
       ? {
           OR: [
