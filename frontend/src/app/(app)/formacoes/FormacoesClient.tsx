@@ -100,7 +100,7 @@ const PAGE_SIZE = 10;
 const LIST_PAGE_SIZE = 20;
 
 type ViewMode = "cartoes" | "lista";
-type SortKey = "ordem" | "tema" | "nivel" | "tipo" | "grade" | "carga" | "realizacoes" | "modalidade" | "criadoEm";
+type SortKey = "ordem" | "tema" | "nivel" | "tipo" | "carga" | "realizacoes" | "modalidade" | "criadoEm";
 type SortDir = "asc" | "desc";
 
 const NIVEL_INDEX: Record<NivelFormativo, number> = NIVEIS_ORDEM.reduce(
@@ -197,7 +197,6 @@ export default function FormacoesClient({
     tema: (f) => f.tema.toLowerCase(),
     nivel: (f) => NIVEL_INDEX[f.nivelFormativo] ?? 99,
     tipo: (f) => `${isColunaCentral(f.tipoFormacao) ? 0 : 1}-${TIPO_FORMACAO_LABELS[f.tipoFormacao]}`,
-    grade: (f) => (f.gradeNome ?? "￿").toLowerCase(),
     carga: (f) => f.cargaHoraria,
     realizacoes: (f) => f.realizacoes ?? 0,
     modalidade: (f) => MODALIDADE_LABELS[f.modalidade],
@@ -223,7 +222,7 @@ export default function FormacoesClient({
     } else {
       setSortKey(key);
       // padrões sensatos: ordem/texto asc; números/datas desc (mais recente/maior primeiro)
-      setSortDir(key === "ordem" || key === "tema" || key === "grade" || key === "modalidade" || key === "nivel" ? "asc" : "desc");
+      setSortDir(key === "ordem" || key === "tema" || key === "modalidade" || key === "nivel" ? "asc" : "desc");
     }
     setListPage(1);
   }
@@ -477,7 +476,7 @@ export default function FormacoesClient({
                   <SortHeader label="Etapa" sortKey="nivel" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
                 )}
                 <SortHeader label="Tipo" sortKey="tipo" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
-                <SortHeader label="Grade" sortKey="grade" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                <TableHead className="text-xs font-medium text-muted-foreground">Material formativo</TableHead>
                 <SortHeader label="Carga" sortKey="carga" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                 <SortHeader label="Realizações" sortKey="realizacoes" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                 <SortHeader label="Modalidade" sortKey="modalidade" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
@@ -682,6 +681,21 @@ function SortHeader({ label, sortKey, activeKey, dir, onSort, align = "left" }: 
   );
 }
 
+// Selo de disponibilidade de material na coluna "Material formativo":
+// "Sim" em destaque quando há anexo, "—" apagado quando não há.
+function MaterialFlag({ label, present }: { label: string; present: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs whitespace-nowrap">
+      <span className="text-muted-foreground">{label}:</span>
+      {present ? (
+        <span className="font-medium text-emerald-600">Sim</span>
+      ) : (
+        <span className="text-muted-foreground/50">—</span>
+      )}
+    </span>
+  );
+}
+
 interface FormacaoRowProps {
   formacao: Formacao;
   canEdit: boolean;
@@ -717,16 +731,6 @@ function FormacaoRow({ formacao, canEdit, showNivel, nivelLabel, onView, onEdit,
               <p className="text-xs text-muted-foreground truncate">{formacao.objetivo}</p>
             )}
           </div>
-          {formacao.materialFormadorAnexo && (
-            <span className="shrink-0 inline-flex" title={`Material para o ${termoFormador.toLowerCase()} (uso interno)`} aria-label={`Material para o ${termoFormador.toLowerCase()}`}>
-              <Paperclip className="h-3 w-3 text-indigo-500" />
-            </span>
-          )}
-          {formacao.documentoAnexo && (
-            <span className="shrink-0 inline-flex" title={`Material para o ${termoFormando.toLowerCase()} (também no Portal)`} aria-label={`Material para o ${termoFormando.toLowerCase()}`}>
-              <Paperclip className="h-3 w-3 text-blue-500" />
-            </span>
-          )}
         </div>
       </TableCell>
       {showNivel && (
@@ -737,20 +741,22 @@ function FormacaoRow({ formacao, canEdit, showNivel, nivelLabel, onView, onEdit,
         </TableCell>
       )}
       <TableCell>
-        <Badge variant="outline" className={`text-xs ${TIPO_FORMACAO_CORES[formacao.tipoFormacao]}`}>
-          {isColunaCentral(formacao.tipoFormacao) ? "Central" : "Auxiliar"}
-        </Badge>
+        <div className="flex items-center gap-1.5">
+          <Badge variant="outline" className={`text-xs ${TIPO_FORMACAO_CORES[formacao.tipoFormacao]}`}>
+            {isColunaCentral(formacao.tipoFormacao) ? "Central" : "Auxiliar"}
+          </Badge>
+          {!formacao.gradeNome && (
+            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+              Pontual
+            </Badge>
+          )}
+        </div>
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {formacao.gradeNome ? (
-          <span className="inline-flex items-center gap-1">
-            <GitBranch className="h-3 w-3" />
-            {formacao.gradeNome}
-            {formacao.origem === "complementar" && <span className="text-xs">· extra</span>}
-          </span>
-        ) : (
-          <span className="text-amber-600">Pontual</span>
-        )}
+      <TableCell>
+        <div className="flex flex-col gap-0.5">
+          <MaterialFlag label={termoFormador} present={!!formacao.materialFormadorAnexo} />
+          <MaterialFlag label={termoFormando} present={!!formacao.documentoAnexo} />
+        </div>
       </TableCell>
       <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
         {formacao.cargaHoraria}h
