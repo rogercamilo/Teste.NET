@@ -118,6 +118,8 @@ export interface Formando {
   motivoInatividade?: "desligamento-voluntario" | "desligamento-compulsorio" | "licenca";
   /** Já criou a senha do Portal (passwordHash != null) — i.e., ativou o acesso. */
   portalAtivado?: boolean;
+  /** Último acesso ao Portal (ISO); ausente = nunca acessou ou anterior ao registro. */
+  ultimoAcessoEm?: string;
   foto?: string;
   turmaId?: string;
   grupoFormacaoId?: string;

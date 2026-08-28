@@ -75,12 +75,22 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { format, parseISO } from "date-fns";
+import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
 import { applyPhoneMask, stripPhone, resolveImageSrc, idadeEmAnos } from "@/lib/utils";
 import { perfilIncompleto } from "@/lib/perfil-completude";
+
+/** "há 3 dias" a partir do ISO do último acesso; null quando ausente. */
+function ultimoAcessoRelativo(iso?: string): string | null {
+  if (!iso) return null;
+  try {
+    return formatDistanceToNow(parseISO(iso), { addSuffix: true, locale: ptBR });
+  } catch {
+    return null;
+  }
+}
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
@@ -620,6 +630,11 @@ export default function FormandosClient({
                               )}
                             </div>
                           )}
+                          {formando.portalAtivado !== false && ultimoAcessoRelativo(formando.ultimoAcessoEm) && (
+                            <p className="mt-0.5 text-[11px] text-muted-foreground/80">
+                              Último acesso {ultimoAcessoRelativo(formando.ultimoAcessoEm)}
+                            </p>
+                          )}
                         </div>
                       </Link>
                     </TableCell>
@@ -1061,12 +1076,19 @@ function FormandoCard({
         </div>
 
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
-          <span className="text-xs text-muted-foreground">
-            Desde {format(parseISO(formando.dataIngresso), "MMM yyyy", { locale: ptBR })}
-          </span>
+          <div className="min-w-0">
+            <span className="block text-xs text-muted-foreground">
+              Desde {format(parseISO(formando.dataIngresso), "MMM yyyy", { locale: ptBR })}
+            </span>
+            {formando.portalAtivado !== false && ultimoAcessoRelativo(formando.ultimoAcessoEm) && (
+              <span className="block text-[11px] text-muted-foreground/80">
+                Último acesso {ultimoAcessoRelativo(formando.ultimoAcessoEm)}
+              </span>
+            )}
+          </div>
           <Badge
             variant="outline"
-            className={`text-xs ${formando.ativo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500"}`}
+            className={`text-xs shrink-0 ${formando.ativo ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500"}`}
           >
             {formando.ativo ? "Ativo" : "Inativo"}
           </Badge>

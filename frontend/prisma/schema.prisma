@@ -463,6 +463,8 @@ model Formando {
   loginFailures       Int             @default(0)
   lockedUntil         DateTime?
   passwordChangedAt   DateTime?
+  // Último acesso ao Portal (login por senha, ativação ou reset abrem sessão).
+  ultimoAcessoEm      DateTime?
   deletedAt           DateTime?
   criadoEm            DateTime        @default(now())
   atualizadoEm        DateTime        @updatedAt

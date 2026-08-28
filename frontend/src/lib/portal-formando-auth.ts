@@ -134,6 +134,8 @@ export async function definirSenhaPorToken(
           passwordHash,
           primeiroAcesso: false,
           passwordChangedAt: new Date(),
+          // Ativação/reset abrem sessão → conta como acesso ao portal.
+          ultimoAcessoEm: new Date(),
           loginFailures: 0,
           lockedUntil: null,
         },
@@ -168,13 +170,6 @@ async function recordLoginFailure(formandoId: string): Promise<void> {
   }
 }
 
-async function clearLoginFailures(formandoId: string): Promise<void> {
-  await prisma.formando.update({
-    where: { id: formandoId },
-    data: { loginFailures: 0, lockedUntil: null },
-  });
-}
-
 /**
  * Autentica por e-mail + senha. O e-mail deve resolver UM único formando com
  * conta de portal (ativo, não excluído, com senha). 0 ou ambíguo → "invalid"
@@ -196,6 +191,10 @@ export async function loginFormando(email: string, password: string): Promise<Lo
     await recordLoginFailure(f.id);
     return { ok: false, code: "invalid" };
   }
-  await clearLoginFailures(f.id);
+  // Login bem-sucedido: zera falhas/lockout e registra o acesso ao portal.
+  await prisma.formando.update({
+    where: { id: f.id },
+    data: { loginFailures: 0, lockedUntil: null, ultimoAcessoEm: new Date() },
+  });
   return { ok: true, formandoId: f.id, organizacaoId: f.organizacaoId };
 }
