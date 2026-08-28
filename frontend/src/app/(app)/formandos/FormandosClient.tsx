@@ -70,6 +70,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Send,
   Trash2,
   Users,
 } from "lucide-react";
@@ -258,6 +259,31 @@ export default function FormandosClient({
     e.preventDefault();
     setEditing(f);
     setDeleteOpen(true);
+  }
+
+  /**
+   * Reenvia o e-mail de acesso ao Portal (boas-vindas + link de 1º acesso com
+   * TTL renovado). Para quem recebeu o convite mas não criou a senha a tempo e
+   * teve o link expirado. O backend gera um token novo a cada chamada.
+   */
+  function reenviarAcesso(f: Formando, e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!f.email) {
+      toast.error("Este formando não possui e-mail cadastrado.");
+      return;
+    }
+    const req = fetch(`/api/formandos/${f.id}/reenviar-acesso`, { method: "POST" }).then(async (res) => {
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error((j as { error?: string }).error ?? "Falha ao reenviar o acesso.");
+      }
+    });
+    toast.promise(req, {
+      loading: "Enviando link de acesso…",
+      success: `Link de acesso ao portal reenviado para ${f.email}.`,
+      error: (err) => (err instanceof Error ? err.message : "Falha ao reenviar o acesso."),
+    });
   }
 
   async function handleSave() {
@@ -495,6 +521,7 @@ export default function FormandosClient({
                 semGrade={semGrade}
                 onEdit={openEdit}
                 onDelete={openDelete}
+                onReenviarAcesso={reenviarAcesso}
                 onVincularGrade={!isFC ? (mId, nivel) => {
                   setSelectedGradeId("");
                   setLinkGradeState({ grupoFormacaoId: mId, nivelFormativo: nivel });
@@ -590,6 +617,10 @@ export default function FormandosClient({
                           <DropdownMenuItem onClick={(e) => openEdit(formando, e)}>
                             <Pencil className="h-4 w-4 mr-2" />
                             Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => reenviarAcesso(formando, e)}>
+                            <Send className="h-4 w-4 mr-2" />
+                            Reenviar acesso ao portal
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem variant="destructive" onClick={(e) => openDelete(formando, e)}>
@@ -846,12 +877,14 @@ function FormandoCard({
   semGrade,
   onEdit,
   onDelete,
+  onReenviarAcesso,
   onVincularGrade,
 }: {
   formando: Formando;
   semGrade: boolean;
   onEdit: (f: Formando, e: React.MouseEvent) => void;
   onDelete: (f: Formando, e: React.MouseEvent) => void;
+  onReenviarAcesso: (f: Formando, e: React.MouseEvent) => void;
   onVincularGrade?: (grupoFormacaoId: string, nivelFormativo: NivelFormativo) => void;
 }) {
   const router = useRouter();
@@ -930,6 +963,10 @@ function FormandoCard({
               <DropdownMenuItem onClick={(e) => onEdit(formando, e)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => onReenviarAcesso(formando, e)}>
+                <Send className="h-4 w-4 mr-2" />
+                Reenviar acesso ao portal
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={(e) => onDelete(formando, e)}>
