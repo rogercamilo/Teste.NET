@@ -195,7 +195,7 @@ export function NotificacoesBell() {
             <p className="text-sm text-muted-foreground">Sem notificações pendentes</p>
           </div>
         ) : (
-          <ScrollArea className="max-h-[440px]">
+          <ScrollArea className="max-h-[min(80vh,44rem)]">
             <ul className="divide-y divide-border">
               {notificacoes.map((n) => {
                 const config = TIPO_CONFIG[n.tipo] ?? FALLBACK_CONFIG;
