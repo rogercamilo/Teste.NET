@@ -596,7 +596,7 @@ export default function DashboardClient({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <History className="h-4 w-4 text-primary" />
-                Histórico
+                Histórico de presença
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1007,29 +1007,45 @@ function HistoricoItem({
   const tipoLabel = item.tipoFormacao ? TIPO_FORMACAO_LABELS[item.tipoFormacao] : null;
   const d = new Date(item.data);
 
+  const justificado = !item.presente && (item.justificativa || item.justificativaFormando);
+  const status = item.presente
+    ? {
+        label: "Presente",
+        Icon: CheckCircle2,
+        className: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+      }
+    : justificado
+      ? {
+          label: "Justificado",
+          Icon: Info,
+          className: "bg-amber-50 text-amber-700 ring-amber-600/20",
+        }
+      : {
+          label: "Ausente",
+          Icon: XCircle,
+          className: "bg-rose-50 text-rose-700 ring-rose-600/20",
+        };
+  const StatusIcon = status.Icon;
+
   return (
-    <li className="flex items-center justify-between gap-3 border-b border-border/50 py-2.5 last:border-0">
+    <li className="flex items-center justify-between gap-3 border-b border-border/50 py-3 last:border-0">
       <div className="min-w-0">
-        <p className="truncate text-sm text-foreground">
+        <p className="truncate text-sm font-medium text-foreground">
           {item.tema || tipoLabel || "Encontro"}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+          <CalendarDays className="h-3.5 w-3.5" />
           {fmtData.format(d)}
           {tipoLabel && item.tema ? ` · ${tipoLabel}` : ""}
           {item.justificativaFormando ? " · Ausência avisada" : ""}
         </p>
       </div>
-      {item.presente ? (
-        <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-600">
-          <CheckCircle2 className="h-4 w-4" />
-          Presente
-        </span>
-      ) : (
-        <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground">
-          <XCircle className="h-4 w-4" />
-          {item.justificativa || item.justificativaFormando ? "Justificado" : "Ausente"}
-        </span>
-      )}
+      <span
+        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${status.className}`}
+      >
+        <StatusIcon className="h-3.5 w-3.5" />
+        {status.label}
+      </span>
     </li>
   );
 }
