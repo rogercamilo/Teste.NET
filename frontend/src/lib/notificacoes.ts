@@ -32,6 +32,79 @@ export async function criarNotificacoes(
   }
 }
 
+// ── Notificações do FORMANDO (histórico in-app no Portal) ─────────────────────
+// Destinatário polimórfico: aqui gravamos `formandoId` (e `destinatarioId` fica
+// null). O push é efêmero; isto é a trilha durável que o formando revê no portal.
+
+export interface CriarNotificacaoFormandoInput {
+  organizacaoId: string;
+  formandoId: string;
+  tipo: TipoNotificacao;
+  titulo: string;
+  corpo?: string;
+  linkAcao?: string;
+}
+
+export async function criarNotificacaoFormando(
+  input: CriarNotificacaoFormandoInput
+): Promise<void> {
+  try {
+    await prisma.notificacao.create({ data: input });
+  } catch (err) {
+    logError("notificacoes:criarFormando", err, {
+      tipo: input.tipo,
+      formandoId: input.formandoId,
+    });
+  }
+}
+
+// Um mesmo aviso para vários formandos (ex.: push manual do formador ao grupo).
+export async function criarNotificacoesFormandos(
+  formandoIds: string[],
+  base: Omit<CriarNotificacaoFormandoInput, "formandoId">
+): Promise<void> {
+  if (formandoIds.length === 0) return;
+  try {
+    await prisma.notificacao.createMany({
+      data: formandoIds.map((formandoId) => ({ ...base, formandoId })),
+    });
+  } catch (err) {
+    logError("notificacoes:criarFormandosMany", err, { tipo: base.tipo });
+  }
+}
+
+export async function listarNaoLidasFormando(
+  formandoId: string,
+  organizacaoId: string
+) {
+  return prisma.notificacao.findMany({
+    where: { formandoId, organizacaoId, lida: false },
+    orderBy: { criadaEm: "desc" },
+    take: 50,
+  });
+}
+
+export async function marcarLidaFormando(
+  id: string,
+  formandoId: string,
+  organizacaoId: string
+): Promise<void> {
+  await prisma.notificacao.updateMany({
+    where: { id, formandoId, organizacaoId },
+    data: { lida: true, lidaEm: new Date() },
+  });
+}
+
+export async function marcarTodasLidasFormando(
+  formandoId: string,
+  organizacaoId: string
+): Promise<void> {
+  await prisma.notificacao.updateMany({
+    where: { formandoId, organizacaoId, lida: false },
+    data: { lida: true, lidaEm: new Date() },
+  });
+}
+
 // ── Leitura ───────────────────────────────────────────────────────────────────
 
 export async function listarNaoLidas(usuarioId: string) {

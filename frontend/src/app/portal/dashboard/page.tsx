@@ -5,6 +5,7 @@ import {
   getPortalMateriais,
   getPortalTravessia,
   getPortalAniversariantes,
+  getPortalNotificacoes,
 } from "@/lib/portal-data";
 import { getPublicBranding } from "@/lib/public-branding";
 import { portalHomeFor } from "@/lib/portal-routes";
@@ -18,7 +19,7 @@ export default async function PortalDashboardPage() {
   const session = await getPortalSession();
   if (!session) redirect("/portal/formando");
 
-  const [data, materiais, travessia, aniversariantes, branding] = await Promise.all([
+  const [data, materiais, travessia, aniversariantes, branding, notificacoes] = await Promise.all([
     getPortalDashboardData(session.formandoId, session.organizacaoId),
     getPortalMateriais(session.formandoId, session.organizacaoId),
     // Acompanhamento de leitura é do GRUPO (vocacional ou de formação): retorna
@@ -27,6 +28,7 @@ export default async function PortalDashboardPage() {
     getPortalTravessia(session.formandoId, session.organizacaoId),
     getPortalAniversariantes(session.formandoId, session.organizacaoId),
     getPublicBranding(session.organizacaoId),
+    getPortalNotificacoes(session.formandoId, session.organizacaoId),
   ]);
 
   // A identidade/terminologia da leitura segue o público: vocacional mantém a
@@ -45,6 +47,7 @@ export default async function PortalDashboardPage() {
       leituraContexto={leituraContexto}
       aniversariantes={aniversariantes}
       branding={branding}
+      notificacoes={notificacoes}
     />
   );
 }

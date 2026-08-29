@@ -185,6 +185,8 @@ enum TipoNotificacao {
   dados_formando_pendentes
   justificativa_formando
   formando_em_risco
+  // Voltadas ao FORMANDO (histórico in-app no Portal):
+  aviso_comunidade
 }
 
 // ==========================================================
@@ -487,6 +489,7 @@ model Formando {
   acompanhamentos         AcompanhamentoFormando[]
   acompanhamentosComoAlvo Agendamento[]              @relation("AgendamentoAcompanhadoFormando")
   solicitacoesAcompanhamento SolicitacaoAcompanhamentoFormando[]
+  notificacoes            Notificacao[]
 
   @@index([organizacaoId])
   @@index([grupoFormacaoId])
@@ -1215,7 +1218,11 @@ model PushSubscription {
 model Notificacao {
   id             String          @id @default(cuid())
   organizacaoId  String
-  destinatarioId String
+  // Destinatário POLIMÓRFICO: exatamente um de destinatarioId (staff/Usuario) ou
+  // formandoId (Portal do Formando). Ambos nullable; a regra "exatamente um" é
+  // imposta em código (lib/notificacoes.ts). Mesmo padrão do alvo de Agendamento.
+  destinatarioId String?
+  formandoId     String?
   tipo           TipoNotificacao
   titulo         String
   corpo          String?
@@ -1225,9 +1232,11 @@ model Notificacao {
   criadaEm       DateTime        @default(now())
 
   organizacao  Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
-  destinatario Usuario     @relation(fields: [destinatarioId], references: [id], onDelete: Cascade)
+  destinatario Usuario?    @relation(fields: [destinatarioId], references: [id], onDelete: Cascade)
+  formando     Formando?   @relation(fields: [formandoId], references: [id], onDelete: Cascade)
 
   @@index([destinatarioId, lida])
+  @@index([formandoId, lida])
   @@index([organizacaoId])
   @@index([criadaEm])
 }

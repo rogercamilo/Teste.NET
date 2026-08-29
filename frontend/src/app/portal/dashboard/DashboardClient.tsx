@@ -47,6 +47,8 @@ import type {
 } from "@/lib/portal-data";
 import { AdicionarAoCalendario } from "@/components/AdicionarAoCalendario";
 import { PortalNotificacoesCard } from "./PortalNotificacoesCard";
+import { PortalAvisosCard } from "./PortalAvisosCard";
+import type { Notificacao } from "@/components/notificacoes/shared";
 import { TravessiaCard } from "./TravessiaCard";
 import { EtapaCard } from "./EtapaCard";
 import { MuralSection } from "./TravessiaMural";
@@ -104,6 +106,7 @@ export default function DashboardClient({
   leituraContexto,
   aniversariantes,
   branding,
+  notificacoes,
 }: {
   data: PortalDashboardData;
   materiais: PortalMaterialItem[];
@@ -111,6 +114,7 @@ export default function DashboardClient({
   leituraContexto: LeituraContexto;
   aniversariantes: PortalAniversariante[];
   branding: PublicBranding;
+  notificacoes: Notificacao[];
 }) {
   const router = useRouter();
   const { formando, presenca, proximosEncontros, progresso, vocacional, acompanhamentoFormativo, retirosMateriais } = data;
@@ -294,6 +298,9 @@ export default function DashboardClient({
             </p>
           </div>
         </div>
+
+        {/* Avisos da comunidade — histórico in-app; some quando não há novos */}
+        <PortalAvisosCard notificacoes={notificacoes} />
 
         {/* Nota: o que a pessoa encontra no seu portal (texto por público) */}
         <div className="flex gap-2.5 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">

@@ -6,6 +6,8 @@ import type { PortalAudiencia } from "@/lib/portal-routes";
 import { R2_ENABLED, getImageR2Url, readLocalFile } from "@/lib/storage";
 import { camposFaltantes } from "@/lib/perfil-completude";
 import { agendamentoRelevanteOR } from "@/lib/agendamento-scope";
+import { listarNaoLidasFormando } from "@/lib/notificacoes";
+import type { Notificacao } from "@/components/notificacoes/shared";
 
 /**
  * Resolve o campo `foto` do formando (base64 legado, key R2 ou key local) em um
@@ -963,4 +965,25 @@ export async function getPortalDashboardData(
           solicitacaoPendente: !!solicitacaoAcompPendente,
         },
   };
+}
+
+/**
+ * Avisos in-app NÃO LIDOS do formando (histórico durável no Portal). Serializa
+ * `criadaEm` para ISO — o card é Client Component e recebe isto por props
+ * (padrão server→client, sem fetch no cliente para o dado inicial).
+ */
+export async function getPortalNotificacoes(
+  formandoId: string,
+  organizacaoId: string
+): Promise<Notificacao[]> {
+  const rows = await listarNaoLidasFormando(formandoId, organizacaoId);
+  return rows.map((r) => ({
+    id: r.id,
+    tipo: r.tipo,
+    titulo: r.titulo,
+    corpo: r.corpo,
+    linkAcao: r.linkAcao,
+    lida: r.lida,
+    criadaEm: r.criadaEm.toISOString(),
+  }));
 }

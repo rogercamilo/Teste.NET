@@ -4,6 +4,8 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { PushSendSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import { sendPushToOrg, sendPushToGroup } from "@/lib/push";
+import { prisma } from "@/lib/prisma";
+import { criarNotificacoesFormandos } from "@/lib/notificacoes";
 import { isGestao } from "@/lib/auth-helpers";
 import type { SessionUser as SU } from "@/lib/auth-helpers";
 
@@ -48,6 +50,28 @@ export async function POST(request: Request) {
     const result = grupoFormacaoId
       ? await sendPushToGroup(user.organizacaoId, grupoFormacaoId, { titulo, corpo, url })
       : await sendPushToOrg(user.organizacaoId, { titulo, corpo, url });
+
+    // Histórico in-app durável: grava o aviso para TODOS os formandos do público
+    // (mesmo sem push ativo), para que apareça no Portal do Formando. Best-effort.
+    const formandos = await prisma.formando.findMany({
+      where: {
+        organizacaoId: user.organizacaoId,
+        ativo: true,
+        deletedAt: null,
+        ...(grupoFormacaoId ? { grupoFormacaoId } : {}),
+      },
+      select: { id: true },
+    });
+    await criarNotificacoesFormandos(
+      formandos.map((f) => f.id),
+      {
+        organizacaoId: user.organizacaoId,
+        tipo: "aviso_comunidade",
+        titulo,
+        corpo,
+        linkAcao: url,
+      }
+    );
 
     logAction(
       "push_notification_sent",
