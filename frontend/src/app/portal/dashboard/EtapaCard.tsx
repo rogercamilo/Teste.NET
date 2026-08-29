@@ -74,7 +74,7 @@ export function EtapaCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
-          Minha etapa formativa
+          Minha evolução na etapa formativa
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">

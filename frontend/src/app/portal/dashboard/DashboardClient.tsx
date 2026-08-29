@@ -357,7 +357,7 @@ export default function DashboardClient({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                Minha presença
+                Minha presença nos encontros formativos
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col justify-center gap-2">
@@ -426,12 +426,12 @@ export default function DashboardClient({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-primary" />
-                  Minha jornada formativa
+                  Formação Comunitária
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-3">
                 <p className="text-sm text-muted-foreground">
-                  Você está em formação. Acompanhe seus encontros e sua caminhada.
+                  Você está em formação. Agende de forma fácil seu momento de formação comunitária.
                 </p>
                 {acompanhamentoFormativo.proximaData && (
                   <p className="inline-flex items-center gap-1.5 text-sm text-foreground">
@@ -478,7 +478,7 @@ export default function DashboardClient({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-primary" />
-                Próximos encontros
+                Próximas agendas comunitárias
               </CardTitle>
             </CardHeader>
             <CardContent>
