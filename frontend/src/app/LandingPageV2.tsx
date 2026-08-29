@@ -103,17 +103,16 @@ function Nav() {
   );
 }
 
-// ── Placeholder de captura real (o documento pede telas reais do produto) ──────
+// ── Captura real do produto (org demo, dados fictícios — sem PII) ──────────────
 
-function ScreenshotPlaceholder({ label }: { label: string }) {
+function ProductShot({ src, alt, eager = false }: { src: string; alt: string; eager?: boolean }) {
   return (
-    <div className="rounded-xl border border-dashed border-white/15 bg-slate-800/30 aspect-video flex flex-col items-center justify-center gap-2 text-center px-4">
-      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 border border-white/10">
-        <FileText className="h-4 w-4 text-slate-500" />
-      </span>
-      <p className="text-xs text-slate-500">Inserir captura real</p>
-      <p className="text-xs font-medium text-slate-400">{label}</p>
-    </div>
+    <img
+      src={src}
+      alt={alt}
+      loading={eager ? "eager" : "lazy"}
+      className="w-full h-auto rounded-lg border border-white/10 bg-slate-800"
+    />
   );
 }
 
@@ -178,8 +177,12 @@ function Hero() {
                 www.formattio.com.br
               </div>
             </div>
-            <div className="p-5">
-              <ScreenshotPlaceholder label="Visão geral da jornada formativa" />
+            <div className="p-3">
+              <ProductShot
+                src="/brand/screens/painel-geral.png"
+                alt="Painel geral da Formattio: visão da jornada formativa da comunidade"
+                eager
+              />
             </div>
           </div>
         </div>
@@ -396,24 +399,29 @@ function Beneficios() {
 
 const telas = [
   {
-    title: "Painel geral",
-    desc: "Visualize grupos, formandos, presença e informações que precisam de atenção.",
-  },
-  {
-    title: "Perfil e linha do tempo",
-    desc: "Consulte a trajetória individual, mudanças de etapa, avaliações, observações e registros relevantes.",
+    title: "Perfil e linha do tempo do formando",
+    desc: "Consulte a trajetória individual: nível formativo, frequência, próximos passos, avaliações, observações e registros relevantes de cada pessoa.",
+    src: "/brand/screens/perfil-formando.png",
   },
   {
     title: "Encontros e frequência",
-    desc: "Planeje encontros, registre presenças e acompanhe a participação ao longo do período.",
+    desc: "Planeje encontros no calendário da comunidade, registre presenças e acompanhe a participação ao longo do período.",
+    src: "/brand/screens/agenda.png",
   },
   {
-    title: "Avaliações formativas",
-    desc: "Registre avaliações nas dimensões adotadas pela instituição e acompanhe a evolução com contexto.",
+    title: "Acompanhamento do grupo",
+    desc: "Veja a saúde de cada grupo: formandos ativos, progresso da etapa, presença e quem precisa de atenção.",
+    src: "/brand/screens/grupo.png",
   },
   {
-    title: "Documentos",
-    desc: "Organize arquivos e gere documentos vinculados aos processos da formação.",
+    title: "Biblioteca de formações",
+    desc: "Organize o conteúdo em formações reutilizáveis — objetivo, material de apoio e vínculo às grades e à agenda.",
+    src: "/brand/screens/formacoes.png",
+  },
+  {
+    title: "Avaliação nas três perspectivas",
+    desc: "Acompanhe a evolução de cada formando nas dimensões humana, espiritual e comunitária adotadas pela instituição.",
+    src: "/brand/screens/perspectivas.png",
   },
 ];
 
@@ -429,14 +437,14 @@ function PorDentro() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {telas.map(({ title, desc }, i) => (
+          {telas.map(({ title, desc, src }, i) => (
             <div
               key={title}
               className={`rounded-2xl border border-white/10 bg-slate-800/30 p-5 ${
                 i === 0 ? "md:col-span-2" : ""
               }`}
             >
-              <ScreenshotPlaceholder label={title} />
+              <ProductShot src={src} alt={`Formattio — ${title}`} />
               <div className="mt-4">
                 <h3 className="text-base font-semibold text-white mb-1">{title}</h3>
                 <p className="text-sm text-slate-400 leading-relaxed">{desc}</p>
