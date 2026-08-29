@@ -2,7 +2,25 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, BellOff, CheckCheck, ExternalLink } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  CheckCheck,
+  ChevronRight,
+  BookOpen,
+  UserPlus,
+  CalendarPlus,
+  CheckCircle2,
+  RotateCcw,
+  Eye,
+  Play,
+  ClipboardList,
+  LayoutGrid,
+  AlertCircle,
+  CalendarX,
+  AlertTriangle,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 // Button é usado no header da lista (marcar todas lidas)
@@ -25,6 +43,7 @@ type TipoNotificacao =
   | "grade_atribuida"
   | "grade_atualizada"
   | "dados_formando_pendentes"
+  | "justificativa_formando"
   | "formando_em_risco";
 
 interface Notificacao {
@@ -37,26 +56,40 @@ interface Notificacao {
   criadaEm: string;
 }
 
-// ── Ícone e cor por tipo ──────────────────────────────────────────────────────
+// ── Ícone, cor e rótulo por tipo ──────────────────────────────────────────────
+// Cada tipo tem uma PALAVRA (label) + ÍCONE + COR — código redundante para não
+// depender só de cor (acessibilidade / inclusão). O `className` pinta tanto o
+// disco-âncora à esquerda quanto a etiqueta de categoria.
 
-const TIPO_CONFIG: Record<TipoNotificacao, { dot: string }> = {
-  nova_formacao:           { dot: "bg-blue-500"    },
-  novo_formando:           { dot: "bg-emerald-500" },
-  novo_agendamento:        { dot: "bg-violet-500"  },
-  processo_aprovado:       { dot: "bg-green-500"   },
-  processo_devolvido:      { dot: "bg-amber-500"   },
-  processo_em_revisao:     { dot: "bg-yellow-500"  },
-  processo_concluido:      { dot: "bg-emerald-500" },
-  processo_iniciado:       { dot: "bg-blue-500"    },
-  plano_atribuido:         { dot: "bg-amber-500"   },
-  plano_atualizado:        { dot: "bg-amber-400"   },
-  grade_atribuida:         { dot: "bg-orange-500"  },
-  grade_atualizada:        { dot: "bg-orange-400"  },
-  dados_formando_pendentes:{ dot: "bg-red-500"     },
-  formando_em_risco:       { dot: "bg-amber-500"   },
+interface TipoConfig {
+  Icon: LucideIcon;
+  label: string;
+  className: string;
+}
+
+const TIPO_CONFIG: Record<TipoNotificacao, TipoConfig> = {
+  nova_formacao:            { Icon: BookOpen,      label: "Nova formação",       className: "bg-blue-100 text-blue-700"       },
+  novo_formando:            { Icon: UserPlus,      label: "Novo formando",       className: "bg-emerald-100 text-emerald-700" },
+  novo_agendamento:         { Icon: CalendarPlus,  label: "Novo encontro",       className: "bg-violet-100 text-violet-700"   },
+  processo_aprovado:        { Icon: CheckCircle2,  label: "Processo aprovado",   className: "bg-green-100 text-green-700"      },
+  processo_devolvido:       { Icon: RotateCcw,     label: "Processo devolvido",  className: "bg-amber-100 text-amber-700"      },
+  processo_em_revisao:      { Icon: Eye,           label: "Em revisão",          className: "bg-yellow-100 text-yellow-700"    },
+  processo_concluido:       { Icon: CheckCircle2,  label: "Processo concluído",  className: "bg-emerald-100 text-emerald-700" },
+  processo_iniciado:        { Icon: Play,          label: "Processo iniciado",   className: "bg-blue-100 text-blue-700"        },
+  plano_atribuido:          { Icon: ClipboardList, label: "Plano atribuído",     className: "bg-amber-100 text-amber-700"      },
+  plano_atualizado:         { Icon: ClipboardList, label: "Plano atualizado",    className: "bg-amber-100 text-amber-700"      },
+  grade_atribuida:          { Icon: LayoutGrid,    label: "Grade atribuída",     className: "bg-orange-100 text-orange-700"    },
+  grade_atualizada:         { Icon: LayoutGrid,    label: "Grade atualizada",    className: "bg-orange-100 text-orange-700"    },
+  dados_formando_pendentes: { Icon: AlertCircle,   label: "Dados pendentes",     className: "bg-red-100 text-red-700"          },
+  justificativa_formando:   { Icon: CalendarX,     label: "Falta avisada",       className: "bg-amber-100 text-amber-700"      },
+  formando_em_risco:        { Icon: AlertTriangle, label: "Formando em risco",   className: "bg-red-100 text-red-700"          },
 };
 
-// ── Formatação de data relativa ───────────────────────────────────────────────
+const FALLBACK_CONFIG: TipoConfig = { Icon: Bell, label: "Aviso", className: "bg-muted text-muted-foreground" };
+
+// ── Formatação de data amigável ───────────────────────────────────────────────
+// Texto por extenso ("ontem", "há 3 dias") em vez de abreviações — mais fácil
+// para quem tem dificuldade de leitura.
 
 function dataRelativa(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -65,9 +98,10 @@ function dataRelativa(iso: string): string {
   const d    = Math.floor(diff / 86_400_000);
   if (min < 1)  return "agora mesmo";
   if (min < 60) return `há ${min} min`;
-  if (h   < 24) return `há ${h}h`;
-  if (d   < 7)  return `há ${d}d`;
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  if (h   < 24) return `há ${h} ${h === 1 ? "hora" : "horas"}`;
+  if (d === 1)  return "ontem";
+  if (d   < 7)  return `há ${d} dias`;
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -132,19 +166,19 @@ export function NotificacoesBell() {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-80 p-0 shadow-lg"
+        className="w-96 max-w-[calc(100vw-1rem)] p-0 shadow-lg"
       >
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <p className="text-sm font-semibold">Notificações</p>
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border">
+          <p className="text-base font-semibold">Notificações</p>
           {total > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs text-muted-foreground gap-1"
+              className="h-8 px-2 text-xs text-muted-foreground gap-1"
               onClick={marcarTodas}
             >
-              <CheckCheck className="h-3.5 w-3.5" />
+              <CheckCheck className="h-4 w-4" />
               Marcar todas como lidas
             </Button>
           )}
@@ -161,39 +195,63 @@ export function NotificacoesBell() {
             <p className="text-sm text-muted-foreground">Sem notificações pendentes</p>
           </div>
         ) : (
-          <ScrollArea className="max-h-[420px]">
+          <ScrollArea className="max-h-[440px]">
             <ul className="divide-y divide-border">
               {notificacoes.map((n) => {
-                const config = TIPO_CONFIG[n.tipo] ?? { dot: "bg-muted-foreground" };
+                const config = TIPO_CONFIG[n.tipo] ?? FALLBACK_CONFIG;
+                const Icon = config.Icon;
                 return (
                   <li key={n.id}>
                     <button
                       className={cn(
-                        "w-full flex items-start gap-3 px-4 py-3 text-left transition-colors",
+                        "w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors",
                         "hover:bg-muted/50 focus-visible:outline-none focus-visible:bg-muted/50"
                       )}
                       onClick={() => handleClick(n)}
                     >
-                      {/* Dot indicador de tipo */}
-                      <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", config.dot)} />
+                      {/* Disco-âncora: ícone + cor por tipo (reconhecimento visual) */}
+                      <span
+                        className={cn(
+                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                          config.className
+                        )}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </span>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-snug line-clamp-2">
+                        <p className="text-[15px] font-semibold leading-snug text-foreground">
                           {n.titulo}
                         </p>
                         {n.corpo && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                          <p className="mt-0.5 text-sm leading-snug text-foreground/75 line-clamp-3">
                             {n.corpo}
                           </p>
                         )}
-                        <p className="text-[11px] text-muted-foreground/70 mt-1">
-                          {dataRelativa(n.criadaEm)}
-                        </p>
-                      </div>
 
-                      {n.linkAcao && (
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0 mt-1 text-muted-foreground/50" />
-                      )}
+                        {/* Categoria (palavra) + data amigável */}
+                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                              config.className
+                            )}
+                          >
+                            {config.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {dataRelativa(n.criadaEm)}
+                          </span>
+                        </div>
+
+                        {/* Ação explícita (não depende de descobrir que o card é clicável) */}
+                        {n.linkAcao && (
+                          <span className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                            Ver detalhes
+                            <ChevronRight className="h-4 w-4" />
+                          </span>
+                        )}
+                      </div>
                     </button>
                   </li>
                 );

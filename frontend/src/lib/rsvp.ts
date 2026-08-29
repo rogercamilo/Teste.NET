@@ -151,14 +151,20 @@ async function aplicarRespostaPresenca(
 
   // Ausência avisada → notifica o formador responsável (best-effort).
   if (!confirmacaoFormando && agendamento.formadorId) {
+    // Frase completa: quem + o quê + quando (mais fácil de entender numa olhada).
+    const dataEncontro = new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "short",
+    }).format(agendamento.dataInicio);
+    const primeiroNome = formando.nome.split(" ")[0];
     const corpo = justificativa
-      ? `"${justificativa.slice(0, 100)}${justificativa.length > 100 ? "…" : ""}"`
-      : `${formando.nome} avisou que não poderá comparecer.`;
+      ? `Motivo: "${justificativa.slice(0, 140)}${justificativa.length > 140 ? "…" : ""}"`
+      : `${primeiroNome} avisou que não poderá comparecer ao encontro "${agendamento.formacaoTema}".`;
     criarNotificacao({
       organizacaoId: formando.organizacaoId,
       destinatarioId: agendamento.formadorId,
       tipo: "justificativa_formando",
-      titulo: `${formando.nome} não vai comparecer`,
+      titulo: `${formando.nome} vai faltar em ${dataEncontro}`,
       corpo,
       // Chamada agora vive na aba Presença da morada.
       linkAcao: formando.grupoFormacaoId
