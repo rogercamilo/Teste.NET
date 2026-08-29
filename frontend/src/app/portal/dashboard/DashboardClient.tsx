@@ -25,6 +25,9 @@ import {
   Cake,
   UserRound,
   Info,
+  Target,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -931,37 +934,44 @@ function MaterialItem({ material }: { material: PortalMaterialItem }) {
       </button>
 
       {aberto && (
-        <div className="space-y-3 border-t border-border/60 p-3 text-sm">
+        <div className="border-t border-border/60 p-3 text-sm">
           {!material.temMaterial ? (
             <p className="text-muted-foreground">
               Sem material disponível para esta formação.
             </p>
           ) : (
-            <>
+            <div className="space-y-4">
               {material.objetivo && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Objetivo
-                  </p>
-                  <p className="mt-0.5 text-foreground">{material.objetivo}</p>
+                <div className="flex gap-2.5">
+                  <Target className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Objetivo
+                    </p>
+                    <p className="mt-0.5 text-foreground">{material.objetivo}</p>
+                  </div>
                 </div>
               )}
               {material.descricao && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Descrição
-                  </p>
-                  <p className="mt-0.5 whitespace-pre-wrap text-foreground">
-                    {material.descricao}
-                  </p>
+                <div className="flex gap-2.5">
+                  <FileText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Descrição
+                    </p>
+                    <p className="mt-0.5 whitespace-pre-wrap text-foreground">
+                      {material.descricao}
+                    </p>
+                  </div>
                 </div>
               )}
               {material.materialApoio && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <div className="rounded-lg border border-border/60 bg-muted/40 p-3">
+                  <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <Sparkles className="h-4 w-4 text-primary" />
                     Material de apoio
                   </p>
-                  <p className="mt-0.5 whitespace-pre-wrap text-foreground">
+                  <p className="mt-1 whitespace-pre-wrap text-foreground">
                     {material.materialApoio}
                   </p>
                 </div>
@@ -969,16 +979,17 @@ function MaterialItem({ material }: { material: PortalMaterialItem }) {
               {material.anexoNome && (
                 <Link
                   href={`/portal/dashboard/material/${material.agendamentoId}?nome=${encodeURIComponent(material.anexoNome)}`}
-                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:w-auto"
                 >
-                  <Eye className="h-4 w-4 text-primary" />
-                  <span className="truncate">Visualizar material</span>
+                  <Eye className="h-4 w-4" />
+                  <span className="truncate">Visualizar material formativo</span>
                 </Link>
               )}
-            </>
+            </div>
           )}
           {material.formadorNome && (
-            <p className="text-xs text-muted-foreground">
+            <p className="mt-4 flex items-center gap-1.5 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+              <UserRound className="h-3.5 w-3.5" />
               Formador: {material.formadorNome}
             </p>
           )}
