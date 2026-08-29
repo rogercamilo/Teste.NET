@@ -179,6 +179,10 @@ export default auth(async function proxy(req) {
     "/precos",
     "/blog",
     "/faq",
+    // Preview da reescrita da landing (rota interna, noindex). Pública para
+    // revisão; fora de MARKETING_PREFIXES de propósito (sem cache de borda →
+    // preview sempre fresco). Remover quando a home for substituída.
+    "/nova-landing",
     // Captura de leads (ímã eBook) — página de obrigado, PDF do eBook e endpoints públicos
     "/materiais",
     "/api/leads/",
