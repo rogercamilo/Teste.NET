@@ -131,7 +131,7 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
       <SidebarContent>
         {navGroups.map((group) => (
           <SidebarGroup key={group.label} className="py-1 gap-1">
-            <SidebarGroupLabel className="h-6">{group.label}</SidebarGroupLabel>
+            <SidebarGroupLabel className="h-6 font-bold">{group.label}</SidebarGroupLabel>
             <SidebarMenu>
               {group.items.map((item) => {
                 const isActive =
