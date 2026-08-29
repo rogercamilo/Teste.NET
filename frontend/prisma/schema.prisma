@@ -187,6 +187,9 @@ enum TipoNotificacao {
   formando_em_risco
   // Voltadas ao FORMANDO (histórico in-app no Portal):
   aviso_comunidade
+  encontro_agendado
+  encontro_atualizado
+  encontro_lembrete
 }
 
 // ==========================================================

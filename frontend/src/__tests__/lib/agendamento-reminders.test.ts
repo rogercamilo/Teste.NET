@@ -12,6 +12,7 @@ vi.mock("@/lib/email", () => ({
 vi.mock("@/lib/notificacoes", () => ({
   formadorDoGrupo: vi.fn().mockResolvedValue("fc1"),
   criarNotificacao: vi.fn().mockResolvedValue(undefined),
+  criarNotificacaoParaFormandosDoEscopo: vi.fn().mockResolvedValue(0),
 }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {

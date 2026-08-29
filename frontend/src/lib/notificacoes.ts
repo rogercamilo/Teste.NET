@@ -73,6 +73,39 @@ export async function criarNotificacoesFormandos(
   }
 }
 
+// Grava um aviso para TODOS os formandos ativos de um escopo (grupos-alvo ou, se
+// vazio, a org inteira). Centraliza a enumeração usada pelos eventos de agenda
+// (criação/atualização/lembrete). Best-effort; devolve quantos formandos foram
+// alcançados.
+export async function criarNotificacaoParaFormandosDoEscopo(input: {
+  organizacaoId: string;
+  grupoFormacaoIds: string[];
+  tipo: TipoNotificacao;
+  titulo: string;
+  corpo?: string;
+  linkAcao?: string;
+}): Promise<number> {
+  const { organizacaoId, grupoFormacaoIds, ...base } = input;
+  try {
+    const formandos = await prisma.formando.findMany({
+      where: {
+        organizacaoId,
+        ativo: true,
+        deletedAt: null,
+        ...(grupoFormacaoIds.length > 0
+          ? { grupoFormacaoId: { in: grupoFormacaoIds } }
+          : {}),
+      },
+      select: { id: true },
+    });
+    await criarNotificacoesFormandos(formandos.map((f) => f.id), { organizacaoId, ...base });
+    return formandos.length;
+  } catch (err) {
+    logError("notificacoes:criarParaEscopo", err, { tipo: input.tipo });
+    return 0;
+  }
+}
+
 export async function listarNaoLidasFormando(
   formandoId: string,
   organizacaoId: string

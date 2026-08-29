@@ -23,6 +23,8 @@ import {
   AlertCircle,
   AlertTriangle,
   CalendarX,
+  CalendarClock,
+  Clock,
   Megaphone,
   type LucideIcon,
 } from "lucide-react";
@@ -46,7 +48,10 @@ export type TipoNotificacao =
   | "dados_formando_pendentes"
   | "justificativa_formando"
   | "formando_em_risco"
-  | "aviso_comunidade";
+  | "aviso_comunidade"
+  | "encontro_agendado"
+  | "encontro_atualizado"
+  | "encontro_lembrete";
 
 export interface Notificacao {
   id: string;
@@ -83,6 +88,9 @@ const TIPO_CONFIG: Record<TipoNotificacao, TipoConfig> = {
   justificativa_formando:   { Icon: CalendarX,     label: "Falta avisada",       className: "bg-amber-100 text-amber-700"      },
   formando_em_risco:        { Icon: AlertTriangle, label: "Formando em risco",   className: "bg-red-100 text-red-700"          },
   aviso_comunidade:         { Icon: Megaphone,     label: "Aviso da comunidade", className: "bg-primary/10 text-primary"       },
+  encontro_agendado:        { Icon: CalendarPlus,  label: "Novo encontro",       className: "bg-violet-100 text-violet-700"   },
+  encontro_atualizado:      { Icon: CalendarClock, label: "Encontro atualizado", className: "bg-amber-100 text-amber-700"      },
+  encontro_lembrete:        { Icon: Clock,         label: "Lembrete de encontro",className: "bg-blue-100 text-blue-700"        },
 };
 
 const FALLBACK_CONFIG: TipoConfig = { Icon: Bell, label: "Aviso", className: "bg-muted text-muted-foreground" };

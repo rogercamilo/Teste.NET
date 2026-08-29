@@ -3,7 +3,7 @@ import "server-only";
 import { prisma } from "./prisma";
 import { sendPushToOrg, sendPushToGroup } from "./push";
 import { sendAgendamentoReminderEmail, type ReminderQuando } from "./email";
-import { formadorDoGrupo, criarNotificacao } from "./notificacoes";
+import { formadorDoGrupo, criarNotificacao, criarNotificacaoParaFormandosDoEscopo } from "./notificacoes";
 import { formatDataBr } from "./utils";
 import { logError } from "./audit-log";
 
@@ -191,6 +191,16 @@ async function dispatchReminder(
     const p = await sendPushToOrg(org, pushPayload).catch(() => null);
     if (p) push += p.sent;
   }
+
+  // Histórico in-app durável do formando (o push é efêmero). Escopo = grupos-alvo
+  // ou org inteira. Idempotente: a flag lembrete{24h,2h}Enviado evita reexecução.
+  await criarNotificacaoParaFormandosDoEscopo({
+    organizacaoId: org,
+    grupoFormacaoIds: grupos,
+    tipo: "encontro_lembrete",
+    titulo: `${quandoTitulo}: ${tema}`,
+    corpo: `${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
+  }).catch(() => {});
 
   // E-mail aos formandos — só quando o opt-in de e-mails de agenda está ligado (item 1.6).
   if (emailAtivo) {

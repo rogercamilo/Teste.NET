@@ -7,6 +7,7 @@ import { UpdateAgendamentoSchema, isValidId, parseJson } from "@/lib/schemas";
 import { sendPushToOrg } from "@/lib/push";
 import { formatDataBr } from "@/lib/utils";
 import { verificarUltimoRetiroVocacional } from "@/lib/vocacional-triggers";
+import { criarNotificacaoParaFormandosDoEscopo } from "@/lib/notificacoes";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
@@ -108,6 +109,33 @@ export async function PUT(request: Request, { params }: Params) {
           corpo,
           url: "/agenda",
         }).catch(() => {});
+
+        // Histórico in-app durável do formando. Escopo = grupos-alvo do evento
+        // (ou org inteira quando é geral), não a org toda como o push acima.
+        const tituloMap: Partial<Record<string, string>> = {
+          confirmada: `Encontro confirmado: ${updated.formacaoTema}`,
+          cancelada: `Encontro cancelado: ${updated.formacaoTema}`,
+          reagendada: `Encontro remarcado: ${updated.formacaoTema}`,
+        };
+        const gruposDoEvento = (
+          await prisma.agendamentoGrupo.findMany({
+            where: { agendamentoId: id },
+            select: { grupoFormacaoId: true },
+          })
+        ).map((g) => g.grupoFormacaoId);
+        const escopo =
+          gruposDoEvento.length > 0
+            ? gruposDoEvento
+            : updated.grupoFormacaoId
+              ? [updated.grupoFormacaoId]
+              : [];
+        void criarNotificacaoParaFormandosDoEscopo({
+          organizacaoId: user.organizacaoId,
+          grupoFormacaoIds: escopo,
+          tipo: "encontro_atualizado",
+          titulo: tituloMap[body.status] ?? "Atualização de encontro",
+          corpo,
+        });
       }
     }
 

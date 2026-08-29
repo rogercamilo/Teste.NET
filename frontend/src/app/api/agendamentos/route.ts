@@ -7,7 +7,12 @@ import { CreateAgendamentoSchema, parseJson } from "@/lib/schemas";
 import { limiters } from "@/lib/rate-limit";
 import { sendPushToOrg, sendPushToGroup, sendPushToFormando } from "@/lib/push";
 import { formatDataBr } from "@/lib/utils";
-import { criarNotificacao, formadorDoGrupo } from "@/lib/notificacoes";
+import {
+  criarNotificacao,
+  formadorDoGrupo,
+  criarNotificacaoFormando,
+  criarNotificacaoParaFormandosDoEscopo,
+} from "@/lib/notificacoes";
 import { formandosAlvo } from "@/lib/agendamento-reminders";
 import { sendAgendamentoCriadoEmail } from "@/lib/email";
 
@@ -222,13 +227,23 @@ export async function POST(request: Request) {
       corpo: `${row.formacaoTema} — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
       url: "/portal",
     };
-    if (tipoEvento === "convocacao" || tipoEvento === "reuniao" || targetGroups.length === 0) {
+    const escopoOrg = tipoEvento === "convocacao" || tipoEvento === "reuniao" || targetGroups.length === 0;
+    if (escopoOrg) {
       sendPushToOrg(user.organizacaoId, pushPayload, { formandosOnly: true }).catch(() => {});
     } else {
       for (const gid of targetGroups) {
         sendPushToGroup(user.organizacaoId, gid, pushPayload, { formandosOnly: true }).catch(() => {});
       }
     }
+
+    // Histórico in-app durável do formando (o push é efêmero). Mesmo escopo do push.
+    void criarNotificacaoParaFormandosDoEscopo({
+      organizacaoId: user.organizacaoId,
+      grupoFormacaoIds: escopoOrg ? [] : targetGroups,
+      tipo: "encontro_agendado",
+      titulo: `Novo encontro: ${row.formacaoTema}`,
+      corpo: `${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
+    });
 
     // E-mail de criação aos formandos — só se o FG manteve o opt-in (item 1.6).
     // Fire-and-forget: não bloqueia a resposta 201.
@@ -400,11 +415,20 @@ async function criarAcompanhamentoComunitario(
   // Fluxo FC→formando: web push ao formando acompanhado (1:1). Corpo neutro —
   // não vaza a nota privada do encontro; leva ao Portal do Formando.
   if (acompanhadoFormandoId) {
+    const corpoAcomp = `Seu formador agendou um acompanhamento com você — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`;
     sendPushToFormando(organizacaoId, acompanhadoFormandoId, {
       titulo: "Novo acompanhamento agendado",
-      corpo: `Seu formador agendou um acompanhamento com você — ${formatDataBr(row.dataInicio)}${row.local ? ` · ${row.local}` : ""}`,
+      corpo: corpoAcomp,
       url: "/portal",
     }).catch(() => {});
+    // Histórico in-app durável (corpo neutro — não vaza a nota privada).
+    void criarNotificacaoFormando({
+      organizacaoId,
+      formandoId: acompanhadoFormandoId,
+      tipo: "encontro_agendado",
+      titulo: "Novo acompanhamento agendado",
+      corpo: corpoAcomp,
+    });
   }
 
   return NextResponse.json(toAg(row), { status: 201 });
