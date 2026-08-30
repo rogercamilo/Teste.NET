@@ -179,7 +179,7 @@ function Hero() {
             </div>
             <div className="p-3">
               <ProductShot
-                src="/brand/screens/painel-geral.png"
+                src="/brand/screens/painel-geral.webp"
                 alt="Painel geral da Formattio: visão da jornada formativa da comunidade"
                 eager
               />
@@ -401,27 +401,27 @@ const telas = [
   {
     title: "Perfil e linha do tempo do formando",
     desc: "Consulte a trajetória individual: nível formativo, frequência, próximos passos, avaliações, observações e registros relevantes de cada pessoa.",
-    src: "/brand/screens/perfil-formando.png",
+    src: "/brand/screens/perfil-formando.webp",
   },
   {
     title: "Encontros e frequência",
     desc: "Planeje encontros no calendário da comunidade, registre presenças e acompanhe a participação ao longo do período.",
-    src: "/brand/screens/agenda.png",
+    src: "/brand/screens/agenda.webp",
   },
   {
     title: "Acompanhamento do grupo",
     desc: "Veja a saúde de cada grupo: formandos ativos, progresso da etapa, presença e quem precisa de atenção.",
-    src: "/brand/screens/grupo.png",
+    src: "/brand/screens/grupo.webp",
   },
   {
     title: "Biblioteca de formações",
     desc: "Organize o conteúdo em formações reutilizáveis — objetivo, material de apoio e vínculo às grades e à agenda.",
-    src: "/brand/screens/formacoes.png",
+    src: "/brand/screens/formacoes.webp",
   },
   {
     title: "Avaliação nas três perspectivas",
     desc: "Acompanhe a evolução de cada formando nas dimensões humana, espiritual e comunitária adotadas pela instituição.",
-    src: "/brand/screens/perspectivas.png",
+    src: "/brand/screens/perspectivas.webp",
   },
 ];
 
