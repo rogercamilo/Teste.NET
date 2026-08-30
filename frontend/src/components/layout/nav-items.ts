@@ -2,16 +2,24 @@
   BookHeart,
   BookMarked,
   BookOpen,
+  Building2,
   Calendar,
+  DollarSign,
   FolderOpen,
+  Gift,
   Home,
   LayoutDashboard,
   Library,
+  Lock,
+  MessageSquareQuote,
   ScrollText,
+  Server,
   Settings,
-  ShieldAlert,
+  Shield,
+  Sparkles,
   Sprout,
   Stamp,
+  UserCog,
   type LucideIcon,
   Users,
 } from "lucide-react";
@@ -133,23 +141,42 @@ export const navGroupsFormadorPedagogico: NavGroup[] = [
   },
 ];
 
-/** Super Admin — acesso global à plataforma */
+/**
+ * Super Admin — acesso global à plataforma. O cockpit é uma página única com
+ * régua de abas; cada item do menu faz deep-link para a aba via `?tab=`, de modo
+ * que a barra lateral é a navegação primária (igual ao resto do app) e todas as
+ * áreas ficam visíveis e alcançáveis em um clique. A aba ativa é derivada da URL
+ * em `SuperAdminClient`; o estado ativo do item é resolvido em `AppSidebar`.
+ */
 export const navGroupsSuperAdmin: NavGroup[] = [
   {
     label: "Principal",
     items: [
-      { title: "Dashboard", href: "/super-admin", icon: LayoutDashboard },
+      { title: "Visão Geral", href: "/super-admin?tab=visao-geral", icon: LayoutDashboard },
     ],
   },
   {
-    label: "Administração",
+    label: "Negócio",
     items: [
-      { title: "Super Admin", href: "/super-admin", icon: ShieldAlert, exact: true },
+      { title: "Organizações", href: "/super-admin?tab=organizacoes", icon: Building2 },
+      { title: "Financeiro", href: "/super-admin?tab=financeiro", icon: DollarSign },
+      { title: "Cortesias", href: "/super-admin?tab=cortesias", icon: Gift },
+      { title: "Leads", href: "/super-admin?tab=leads", icon: Sparkles },
+      { title: "Depoimentos", href: "/super-admin?tab=depoimentos", icon: MessageSquareQuote },
+    ],
+  },
+  {
+    label: "Plataforma",
+    items: [
+      { title: "Infraestrutura", href: "/super-admin?tab=infraestrutura", icon: Server },
+      { title: "Segurança", href: "/super-admin?tab=seguranca", icon: Lock },
+      { title: "LGPD", href: "/super-admin?tab=lgpd", icon: Shield },
     ],
   },
   {
     label: "Sistema",
     items: [
+      { title: "Minha Conta", href: "/super-admin?tab=conta", icon: UserCog },
       { title: "Configurações", href: "/configuracoes", icon: Settings },
     ],
   },
@@ -166,7 +193,9 @@ export const navGroupsSuperAdmin: NavGroup[] = [
 const SECTION_RANK: Record<string, number> = {
   Principal: 0,
   Formativo: 1,
+  Negócio: 1, // super-admin (nunca coexiste com Formativo)
   "Gestão Comunitária": 2,
+  Plataforma: 2, // super-admin (nunca coexiste com Gestão Comunitária)
   Administração: 3,
   Sistema: 5,
 };

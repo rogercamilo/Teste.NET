@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { BookOpen, LogOut, Shield, ShieldCheck, UserCog } from "lucide-react";
 import { signOut } from "next-auth/react";
 import {
@@ -41,6 +41,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { setOpenMobile } = useSidebar();
   useEffect(() => {
     setOpenMobile(false);
@@ -134,9 +135,22 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
             <SidebarGroupLabel className="h-6 font-bold">{group.label}</SidebarGroupLabel>
             <SidebarMenu>
               {group.items.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  (!item.exact && pathname.startsWith(item.href + "/"));
+                // Itens com deep-link para aba (`/rota?tab=x`, ex.: cockpit do
+                // super-admin): ativo quando a rota bate E a aba corrente bate.
+                // Sem `?tab=` na URL, a aba padrão é "visao-geral".
+                const qIdx = item.href.indexOf("?");
+                let isActive: boolean;
+                if (qIdx !== -1) {
+                  const base = item.href.slice(0, qIdx);
+                  const itemTab = new URLSearchParams(item.href.slice(qIdx + 1)).get("tab");
+                  isActive =
+                    pathname === base &&
+                    (searchParams.get("tab") ?? "visao-geral") === itemTab;
+                } else {
+                  isActive =
+                    pathname === item.href ||
+                    (!item.exact && pathname.startsWith(item.href + "/"));
+                }
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton

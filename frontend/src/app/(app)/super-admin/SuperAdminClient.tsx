@@ -53,13 +53,12 @@ const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
 export default function SuperAdminClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initTab = searchParams.get("tab") as Tab | null;
-  const [tab, setTab] = useState<Tab>(
-    TABS.some((x) => x.id === initTab) ? (initTab as Tab) : "visao-geral"
-  );
+  // A aba ativa é derivada da URL (fonte única), de modo que os deep-links do
+  // menu lateral (`/super-admin?tab=x`) trocam de aba mesmo sem remontar a página.
+  const tabParam = searchParams.get("tab") as Tab | null;
+  const tab: Tab = TABS.some((x) => x.id === tabParam) ? (tabParam as Tab) : "visao-geral";
 
   function handleSetTab(newTab: Tab) {
-    setTab(newTab);
     router.replace(`?tab=${newTab}`, { scroll: false });
   }
 

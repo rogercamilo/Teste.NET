@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { NotificacoesBell } from "@/components/NotificacoesBell";
 import { CommandPalette } from "@/components/layout/CommandPalette";
@@ -22,7 +22,21 @@ type BreadcrumbSegment = { label: string; href: string };
 
 const NAMED_ACTIONS = new Set(["novo", "nova", "editar"]);
 
-function buildBreadcrumbs(pathname: string, grupoFormacao: string, formando: string): BreadcrumbSegment[] {
+/** Rótulos das abas do cockpit super-admin — espelham os itens do menu lateral. */
+const SUPER_ADMIN_TAB_LABELS: Record<string, string> = {
+  "visao-geral": "Visão Geral",
+  organizacoes: "Organizações",
+  financeiro: "Financeiro",
+  cortesias: "Cortesias",
+  infraestrutura: "Infraestrutura",
+  seguranca: "Segurança",
+  lgpd: "LGPD",
+  leads: "Leads",
+  depoimentos: "Depoimentos",
+  conta: "Minha Conta",
+};
+
+function buildBreadcrumbs(pathname: string, grupoFormacao: string, formando: string, tab?: string | null): BreadcrumbSegment[] {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return [{ label: "Dashboard", href: "/dashboard" }];
 
@@ -40,13 +54,22 @@ function buildBreadcrumbs(pathname: string, grupoFormacao: string, formando: str
   }
 
   if (root === "super-admin") {
-    const base: BreadcrumbSegment[] = [
-      { label: "Administração", href: "/super-admin" },
-      { label: "Super Admin", href: "/super-admin" },
-    ];
-    if (parts[1] === "organizacoes" && parts[3] === "reset-credenciais") {
-      base.push({ label: "Reset de Credenciais", href: pathname });
+    const base: BreadcrumbSegment[] = [{ label: "Super Admin", href: "/super-admin" }];
+    if (parts.length > 1) {
+      // Sub-rotas: detalhe de organização e reset de credenciais.
+      if (parts[1] === "organizacoes") {
+        base.push({ label: "Organizações", href: "/super-admin?tab=organizacoes" });
+        base.push(
+          parts[3] === "reset-credenciais"
+            ? { label: "Reset de Credenciais", href: pathname }
+            : { label: "Detalhes", href: pathname },
+        );
+      }
+      return base;
     }
+    // Página raiz do cockpit: espelha a aba ativa (derivada de `?tab=`).
+    const key = tab ?? "visao-geral";
+    base.push({ label: SUPER_ADMIN_TAB_LABELS[key] ?? "Visão Geral", href: `/super-admin?tab=${key}` });
     return base;
   }
 
@@ -103,6 +126,7 @@ function buildBreadcrumbs(pathname: string, grupoFormacao: string, formando: str
 
 export function AppTopbar({ role, grupoFormacaoId }: { role: string; grupoFormacaoId?: string | null }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { grupoFormacao, formando } = useTermos();
   const [cmdOpen, setCmdOpen] = useState(false);
 
@@ -117,7 +141,7 @@ export function AppTopbar({ role, grupoFormacaoId }: { role: string; grupoFormac
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const breadcrumbs = buildBreadcrumbs(pathname, grupoFormacao, formando);
+  const breadcrumbs = buildBreadcrumbs(pathname, grupoFormacao, formando, searchParams.get("tab"));
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 bg-background/80 backdrop-blur-sm border-b border-border/60 px-4">
