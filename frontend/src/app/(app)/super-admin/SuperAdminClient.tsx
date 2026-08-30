@@ -12,11 +12,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Building2, RefreshCw, Gift, DollarSign, Lock,
-  Shield, Server, Clock, Scale, AlertTriangle, CalendarPlus,
-  Loader2, Mail, CircleAlert, LayoutDashboard, Sparkles, UserCog,
-  MessageSquareQuote,
-  type LucideIcon,
+  RefreshCw, Gift, Clock, Scale, AlertTriangle, CalendarPlus,
+  Loader2, Mail, CircleAlert,
 } from "lucide-react";
 import { STORAGE_LIMITS } from "./_utils";
 import { TabVisaoGeral } from "./_tabs/TabVisaoGeral";
@@ -33,19 +30,14 @@ import type {
   OrgRow, Metricas, LgpdData, ServicosData, SegurancaData, LeadsData, DepoimentosData, DialogAcao, Tab,
 } from "./_types";
 
-// ── Tab definitions ───────────────────────────────────────────────────────────
+// ── Tabs válidos ──────────────────────────────────────────────────────────────
+// A navegação entre áreas é feita pelo menu lateral (deep-link `?tab=`); aqui
+// ficam só os ids reconhecidos, para validar o parâmetro da URL. Rótulos/ícones
+// vivem no menu (`nav-items.ts`) e no breadcrumb (`AppTopbar`).
 
-const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
-  { id: "visao-geral",    label: "Visão Geral",   Icon: LayoutDashboard },
-  { id: "organizacoes",   label: "Organizações",  Icon: Building2 },
-  { id: "financeiro",     label: "Financeiro",    Icon: DollarSign },
-  { id: "cortesias",      label: "Cortesias",     Icon: Gift },
-  { id: "infraestrutura", label: "Infraestrutura",Icon: Server },
-  { id: "seguranca",      label: "Segurança",     Icon: Lock },
-  { id: "lgpd",           label: "LGPD",          Icon: Shield },
-  { id: "leads",          label: "Leads",         Icon: Sparkles },
-  { id: "depoimentos",    label: "Depoimentos",   Icon: MessageSquareQuote },
-  { id: "conta",          label: "Minha Conta",   Icon: UserCog },
+const TAB_IDS: Tab[] = [
+  "visao-geral", "organizacoes", "financeiro", "cortesias", "infraestrutura",
+  "seguranca", "lgpd", "leads", "depoimentos", "conta",
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -56,7 +48,7 @@ export default function SuperAdminClient() {
   // A aba ativa é derivada da URL (fonte única), de modo que os deep-links do
   // menu lateral (`/super-admin?tab=x`) trocam de aba mesmo sem remontar a página.
   const tabParam = searchParams.get("tab") as Tab | null;
-  const tab: Tab = TABS.some((x) => x.id === tabParam) ? (tabParam as Tab) : "visao-geral";
+  const tab: Tab = tabParam && TAB_IDS.includes(tabParam) ? tabParam : "visao-geral";
 
   function handleSetTab(newTab: Tab) {
     router.replace(`?tab=${newTab}`, { scroll: false });
@@ -474,31 +466,8 @@ export default function SuperAdminClient() {
         </div>
       )}
 
-      {/* Tab Bar — quebra em várias linhas para nunca cortar abas (a página em si
-          não rola na horizontal por causa do min-w-0 no SidebarInset do layout). */}
-      <div className="flex flex-wrap gap-y-0 gap-x-0 border-b">
-        {TABS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            onClick={() => handleSetTab(id)}
-            className={`flex shrink-0 items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === id
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-            {id === "lgpd" && (metricas?.deletionsPendentes ?? lgpd?.deletionStats.pendentes ?? 0) > 0 && (
-              <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {metricas?.deletionsPendentes ?? lgpd?.deletionStats.pendentes}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
+      {/* Tab content — a navegação entre áreas é feita pelo menu lateral
+          (deep-link `?tab=`); a aba ativa é derivada da URL. */}
       {tab === "visao-geral" && (
         metricas
           ? <TabVisaoGeral metricas={metricas} currFmt={currFmt} mrrFmt={mrrFmt} />
