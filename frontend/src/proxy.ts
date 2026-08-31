@@ -48,6 +48,50 @@ function buildSecurityHeaders(nonce: string): Record<string, string> {
   };
 }
 
+// CSP das páginas PÚBLICAS do portal (ativar/recuperar/landings de login): SEM
+// nonce e SEM strict-dynamic. Motivo: o Next 16 carimba o nonce por-request em
+// TODA tag que gera — inclusive o `<link>` do CSS. WebViews embarcadas (navegador
+// in-app do app do Google/e-mail) e WebKit antigo BLOQUEIAM um stylesheet que traz
+// `nonce` quando o `style-src` não lista esse nonce — e a página abre 100% sem
+// estilo (incidente do 1º acesso no iPhone). Sem nonce na política, o Next não
+// carimba os `<link>` e o CSS carrega por 'self' em qualquer navegador/webview.
+// Trade-off: estas páginas de auth caem para 'unsafe-inline' nos scripts (mesma
+// postura já usada no marketing); o app autenticado mantém nonce+strict-dynamic.
+// Não são cacheadas na borda (páginas de token) — nenhum Cache-Control é setado.
+function buildPortalPublicSecurityHeaders(): Record<string, string> {
+  return {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "X-Permitted-Cross-Domain-Policies": "none",
+    "X-Download-Options": "noopen",
+    "X-DNS-Prefetch-Control": "off",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(self), usb=(), magnetometer=(), accelerometer=(), gyroscope=()",
+    ...(isProd ? {
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Report-To": `{"group":"csp-endpoint","max_age":86400,"endpoints":[{"url":"${CSP_REPORT_URI}"}]}`,
+    } : {}),
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "Content-Security-Policy": [
+      "default-src 'self'",
+      // Sem nonce/strict-dynamic → o Next não carimba nonce nos <link>/<script>.
+      // 'unsafe-inline' cobre os scripts inline do Next (bootstrap de hidratação).
+      `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: blob:",
+      "frame-src 'self' https://*.r2.cloudflarestorage.com",
+      "connect-src 'self'",
+      "worker-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      ...(isProd ? [`report-to csp-endpoint`, `report-uri ${CSP_REPORT_URI}`] : []),
+    ].join("; "),
+  };
+}
+
 // ── Rotas públicas de marketing (cacheáveis na borda / Cloudflare) ───────────
 // Resposta idêntica para todos os visitantes → pode ser cacheada no edge. Ao
 // contrário do app autenticado, NÃO usam nonce por request (o HTML seria único
@@ -356,6 +400,18 @@ export default auth(async function proxy(req) {
     }
     marketingResponse.headers.set("Cache-Control", marketingCacheControl(pathname));
     return marketingResponse;
+  }
+
+  // Páginas públicas do portal (ativar/recuperar/landings): CSP SEM nonce para que
+  // o Next não carimbe nonce no `<link>` do CSS — do contrário WebViews/WebKit antigo
+  // bloqueiam o stylesheet e a página abre sem estilo. Só páginas (GET/HEAD); as APIs
+  // de portal (/api/portal/*) não renderizam HTML e seguem o fluxo normal.
+  if ((req.method === "GET" || req.method === "HEAD") && isPortalPublic(pathname) && !pathname.startsWith("/api/")) {
+    const portalResponse = NextResponse.next();
+    for (const [key, value] of Object.entries(buildPortalPublicSecurityHeaders())) {
+      portalResponse.headers.set(key, value);
+    }
+    return portalResponse;
   }
 
   const response = NextResponse.next({
