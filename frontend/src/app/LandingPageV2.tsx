@@ -265,8 +265,15 @@ function Problema() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
-          {problemas.map(({ icon: Icon, title }) => (
-            <div key={title} className="flex gap-4 rounded-2xl border border-white/8 bg-slate-800/30 p-6">
+          {problemas.map(({ icon: Icon, title }, i) => (
+            <div
+              key={title}
+              className={`flex gap-4 rounded-2xl border border-white/8 bg-slate-800/30 p-6 ${
+                i === problemas.length - 1 && problemas.length % 2 === 1
+                  ? "md:col-span-2 md:mx-auto md:w-[calc(50%-0.625rem)]"
+                  : ""
+              }`}
+            >
               <div className="shrink-0">
                 <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
                   <Icon className="h-5 w-5 text-primary" />
