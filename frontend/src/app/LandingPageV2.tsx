@@ -5,13 +5,14 @@
 //
 // Posicionamento: a Formattio preserva e organiza a JORNADA FORMATIVA de cada
 // membro (continuidade + memória institucional), não "mais um sistema de cadastro".
-// Postura de PRÉ-LANÇAMENTO alinhada às ações de marketing: o CTA primário é
-// "Solicitar acesso antecipado" (acompanhado pela equipe), não cadastro automático.
+// Postura de ACESSO ANTECIPADO acompanhado alinhada às ações de marketing: o CTA
+// primário é "Solicitar acesso antecipado" (acompanhado pela equipe), não cadastro
+// automático.
 //
 // Notas de implementação (não confundir com as notas ESTRATÉGICAS do documento,
 // que orientam a equipe e NÃO são publicadas):
 //  • Campos [a validar] aparecem com o rótulo "a definir" — preencher com dados
-//    reais antes do lançamento público (esta rota é noindex/preview).
+//    reais antes de publicar (esta rota é noindex/preview).
 //  • As telas do produto são placeholders marcados "Inserir captura real" — trocar
 //    por screenshots reais (o documento pede telas reais, não mockups).
 //  • CTAs de alta intenção usam mailto (mecanismo honesto que já temos). Follow-up
@@ -30,7 +31,7 @@ import {
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { trackMetaEvent } from "@/lib/analytics-config";
 
-// CTAs — mecanismos disponíveis hoje (pré-lançamento).
+// CTAs — mecanismos disponíveis hoje (acesso antecipado acompanhado).
 const CTA_ACESSO = "#acesso-antecipado";
 const MAIL = "contato@formattio.com.br";
 const CTA_DEMO = `mailto:${MAIL}?subject=${encodeURIComponent("Agendar uma demonstração — Formattio")}`;
@@ -128,7 +129,7 @@ function Hero() {
         <div className="text-center lg:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-medium mb-8">
             <Sparkles className="h-3 w-3" />
-            Em pré-lançamento · Acesso antecipado acompanhado
+            Acesso antecipado acompanhado
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight tracking-tight mb-6">
@@ -192,7 +193,7 @@ function Hero() {
 }
 
 // ── 2. Faixa de confiança ──────────────────────────────────────────────────────
-// Pré-lançamento: a confiança vem da especialização, da transparência e da
+// Acesso antecipado: a confiança vem da especialização, da transparência e da
 // proximidade da equipe — NÃO de números, logotipos ou resultados inexistentes.
 
 function TrustBar() {
@@ -709,7 +710,7 @@ function DireitoCanonico() {
                 {/* [a validar] — descrever os documentos, fluxos e critérios efetivamente
                     contemplados e a orientação especializada que fundamentou o desenvolvimento. */}
                 Documentos, fluxos e critérios contemplados serão detalhados durante o acesso
-                antecipado. <span className="italic">(conteúdo a definir com validação especializada)</span>
+                antecipado.
               </p>
             </div>
           </div>
@@ -753,8 +754,8 @@ function AcessoAntecipado() {
             Conheça a Formattio com o acompanhamento da nossa equipe
           </h2>
           <p className="text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            A Formattio está em fase de pré-lançamento. As instituições participantes não recebem
-            apenas uma conta para explorar sozinhas: nossa equipe acompanha os primeiros passos,
+            No acesso antecipado, as instituições participantes não recebem apenas uma conta para
+            explorar sozinhas: nossa equipe acompanha os primeiros passos,
             ajuda na configuração inicial e orienta uma experiência prática com os recursos da
             plataforma.
           </p>
@@ -800,25 +801,29 @@ function AcessoAntecipado() {
   );
 }
 
-// ── 13. Planos (condições previstas — a validar) ─────────────────────────────────
+// ── 13. Planos ───────────────────────────────────────────────────────────────────
+// Valores canônicos (mesmos de /precos): Básico 97 / Intermediário 197 / Avançado 397.
 
 const planosPrevistos = [
   {
     name: "Básico",
-    paraQuem: "Instituições menores",
-    limites: ["Membros: a definir", "Usuários internos: a definir", "Módulos essenciais"],
+    paraQuem: "Comunidades em início de jornada",
+    preco: 97,
+    limites: ["Até 60 usuários ativos", "2 GB de armazenamento", "Todos os módulos incluídos"],
     highlight: false,
   },
   {
     name: "Intermediário",
-    paraQuem: "Operações em crescimento",
-    limites: ["Membros: a definir", "Usuários internos: a definir", "Jornada Vocacional"],
+    paraQuem: "Comunidades em crescimento",
+    preco: 197,
+    limites: ["Até 140 usuários ativos", "10 GB de armazenamento", "Jornada Vocacional completa"],
     highlight: true,
   },
   {
     name: "Avançado",
-    paraQuem: "Estruturas maiores ou redes",
-    limites: ["Membros: a definir", "Onboarding acompanhado", "Suporte prioritário"],
+    paraQuem: "Grandes organizações e redes",
+    preco: 397,
+    limites: ["Até 350 usuários ativos", "30 GB de armazenamento", "Suporte dedicado"],
     highlight: false,
   },
 ];
@@ -833,8 +838,8 @@ function Planos() {
             Escolha o plano adequado à realidade da sua instituição
           </h2>
           <p className="text-slate-400 max-w-2xl mx-auto">
-            Conheça as condições previstas para o lançamento. Durante o acesso antecipado, a equipe
-            apresenta o plano mais adequado à realidade da sua instituição.
+            Todos os planos incluem os módulos da plataforma. Durante o acesso antecipado, a equipe
+            ajuda a escolher o plano mais adequado à realidade da sua instituição.
           </p>
         </div>
 
@@ -857,9 +862,9 @@ function Planos() {
               <div className="mb-5">
                 <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
                 <p className="text-sm text-slate-400 mt-1">{plan.paraQuem}</p>
-                <div className="mt-4 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-400">
-                  <Sparkles className="h-3 w-3 text-primary" />
-                  Valor apresentado no acesso antecipado
+                <div className="mt-4 flex items-baseline gap-1.5">
+                  <span className="text-3xl font-bold text-white">R$ {plan.preco}</span>
+                  <span className="text-sm text-slate-400">/mês</span>
                 </div>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
@@ -885,7 +890,8 @@ function Planos() {
         </div>
 
         <p className="text-center text-xs text-slate-500">
-          Condições, limites e valores em definição. Nenhuma cobrança durante o acesso antecipado.
+          Sem cobrança durante o acesso antecipado — os valores passam a valer quando sua instituição
+          decidir continuar.
         </p>
       </div>
     </section>
@@ -921,7 +927,7 @@ const faqs = [
   },
   {
     q: "O que significa acesso antecipado?",
-    a: "É a oportunidade de conhecer a Formattio antes do lançamento oficial, utilizar seus recursos em uma experiência acompanhada e compartilhar percepções que ajudem a aprimorar a plataforma. Duração e condições de participação são apresentadas no contato inicial.",
+    a: "É a oportunidade de conhecer a Formattio com o acompanhamento próximo da nossa equipe desde o início: utilizar seus recursos em uma experiência guiada e compartilhar percepções que ajudem a aprimorar a plataforma. Duração e condições de participação são apresentadas no contato inicial.",
   },
   {
     q: "Existe suporte durante a implantação?",
@@ -990,7 +996,7 @@ function ChamadaFinal() {
             </a>
           </div>
           <p className="mt-6 text-xs text-slate-500 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-            <span>Conheça antes do lançamento</span><span className="text-slate-700">•</span>
+            <span>Conheça com acompanhamento da equipe</span><span className="text-slate-700">•</span>
             <span>Comece por uma experiência concreta</span><span className="text-slate-700">•</span>
             <span>Conte com orientação inicial</span>
           </p>
