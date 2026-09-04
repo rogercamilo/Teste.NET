@@ -674,9 +674,9 @@ function Seguranca() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        <div className="flex flex-wrap justify-center gap-4 mb-10">
           {itens.map(({ icon: Icon, label }) => (
-            <div key={label} className="flex items-start gap-3 rounded-xl border border-white/10 bg-slate-800/40 p-5">
+            <div key={label} className="flex items-start gap-3 rounded-xl border border-white/10 bg-slate-800/40 p-5 w-full md:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.667rem)]">
               <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
                 <Icon className="h-4 w-4 text-primary" />
               </span>
