@@ -890,7 +890,7 @@ function Planos() {
                 ))}
               </ul>
               <a
-                href={CTA_ACESSO}
+                href={`mailto:${MAIL}?subject=${encodeURIComponent(`Tenho interesse no plano ${plan.name} — Formattio`)}`}
                 className={`block text-center text-sm font-semibold px-4 py-3 rounded-xl transition-colors ${
                   plan.highlight
                     ? "bg-primary text-white hover:bg-primary/90"
