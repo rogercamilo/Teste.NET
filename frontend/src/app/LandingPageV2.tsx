@@ -29,7 +29,10 @@ import {
   Building2, Heart, BookMarked, GraduationCap,
 } from "lucide-react";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { Depoimentos } from "@/components/marketing/Depoimentos";
 import { trackMetaEvent } from "@/lib/analytics-config";
+import type { DepoimentoPublico } from "@/lib/depoimentos-store";
+import type { AggregateRating } from "@/lib/structured-data";
 
 // CTAs — mecanismos disponíveis hoje (acesso antecipado acompanhado).
 const CTA_ACESSO = "#acesso-antecipado";
@@ -1215,7 +1218,13 @@ function LeadMagnetSection() {
 
 // ── Página ────────────────────────────────────────────────────────────────────
 
-export default function LandingPageV2() {
+export default function LandingPageV2({
+  depoimentos = [],
+  rating = null,
+}: {
+  depoimentos?: DepoimentoPublico[];
+  rating?: AggregateRating | null;
+} = {}) {
   return (
     <div className="font-sans antialiased">
       <Nav />
@@ -1231,6 +1240,7 @@ export default function LandingPageV2() {
       <Seguranca />
       <DireitoCanonico />
       <AcessoAntecipado />
+      <Depoimentos depoimentos={depoimentos} rating={rating} />
       <Planos />
       <FAQ />
       <ChamadaFinal />

@@ -1,4 +1,4 @@
-import LandingPage from "./LandingPage";
+import LandingPageV2 from "./LandingPageV2";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { organizationLd, websiteLd, softwareApplicationLd } from "@/lib/structured-data";
@@ -54,7 +54,7 @@ export default async function Home() {
   return (
     <>
       <JsonLd data={[organizationLd(), websiteLd(), softwareApplicationLd(rating)]} />
-      <LandingPage isNewOrg depoimentos={depoimentos} rating={rating} />
+      <LandingPageV2 depoimentos={depoimentos} rating={rating} />
     </>
   );
 }
