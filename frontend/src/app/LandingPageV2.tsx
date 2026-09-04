@@ -631,8 +631,15 @@ function Profundidade() {
           </p>
         </div>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-          {itens.map((item) => (
-            <li key={item} className="flex items-start gap-3 rounded-xl border border-white/10 bg-slate-900/50 p-4 text-sm text-slate-300">
+          {itens.map((item, i) => (
+            <li
+              key={item}
+              className={`flex items-start gap-3 rounded-xl border border-white/10 bg-slate-900/50 p-4 text-sm text-slate-300 ${
+                i === itens.length - 1 && itens.length % 2 === 1
+                  ? "md:col-span-2 md:mx-auto md:w-[calc(50%-0.5rem)]"
+                  : ""
+              }`}
+            >
               <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
               {item}
             </li>
