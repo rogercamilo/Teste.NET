@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { UpdateFormandoSchema, isValidId, parseJson } from "@/lib/schemas";
+import { offboardFidellis } from "@/lib/fidellis-integration";
 
 import { SessionUser as SU } from "@/lib/auth-helpers";
 type Params = { params: Promise<{ id: string }> };
@@ -140,6 +141,8 @@ export async function PUT(request: Request, { params }: Params) {
     });
 
     logAction("formando_updated", user.id, getClientIp(request), { id }, user.organizacaoId);
+    // Offboarding (#80 F3): inativação (ativo true→false) pausa a recorrência de dízimo no Fidellis.
+    if (existing.ativo && body.ativo === false) await offboardFidellis(user.organizacaoId, id, false);
     return NextResponse.json(toFormando(updated));
   } catch (err) { logError("formandos/:id PUT", err); return NextResponse.json({ error: "Falha ao atualizar formando" }, { status: 500 }); }
 }
@@ -157,6 +160,8 @@ export async function DELETE(request: Request, { params }: Params) {
     if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     await prisma.formando.update({ where: { id, organizacaoId: user.organizacaoId }, data: { deletedAt: new Date(), ativo: false } });
     logAction("formando_deleted", user.id, getClientIp(request), { id }, user.organizacaoId);
+    // Offboarding (#80 F3): exclusão encerra (definitivo) a recorrência de dízimo no Fidellis.
+    await offboardFidellis(user.organizacaoId, id, true);
     return new NextResponse(null, { status: 204 });
   } catch (err) { logError("formandos/:id DELETE", err); return NextResponse.json({ error: "Falha ao excluir formando" }, { status: 500 }); }
 }

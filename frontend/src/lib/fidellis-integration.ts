@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { decryptField } from "@/lib/crypto";
+import { logAction, logError } from "@/lib/audit-log";
 
 /**
  * Integração Formattio → Fidellis (#80). Config por organização + chamadas server-to-server ao canal
@@ -58,6 +59,23 @@ export function fidellisPledge(cfg: FidellisConfig, input: PledgeInput): Promise
 
 export function fidellisOffboard(cfg: FidellisConfig, input: OffboardInput): Promise<FidellisResult> {
   return callFidellis(cfg, "offboard", { externalId: input.externalId, permanent: input.permanent });
+}
+
+/**
+ * Offboarding best-effort (#80 fatia F3): ao perder o vínculo (formando inativado/excluído), sinaliza ao
+ * Fidellis para pausar (`permanent=false`) ou encerrar (`permanent=true`) a recorrência de dízimo. Nunca
+ * lança — a mutação do formando não pode falhar se o Fidellis estiver indisponível. No-op se a integração
+ * não estiver habilitada para a organização.
+ */
+export async function offboardFidellis(organizacaoId: string, formandoId: string, permanent: boolean): Promise<void> {
+  try {
+    const cfg = await getFidellisConfig(organizacaoId);
+    if (!cfg) return;
+    const r = await fidellisOffboard(cfg, { externalId: formandoId, permanent });
+    logAction("fidellis_offboard", undefined, undefined, { formandoId, permanent, ok: r.ok, status: r.status }, organizacaoId);
+  } catch (err) {
+    logError("offboardFidellis", err);
+  }
 }
 
 async function callFidellis(cfg: FidellisConfig, path: string, body: unknown): Promise<FidellisResult> {
