@@ -197,6 +197,15 @@ export default function ConfiguracoesClient({
             ? "Gerencie usuários, dados da comunidade e preferências do sistema"
             : "Gerencie seu perfil e preferências"}
         </p>
+        {isGestao && (
+          <button
+            type="button"
+            onClick={() => router.push("/configuracoes/fidellis")}
+            className="mt-2 text-sm text-primary underline underline-offset-2"
+          >
+            Integração Fidellis (dízimo/oferta) →
+          </button>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

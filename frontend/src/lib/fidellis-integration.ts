@@ -31,6 +31,15 @@ export async function getFidellisConfig(organizacaoId: string): Promise<Fidellis
   };
 }
 
+/** Só o flag de habilitação (sem decifrar a chave) — para gating de UI. */
+export async function isFidellisEnabled(organizacaoId: string): Promise<boolean> {
+  const cfg = await prisma.integracaoFidellis.findUnique({
+    where: { organizacaoId },
+    select: { habilitado: true },
+  });
+  return !!cfg?.habilitado;
+}
+
 export type FidellisResult = { ok: boolean; status: number; data: unknown };
 
 type GiveInput = { externalId: string; amount: number; entryType: "tithe" | "offering"; method: "pix" | "boleto" };
