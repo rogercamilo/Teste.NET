@@ -99,20 +99,33 @@ export default function CookieBanner() {
   }, []);
 
   // Reserva espaço no rodapé igual à altura real do banner enquanto ele estiver
-  // visível, para não cobrir o botão de ação da página (ex.: "Próximo" no
-  // onboarding, sobretudo no mobile, onde o banner é mais alto). O ResizeObserver
-  // mantém o padding sincronizado ao expandir "Personalizar" ou redimensionar.
+  // visível, para não cobrir ações da página, sobretudo no mobile (banner mais
+  // alto). Duas reservas COMPLEMENTARES, para dois tipos de layout:
+  //  1) padding no <body> — protege páginas roláveis top-aligned (o botão fica no
+  //     fluxo natural; o padding permite rolá-lo acima do banner).
+  //  2) --cookie-banner-h — consumida pelas telas de tela cheia CENTRALIZADAS
+  //     (login, portal, páginas de token). Nelas o padding do <body> NÃO ajuda: o
+  //     conteúdo é centralizado dentro de um bloco de 100vh, então o banner fixo
+  //     cobre a metade de baixo — onde ficam "Esqueci minha senha", "Voltar ao
+  //     login" etc. A regra em globals.css encolhe a área centralizada por esta
+  //     altura. O ResizeObserver mantém ambas em sincronia ao expandir
+  //     "Personalizar" ou redimensionar.
   useEffect(() => {
     if (!visible) return;
     const el = bannerRef.current;
     if (!el) return;
-    const apply = () => { document.body.style.paddingBottom = `${el.offsetHeight}px`; };
+    const apply = () => {
+      const h = `${el.offsetHeight}px`;
+      document.body.style.paddingBottom = h;
+      document.documentElement.style.setProperty("--cookie-banner-h", h);
+    };
     apply();
     const ro = new ResizeObserver(apply);
     ro.observe(el);
     return () => {
       ro.disconnect();
       document.body.style.paddingBottom = "";
+      document.documentElement.style.setProperty("--cookie-banner-h", "0px");
     };
   }, [visible]);
 

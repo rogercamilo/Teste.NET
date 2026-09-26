@@ -82,7 +82,10 @@ function buildPortalPublicSecurityHeaders(): Record<string, string> {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: blob:",
       "frame-src 'self' https://*.r2.cloudflarestorage.com",
-      "connect-src 'self'",
+      // Sentry precisa enviar erros do cliente (envelope) — sem estes hosts o CSP
+      // bloqueia o relato nas telas públicas do portal (login/token) e erros de
+      // formandos no mobile ficam invisíveis. Stripe/Facebook não se aplicam aqui.
+      "connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io",
       "worker-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",

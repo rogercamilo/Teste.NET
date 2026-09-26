@@ -9,6 +9,7 @@ import {
 } from "@/lib/portal-data";
 import { getPublicBranding } from "@/lib/public-branding";
 import { portalHomeFor } from "@/lib/portal-routes";
+import { isFidellisEnabled } from "@/lib/fidellis-integration";
 import DashboardClient from "./DashboardClient";
 
 export const metadata = {
@@ -19,7 +20,7 @@ export default async function PortalDashboardPage() {
   const session = await getPortalSession();
   if (!session) redirect("/portal/formando");
 
-  const [data, materiais, travessia, aniversariantes, branding, notificacoes] = await Promise.all([
+  const [data, materiais, travessia, aniversariantes, branding, notificacoes, contribuirHabilitado] = await Promise.all([
     getPortalDashboardData(session.formandoId, session.organizacaoId),
     getPortalMateriais(session.formandoId, session.organizacaoId),
     // Acompanhamento de leitura é do GRUPO (vocacional ou de formação): retorna
@@ -29,6 +30,7 @@ export default async function PortalDashboardPage() {
     getPortalAniversariantes(session.formandoId, session.organizacaoId),
     getPublicBranding(session.organizacaoId),
     getPortalNotificacoes(session.formandoId, session.organizacaoId),
+    isFidellisEnabled(session.organizacaoId),
   ]);
 
   // A identidade/terminologia da leitura segue o público: vocacional mantém a
@@ -48,6 +50,7 @@ export default async function PortalDashboardPage() {
       aniversariantes={aniversariantes}
       branding={branding}
       notificacoes={notificacoes}
+      contribuirHabilitado={contribuirHabilitado}
     />
   );
 }

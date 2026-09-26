@@ -28,6 +28,7 @@ import {
   Target,
   FileText,
   Sparkles,
+  HandCoins,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -107,6 +108,7 @@ export default function DashboardClient({
   aniversariantes,
   branding,
   notificacoes,
+  contribuirHabilitado = false,
 }: {
   data: PortalDashboardData;
   materiais: PortalMaterialItem[];
@@ -115,6 +117,7 @@ export default function DashboardClient({
   aniversariantes: PortalAniversariante[];
   branding: PublicBranding;
   notificacoes: Notificacao[];
+  contribuirHabilitado?: boolean;
 }) {
   const router = useRouter();
   const { formando, presenca, proximosEncontros, progresso, vocacional, acompanhamentoFormativo, retirosMateriais } = data;
@@ -249,6 +252,15 @@ export default function DashboardClient({
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {contribuirHabilitado && (
+              <Link
+                href="/portal/contribuir"
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <HandCoins className="h-4 w-4" />
+                <span className="hidden sm:inline">Contribuir</span>
+              </Link>
+            )}
             <Link
               href="/portal/perfil"
               className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"

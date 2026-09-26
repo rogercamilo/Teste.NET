@@ -74,6 +74,9 @@
   --chart-4: oklch(0.55 0.115 230);      /* blue */
   --chart-5: oklch(0.65 0.180 27);       /* red */
   --radius: 0.625rem;
+  /* Altura reservada pelo banner de cookies (fixo no rodapé). O CookieBanner a
+     atualiza para sua altura real enquanto visível e volta a 0px ao fechar. */
+  --cookie-banner-h: 0px;
   --sidebar: oklch(1.00 0 0);
   --sidebar-foreground: oklch(0.22 0.022 50);
   --sidebar-primary: oklch(0.55 0.135 36);
@@ -175,5 +178,37 @@
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: oklch(0.91 0.010 70) transparent;
+  }
+
+  /* Telas de tela cheia com conteúdo CENTRALIZADO (login, portal, páginas de
+     token, onboarding, RSVP, 404) reservam a altura do banner de cookies para
+     que ele não cubra ações no rodapé do cartão — ex.: "Esqueci minha senha" —
+     sobretudo no mobile, onde o banner é mais alto e a tela mais curta. Casa
+     apenas quando `min-h-screen` coincide com centralização (items/justify),
+     deixando páginas roláveis top-aligned intactas (essas usam o padding do
+     <body>). --cookie-banner-h é 0px quando o banner está oculto → sem efeito.
+     Seletor com 2 classes (0,2,0) vence o `.min-h-screen` do Tailwind (0,1,0).
+
+     Reserva-se via `padding-bottom` (não reduzindo a altura): quando há folga, a
+     centralização empurra o conteúdo para cima e o link fica acima do banner sem
+     rolar; quando o cartão é mais alto que o espaço livre (telas pequenas, ex.:
+     iPhone SE), a página fica rolável e o link permanece ALCANÇÁVEL acima do
+     banner. O 1.5rem preserva o respiro padrão (p-6) já que o padding-bottom
+     longhand sobrescreve o shorthand do Tailwind. */
+  .min-h-screen.items-center,
+  .min-h-screen.justify-center {
+    padding-bottom: calc(1.5rem + var(--cookie-banner-h, 0px));
+  }
+
+  /* Telas CURTAS (celulares pequenos/antigos, ex.: iPhone SE 568px): quando o
+     cartão é mais alto que o espaço livre acima do banner, centralizar o esconde
+     parcialmente sob o banner. Ancorar no topo as colunas centralizadas deixa o
+     usuário ler de cima para baixo e rolar até o rodapé (ex.: "Esqueci minha
+     senha"), que fica acima do banner graças ao padding-bottom reservado. Só
+     colunas (flex-col) — layouts em linha centralizam na horizontal. */
+  @media (max-height: 720px) {
+    .min-h-screen.flex-col.justify-center {
+      justify-content: flex-start;
+    }
   }
 }

@@ -276,6 +276,7 @@ model Organizacao {
   acompanhamentosFormando   AcompanhamentoFormando[]
   solicitacoesAcompanhamentoFormando SolicitacaoAcompanhamentoFormando[]
   retiroMateriaisLiberacoes RetiroMaterialLiberacao[]
+  integracaoFidellis        IntegracaoFidellis?
 
   @@index([status])
   @@index([planoAssinatura])
@@ -493,6 +494,7 @@ model Formando {
   acompanhamentosComoAlvo Agendamento[]              @relation("AgendamentoAcompanhadoFormando")
   solicitacoesAcompanhamento SolicitacaoAcompanhamentoFormando[]
   notificacoes            Notificacao[]
+  consentimentoDizimo     ConsentimentoDizimo?
 
   @@index([organizacaoId])
   @@index([grupoFormacaoId])
@@ -1124,6 +1126,38 @@ model DeletionRequest {
   @@index([usuarioId])
   @@index([organizacaoId])
   @@index([status])
+}
+
+// ==========================================================
+// INTEGRAÇÃO FIDELLIS (#80) — config por organização (Opção A: Fidellis puxa a
+// identidade; o portal do formando lança dízimo/oferta no Fidellis). A chave de
+// serviço é guardada CIFRADA (lib/crypto encryptField). "Formattio lança, não armazena".
+// ==========================================================
+model IntegracaoFidellis {
+  id             String   @id @default(cuid())
+  organizacaoId  String   @unique
+  habilitado     Boolean  @default(false)
+  tenantSlug     String // slug da instituição no Fidellis
+  organizationId String // unidade (GUID) no Fidellis
+  baseUrl        String // base da API do Fidellis
+  serviceKeyEnc  String // chave de serviço (X-Integration-Key) cifrada
+  criadoEm       DateTime @default(now())
+  atualizadoEm   DateTime @updatedAt
+
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+}
+
+// Consentimento específico e destacado (LGPD art. 11, I) do formando para o cruzamento
+// membro × dízimo/oferta. Sem consentimento ativo, a aba de contribuição não é habilitada.
+model ConsentimentoDizimo {
+  id         String    @id @default(cuid())
+  formandoId String    @unique
+  versao     String
+  ip         String? // IP anonimizado no aceite
+  aceitoEm   DateTime  @default(now())
+  revogadoEm DateTime?
+
+  formando Formando @relation(fields: [formandoId], references: [id], onDelete: Cascade)
 }
 
 // ==========================================================
