@@ -15,9 +15,11 @@
 //    reais antes de publicar (esta rota é noindex/preview).
 //  • As telas do produto são placeholders marcados "Inserir captura real" — trocar
 //    por screenshots reais (o documento pede telas reais, não mockups).
-//  • CTAs de alta intenção usam mailto (mecanismo honesto que já temos). Follow-up
-//    recomendado: endpoint dedicado de "acesso antecipado" com e-mail próprio
-//    (o /api/leads/subscribe atual dispara o double opt-in do eBook — impróprio aqui).
+//  • CTAs de alta intenção levam à página dedicada /acesso-antecipado (formulário
+//    próprio → /api/acesso-antecipado: persiste o lead, avisa a equipe por e-mail
+//    e confirma para a pessoa). O antigo mailto foi aposentado (jornada fraca no
+//    1º contato). A âncora #acesso-antecipado ainda rola até a seção que EXPLICA
+//    o programa; o botão da seção leva ao formulário.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState } from "react";
@@ -34,11 +36,11 @@ import { trackMetaEvent } from "@/lib/analytics-config";
 import type { DepoimentoPublico } from "@/lib/depoimentos-store";
 import type { AggregateRating } from "@/lib/structured-data";
 
-// CTAs — mecanismos disponíveis hoje (acesso antecipado acompanhado).
-const CTA_ACESSO = "#acesso-antecipado";
-const MAIL = "contato@formattio.com.br";
-const CTA_DEMO = `mailto:${MAIL}?subject=${encodeURIComponent("Agendar uma demonstração — Formattio")}`;
-const CTA_EQUIPE = `mailto:${MAIL}?subject=${encodeURIComponent("Conversar com a equipe — Formattio")}`;
+// CTAs — âncora para a seção que explica o programa + página dedicada do formulário.
+const CTA_ACESSO = "#acesso-antecipado"; // rola até a seção explicativa
+const CTA_FORM = "/acesso-antecipado"; // formulário de acesso antecipado
+const CTA_DEMO = "/acesso-antecipado?intencao=demonstracao";
+const CTA_DUVIDA = "/acesso-antecipado?intencao=duvida";
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
 
@@ -521,7 +523,7 @@ function ComoFunciona() {
             Solicitar acesso antecipado
             <ArrowRight className="h-4 w-4" />
           </a>
-          <a href={CTA_EQUIPE} className="flex items-center gap-2 px-6 py-3 border border-white/20 text-slate-300 hover:border-white/40 hover:text-white font-medium rounded-xl transition-colors text-sm w-full sm:w-auto justify-center">
+          <a href={CTA_DUVIDA} className="flex items-center gap-2 px-6 py-3 border border-white/20 text-slate-300 hover:border-white/40 hover:text-white font-medium rounded-xl transition-colors text-sm w-full sm:w-auto justify-center">
             Conversar com a equipe
           </a>
         </div>
@@ -800,14 +802,14 @@ function AcessoAntecipado() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
-            href={`mailto:${MAIL}?subject=${encodeURIComponent("Quero participar do acesso antecipado — Formattio")}`}
+            href={CTA_FORM}
             className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-sm w-full sm:w-auto justify-center"
           >
             Quero participar do acesso antecipado
             <ArrowRight className="h-4 w-4" />
           </a>
           <a
-            href={CTA_EQUIPE}
+            href={CTA_DUVIDA}
             className="flex items-center gap-2 px-6 py-3 border border-white/20 text-slate-300 hover:border-white/40 hover:text-white font-medium rounded-xl transition-colors text-sm w-full sm:w-auto justify-center"
           >
             Conversar com a equipe
@@ -893,7 +895,7 @@ function Planos() {
                 ))}
               </ul>
               <a
-                href={`mailto:${MAIL}?subject=${encodeURIComponent(`Tenho interesse no plano ${plan.name} — Formattio`)}`}
+                href={`${CTA_FORM}?plano=${encodeURIComponent(plan.name)}`}
                 className={`block text-center text-sm font-semibold px-4 py-3 rounded-xl transition-colors ${
                   plan.highlight
                     ? "bg-primary text-white hover:bg-primary/90"

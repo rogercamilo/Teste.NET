@@ -191,4 +191,7 @@ export const limiters = {
 
   /** 3 cadastros por e-mail por hora — segunda camada, evita reenvio em massa. */
   leadSubscribeEmail: (email: string) => rateLimit(`lead_sub_email:${email.toLowerCase()}`, 3, 60 * 60 * 1000),
+
+  /** 5 pedidos de acesso antecipado por IP por hora — captura de alta intenção na landing (anti-abuso). */
+  acessoAntecipadoIp: (ip: string) => rateLimit(`acesso_ant_ip:${ip}`, 5, 60 * 60 * 1000),
 };

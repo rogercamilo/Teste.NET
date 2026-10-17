@@ -32,3 +32,27 @@ export const WHATSAPP_CHANNEL_URL = process.env.LEADS_WHATSAPP_URL ?? "";
  * sempre que o texto de consentimento mudar (rastreabilidade da base legal).
  */
 export const CONSENT_VERSAO = "2026-07-07";
+
+// ── Acesso antecipado (lead de vendas de alta intenção, /acesso-antecipado) ────
+
+/**
+ * Destinatário(s) do aviso interno de novo pedido de acesso antecipado. Lista
+ * separada por vírgula aceita (vários e-mails da equipe). Cai em `contato@`
+ * quando não configurado.
+ */
+export const ACESSO_ANTECIPADO_NOTIFY =
+  process.env.LEADS_ACESSO_NOTIFY_EMAIL ?? "contato@formattio.com.br";
+
+/**
+ * Link de agendamento (Calendly/Cal.com) da conversa inicial — botão "Agendar
+ * conversa" na página de obrigado. Vazio = o botão não é exibido (mesma postura
+ * do Canal do WhatsApp: recurso externo plugável sem novo código).
+ */
+export const SCHEDULING_URL = process.env.LEADS_SCHEDULING_URL ?? "";
+
+/**
+ * Link direto de contato por WhatsApp (ex.: https://wa.me/55DDDNUMERO) — botão
+ * "Falar no WhatsApp" na página de obrigado. DISTINTO do Canal de avisos
+ * (WHATSAPP_CHANNEL_URL): aqui é conversa 1:1 com a equipe. Vazio = não exibido.
+ */
+export const CONTATO_WHATSAPP_URL = process.env.LEADS_CONTATO_WHATSAPP_URL ?? "";

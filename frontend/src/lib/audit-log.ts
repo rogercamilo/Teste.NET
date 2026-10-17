@@ -178,6 +178,7 @@ export type AuditAction =
   | "lead_confirmed"
   | "lead_unsubscribed"
   | "leads_exportados"
+  | "acesso_antecipado_pedido"
   | "depoimento_criado"
   | "depoimento_atualizado"
   | "depoimento_excluido";

@@ -29,6 +29,8 @@ import {
   EBOOK_URL,
   EBOOK_TITULO,
   WHATSAPP_CHANNEL_URL,
+  SCHEDULING_URL,
+  CONTATO_WHATSAPP_URL,
 } from "./leads-config";
 
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
@@ -1190,5 +1192,113 @@ export async function sendLeadWelcomeEmail({
     brandAsOrg: false,
     replyTo: "contato@formattio.com.br",
     listUnsubscribeUrl: unsubscribeUrl,
+  });
+}
+
+/**
+ * Aviso INTERNO para a equipe: chegou um pedido de acesso antecipado (lead de
+ * alta intenção). Traz as respostas qualificadoras e usa o e-mail da pessoa
+ * como `reply-to` — a equipe aperta "Responder" e fala direto com o lead. Os
+ * rótulos já chegam humanizados do store. Identidade de plataforma (Formattio).
+ */
+export async function sendAcessoAntecipadoTeamEmail({
+  to,
+  nome,
+  papel,
+  comunidade,
+  tipoOrganizacao,
+  numeroMembros,
+  intencao,
+  whatsapp,
+  email,
+  desafio,
+  planoInteresse,
+}: {
+  to: string;
+  nome: string;
+  papel: string | null;
+  comunidade: string;
+  tipoOrganizacao: string;
+  numeroMembros: string;
+  intencao: string;
+  whatsapp: string;
+  email: string;
+  desafio: string | null;
+  planoInteresse: string | null;
+}): Promise<{ sent: boolean; error?: string }> {
+  const linhas = [
+    { label: "Nome", value: escapeHtml(nome) },
+    ...(papel ? [{ label: "Função", value: escapeHtml(papel) }] : []),
+    { label: "Comunidade / Instituto", value: escapeHtml(comunidade) },
+    { label: "Tipo de organização", value: escapeHtml(tipoOrganizacao) },
+    { label: "Porte (em formação)", value: escapeHtml(numeroMembros) },
+    { label: "O que deseja", value: escapeHtml(intencao) },
+    { label: "WhatsApp", value: escapeHtml(whatsapp) },
+    { label: "E-mail", value: escapeHtml(email) },
+    ...(planoInteresse ? [{ label: "Plano de interesse", value: escapeHtml(planoInteresse) }] : []),
+  ];
+  const conteudo = [
+    heading("Novo pedido de acesso antecipado"),
+    paragraph(
+      `<strong>${escapeHtml(nome)}</strong> — ${escapeHtml(comunidade)} — acaba de pedir acesso antecipado. Basta <strong>responder a este e-mail</strong> para falar direto com a pessoa.`
+    ),
+    keyValues(linhas),
+    ...(desafio
+      ? [sectionLabel("Maior desafio hoje na formação"), paragraph(escapeHtml(desafio))]
+      : []),
+    button(`Falar no WhatsApp: ${escapeHtml(whatsapp)}`, `https://wa.me/${whatsapp.replace(/\D/g, "")}`),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Novo pedido de acesso antecipado",
+    eyebrow: "Lead · Acesso antecipado",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
+  return send(PLATFORM_ORG_ID, to, `Novo acesso antecipado — ${nome.replace(/[\r\n]/g, "")} (${comunidade.replace(/[\r\n]/g, "")})`, html, {
+    brandAsOrg: false,
+    replyTo: email,
+  });
+}
+
+/**
+ * Confirmação enviada a QUEM pediu acesso antecipado — gratificação imediata e
+ * próximos passos (agendar conversa / WhatsApp, quando configurados). Sem
+ * double opt-in: é um pedido explícito de contato. Identidade de plataforma.
+ */
+export async function sendAcessoAntecipadoAckEmail({
+  nome,
+  email,
+}: {
+  nome: string;
+  email: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const conteudo = [
+    heading(`Recebemos seu pedido, ${escapeHtml(nome)}!`),
+    paragraph(
+      "Obrigado pelo interesse na Formattio. Nossa equipe vai entrar em contato em breve para acompanhar os primeiros passos — você não recebe apenas uma conta para explorar sozinho."
+    ),
+    ...(SCHEDULING_URL ? [button("Agendar uma conversa agora", SCHEDULING_URL)] : []),
+    ...(CONTATO_WHATSAPP_URL
+      ? [
+          paragraph(
+            `Prefere WhatsApp? <a href="${safeUrl(CONTATO_WHATSAPP_URL)}" style="color:#B25433;">Fale com a nossa equipe por aqui</a>.`
+          ),
+        ]
+      : []),
+    callout(
+      "info",
+      "No acesso antecipado, a equipe ajuda na configuração inicial e orienta uma experiência prática com a plataforma. As condições e etapas são apresentadas no contato."
+    ),
+  ].join("");
+  const html = renderEmail({
+    titulo: "Recebemos seu pedido — Formattio",
+    preheader: "Vamos acompanhar seus primeiros passos na Formattio.",
+    eyebrow: "Acesso antecipado",
+    conteudo,
+    logoUrl: LOGO_URL,
+  });
+  return send(PLATFORM_ORG_ID, email, "Recebemos seu pedido de acesso antecipado — Formattio", html, {
+    brandAsOrg: false,
+    replyTo: "contato@formattio.com.br",
   });
 }
