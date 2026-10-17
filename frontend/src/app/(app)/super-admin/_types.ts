@@ -167,6 +167,7 @@ export type Tab =
   | "seguranca"
   | "lgpd"
   | "leads"
+  | "acesso-antecipado"
   | "depoimentos"
   | "conta";
 
@@ -211,4 +212,28 @@ export interface LeadsData {
   leads: LeadRow[];
   total: number;
   counts: { pendente: number; confirmado: number; descadastrado: number };
+}
+
+export interface AcessoAntecipadoRow {
+  id: string;
+  nome: string;
+  papel: string | null;
+  comunidade: string;
+  tipoOrganizacao: string;
+  numeroMembros: string;
+  intencao: string;
+  whatsapp: string;
+  email: string;
+  desafio: string | null;
+  planoInteresse: string | null;
+  status: string;
+  origem: string;
+  criadoEm: string;
+}
+
+export interface AcessoAntecipadoData {
+  leads: AcessoAntecipadoRow[];
+  total: number;
+  // Contagem por intenção — o recorte acionável (demonstração / começar / dúvida).
+  counts: { demonstracao: number; acesso_antecipado: number; duvida: number };
 }

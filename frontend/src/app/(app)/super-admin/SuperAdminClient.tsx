@@ -24,10 +24,11 @@ import { TabInfraestrutura } from "./_tabs/TabInfraestrutura";
 import { TabSeguranca } from "./_tabs/TabSeguranca";
 import { TabLgpd } from "./_tabs/TabLgpd";
 import { TabLeads } from "./_tabs/TabLeads";
+import { TabAcessoAntecipado } from "./_tabs/TabAcessoAntecipado";
 import { TabDepoimentos } from "./_tabs/TabDepoimentos";
 import { TabConta } from "./_tabs/TabConta";
 import type {
-  OrgRow, Metricas, LgpdData, ServicosData, SegurancaData, LeadsData, DepoimentosData, DialogAcao, Tab,
+  OrgRow, Metricas, LgpdData, ServicosData, SegurancaData, LeadsData, AcessoAntecipadoData, DepoimentosData, DialogAcao, Tab,
 } from "./_types";
 
 // ── Tabs válidos ──────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ import type {
 
 const TAB_IDS: Tab[] = [
   "visao-geral", "organizacoes", "financeiro", "cortesias", "infraestrutura",
-  "seguranca", "lgpd", "leads", "depoimentos", "conta",
+  "seguranca", "lgpd", "leads", "acesso-antecipado", "depoimentos", "conta",
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -65,6 +66,8 @@ export default function SuperAdminClient() {
   const [segurancaLoaded, setSegurancaLoaded] = useState(false);
   const [leads, setLeads] = useState<LeadsData | null>(null);
   const [leadsLoaded, setLeadsLoaded] = useState(false);
+  const [acessoAntecipado, setAcessoAntecipado] = useState<AcessoAntecipadoData | null>(null);
+  const [acessoAntecipadoLoaded, setAcessoAntecipadoLoaded] = useState(false);
   const [depoimentos, setDepoimentos] = useState<DepoimentosData | null>(null);
   const [depoimentosLoaded, setDepoimentosLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -169,6 +172,15 @@ export default function SuperAdminClient() {
     } catch { toast.error("Erro de rede."); }
   }, []);
 
+  const loadAcessoAntecipado = useCallback(async () => {
+    try {
+      const res = await fetch("/api/super-admin/acesso-antecipado");
+      if (!res.ok) { toast.error("Falha ao carregar pedidos de acesso antecipado."); return; }
+      setAcessoAntecipado(await res.json() as AcessoAntecipadoData);
+      setAcessoAntecipadoLoaded(true);
+    } catch { toast.error("Erro de rede."); }
+  }, []);
+
   const loadDepoimentos = useCallback(async () => {
     try {
       const res = await fetch("/api/super-admin/depoimentos");
@@ -183,6 +195,7 @@ export default function SuperAdminClient() {
   useEffect(() => { if (tab === "infraestrutura" && !servicosLoaded) void loadServicos(); }, [tab, servicosLoaded, loadServicos]);
   useEffect(() => { if (tab === "seguranca" && !segurancaLoaded) void loadSeguranca(); }, [tab, segurancaLoaded, loadSeguranca]);
   useEffect(() => { if (tab === "leads" && !leadsLoaded) void loadLeads(); }, [tab, leadsLoaded, loadLeads]);
+  useEffect(() => { if (tab === "acesso-antecipado" && !acessoAntecipadoLoaded) void loadAcessoAntecipado(); }, [tab, acessoAntecipadoLoaded, loadAcessoAntecipado]);
   useEffect(() => { if (tab === "depoimentos" && !depoimentosLoaded) void loadDepoimentos(); }, [tab, depoimentosLoaded, loadDepoimentos]);
 
   // ── Dialog helpers ─────────────────────────────────────────────────────────
@@ -407,6 +420,7 @@ export default function SuperAdminClient() {
           if (segurancaLoaded) void loadSeguranca();
           if (lgpdLoaded) void loadLgpd();
           if (leadsLoaded) void loadLeads();
+          if (acessoAntecipadoLoaded) void loadAcessoAntecipado();
           if (depoimentosLoaded) void loadDepoimentos();
         }} className="gap-1.5">
           <RefreshCw className="h-4 w-4" />Atualizar
@@ -537,6 +551,10 @@ export default function SuperAdminClient() {
 
       {tab === "leads" && (
         <TabLeads leads={leads} />
+      )}
+
+      {tab === "acesso-antecipado" && (
+        <TabAcessoAntecipado leads={acessoAntecipado} />
       )}
 
       {tab === "depoimentos" && (
