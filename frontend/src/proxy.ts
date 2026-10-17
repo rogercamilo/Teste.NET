@@ -99,7 +99,7 @@ function buildPortalPublicSecurityHeaders(): Record<string, string> {
 // Resposta idêntica para todos os visitantes → pode ser cacheada no edge. Ao
 // contrário do app autenticado, NÃO usam nonce por request (o HTML seria único
 // e impediria o cache). Ver buildMarketingSecurityHeaders.
-const MARKETING_PREFIXES = ["/precos", "/recursos", "/para-quem-e", "/faq", "/termos", "/blog", "/acesso-antecipado"];
+const MARKETING_PREFIXES = ["/precos", "/recursos", "/para-quem-e", "/faq", "/termos", "/blog", "/acesso-antecipado", "/jornada"];
 
 function isMarketing(pathname: string): boolean {
   if (pathname === "/") return true;
@@ -224,6 +224,7 @@ export default auth(async function proxy(req) {
     "/recursos",
     "/para-quem-e",
     "/precos",
+    "/jornada",
     "/blog",
     "/faq",
     // Preview da reescrita da landing (rota interna, noindex). Pública para

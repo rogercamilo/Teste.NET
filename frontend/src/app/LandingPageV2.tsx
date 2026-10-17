@@ -49,6 +49,7 @@ function Nav() {
   const navLinks = [
     ["Recursos", "/recursos"],
     ["Para quem é", "/para-quem-e"],
+    ["A jornada", "/jornada"],
     ["Preços", "/precos"],
     ["Blog", "/blog"],
     ["FAQ", "/faq"],
