@@ -103,6 +103,8 @@ const MOMENTOS: {
   antes: string;
   solucao: string;
   ganho: string;
+  img: string;
+  imgAlt: string;
 }[] = [
   {
     etiqueta: "De manhã",
@@ -112,6 +114,8 @@ const MOMENTOS: {
     solucao:
       "A Minha Semana reúne encontros, pendências e quem precisa de atenção — tudo na primeira tela.",
     ganho: "Começa o dia com clareza, não no escuro.",
+    img: "/jornada/dashboard.webp",
+    imgAlt: "Painel da Formattio com a visão da semana, pendências e indicadores da comunidade",
   },
   {
     etiqueta: "No encontro",
@@ -119,8 +123,10 @@ const MOMENTOS: {
     titulo: "A presença se registra sozinha",
     antes: "Antes: lista no papel, digitada depois (quando dava tempo).",
     solucao:
-      "Chamada assistida pelo RSVP do portal e pelo diário — a frequência fica pronta na hora.",
+      "Chamada assistida pelo RSVP do portal e pela agenda — a frequência fica pronta na hora.",
     ganho: "Frequência confiável, sem retrabalho.",
+    img: "/jornada/agenda.webp",
+    imgAlt: "Agenda da Formattio com os encontros da comunidade e o controle de presença",
   },
   {
     etiqueta: "No acompanhamento",
@@ -130,6 +136,8 @@ const MOMENTOS: {
     solucao:
       "Ficha, jornada formativa e conversas 1:1 ficam juntas — e continuam ali quando a equipe muda.",
     ganho: "Nada se perde, nem na troca de formador.",
+    img: "/jornada/ficha.webp",
+    imgAlt: "Ficha de um formando na Formattio com etapa, progresso, frequência e jornada formativa",
   },
   {
     etiqueta: "Um sinal de risco",
@@ -137,8 +145,10 @@ const MOMENTOS: {
     titulo: "Você percebe antes de perder",
     antes: "Antes: a ausência só aparecia quando já era despedida.",
     solucao:
-      "A plataforma sinaliza quem está se afastando pela presença e pelo engajamento.",
+      "A lista de formandos mostra etapa, frequência e situação — quem está se afastando salta aos olhos.",
     ganho: "Dá para acolher a tempo, com cuidado.",
+    img: "/jornada/formandos.webp",
+    imgAlt: "Lista de formandos da Formattio com etapa, frequência e situação de cada pessoa",
   },
   {
     etiqueta: "Ao avançar uma etapa",
@@ -146,8 +156,10 @@ const MOMENTOS: {
     titulo: "Formação com critério e registro",
     antes: "Antes: avançar etapa era decisão de memória, sem rastro.",
     solucao:
-      "Cada etapa tem seus requisitos, avaliações e observações registrados na jornada.",
+      "Cada grupo tem sua grade e etapas com requisitos, avaliações e observações registrados.",
     ganho: "Decisões justas — e documentadas.",
+    img: "/jornada/grupo.webp",
+    imgAlt: "Grupo de formação na Formattio com a grade formativa e as etapas da jornada",
   },
   {
     etiqueta: "Quando a casa pede",
@@ -157,6 +169,8 @@ const MOMENTOS: {
     solucao:
       "Os documentos da jornada vocacional e os registros são gerados a partir dos dados já lançados.",
     ganho: "Conformidade e memória institucional de verdade.",
+    img: "/jornada/jornada-vocacional.webp",
+    imgAlt: "Tela da Jornada Vocacional da Formattio com a geração de documentos canônicos",
   },
 ];
 
@@ -238,6 +252,32 @@ export function JornadaClient() {
         </div>
       </section>
 
+      {/* ── Filme de 15s ─────────────────────────────────────────────────── */}
+      <section className="relative bg-slate-950 pb-6">
+        <div className="max-w-3xl mx-auto px-4">
+          <Reveal>
+            <p className="text-center text-sm font-medium text-primary uppercase tracking-widest mb-4">
+              Veja em 15 segundos
+            </p>
+            <div className="rounded-2xl overflow-hidden border border-white/10 bg-slate-900/60 shadow-2xl shadow-black/40">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video
+                className="w-full h-auto block"
+                src="/jornada/formattio-15s.webm"
+                poster="/jornada/dashboard.webp"
+                controls
+                muted
+                loop
+                playsInline
+                autoPlay
+                preload="metadata"
+                aria-label="Filme de 15 segundos: a jornada de quem conduz a formação com a Formattio"
+              />
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ── As dores (o "antes") ─────────────────────────────────────────── */}
       <section className="relative bg-slate-900 border-y border-white/5 py-24">
         <div className="max-w-5xl mx-auto px-4">
@@ -305,7 +345,7 @@ export function JornadaClient() {
               style={{ scaleY: reduce ? 1 : lineProgress }}
             />
 
-            {MOMENTOS.map(({ etiqueta, icon: Icon, titulo, antes, solucao, ganho }, i) => (
+            {MOMENTOS.map(({ etiqueta, icon: Icon, titulo, antes, solucao, ganho, img, imgAlt }, i) => (
               <li key={titulo} className="relative pl-14 sm:pl-16 pb-12 last:pb-0">
                 <Reveal y={24} delay={0.04 * i}>
                   {/* Nó da timeline */}
@@ -318,6 +358,25 @@ export function JornadaClient() {
                       {etiqueta}
                     </span>
                     <h3 className="text-lg font-semibold text-white mb-4">{titulo}</h3>
+
+                    {/* Captura real da tela do produto (org de demonstração) */}
+                    <div className="mb-5 rounded-xl overflow-hidden border border-white/10 bg-slate-950/60 shadow-xl shadow-black/30">
+                      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 bg-slate-900/80">
+                        <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
+                        <span className="ml-2 text-[10px] text-slate-500 truncate">app.formattio.com.br</span>
+                      </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img}
+                        alt={imgAlt}
+                        loading="lazy"
+                        width={1200}
+                        height={741}
+                        className="w-full h-auto block"
+                      />
+                    </div>
 
                     <p className="flex items-start gap-2 text-sm text-slate-500 mb-3">
                       <FileWarning className="h-4 w-4 shrink-0 mt-0.5 text-slate-600" />
