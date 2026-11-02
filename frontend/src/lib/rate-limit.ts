@@ -127,8 +127,14 @@ export const limiters = {
   /** 3 new accounts per IP per hour — registration. */
   register: (ip: string) => rateLimit(`register:${ip}`, 3, 60 * 60 * 1000),
 
-  /** 20 uploads per user per hour. */
-  upload: (userId: string) => rateLimit(`upload:${userId}`, 20, 60 * 60 * 1000),
+  /**
+   * 120 uploads per user per hour. Cada formação salva envia até 2 anexos
+   * (material do formando + material do formador), então montar a grade de uma
+   * jornada encontro a encontro numa sessão legítima consome o teto rápido.
+   * 120/h cobre ~60 formações com os dois anexos sem atrapalhar o trabalho, e
+   * ainda limita abuso (10 MB/arquivo ⇒ no máximo ~1,2 GB/h por usuário).
+   */
+  upload: (userId: string) => rateLimit(`upload:${userId}`, 120, 60 * 60 * 1000),
 
   /** 5 email sends per user per hour — password reset, invites. */
   email: (userId: string) => rateLimit(`email:${userId}`, 5, 60 * 60 * 1000),
