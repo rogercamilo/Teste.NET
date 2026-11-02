@@ -61,6 +61,18 @@ describe("heuristicScan — aprovações", () => {
     // vbaProject.bin dentro de bytes de um PDF não dispara a regra de Office.
     expect(heuristicScan(pdf("vbaProject.bin como texto qualquer"), PDF_MIME).clean).toBe(true);
   });
+
+  it("aceita PDF com /JS coincidente DENTRO de stream comprimido (falso positivo)", () => {
+    // Regressão: PDFs de formação legítimos carregam os bytes `/JS` por acaso
+    // dentro de streams FlateDecode. Só a estrutura deve ser varrida.
+    const buf = pdf("1 0 obj << /Type /Catalog >>\n2 0 obj << /Length 12 >>\nstream\nlixo/JSmais\nendstream endobj\ntrailer<<>>");
+    expect(heuristicScan(buf, PDF_MIME).clean).toBe(true);
+  });
+
+  it("ainda bloqueia /JavaScript declarado na ESTRUTURA do PDF (fora de stream)", () => {
+    const buf = pdf("1 0 obj << /S /JavaScript /JS (app.alert(1)) >> endobj\n2 0 obj << /Length 4 >>\nstream\ndata\nendstream endobj");
+    expect(heuristicScan(buf, PDF_MIME).clean).toBe(false);
+  });
 });
 
 describe("scanUpload — wrapper assíncrono", () => {
