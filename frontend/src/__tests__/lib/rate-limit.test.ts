@@ -126,9 +126,9 @@ describe("limiters", () => {
     expect(result.allowed).toBe(false);
   });
 
-  it("upload blocks after 20 attempts", async () => {
+  it("upload blocks after 120 attempts", async () => {
     const uid = k("upload-user");
-    for (let i = 0; i < 20; i++) await limiters.upload(uid);
+    for (let i = 0; i < 120; i++) await limiters.upload(uid);
     const result = await limiters.upload(uid);
     expect(result.allowed).toBe(false);
   });
