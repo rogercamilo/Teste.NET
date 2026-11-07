@@ -39,6 +39,37 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* Cores semânticas — pareiam com destructive (já existente). Use SEMPRE com
+     ícone+palavra, nunca a cor sozinha (inclusão digital). */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  /* Ramp tipográfico (Geist) — tokens NOVOS para títulos; tracking negativo sutil
+     nos tamanhos grandes (legibilidade + ar institucional). Não altera os
+     utilitários text-* do Tailwind; usa text-display / text-title / text-heading. */
+  --text-display: 3rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 700;
+  --text-title: 1.875rem;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.015em;
+  --text-title--font-weight: 650;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.3;
+  --text-heading--letter-spacing: -0.01em;
+  --text-heading--font-weight: 600;
+  /* Escala de elevação — sombras levemente tintadas de clay (warm), substituindo o
+     cinza neutro padrão para dar profundidade on-brand e coerente. Mantém shadow-sm
+     sutil (não "pesa" os cards atuais); md/lg/xl crescem com hierarquia. */
+  --shadow-xs: 0 1px 2px 0 oklch(0.30 0.04 45 / 0.06);
+  --shadow-sm: 0 1px 3px 0 oklch(0.30 0.04 45 / 0.08), 0 1px 2px -1px oklch(0.30 0.04 45 / 0.07);
+  --shadow-md: 0 6px 16px -4px oklch(0.30 0.04 45 / 0.10);
+  --shadow-lg: 0 16px 36px -8px oklch(0.30 0.04 45 / 0.12);
+  --shadow-xl: 0 28px 60px -12px oklch(0.30 0.04 45 / 0.16);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -73,6 +104,13 @@
   --chart-3: oklch(0.72 0.150 70);       /* amber */
   --chart-4: oklch(0.55 0.115 230);      /* blue */
   --chart-5: oklch(0.65 0.180 27);       /* red */
+  /* Cores semânticas (light) — alinhadas à paleta de chart. */
+  --success: oklch(0.58 0.135 145);      /* green */
+  --success-foreground: oklch(0.98 0.012 145);
+  --warning: oklch(0.70 0.150 70);       /* amber */
+  --warning-foreground: oklch(0.26 0.040 60);
+  --info: oklch(0.55 0.115 230);         /* blue */
+  --info-foreground: oklch(0.98 0.012 230);
   --radius: 0.625rem;
   /* Altura reservada pelo banner de cookies (fixo no rodapé). O CookieBanner a
      atualiza para sua altura real enquanto visível e volta a 0px ao fechar. */
@@ -111,6 +149,13 @@
   --chart-3: oklch(0.78 0.150 70);
   --chart-4: oklch(0.65 0.115 230);
   --chart-5: oklch(0.70 0.180 27);
+  /* Cores semânticas (dark) — elevadas para contraste sobre fundo escuro. */
+  --success: oklch(0.68 0.135 145);
+  --success-foreground: oklch(0.18 0.020 145);
+  --warning: oklch(0.78 0.150 70);
+  --warning-foreground: oklch(0.20 0.030 60);
+  --info: oklch(0.65 0.115 230);
+  --info-foreground: oklch(0.16 0.020 230);
   --sidebar: oklch(0.22 0.020 40);
   --sidebar-foreground: oklch(0.96 0.012 75);
   --sidebar-primary: oklch(0.66 0.135 41);
