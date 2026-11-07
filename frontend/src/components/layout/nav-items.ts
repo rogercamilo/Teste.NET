@@ -220,7 +220,9 @@ export function resolveNavGroups(opts: {
 }): NavGroup[] {
   const { role, grupoFormacaoId, termoGrupoFormacao, termoFormando, tipoOrg, vocacionalOk } = opts;
   const isSuperAdmin = role === "super_admin";
-  const isGestao = role === "formador_geral" || role === "administrador";
+  // Fundador reutiliza a navegação de gestão (nav completa): ele enxerga todas as
+  // áreas; o que muda é o DASHBOARD (executivo), não o menu.
+  const isGestao = role === "formador_geral" || role === "administrador" || role === "fundador";
   const isFormadorPedagogico = role === "formador_pedagogico";
 
   const baseGroups: NavGroup[] = isSuperAdmin

@@ -24,7 +24,7 @@ export type StatusFormacao =
   | "cancelada"
   | "reagendada";
 export type Modalidade = "presencial" | "online" | "hibrida";
-export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comunitario" | "formador_pedagogico" | "super_admin";
+export type PerfilUsuario = "formador_geral" | "administrador" | "formador_comunitario" | "formador_pedagogico" | "fundador" | "super_admin";
 export type PlanoAssinatura = "GRATUITO" | "BASICO" | "INTERMEDIARIO" | "AVANCADO" | "PERSONALIZADO";
 export type StatusOrganizacao = "TRIAL" | "ATIVO" | "SUSPENSO" | "CANCELADO";
 export type TipoComentario = "adesao" | "dificuldade" | "progresso" | "observacao";
@@ -575,6 +575,23 @@ export interface DashboardStats {
       motivo: string;
     }[];
   };
+
+  // Fundador — delta executivo (60% executivo da visão). Computado SOBRE o ramo
+  // estratégico (FG/Admin), reusando os motores existentes. Só preenchido para o
+  // perfil `fundador`. Tendências usam a mesma janela de 6 meses do resto.
+  executivo?: {
+    // Novos formandos por mês (6 meses) por dataIngresso — crescimento da comunidade.
+    crescimentoMensal: { mes: string; novos: number }[];
+    // Retenção = ativos / total (0–100). Inativos = ativo=false (acumulado; não há
+    // data de inativação no modelo para janelar com precisão).
+    retencaoPct: number;
+    inativos: number;
+    // Presença global (org inteira) nos últimos 90 dias + série mensal (6 meses).
+    taxaPresencaGlobal: number | null;
+    presencaTendencia: { mes: string; taxa: number | null }[];
+    // Progresso médio da jornada na org (mesma régua de lib/jornada-progresso).
+    progressoMedioJornada: number;
+  };
 }
 
 export const NIVEL_FORMATIVO_LABELS: Record<NivelFormativo, string> = {
@@ -611,6 +628,7 @@ export const PERFIL_USUARIO_LABELS: Record<PerfilUsuario, string> = {
   administrador: "Administrador",
   formador_comunitario: "Formador Comunitário",
   formador_pedagogico: "Formador Pedagógico",
+  fundador: "Fundador",
   super_admin: "Super Admin",
 };
 
@@ -668,6 +686,9 @@ export function temPermissao(
     // CAPACIDADE (`podeElaborarConteudo`), não por este nível linear.
     formador_pedagogico: 1,
     formador_geral: 2,
+    // Fundador (visão executiva do tenant) herda o nível do Formador Geral — mesma
+    // autoridade de leitura; o que muda é a VISÃO (dashboard), não o poder.
+    fundador: 2,
     administrador: 3,
     super_admin: 99,
   };
@@ -679,7 +700,7 @@ export function isSuperAdmin(role: string | undefined): boolean {
 }
 
 export function isGestao(role: string | undefined): boolean {
-  return role === "administrador" || role === "formador_geral";
+  return role === "administrador" || role === "formador_geral" || role === "fundador";
 }
 
 /**
@@ -689,7 +710,7 @@ export function isGestao(role: string | undefined): boolean {
  * embora não tenha acesso às áreas operacionais (moradas, formandos, vocacional).
  */
 export function podeElaborarConteudo(role: string | undefined): boolean {
-  return role === "administrador" || role === "formador_geral" || role === "formador_pedagogico";
+  return role === "administrador" || role === "formador_geral" || role === "formador_pedagogico" || role === "fundador";
 }
 
 /**
@@ -743,7 +764,7 @@ export const EIXO_COLORS: string[] = [
 ];
 
 export function isAdminOrAbove(role: string | undefined): boolean {
-  return role === "administrador" || role === "formador_geral" || role === "super_admin";
+  return role === "administrador" || role === "formador_geral" || role === "fundador" || role === "super_admin";
 }
 
 // Perfis de gestão: concedem (ou representam) acesso administrativo. Criar, atribuir
@@ -751,7 +772,7 @@ export function isAdminOrAbove(role: string | undefined): boolean {
 // que formador_geral (que fica ABAIXO de administrador) escale privilégios, promova a
 // si mesmo ou tome uma conta de administrador via redefinição de senha.
 export function isPerfilGestaoElevado(perfil: string | undefined): boolean {
-  return perfil === "administrador" || perfil === "formador_geral" || perfil === "super_admin";
+  return perfil === "administrador" || perfil === "formador_geral" || perfil === "fundador" || perfil === "super_admin";
 }
 
 export function podeGerenciarGestao(actorRole: string | undefined): boolean {

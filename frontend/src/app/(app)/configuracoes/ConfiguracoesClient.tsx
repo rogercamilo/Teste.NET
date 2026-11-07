@@ -879,7 +879,7 @@ function UsuariosTab({ currentUserId, currentUserRole, initialGruposFormacao }: 
   // gestão edita a PRÓPRIA conta de gestão (ex.: FG editando a si), o seletor fica
   // travado no perfil atual — ele pode ajustar nome/foto/senha, não o perfil.
   const perfilSelectTravado = !podeAtribuirGestao && isPerfilGestaoElevado(form.perfil);
-  const PERFIS_ATRIBUIVEIS: PerfilUsuario[] = ["administrador", "formador_geral", "formador_pedagogico", "formador_comunitario"];
+  const PERFIS_ATRIBUIVEIS: PerfilUsuario[] = ["administrador", "fundador", "formador_geral", "formador_pedagogico", "formador_comunitario"];
   const perfilOptions: [PerfilUsuario, string][] = perfilSelectTravado
     ? [[form.perfil, PERFIL_USUARIO_LABELS[form.perfil]]]
     : PERFIS_ATRIBUIVEIS

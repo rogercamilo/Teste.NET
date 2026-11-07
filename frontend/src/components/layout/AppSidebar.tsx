@@ -56,9 +56,10 @@ export function AppSidebar({ user, nomePlataforma }: AppSidebarProps) {
   const isAdmin = user.role === "administrador";
   const isSuperAdmin = user.role === "super_admin";
   const isFormadorPedagogico = user.role === "formador_pedagogico";
+  const isFundador = user.role === "fundador";
 
-  const roleLabel = isSuperAdmin ? "Super Admin" : isFormadorGeral ? "Formador Geral" : isAdmin ? "Administrador" : isFormadorPedagogico ? "Formador Pedagógico" : formador;
-  const RoleIcon = isSuperAdmin ? ShieldCheck : isFormadorGeral ? ShieldCheck : isAdmin ? Shield : isFormadorPedagogico ? BookOpen : UserCog;
+  const roleLabel = isSuperAdmin ? "Super Admin" : isFundador ? "Fundador" : isFormadorGeral ? "Formador Geral" : isAdmin ? "Administrador" : isFormadorPedagogico ? "Formador Pedagógico" : formador;
+  const RoleIcon = isSuperAdmin ? ShieldCheck : isFundador ? ShieldCheck : isFormadorGeral ? ShieldCheck : isAdmin ? Shield : isFormadorPedagogico ? BookOpen : UserCog;
 
   const tipoOrg = comunidade.tipoOrganizacao;
   const vocacionalOk = hasVocacionalAccess(tipoOrg, comunidade.vocacionalHabilitado);

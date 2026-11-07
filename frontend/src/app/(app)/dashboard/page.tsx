@@ -277,8 +277,10 @@ async function getDashboardData(
     };
   }
 
-  // ── FG/Admin: visão estratégica ───────────────────────────────────────────
-  if (perfil === "formador_geral" || perfil === "administrador") {
+  // ── FG/Admin/Fundador: visão estratégica ──────────────────────────────────
+  // O Fundador reaproveita todo o cômputo estratégico e recebe, por cima, um
+  // delta executivo (crescimento, retenção, presença global, progresso médio).
+  if (perfil === "formador_geral" || perfil === "administrador" || perfil === "fundador") {
     const threeMonthsAgo = subMonths(now, 3);
     const [moradasData, formandosAtivosGrp, totalPlanosAtivos, gruposFormacaoSemPlano, gruposFormacaoSemGrade, gruposFormacaoComGradeExpirada, fcsSemGrupoFormacao, presencasPorGrupoFormacao, presencaPorMoradaMes] =
       await Promise.all([
@@ -399,8 +401,92 @@ async function getDashboardData(
       orgTermos?.termoVocacional || "Período Vocacional",
     );
 
+    // ── Fundador: delta executivo (60% da visão) ───────────────────────────
+    // Só roda para o perfil fundador (não penaliza FG/Admin). Reusa as agregações
+    // de presença já carregadas + motor de jornada (progressoNaEtapa).
+    let executivo: DashboardStats["executivo"] | undefined;
+    if (perfil === "fundador") {
+      const [ingressos, totalInativos, formandosJornada] = await Promise.all([
+        prisma.formando.findMany({
+          where: { organizacaoId, deletedAt: null, dataIngresso: { gte: sixMonthsAgo } },
+          select: { dataIngresso: true },
+        }),
+        prisma.formando.count({ where: { organizacaoId, deletedAt: null, ativo: false } }),
+        prisma.formando.findMany({
+          where: { organizacaoId, deletedAt: null, ativo: true },
+          select: {
+            nivelFormativo: true,
+            progressoEtapas: {
+              select: {
+                nivelFormativo: true,
+                formacoesComunitariasRealizadas: true,
+                retirosComunitariosRealizados: true,
+                retirosPessoaisRealizados: true,
+                iniciouEm: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      // Crescimento: ingressos por mês (mesma janela/rótulos do gráfico de evolução).
+      const cresc: Record<string, number> = {};
+      for (const { yearMonth } of months) cresc[yearMonth] = 0;
+      for (const f of ingressos) {
+        const ym = format(f.dataIngresso, "yyyy-MM");
+        if (cresc[ym] !== undefined) cresc[ym]++;
+      }
+      const crescimentoMensal = months.map(({ yearMonth, label }) => ({ mes: label, novos: cresc[yearMonth] }));
+
+      const retencaoPct = totalFormandos > 0 ? Math.round((formandosAtivos / totalFormandos) * 100) : 0;
+
+      // Presença global = soma das agregações por morada (90d).
+      let gTot = 0, gPres = 0;
+      for (const r of presencasPorGrupoFormacao) { gTot += Number(r.total); gPres += Number(r.presentes); }
+      const taxaPresencaGlobal = gTot > 0 ? Math.round((gPres / gTot) * 100) : null;
+
+      // Tendência mensal (org inteira) a partir do heatmap morada×mês já consultado.
+      const tend: Record<string, { total: number; pres: number }> = {};
+      for (const { yearMonth } of months) tend[yearMonth] = { total: 0, pres: 0 };
+      for (const r of presencaPorMoradaMes) {
+        const b = tend[r.ym];
+        if (b) { b.total += Number(r.total); b.pres += Number(r.presentes); }
+      }
+      const presencaTendencia = months.map(({ yearMonth, label }) => {
+        const b = tend[yearMonth];
+        return { mes: label, taxa: b.total > 0 ? Math.round((b.pres / b.total) * 100) : null };
+      });
+
+      // Progresso médio da jornada na org (mesma régua de lib/jornada-progresso).
+      let somaJornada = 0;
+      for (const f of formandosJornada) {
+        const nivel = f.nivelFormativo as NivelFormativo;
+        const prog: ProgressoEtapa[] = f.progressoEtapas.map((p) => ({
+          nivel: p.nivelFormativo as NivelFormativo,
+          formacoesComunitariasRealizadas: p.formacoesComunitariasRealizadas,
+          retirosComunitariosRealizados: p.retirosComunitariosRealizados,
+          retirosPessoaisRealizados: p.retirosPessoaisRealizados,
+          iniciouEm: p.iniciouEm?.toISOString(),
+        }));
+        somaJornada += progressoNaEtapa(nivel, prog).pct;
+      }
+      const progressoMedioJornada = formandosJornada.length
+        ? Math.round(somaJornada / formandosJornada.length)
+        : 0;
+
+      executivo = {
+        crescimentoMensal,
+        retencaoPct,
+        inativos: totalInativos,
+        taxaPresencaGlobal,
+        presencaTendencia,
+        progressoMedioJornada,
+      };
+    }
+
     return {
       ...baseStats,
+      executivo,
       presencaHeatmap,
       sankeyJornada,
       totalGruposFormacao: moradasData.length,

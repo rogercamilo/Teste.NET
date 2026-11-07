@@ -15,6 +15,7 @@ enum PerfilUsuario {
   administrador
   formador_comunitario
   formador_pedagogico
+  fundador
   super_admin
 }
 

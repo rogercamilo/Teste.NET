@@ -60,9 +60,10 @@ export async function POST(request: Request) {
     const parsed = await parseJson(request, CreateConviteSchema);
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { email, nome, grupoFormacaoId, perfil } = parsed.data;
-    // Formador Geral é criado por cadastro direto (Admin), não por convite.
-    if (perfil === "formador_geral") {
-      return NextResponse.json({ error: "Formador Geral é criado pelo cadastro direto, não por convite." }, { status: 400 });
+    // Formador Geral e Fundador são criados por cadastro direto (Admin), não por
+    // convite — contas de nível de gestão não entram pelo fluxo de convite público.
+    if (perfil === "formador_geral" || perfil === "fundador") {
+      return NextResponse.json({ error: "Formador Geral e Fundador são criados pelo cadastro direto, não por convite." }, { status: 400 });
     }
     // Fecha a escalada: só administrador/super_admin pode convidar administradores —
     // sem isto, um formador_geral (isAdminOrAbove) podia convidar alguém como Admin.

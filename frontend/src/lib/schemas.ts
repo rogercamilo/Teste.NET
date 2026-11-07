@@ -28,6 +28,7 @@ export const PerfilEnum = z.enum([
   "formador_pedagogico",
   "administrador",
   "formador_geral",
+  "fundador",
 ]);
 
 export const StatusAgendamentoEnum = z.enum([

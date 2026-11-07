@@ -9,6 +9,7 @@ import { limiters } from "@/lib/rate-limit";
 import { canAddUser, notifyAvancadoLimitIfNeeded } from "@/lib/plan-limits";
 
 import { isAdminOrAbove, isPerfilGestaoElevado, podeGerenciarGestao, SessionUser } from "@/lib/auth-helpers";
+import type { PerfilUsuario } from "@/types";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
       nome,
       email,
       password: password || undefined,
-      perfil: perfilSanitizado as "administrador" | "formador_geral" | "formador_comunitario" | "formador_pedagogico",
+      perfil: perfilSanitizado as PerfilUsuario,
       grupoFormacaoId,
       ativo: ativo ?? true,
       foto: foto ?? undefined,

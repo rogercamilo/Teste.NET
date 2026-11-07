@@ -46,6 +46,11 @@ const DashboardAdminAnalytics = dynamic(() => import("./DashboardAdminAnalytics"
   loading: () => <div className="grid grid-cols-1 lg:grid-cols-5 gap-4" aria-hidden><div className="h-[300px] rounded-xl bg-muted/40 animate-pulse lg:col-span-3" /><div className="h-[300px] rounded-xl bg-muted/40 animate-pulse lg:col-span-2" /></div>,
 });
 
+// Dashboard executivo do Fundador — chunk próprio, só carrega para esse perfil.
+const DashboardExecutivo = dynamic(() => import("./DashboardExecutivo"), {
+  loading: () => <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" aria-hidden>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-28 rounded-xl bg-muted/40 animate-pulse" />)}</div>,
+});
+
 // ── Paleta ─────────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<StatusFormacao, string> = {
@@ -99,6 +104,7 @@ const PERFIL_SUBTITULO: Record<PerfilUsuario, string> = {
   formador_pedagogico: "Elaboração do caminho formativo",
   formador_geral: "Visão geral da organização",
   administrador: "Visão geral da organização",
+  fundador: "Visão executiva da comunidade",
   super_admin: "Plataforma",
 };
 
@@ -443,6 +449,18 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
           </p>
         </div>
       </div>
+    );
+  }
+
+  // ── Fundador: dashboard executivo (60% executivo / 25% tático / 15% operacional) ──
+  if (perfil === "fundador") {
+    return (
+      <DashboardExecutivo
+        stats={stats}
+        termos={{ grupoFormacao: termos.grupoFormacao, formando: termos.formando }}
+        tituloSaudacao={tituloSaudacao}
+        subtitulo={subtitulo}
+      />
     );
   }
 
