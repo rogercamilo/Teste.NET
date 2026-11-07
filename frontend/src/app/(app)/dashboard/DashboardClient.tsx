@@ -853,6 +853,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
         <DashboardAdminAnalytics
           gruposFormacaoResumo={stats.gruposFormacaoResumo ?? []}
           presencaHeatmap={stats.presencaHeatmap}
+          porNivel={stats.porNivel}
           termoGrupoFormacao={termos.grupoFormacao}
           termoFormando={termos.formando}
         />

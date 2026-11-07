@@ -19,10 +19,11 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import type { EChartsCoreOption } from "echarts/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Calendar, TrendingUp, Users } from "lucide-react";
+import { BarChart3, Calendar, Filter, TrendingUp, Users } from "lucide-react";
 import { EChart } from "@/components/charts/echart";
 import { BarList } from "@/components/charts/bar-list";
-import type { DashboardStats } from "@/types";
+import { NIVEL_FORMATIVO_LABELS } from "@/types";
+import type { DashboardStats, NivelFormativo } from "@/types";
 
 const prefersReducedMotion =
   typeof window !== "undefined" &&
@@ -35,9 +36,19 @@ function corPresenca(taxa: number): string {
   return "#EF4444"; // red
 }
 
+// Cor por etapa formativa — mesma paleta do gráfico de pizza (DashboardCharts).
+const NIVEL_CHART_COLORS: Record<NivelFormativo, string> = {
+  "pre-discipulado": "#8B5CF6",
+  discipulado: "#3B82F6",
+  "primeiras-promessas": "#10B981",
+  "formacao-permanente": "#F59E0B",
+  vocacional: "#F43F5E",
+};
+
 interface Props {
   gruposFormacaoResumo: NonNullable<DashboardStats["gruposFormacaoResumo"]>;
   presencaHeatmap?: DashboardStats["presencaHeatmap"];
+  porNivel: DashboardStats["porNivel"];
   termoGrupoFormacao: string;
   termoFormando: string;
 }
@@ -45,6 +56,7 @@ interface Props {
 export default function DashboardAdminAnalytics({
   gruposFormacaoResumo,
   presencaHeatmap,
+  porNivel,
   termoGrupoFormacao,
   termoFormando,
 }: Props) {
@@ -177,6 +189,57 @@ export default function DashboardAdminAnalytics({
 
   const heatmapHeight = presencaHeatmap ? Math.max(160, presencaHeatmap.moradas.length * 44 + 72) : 0;
 
+  // ── ECharts: funil do caminho formativo (distribuição por etapa) ────────────
+  const funilOption = useMemo<EChartsCoreOption | null>(() => {
+    if (porNivel.length === 0) return null;
+    // maior no topo → o funil "afunila" pelas etapas seguintes.
+    const ordenado = [...porNivel].sort((a, b) => b.quantidade - a.quantidade);
+    const pctPorNome = new Map(ordenado.map((n) => [NIVEL_FORMATIVO_LABELS[n.nivel], n.percentual]));
+    return {
+      animation: !prefersReducedMotion,
+      tooltip: {
+        trigger: "item",
+        formatter: (p: unknown) => {
+          const { name, value } = p as { name: string; value: number };
+          return `<strong>${name}</strong><br/>${value} ${termoFormando.toLowerCase()}s · ${pctPorNome.get(name) ?? 0}%`;
+        },
+      },
+      series: [
+        {
+          type: "funnel",
+          sort: "descending",
+          top: 10,
+          bottom: 10,
+          left: "4%",
+          width: "46%",   // funil à esquerda; rótulos ocupam a metade direita
+          minSize: "18%", // garante altura mínima legível no segmento mais estreito
+          gap: 2,
+          // Rótulo à direita com linha-guia: nome + contagem + % SEMPRE visíveis,
+          // sem risco de estourar dentro de segmentos estreitos (acessibilidade).
+          label: {
+            show: true,
+            position: "right",
+            formatter: (p: unknown) => {
+              const { name, value } = p as { name: string; value: number };
+              return `${name}: ${value} (${pctPorNome.get(name) ?? 0}%)`;
+            },
+            color: "#475569",
+            fontSize: 12,
+          },
+          labelLine: { show: true, length: 16, lineStyle: { color: "#cbd5e1" } },
+          itemStyle: { borderColor: "#fff", borderWidth: 1 },
+          data: ordenado.map((n) => ({
+            name: NIVEL_FORMATIVO_LABELS[n.nivel],
+            value: n.quantidade,
+            itemStyle: { color: NIVEL_CHART_COLORS[n.nivel] },
+          })),
+        },
+      ],
+    };
+  }, [porNivel, termoFormando]);
+
+  const funilHeight = Math.max(220, porNivel.length * 64);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -232,6 +295,27 @@ export default function DashboardAdminAnalytics({
           </CardContent>
         </Card>
       </div>
+
+      {/* ECharts — funil do caminho formativo (distribuição dos formandos por etapa) */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            Caminho formativo · distribuição por etapa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {funilOption ? (
+            <EChart
+              option={funilOption}
+              height={funilHeight}
+              ariaLabel={`Funil de distribuição de ${termoFormando.toLowerCase()}s por etapa formativa`}
+            />
+          ) : (
+            <EmptyState texto={`Nenhum ${termoFormando.toLowerCase()} cadastrado por etapa`} />
+          )}
+        </CardContent>
+      </Card>
 
       {/* ECharts — heatmap morada × mês (só quando há histórico de presença) */}
       {heatmapOption && presencaHeatmap && (
