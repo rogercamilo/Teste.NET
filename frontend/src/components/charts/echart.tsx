@@ -18,7 +18,7 @@
 
 import { useEffect, useRef } from "react";
 import * as echarts from "echarts/core";
-import { BarChart, LineChart, PieChart, HeatmapChart, RadarChart, FunnelChart } from "echarts/charts";
+import { BarChart, LineChart, PieChart, HeatmapChart, RadarChart, FunnelChart, SankeyChart } from "echarts/charts";
 import {
   GridComponent,
   TooltipComponent,
@@ -35,7 +35,7 @@ import type { EChartsCoreOption } from "echarts/core";
 // tipo de gráfico, adicione o módulo correspondente aqui — não troque para o import
 // "echarts" cheio, que dobraria o bundle.
 echarts.use([
-  BarChart, LineChart, PieChart, HeatmapChart, RadarChart, FunnelChart,
+  BarChart, LineChart, PieChart, HeatmapChart, RadarChart, FunnelChart, SankeyChart,
   GridComponent, TooltipComponent, LegendComponent, TitleComponent,
   VisualMapComponent, DatasetComponent,
   LabelLayout, CanvasRenderer,

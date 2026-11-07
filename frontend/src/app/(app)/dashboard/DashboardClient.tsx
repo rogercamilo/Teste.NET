@@ -854,6 +854,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
           gruposFormacaoResumo={stats.gruposFormacaoResumo ?? []}
           presencaHeatmap={stats.presencaHeatmap}
           porNivel={stats.porNivel}
+          sankeyJornada={stats.sankeyJornada}
           termoGrupoFormacao={termos.grupoFormacao}
           termoFormando={termos.formando}
         />

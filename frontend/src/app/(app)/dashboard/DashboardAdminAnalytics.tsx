@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import type { EChartsCoreOption } from "echarts/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Calendar, Filter, TrendingUp, Users } from "lucide-react";
+import { BarChart3, Calendar, Filter, GitBranch, TrendingUp, Users } from "lucide-react";
 import { EChart } from "@/components/charts/echart";
 import { BarList } from "@/components/charts/bar-list";
 import { NIVEL_FORMATIVO_LABELS } from "@/types";
@@ -45,10 +45,27 @@ const NIVEL_CHART_COLORS: Record<NivelFormativo, string> = {
   vocacional: "#F43F5E",
 };
 
+// Cor dos nós do sankey: etapas reusam a paleta (via rótulo); os nós especiais
+// (ingresso/vocacional/desfechos) têm cor própria semântica.
+const LABEL_TO_COLOR: Record<string, string> = Object.fromEntries(
+  (Object.keys(NIVEL_CHART_COLORS) as NivelFormativo[]).map((n) => [NIVEL_FORMATIVO_LABELS[n], NIVEL_CHART_COLORS[n]]),
+);
+const SANKEY_KIND_COLOR: Record<string, string> = {
+  ingresso: "#94A3B8",   // slate — porta de entrada
+  vocacional: "#F43F5E", // rosa — ramo vocacional
+  concluido: "#10B981",  // verde — desfecho positivo
+  arquivado: "#EF4444",  // vermelho — saída
+};
+function corSankeyNode(nome: string, kind: string): string {
+  if (kind === "etapa") return LABEL_TO_COLOR[nome] ?? "#3B82F6";
+  return SANKEY_KIND_COLOR[kind] ?? "#94A3B8";
+}
+
 interface Props {
   gruposFormacaoResumo: NonNullable<DashboardStats["gruposFormacaoResumo"]>;
   presencaHeatmap?: DashboardStats["presencaHeatmap"];
   porNivel: DashboardStats["porNivel"];
+  sankeyJornada?: DashboardStats["sankeyJornada"];
   termoGrupoFormacao: string;
   termoFormando: string;
 }
@@ -57,6 +74,7 @@ export default function DashboardAdminAnalytics({
   gruposFormacaoResumo,
   presencaHeatmap,
   porNivel,
+  sankeyJornada,
   termoGrupoFormacao,
   termoFormando,
 }: Props) {
@@ -189,6 +207,45 @@ export default function DashboardAdminAnalytics({
 
   const heatmapHeight = presencaHeatmap ? Math.max(160, presencaHeatmap.moradas.length * 44 + 72) : 0;
 
+  // ── ECharts: sankey da jornada formativa (fluxo entre etapas + ramo vocacional) ──
+  const sankeyOption = useMemo<EChartsCoreOption | null>(() => {
+    if (!sankeyJornada || sankeyJornada.links.length === 0) return null;
+    return {
+      animation: !prefersReducedMotion,
+      tooltip: {
+        trigger: "item",
+        triggerOn: "mousemove",
+        formatter: (p: unknown) => {
+          const d = p as { dataType?: string; name?: string; data: { source?: string; target?: string; value?: number } };
+          if (d.dataType === "edge") {
+            const n = d.data.value ?? 0;
+            return `${d.data.source} → ${d.data.target}<br/><strong>${n}</strong> ${n === 1 ? termoFormando.toLowerCase() : termoFormando.toLowerCase() + "s"}`;
+          }
+          return `<strong>${d.name}</strong>`;
+        },
+      },
+      series: [
+        {
+          type: "sankey",
+          left: 8, right: 150, top: 10, bottom: 10,
+          nodeWidth: 14,
+          nodeGap: 16,
+          draggable: false,
+          emphasis: { focus: "adjacency" },
+          data: sankeyJornada.nodes.map((n) => ({
+            name: n.nome,
+            itemStyle: { color: corSankeyNode(n.nome, n.kind), borderColor: "transparent" },
+          })),
+          links: sankeyJornada.links,
+          label: { fontSize: 11, color: "#475569", formatter: "{b}" },
+          lineStyle: { color: "gradient", opacity: 0.45, curveness: 0.5 },
+        },
+      ],
+    };
+  }, [sankeyJornada, termoFormando]);
+
+  const sankeyHeight = sankeyJornada ? Math.max(240, sankeyJornada.nodes.length * 42) : 0;
+
   // ── ECharts: funil do caminho formativo (distribuição por etapa) ────────────
   const funilOption = useMemo<EChartsCoreOption | null>(() => {
     if (porNivel.length === 0) return null;
@@ -316,6 +373,30 @@ export default function DashboardAdminAnalytics({
           )}
         </CardContent>
       </Card>
+
+      {/* ECharts — sankey da jornada formativa (só quando há transições registradas) */}
+      {sankeyOption && sankeyJornada && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <GitBranch className="h-4 w-4 text-muted-foreground" />
+              Jornada formativa · fluxo entre etapas e ramo vocacional
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EChart
+              option={sankeyOption}
+              height={sankeyHeight}
+              ariaLabel={`Fluxo da jornada formativa: transições entre etapas e trilha vocacional`}
+            />
+            <div className="flex flex-wrap gap-4 mt-2 justify-center">
+              <Legenda cor="bg-rose-500" texto="Vocacional" />
+              <Legenda cor="bg-emerald-500" texto="Concluído (deferido)" />
+              <Legenda cor="bg-red-500" texto="Arquivado / saída" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ECharts — heatmap morada × mês (só quando há histórico de presença) */}
       {heatmapOption && presencaHeatmap && (

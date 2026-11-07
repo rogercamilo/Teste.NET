@@ -10,6 +10,7 @@ import { getUserName } from "@/lib/current-user";
 import { aniversariantesNaJanela } from "@/lib/dashboard-semana";
 import { totalRequerido, REQUISITOS_ETAPAS } from "@/types";
 import { progressoNaEtapa, avaliarRiscoFormando } from "@/lib/jornada-progresso";
+import { construirSankeyJornada } from "@/lib/jornada-sankey";
 import type { DashboardStats, NivelFormativo, NotaAdesao, PerfilUsuario, ProgressoEtapa } from "@/types";
 
 const PERFIL_FC = "formador_comunitario" as const;
@@ -378,9 +379,30 @@ async function getDashboardData(
         }
       : undefined;
 
+    // ── Sankey da jornada formativa (transições de→para + ramo vocacional) ──
+    // ProgressoEtapa não tem organizacaoId → escopo pelo formando. Participações
+    // vocacionais têm organizacaoId direto. O termo vocacional respeita o tenant.
+    const [progressoEtapasOrg, participacoesVoc, orgTermos] = await Promise.all([
+      prisma.progressoEtapa.findMany({
+        where: { formando: { organizacaoId, deletedAt: null } },
+        select: { formandoId: true, nivelFormativo: true },
+      }),
+      prisma.participacaoVocacional.findMany({
+        where: { organizacaoId },
+        select: { formandoId: true, status: true },
+      }),
+      prisma.organizacao.findUnique({ where: { id: organizacaoId }, select: { termoVocacional: true } }),
+    ]);
+    const sankeyJornada = construirSankeyJornada(
+      progressoEtapasOrg,
+      participacoesVoc,
+      orgTermos?.termoVocacional || "Período Vocacional",
+    );
+
     return {
       ...baseStats,
       presencaHeatmap,
+      sankeyJornada,
       totalGruposFormacao: moradasData.length,
       totalPlanosAtivos,
       gruposFormacaoSemPlano,

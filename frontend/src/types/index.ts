@@ -535,6 +535,13 @@ export interface DashboardStats {
     moradas: { id: string; nome: string }[];
     celulas: { x: number; y: number; taxa: number | null }[]; // x=mês, y=morada
   };
+  // Sankey da jornada formativa (transições de→para derivadas de ProgressoEtapa +
+  // ramo vocacional). Shape alinhado a lib/jornada-sankey (inline p/ evitar ciclo
+  // de import). undefined quando não há nenhuma transição registrada.
+  sankeyJornada?: {
+    nodes: { nome: string; kind: "ingresso" | "etapa" | "vocacional" | "concluido" | "arquivado" }[];
+    links: { source: string; target: string; value: number }[];
+  };
 
   // Formador Pedagógico — indicadores de elaboração do caminho formativo.
   // Escopo: conteúdo da própria organização (exclui o conteúdo global da plataforma).
