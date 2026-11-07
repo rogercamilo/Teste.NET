@@ -29,7 +29,7 @@ export default async function PlanoDetalhePage({
   if (!plano) redirect("/planos");
 
   const isAdmin =
-    user.role === "formador_geral" || user.role === "administrador";
+    user.role === "formador_geral" || user.role === "administrador" || user.role === "fundador";
 
   return <PlanoDetalheClient plano={toPlano(plano)} isAdmin={isAdmin} />;
 }

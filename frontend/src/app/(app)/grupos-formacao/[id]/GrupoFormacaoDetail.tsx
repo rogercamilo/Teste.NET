@@ -220,7 +220,7 @@ export default function GrupoFormacaoDetail({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isAdmin = userRole === "administrador";
-  const isFormadorGeral = userRole === "formador_geral";
+  const isFormadorGeral = userRole === "formador_geral" || userRole === "fundador";
   const isFC = userRole === "formador_comunitario";
   // Gestão (admin/formador geral) ou o FC responsável — que só alcança esta tela
   // para o próprio grupo (guard em page.tsx) — pode gerir a lista de leituras.

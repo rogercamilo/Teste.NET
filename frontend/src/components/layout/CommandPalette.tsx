@@ -44,7 +44,7 @@ export function CommandPalette({ open, onOpenChange, role, grupoFormacaoId }: Co
   const [results, setResults] = useState<SearchResults>(EMPTY);
   const [loading, setLoading] = useState(false);
 
-  const isGestao = role === "formador_geral" || role === "administrador";
+  const isGestao = role === "formador_geral" || role === "administrador" || role === "fundador";
   const isSuperAdmin = role === "super_admin";
 
   // Navegação: fonte única com o sidebar (papel + termos + guards).

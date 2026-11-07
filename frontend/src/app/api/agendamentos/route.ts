@@ -134,7 +134,8 @@ export async function POST(request: Request) {
     if (
       (tipoEvento === "convocacao" || tipoEvento === "reuniao") &&
       user.role !== "formador_geral" &&
-      user.role !== "administrador"
+      user.role !== "administrador" &&
+      user.role !== "fundador"
     ) {
       return NextResponse.json(
         { error: "Sem permissão para agendar evento geral da organização" },
@@ -147,7 +148,8 @@ export async function POST(request: Request) {
     if (
       tipoEvento === "formacao_complementar" &&
       user.role !== "formador_geral" &&
-      user.role !== "formador_comunitario"
+      user.role !== "formador_comunitario" &&
+      user.role !== "fundador"
     ) {
       return NextResponse.json(
         { error: "Sem permissão para agendar Formação Complementar" },
@@ -285,7 +287,7 @@ async function criarAcompanhamentoComunitario(
   if (!user.id || !user.organizacaoId) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
-  if (user.role !== "formador_comunitario" && user.role !== "formador_geral") {
+  if (user.role !== "formador_comunitario" && user.role !== "formador_geral" && user.role !== "fundador") {
     return NextResponse.json(
       { error: "Sem permissão para agendar acompanhamento comunitário" },
       { status: 403 }
@@ -329,7 +331,7 @@ async function criarAcompanhamentoComunitario(
         organizacaoId,
         // Formadores de CAMPO acompanháveis pelo FG: comunitário e (quando vier a
         // existir como perfil persistido) pedagógico — nunca gestão/plataforma.
-        perfil: { notIn: ["administrador", "formador_geral", "super_admin"] },
+        perfil: { notIn: ["administrador", "formador_geral", "fundador", "super_admin"] },
       },
       select: { id: true, nome: true },
     });

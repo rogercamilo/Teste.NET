@@ -30,7 +30,7 @@ export default function QuotaWarningBanner({ role }: { role?: string }) {
   const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
 
   // Only admins/formadores_gerais see the banner
-  const canSee = role === "administrador" || role === "formador_geral";
+  const canSee = role === "administrador" || role === "formador_geral" || role === "fundador";
 
   useEffect(() => {
     if (!canSee) return;

@@ -188,7 +188,7 @@ export async function usuariosPorPerfil(
 // Revisores da Jornada Vocacional: os Formadores Gerais validam. Sem nenhum FG
 // cadastrado, a revisão recai sobre o Administrador (comunidades pequenas).
 export async function revisoresDaOrg(organizacaoId: string): Promise<string[]> {
-  const fgs = await usuariosPorPerfil(organizacaoId, ["formador_geral"]);
+  const fgs = await usuariosPorPerfil(organizacaoId, ["formador_geral", "fundador"]);
   if (fgs.length > 0) return fgs;
   return usuariosPorPerfil(organizacaoId, ["administrador"]);
 }

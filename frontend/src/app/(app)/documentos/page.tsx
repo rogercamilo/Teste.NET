@@ -70,7 +70,7 @@ export default function DocumentosPage() {
   const { formando: termoFormando } = useTermos();
   const user = session?.user as SessionUser | undefined;
   const isGestao =
-    user?.role === "administrador" || user?.role === "formador_geral";
+    user?.role === "administrador" || user?.role === "formador_geral" || user?.role === "fundador";
 
   const [documentos, setDocumentos] = useState<DocumentoMeta[]>([]);
   const [loading, setLoading] = useState(true);

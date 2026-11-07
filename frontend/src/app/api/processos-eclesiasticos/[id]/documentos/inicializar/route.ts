@@ -33,6 +33,7 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
     const ehPreparador =
       user.role === "administrador" ||
       user.role === "formador_geral" ||
+      user.role === "fundador" ||
       (user.role === "formador_comunitario" && processo.formando.grupoFormacaoId === user.grupoFormacaoId);
     if (!ehPreparador) {
       return NextResponse.json({ error: "Sem permissão para preparar este processo" }, { status: 403 });

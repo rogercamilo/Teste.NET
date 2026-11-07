@@ -81,13 +81,13 @@ export default async function AgendaPage() {
     }),
     // Alvos do Acompanhamento Comunitário no fluxo do Formador Geral: formadores
     // comunitários e pedagógicos do tenant. Só carrega para FG.
-    user.role === "formador_geral"
+    (user.role === "formador_geral" || user.role === "fundador")
       ? prisma.usuario.findMany({
           where: {
             organizacaoId: user.organizacaoId,
             // Formadores de campo (comunitário e, futuramente, pedagógico) — nunca
             // gestão/plataforma. Ver comentário na rota POST de agendamentos.
-            perfil: { notIn: ["administrador", "formador_geral", "super_admin"] },
+            perfil: { notIn: ["administrador", "formador_geral", "fundador", "super_admin"] },
             ativo: true,
             deletedAt: null,
           },
@@ -102,7 +102,7 @@ export default async function AgendaPage() {
   const alvosAcompanhamento =
     user.role === "formador_comunitario"
       ? formandosRaw.map((f) => ({ tipo: "formando" as const, id: f.id, nome: f.nome }))
-      : user.role === "formador_geral"
+      : (user.role === "formador_geral" || user.role === "fundador")
         ? formadoresRaw.map((u) => ({ tipo: "usuario" as const, id: u.id, nome: u.nome }))
         : [];
 

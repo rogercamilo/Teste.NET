@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
       ...(formandoId ? { formandoId } : {}),
     };
 
-    const isAdminRole = user.role === "administrador" || user.role === "formador_geral";
+    const isAdminRole = user.role === "administrador" || user.role === "formador_geral" || user.role === "fundador";
     const effectiveWhere = isAdminRole
       ? where
       : { ...where, OR: [{ uploadedById: user.id }, { grupoFormacaoId: user.grupoFormacaoId ?? undefined }] };

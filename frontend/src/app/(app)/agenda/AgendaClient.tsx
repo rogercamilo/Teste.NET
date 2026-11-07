@@ -167,7 +167,7 @@ export default function AgendaClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isFC = role === "formador_comunitario";
-  const isFG = role === "formador_geral";
+  const isFG = role === "formador_geral" || role === "fundador";
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [activeTab, setActiveTab] = useState("formacoes");

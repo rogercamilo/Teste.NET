@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: RouteCtx) {
 
   const organizacaoId = user.organizacaoId;
 
-  if (user.role !== "administrador" && user.role !== "formador_geral") {
+  if (user.role !== "administrador" && user.role !== "formador_geral" && user.role !== "fundador") {
     return NextResponse.json({ error: "Sem permissão para gerar documentos" }, { status: 403 });
   }
 

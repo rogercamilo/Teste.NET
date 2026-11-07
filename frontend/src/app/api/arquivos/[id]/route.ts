@@ -8,7 +8,7 @@ import { SessionUser } from "@/lib/auth-helpers";
 import { type NextRequest } from "next/server";
 
 function canDelete(arquivo: { uploadedById: string | null }, user: SessionUser): boolean {
-  if (user.role === "administrador" || user.role === "formador_geral") return true;
+  if (user.role === "administrador" || user.role === "formador_geral" || user.role === "fundador") return true;
   return arquivo.uploadedById === user.id;
 }
 
@@ -24,7 +24,7 @@ async function canRead(
   arquivo: { uploadedById: string | null; entityType: string | null; entityId: string | null; formandoId: string | null },
   user: SessionUser
 ): Promise<boolean> {
-  if (user.role === "administrador" || user.role === "formador_geral") return true;
+  if (user.role === "administrador" || user.role === "formador_geral" || user.role === "fundador") return true;
   if (arquivo.uploadedById === user.id) return true;
   // Anexos de formando (cartas de etapa, anexos de evento) vinculam por
   // `formandoId` — sem entityType/entityId. FC lê os do PRÓPRIO grupo.

@@ -82,14 +82,14 @@ export const TRANSICOES_STATUS: TransicaoStatus[] = [
     para: "em_andamento",
     // O formador comunitário inicia o processo: é o responsável pela etapa
     // formativa atual do formando e quem coleta os dados dos documentos.
-    papeis: ["administrador", "formador_geral", "formador_comunitario"],
+    papeis: ["administrador", "formador_geral", "formador_comunitario", "fundador"],
     label: "Iniciar processo",
   },
   {
     de: "em_andamento",
     para: "em_revisao",
     // Só avança para revisão com todos os documentos gerados.
-    papeis: ["administrador", "formador_geral"],
+    papeis: ["administrador", "formador_geral", "fundador"],
     label: "Enviar para revisão",
     exigeDocumentosGerados: true,
   },
@@ -98,7 +98,7 @@ export const TRANSICOES_STATUS: TransicaoStatus[] = [
     // mantém o poder como reforço de gestão.
     de: "em_revisao",
     para: "aprovado",
-    papeis: ["formador_geral", "administrador"],
+    papeis: ["formador_geral", "administrador", "fundador"],
     label: "Aprovar",
   },
   {
@@ -106,7 +106,7 @@ export const TRANSICOES_STATUS: TransicaoStatus[] = [
     // laço de revisão (o preparador corrige e reenvia).
     de: "em_revisao",
     para: "em_andamento",
-    papeis: ["formador_geral", "administrador"],
+    papeis: ["formador_geral", "administrador", "fundador"],
     label: "Devolver para ajustes",
     exigeMotivo: true,
     variante: "destrutiva",
@@ -114,7 +114,7 @@ export const TRANSICOES_STATUS: TransicaoStatus[] = [
   {
     de: "aprovado",
     para: "concluido",
-    papeis: ["formador_geral", "administrador"],
+    papeis: ["formador_geral", "administrador", "fundador"],
     label: "Concluir",
   },
   {
@@ -170,7 +170,7 @@ export function podeEditarFormulario(
 ): boolean {
   if (status === "concluido") return false;
   if (papel === "administrador") return true;
-  if (papel === "formador_geral") return status !== "aprovado";
+  if (papel === "formador_geral" || papel === "fundador") return status !== "aprovado";
   // O formador comunitário preenche os dados durante a sua fase (antes da
   // revisão da gestão): edita enquanto o processo está em rascunho ou em andamento.
   if (papel === "formador_comunitario") return status === "rascunho" || status === "em_andamento";

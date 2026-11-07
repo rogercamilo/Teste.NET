@@ -11,14 +11,14 @@ function canRead(
   doc: { uploadedById: string | null; grupoFormacaoId: string | null },
   user: SessionUser
 ): boolean {
-  if (user.role === "administrador" || user.role === "formador_geral") return true;
+  if (user.role === "administrador" || user.role === "formador_geral" || user.role === "fundador") return true;
   if (doc.uploadedById === user.id) return true;
   if (doc.grupoFormacaoId && doc.grupoFormacaoId === user.grupoFormacaoId) return true;
   return false;
 }
 
 function canDelete(doc: { uploadedById: string | null }, user: SessionUser): boolean {
-  if (user.role === "administrador" || user.role === "formador_geral") return true;
+  if (user.role === "administrador" || user.role === "formador_geral" || user.role === "fundador") return true;
   return doc.uploadedById === user.id;
 }
 

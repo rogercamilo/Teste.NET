@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     const admins = await prisma.usuario.findMany({
       where: {
         organizacaoId: { in: orgs.map((o) => o.id) },
-        perfil: { in: ["administrador", "formador_geral"] },
+        perfil: { in: ["administrador", "formador_geral", "fundador"] },
         ativo: true,
         deletedAt: null,
       },
@@ -141,7 +141,7 @@ export async function GET(request: Request) {
     const count = await prisma.usuario.count({
       where: {
         organizacao: orgWhere,
-        perfil: { in: ["administrador", "formador_geral"] },
+        perfil: { in: ["administrador", "formador_geral", "fundador"] },
         ativo: true,
         deletedAt: null,
       },
