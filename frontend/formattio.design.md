@@ -32,6 +32,8 @@ brand:
 
 semantic-tokens:   # nomes shadcn — use os utilitários, nunca hex solto
   - primary / primary-foreground      # ação, link, destaque, estado ativo
+  - primary-soft                      # RESERVADO — fundo suave/badge de clay (guia)
+  - primary-deep                      # RESERVADO — hover/ênfase do primário (guia)
   - secondary / secondary-foreground  # ação de apoio, superfície suave
   - muted / muted-foreground          # texto secundário, fundos neutros
   - accent / accent-foreground        # realce discreto (hover, seleção)
@@ -52,13 +54,14 @@ type-ramp:   # tokens NOVOS (globals.css @theme) — Geist, tracking negativo su
 radius-lanes:   # derivados de --radius (10px) — cada faixa carrega hierarquia
   sm: "~6px — chips, badges, inputs pequenos"
   md: "~8px — botões, inputs"
-  lg: "10px — cards (padrão)"
-  xl: "~14px — superfícies destacadas, modais"
+  lg: "10px — superfícies médias"
+  xl: "~14px — CARDS (o Card base usa rounded-xl), modais, superfícies destacadas"
   2xl+: "~18px+ — heróis, painéis grandes"
   full: "9999px — avatares, pills de status"
 
 elevation:   # tokens NOVOS — sombras tintadas de clay (warm), não cinza neutro
-  shadow-sm: "sutil — card de conteúdo (padrão: border-0 shadow-sm)"
+  card-base: "Card shadcn usa hairline ring-1 ring-foreground/10 + rounded-xl (sem sombra)"
+  shadow-sm: "sutil — superfície elevada leve"
   shadow-md: "card interativo / hover"
   shadow-lg: "popover, dropdown"
   shadow-xl: "modal, sheet"
@@ -88,6 +91,12 @@ valor, edite `globals.css`. Ao mudar a semântica, atualize este arquivo.
 - **primary (clay)** — ação principal, link, destaque, estado ativo, foco. Não
   usar como fundo de seções inteiras (vira "genérico-startup"); reserve para
   onde há intenção de ação.
+- **primary-soft / primary-deep** — rampa de clay do guia da marca, **reservados**
+  (ainda sem consumidor): `primary-soft` = preenchimento suave de badge/fundo de
+  destaque; `primary-deep` = hover/ênfase do botão primário. Valores light seguem
+  o guia (`#E8B894` / `#56291B`); no dark o papel se mantém mas o tom se adapta
+  (soft = superfície escura tingida; deep clareia, já que "deep" só escurece sobre
+  fundo claro). Sombras tintadas → use a escala `shadow-*`, não `primary-deep`.
 - **secondary / accent / muted** — superfícies e textos de apoio. `muted-foreground`
   é o cinza-warm do texto secundário.
 - **destructive / success / warning / info** — semânticas. **COR NUNCA SOZINHA**:
@@ -120,7 +129,8 @@ leitura — o público tem dificuldade de leitura; prefira maior + contraste.
 ## Elevação e forma
 
 - Sombras **tintadas de clay** (warm), não cinza neutro — profundidade on-brand.
-  Padrão do card: `border-0 shadow-sm`. Hover/interativo sobe para `shadow-md`.
+  O Card base (shadcn) usa hairline `ring-1 ring-foreground/10` + `rounded-xl`
+  (14px), sem sombra; use `shadow-sm/md` para superfícies que precisam elevar.
 - Escala de raio deriva de `--radius` (10px). Mantenha cada faixa na sua pista:
   não misture raios muito diferentes no mesmo cluster de componentes.
 
@@ -130,7 +140,7 @@ Base: shadcn/ui + @base-ui/react em `src/components/ui/` (30 componentes). Padr�
 de composição, variantes e gotchas vivem na skill de frontend
 (`.claude/skills/formattio-frontend/`). Resumo:
 - **Botões** via `buttonVariants` (default/outline/ghost/secondary/destructive) — nunca estilizar `<button>` cru.
-- **Card** `border-0 shadow-sm` é o padrão do app.
+- **Card** base (shadcn) = `rounded-xl` + `ring-1 ring-foreground/10` (hairline, sem sombra); 14px bate com o guia da marca.
 - **EmptyState / Skeletons** para estados vazio/carregando — sempre tratar os dois.
 - **Cores semânticas** em badges/alertas com ícone+palavra.
 
@@ -144,6 +154,22 @@ de composição, variantes e gotchas vivem na skill de frontend
 - **Don't** usar o clay como fundo de seção inteira (vira genérico-startup).
 - **Don't** sinalizar só por cor; nem usar ícone sem rótulo em ação importante.
 - **Don't** reverter às decisões PROVISÓRIAS do briefing (tema azul #3b82f6, símbolo "Fo", primário "indefinido") — foram superadas pela marca clay atual.
+
+## Relação com o guia da marca (claude.ai/design)
+
+`docs/Guia da Marca Formattio (standalone).html` é referência de **intenção da
+marca**, não fonte de tokens — `globals.css` é a verdade. Comparação feita; o app
+bate com o guia em símbolo, cores de marca/superfície (light+dark) e semânticas.
+Divergências com **decisão consciente** (não "consertar"):
+
+- **Ramp tipográfico:** o app usa `text-display`/`text-title`/`text-heading`
+  (pesos 650–700), que **supera** os H1–H4 do guia (peso 600, 4 degraus). Mantido —
+  mais ar institucional e já em uso. Não reconciliar com os pesos do guia.
+- **Nome dos SVGs:** arquivos em `public/brand/` são `formatio-*.svg` (1 "t") por
+  decisão; os imports apontam para o nome real. Não renomear para `formattio-`.
+- **Raio de card:** o guia pede 14px e o app **já entrega** (Card = `rounded-xl`).
+- `primary-soft` / `primary-deep` do guia foram adicionados como tokens reservados
+  (ver acima); sem consumidor ainda.
 
 ## Lacunas conhecidas / próximos passos
 

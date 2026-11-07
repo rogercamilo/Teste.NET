@@ -35,6 +35,15 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  /* Rampa de clay do guia da marca (H · Travessia) — RESERVADOS (reservado ≠
+     morto): primary-soft = preenchimento suave de badge/fundo; primary-deep =
+     hover/ênfase do primário. Luz segue os valores canônicos do guia; dark é
+     ancorado no PAPEL (soft = superfície escura tingida de clay p/ texto claro;
+     deep = tom de ênfase sobre o primário já elevado — "deep" é nome herdado do
+     guia, no dark o realce clareia, não escurece). "Sombras" do papel original
+     já são cobertas pela escala shadow-* tintada acima. */
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-deep: var(--primary-deep);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -89,6 +98,8 @@
   --popover-foreground: oklch(0.22 0.022 50);
   --primary: oklch(0.55 0.135 36);       /* #B25433 clay */
   --primary-foreground: oklch(0.97 0.012 75); /* #FBF6F0 */
+  --primary-soft: oklch(0.85 0.062 55);  /* #E8B894 — fundo suave, badges */
+  --primary-deep: oklch(0.30 0.060 36);  /* #56291B — hover/ênfase do primário */
   --secondary: oklch(0.95 0.008 75);     /* #F0EBE4 */
   --secondary-foreground: oklch(0.30 0.022 50);
   --muted: oklch(0.96 0.006 75);         /* #F4F0EA */
@@ -134,6 +145,8 @@
   --popover-foreground: oklch(0.96 0.012 75);
   --primary: oklch(0.66 0.135 41);       /* #D4754C lifted clay */
   --primary-foreground: oklch(0.18 0.020 40);
+  --primary-soft: oklch(0.32 0.045 45);  /* superfície escura tingida de clay (badges) */
+  --primary-deep: oklch(0.58 0.120 41);  /* ênfase/hover sobre o primário elevado */
   --secondary: oklch(0.28 0.022 40);     /* #2E2118 */
   --secondary-foreground: oklch(0.92 0.010 75);
   --muted: oklch(0.28 0.020 45);         /* #2E2218 */
