@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import type { EChartsCoreOption } from "echarts/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, TrendingUp, Users } from "lucide-react";
+import { BarChart3, Calendar, TrendingUp, Users } from "lucide-react";
 import { EChart } from "@/components/charts/echart";
 import { BarList } from "@/components/charts/bar-list";
 import type { DashboardStats } from "@/types";
@@ -37,12 +37,14 @@ function corPresenca(taxa: number): string {
 
 interface Props {
   gruposFormacaoResumo: NonNullable<DashboardStats["gruposFormacaoResumo"]>;
+  presencaHeatmap?: DashboardStats["presencaHeatmap"];
   termoGrupoFormacao: string;
   termoFormando: string;
 }
 
 export default function DashboardAdminAnalytics({
   gruposFormacaoResumo,
+  presencaHeatmap,
   termoGrupoFormacao,
   termoFormando,
 }: Props) {
@@ -120,6 +122,61 @@ export default function DashboardAdminAnalytics({
 
   const chartHeight = Math.max(180, comPresenca.length * 38);
 
+  // ── ECharts: heatmap morada × mês (presença) ────────────────────────────────
+  const heatmapOption = useMemo<EChartsCoreOption | null>(() => {
+    if (!presencaHeatmap || presencaHeatmap.moradas.length === 0) return null;
+    const { meses, moradas, celulas } = presencaHeatmap;
+    return {
+      animation: !prefersReducedMotion,
+      grid: { top: 8, left: 8, right: 16, bottom: 68, containLabel: true },
+      tooltip: {
+        position: "top",
+        formatter: (p: unknown) => {
+          const d = (p as { data: [number, number, number | string] }).data;
+          const taxa = d[2];
+          return `<strong>${moradas[d[1]]?.nome ?? ""}</strong> · ${meses[d[0]] ?? ""}<br/>${
+            taxa === "-" ? "Sem sessão no mês" : `Presença: ${taxa}%`
+          }`;
+        },
+      },
+      xAxis: {
+        type: "category", data: meses, splitArea: { show: true },
+        axisLabel: { fontSize: 11, color: "#94a3b8" },
+        axisTick: { show: false }, axisLine: { show: false },
+      },
+      yAxis: {
+        type: "category", data: moradas.map((m) => m.nome), splitArea: { show: true },
+        axisLabel: { fontSize: 11, color: "#475569" },
+        axisTick: { show: false }, axisLine: { show: false },
+      },
+      visualMap: {
+        min: 0, max: 100, calculable: false,
+        orient: "horizontal", left: "center", bottom: 2,
+        text: ["100%", "0%"], textStyle: { fontSize: 10, color: "#94a3b8" },
+        inRange: { color: ["#EF4444", "#F59E0B", "#10B981"] },
+      },
+      series: [
+        {
+          type: "heatmap",
+          data: celulas.map((c) => [c.x, c.y, c.taxa ?? "-"]),
+          label: {
+            show: true,
+            formatter: (p: unknown) => {
+              const v = (p as { data: [number, number, number | string] }).data[2];
+              return v === "-" ? "" : `${v}%`;
+            },
+            fontSize: 10,
+            color: "#1f2937",
+          },
+          itemStyle: { borderColor: "#fff", borderWidth: 2, borderRadius: 4 },
+          emphasis: { itemStyle: { shadowBlur: 6, shadowColor: "rgba(0,0,0,0.2)" } },
+        },
+      ],
+    };
+  }, [presencaHeatmap]);
+
+  const heatmapHeight = presencaHeatmap ? Math.max(160, presencaHeatmap.moradas.length * 44 + 72) : 0;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -175,6 +232,25 @@ export default function DashboardAdminAnalytics({
           </CardContent>
         </Card>
       </div>
+
+      {/* ECharts — heatmap morada × mês (só quando há histórico de presença) */}
+      {heatmapOption && presencaHeatmap && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              Mapa de presença por mês · por {termoGrupoFormacao.toLowerCase()}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EChart
+              option={heatmapOption}
+              height={heatmapHeight}
+              ariaLabel={`Mapa de calor de presença por mês e por ${termoGrupoFormacao.toLowerCase()}`}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

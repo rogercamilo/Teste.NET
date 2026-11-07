@@ -528,6 +528,13 @@ export interface DashboardStats {
     taxaPresenca?: number | null;   // últimos 90 dias, null = sem registros
     gradeVigente?: boolean;         // false = grade expirada ou sem grade
   }[];
+  // Heatmap morada × mês (6 meses): taxa de presença por mês de cada morada.
+  // Só moradas com ≥1 sessão na janela entram. Célula null = sem sessão no mês.
+  presencaHeatmap?: {
+    meses: string[];                              // rótulos cronológicos (ex.: "Jun")
+    moradas: { id: string; nome: string }[];
+    celulas: { x: number; y: number; taxa: number | null }[]; // x=mês, y=morada
+  };
 
   // Formador Pedagógico — indicadores de elaboração do caminho formativo.
   // Escopo: conteúdo da própria organização (exclui o conteúdo global da plataforma).

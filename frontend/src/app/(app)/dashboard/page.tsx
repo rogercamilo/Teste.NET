@@ -279,7 +279,7 @@ async function getDashboardData(
   // ── FG/Admin: visão estratégica ───────────────────────────────────────────
   if (perfil === "formador_geral" || perfil === "administrador") {
     const threeMonthsAgo = subMonths(now, 3);
-    const [moradasData, formandosAtivosGrp, totalPlanosAtivos, gruposFormacaoSemPlano, gruposFormacaoSemGrade, gruposFormacaoComGradeExpirada, fcsSemGrupoFormacao, presencasPorGrupoFormacao] =
+    const [moradasData, formandosAtivosGrp, totalPlanosAtivos, gruposFormacaoSemPlano, gruposFormacaoSemGrade, gruposFormacaoComGradeExpirada, fcsSemGrupoFormacao, presencasPorGrupoFormacao, presencaPorMoradaMes] =
       await Promise.all([
         prisma.grupoFormacao.findMany({
           where: { organizacaoId, ativo: true },
@@ -322,6 +322,21 @@ async function getDashboardData(
             AND f.morada_id IS NOT NULL
           GROUP BY f.morada_id
         `,
+        // Heatmap morada × mês (6 meses): mesma métrica (p.presente), agregada por
+        // mês no Postgres. Uma linha por (morada, mês) com sessão registrada.
+        prisma.$queryRaw<{ grupoFormacaoId: string; ym: string; total: number; presentes: number }[]>`
+          SELECT f.morada_id AS "grupoFormacaoId",
+                 to_char(date_trunc('month', p.data), 'YYYY-MM') AS ym,
+                 COUNT(*)::int AS total,
+                 COUNT(*) FILTER (WHERE p.presente)::int AS presentes
+          FROM "PresencaFormacao" p
+          JOIN "Formando" f ON f.id = p."formandoId"
+          WHERE p."organizacaoId" = ${organizacaoId}
+            AND p.data >= ${sixMonthsAgo}
+            AND p.data <= ${now}
+            AND f.morada_id IS NOT NULL
+          GROUP BY f.morada_id, ym
+        `,
       ]);
 
     const ativosMap = new Map(formandosAtivosGrp.map((g) => [g.grupoFormacaoId!, g._count.id]));
@@ -334,8 +349,38 @@ async function getDashboardData(
       ])
     );
 
+    // ── Heatmap morada × mês (6 meses) ──
+    // Reaproveita `months` (mesma janela do gráfico de evolução). Só moradas com
+    // ao menos uma sessão na janela entram — evita linhas vazias em orgs grandes.
+    const heatmapMap = new Map(
+      presencaPorMoradaMes.map((r) => [
+        `${r.grupoFormacaoId}|${r.ym}`,
+        { total: Number(r.total), presentes: Number(r.presentes) },
+      ])
+    );
+    const moradasComHistorico = moradasData.filter((m) =>
+      months.some(({ yearMonth }) => heatmapMap.has(`${m.id}|${yearMonth}`))
+    );
+    const presencaHeatmap = moradasComHistorico.length > 0
+      ? {
+          meses: months.map((mo) => mo.label),
+          moradas: moradasComHistorico.map((m) => ({ id: m.id, nome: m.nome })),
+          celulas: moradasComHistorico.flatMap((m, yi) =>
+            months.map((mo, xi) => {
+              const cell = heatmapMap.get(`${m.id}|${mo.yearMonth}`);
+              return {
+                x: xi,
+                y: yi,
+                taxa: cell && cell.total > 0 ? Math.round((cell.presentes / cell.total) * 100) : null,
+              };
+            })
+          ),
+        }
+      : undefined;
+
     return {
       ...baseStats,
+      presencaHeatmap,
       totalGruposFormacao: moradasData.length,
       totalPlanosAtivos,
       gruposFormacaoSemPlano,

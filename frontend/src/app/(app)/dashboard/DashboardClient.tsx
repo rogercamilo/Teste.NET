@@ -852,6 +852,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
       {isAdmin && (stats.gruposFormacaoResumo?.length ?? 0) > 0 && (
         <DashboardAdminAnalytics
           gruposFormacaoResumo={stats.gruposFormacaoResumo ?? []}
+          presencaHeatmap={stats.presencaHeatmap}
           termoGrupoFormacao={termos.grupoFormacao}
           termoFormando={termos.formando}
         />
