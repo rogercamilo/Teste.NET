@@ -77,7 +77,7 @@ export default function JornadaVocacionalClient({ initialProcessos, userRole, te
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <h1 className="text-title flex items-center gap-2">
             <ScrollText className="h-6 w-6 text-primary" />
             Jornada Vocacional
           </h1>

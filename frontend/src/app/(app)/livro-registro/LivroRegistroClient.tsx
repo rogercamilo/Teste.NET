@@ -159,7 +159,7 @@ export default function LivroRegistroClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <h1 className="text-title flex items-center gap-2">
             <BookMarked className="h-6 w-6 text-primary" />
             Livro de Registro Geral
           </h1>

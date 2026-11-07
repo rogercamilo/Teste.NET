@@ -197,7 +197,7 @@ export default function GruposFormacaoClient({
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{termoGrupoFormacao}s</h1>
+          <h1 className="text-title text-foreground">{termoGrupoFormacao}s</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {initialGruposFormacao.filter((m) => m.ativo).length} {termoGrupoFormacao.toLowerCase()}s ativas
           </p>

@@ -191,7 +191,7 @@ export default function ConfiguracoesClient({
   return (
     <div className="space-y-5 animate-in-fast">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Configurações</h1>
+        <h1 className="text-title text-foreground">Configurações</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           {isGestao
             ? "Gerencie usuários, dados da comunidade e preferências do sistema"

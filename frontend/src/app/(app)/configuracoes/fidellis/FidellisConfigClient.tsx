@@ -68,7 +68,7 @@ export default function FidellisConfigClient() {
 
   return (
     <div className="mx-auto max-w-xl p-4">
-      <h1 className="mb-1 text-2xl font-semibold">Integração Fidellis</h1>
+      <h1 className="mb-1 text-title">Integração Fidellis</h1>
       <p className="mb-4 text-sm text-gray-500">
         Habilita o dízimo/oferta do formando pelo portal, integrado ao Fidellis. A chave de serviço é
         gerada no Fidellis e guardada de forma cifrada.

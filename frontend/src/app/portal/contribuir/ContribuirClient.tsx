@@ -81,7 +81,7 @@ export default function ContribuirClient({
 
   return (
     <div className="mx-auto max-w-lg p-4">
-      <h1 className="mb-1 text-2xl font-semibold">Contribuir</h1>
+      <h1 className="mb-1 text-title">Contribuir</h1>
       <p className="mb-4 text-sm text-gray-500">Dízimo e oferta da sua comunidade.</p>
 
       {erro && <p className="mb-3 rounded bg-red-50 p-2 text-sm text-red-700">{erro}</p>}

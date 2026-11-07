@@ -40,7 +40,7 @@ export default function RecuperarSenhaPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Recuperar senha</h1>
+          <h1 className="text-title">Recuperar senha</h1>
           <p className="text-sm text-muted-foreground">
             Informe seu e-mail para receber o link de redefinição.
           </p>

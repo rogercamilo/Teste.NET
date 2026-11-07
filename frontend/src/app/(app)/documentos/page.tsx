@@ -124,7 +124,7 @@ export default function DocumentosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Auditoria Documental</h1>
+          <h1 className="text-title">Auditoria Documental</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Arquivos anexados a eventos dos formandos
           </p>

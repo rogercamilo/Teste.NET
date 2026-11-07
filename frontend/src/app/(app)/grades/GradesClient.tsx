@@ -105,7 +105,7 @@ export default function GradesClient({ role, grupoFormacaoId, initialGrades, ini
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Grades Formativas</h1>
+          <h1 className="text-title text-foreground">Grades Formativas</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {nivelRestrito
               ? `Grades do nível: ${NIVEL_FORMATIVO_LABELS[nivelRestrito]}`

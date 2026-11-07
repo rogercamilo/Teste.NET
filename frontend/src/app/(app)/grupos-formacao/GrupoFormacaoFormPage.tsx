@@ -185,7 +185,7 @@ export default function GrupoFormacaoFormPage({
           <ArrowLeft className="h-4 w-4" />
           {termoGrupoFormacao}s
         </Link>
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h1 className="text-title text-foreground">
           Nova {termoGrupoFormacao}
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">

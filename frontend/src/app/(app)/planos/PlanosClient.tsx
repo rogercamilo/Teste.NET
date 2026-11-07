@@ -117,7 +117,7 @@ export default function PlanosClient({ role, grupoFormacaoId, initialPlanos, ini
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Planos Formativos</h1>
+          <h1 className="text-title text-foreground">Planos Formativos</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {nivelRestrito
               ? `Planos do nível: ${NIVEL_FORMATIVO_LABELS[nivelRestrito]}`

@@ -427,7 +427,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
     return (
       <div className="space-y-6 animate-in-fast">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{tituloSaudacao}</h1>
+          <h1 className="text-title text-foreground">{tituloSaudacao}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Visão da sua {termos.grupoFormacao.toLowerCase()} —{" "}
             {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
@@ -453,7 +453,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
       <div className="space-y-6 animate-in-fast">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">{tituloSaudacao}</h1>
+            <h1 className="text-title text-foreground">{tituloSaudacao}</h1>
             <p className="text-sm text-muted-foreground mt-0.5 capitalize">
               {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
               <span className="normal-case text-muted-foreground/80"> · {subtitulo}</span>
@@ -571,7 +571,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">{tituloSaudacao}</h1>
+            <h1 className="text-title text-foreground">{tituloSaudacao}</h1>
             <p className="text-sm text-muted-foreground mt-0.5 capitalize">
               {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
               <span className="normal-case text-muted-foreground/80"> · {subtitulo}</span>
@@ -687,7 +687,7 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{tituloSaudacao}</h1>
+          <h1 className="text-title text-foreground">{tituloSaudacao}</h1>
           <p className="text-sm text-muted-foreground mt-0.5 capitalize">
             {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
             <span className="normal-case text-muted-foreground/80"> · {subtitulo}</span>

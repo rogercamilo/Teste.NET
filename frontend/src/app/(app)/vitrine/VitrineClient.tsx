@@ -132,7 +132,7 @@ export default function VitrineClient() {
           <Stamp className="size-3.5" />
           Jornada Vocacional
         </div>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[1.75rem]">
+        <h1 className="mt-2 text-title">
           Documentos Eclesiásticos
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

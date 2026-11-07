@@ -809,7 +809,7 @@ export default function FormandoDetailClient({
           </button>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold text-foreground">{formando.nome}</h1>
+              <h1 className="text-title text-foreground">{formando.nome}</h1>
               <Badge variant="outline" className={NIVEL_CORES[formando.nivelFormativo]}>
                 {NIVEL_FORMATIVO_LABELS[formando.nivelFormativo]}
               </Badge>

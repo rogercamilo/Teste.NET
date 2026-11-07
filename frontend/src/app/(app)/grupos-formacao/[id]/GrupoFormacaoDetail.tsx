@@ -847,7 +847,7 @@ export default function GrupoFormacaoDetail({
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold text-foreground">{grupoFormacao.nome}</h1>
+              <h1 className="text-title text-foreground">{grupoFormacao.nome}</h1>
               {grupoFormacao.nivelFormativo ? (
                 <Badge variant="outline" className={NIVEL_CORES[grupoFormacao.nivelFormativo]}>
                   {etapaLabels[grupoFormacao.nivelFormativo]}
