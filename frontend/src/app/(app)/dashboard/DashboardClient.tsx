@@ -39,6 +39,13 @@ const DashboardCharts = dynamic(() => import("./DashboardCharts"), {
   loading: () => <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" aria-hidden><div className="h-[288px] rounded-xl bg-muted/40 animate-pulse lg:col-span-2" /><div className="h-[288px] rounded-xl bg-muted/40 animate-pulse" /></div>,
 });
 
+// BI rico (ECharts + Tremor BarList) — chunk próprio, só na visão FG/Admin.
+// ssr:false: o ECharts toca em DOM/ResizeObserver, não renderiza no servidor.
+const DashboardAdminAnalytics = dynamic(() => import("./DashboardAdminAnalytics"), {
+  ssr: false,
+  loading: () => <div className="grid grid-cols-1 lg:grid-cols-5 gap-4" aria-hidden><div className="h-[300px] rounded-xl bg-muted/40 animate-pulse lg:col-span-3" /><div className="h-[300px] rounded-xl bg-muted/40 animate-pulse lg:col-span-2" /></div>,
+});
+
 // ── Paleta ─────────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<StatusFormacao, string> = {
@@ -840,6 +847,15 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
         porNivel={stats.porNivel}
         termoFormando={termos.formando}
       />
+
+      {/* ── BI rico (ECharts + Tremor) — só FG/Admin com moradas ── */}
+      {isAdmin && (stats.gruposFormacaoResumo?.length ?? 0) > 0 && (
+        <DashboardAdminAnalytics
+          gruposFormacaoResumo={stats.gruposFormacaoResumo ?? []}
+          termoGrupoFormacao={termos.grupoFormacao}
+          termoFormando={termos.formando}
+        />
+      )}
 
       {/* ── Bottom row — próximas + funil ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -41,6 +41,8 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
     "geist": "^1.7.2",
     "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",
