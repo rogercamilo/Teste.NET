@@ -507,6 +507,26 @@ export default function FormandoDetailClient({
   const avaliacoesRealizadas = formandoEventos.filter((e) => e.tipo === "avaliacao-adesao");
   const ultimaAvaliacao = avaliacoesRealizadas[0];
 
+  // Parecer consolidado do quadro geral: racional da média das perspectivas.
+  // Em vez da última avaliação solta, pega a nota mais recente de cada perspectiva
+  // (humana/espiritual/comunitária) e consolida numa banda pela média ponderada da
+  // escala ordinal. Reflete o conjunto da caminhada, não só o último registro.
+  const NOTA_PESO: Record<NotaAdesao, number> = { insuficiente: 1, regular: 2, boa: 3, otima: 4 };
+  const ultimasPorPerspectiva = PERSPECTIVAS.map((persp) =>
+    formandoEventos.find((e) => e.tipo === "avaliacao-adesao" && e.perspectiva === persp && e.notaAdesao)
+  ).filter((e): e is NonNullable<typeof e> & { notaAdesao: NotaAdesao } => !!e?.notaAdesao);
+  const parecerConsolidado =
+    ultimasPorPerspectiva.length > 0
+      ? (() => {
+          const media =
+            ultimasPorPerspectiva.reduce((s, e) => s + NOTA_PESO[e.notaAdesao], 0) / ultimasPorPerspectiva.length;
+          const nota: NotaAdesao =
+            media >= 3.5 ? "otima" : media >= 2.5 ? "boa" : media >= 1.5 ? "regular" : "insuficiente";
+          const data = ultimasPorPerspectiva.map((e) => e.criadoEm).sort().at(-1)!;
+          return { nota, data, avaliadas: ultimasPorPerspectiva.length };
+        })()
+      : null;
+
   const presencaPorEtapa = (nivel: string) => {
     const regs = presencas.filter((h) => h.nivelFormativo === nivel);
     return { total: regs.length, presentes: regs.filter((h) => h.presente).length };
@@ -956,8 +976,8 @@ export default function FormandoDetailClient({
           {/* Métricas principais */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="text-center">
-              <p className="text-2xl font-bold text-foreground">{realizadosAtual}</p>
-              <p className="text-sm text-muted-foreground mt-0.5">de {totalAtual} encontros</p>
+              <p className="text-2xl font-bold text-foreground">{presencaAtual.presentes}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">de {presencaAtual.total} encontros</p>
             </div>
             <div className="text-center">
               <p
@@ -1040,6 +1060,23 @@ export default function FormandoDetailClient({
             <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Pronto para avançar para {NIVEL_FORMATIVO_LABELS[proximaEtapa]}
+            </div>
+          ) : parecerConsolidado ? (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <FileText className="h-3 w-3" />
+              Parecer consolidado:
+              <Badge
+                variant="outline"
+                className={cn("text-[10px] h-4 px-1.5", NOTA_ADESAO_CORES[parecerConsolidado.nota])}
+              >
+                {NOTA_ADESAO_LABELS[parecerConsolidado.nota]}
+              </Badge>
+              <span>
+                · média de {parecerConsolidado.avaliadas} de 3 perspectivas ·{" "}
+                {format(parseISO(parecerConsolidado.data), "d 'de' MMM 'de' yyyy", {
+                  locale: ptBR,
+                })}
+              </span>
             </div>
           ) : ultimaAvaliacao?.notaAdesao ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
