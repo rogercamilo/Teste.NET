@@ -5,6 +5,9 @@ import { logAction, logError, getClientIp } from "@/lib/audit-log";
 import { limiters } from "@/lib/rate-limit";
 import { CreateAcompanhamentoFormandoSchema, isValidId, parseJson } from "@/lib/schemas";
 import { parseDataLocal } from "@/lib/livro-registro";
+import { criarNotificacaoFormando } from "@/lib/notificacoes";
+import { sendPushToFormando } from "@/lib/push";
+import { formatDataBr } from "@/lib/utils";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 
 type Params = { params: Promise<{ id: string }> };
@@ -17,7 +20,7 @@ type Params = { params: Promise<{ id: string }> };
 async function autorizarFormando(user: SU, id: string) {
   const where: Record<string, unknown> = { id, organizacaoId: user.organizacaoId, deletedAt: null };
   if (user.role === "formador_comunitario") where.grupoFormacaoId = user.grupoFormacaoId ?? null;
-  return prisma.formando.findFirst({ where, select: { id: true } });
+  return prisma.formando.findFirst({ where, select: { id: true, nome: true, nivelFormativo: true } });
 }
 
 export async function GET(_request: Request, { params }: Params) {
@@ -93,13 +96,17 @@ export async function POST(request: Request, { params }: Params) {
         })
       : null;
 
+    // Nome do formador que marca — para rotular o evento na agenda.
+    const criador = await prisma.usuario.findUnique({ where: { id: user.id! }, select: { nome: true } });
+    const quando = parseDataLocal(data);
+
     const acompanhamento = await prisma.$transaction(async (tx) => {
       const criado = await tx.acompanhamentoFormando.create({
         data: {
           organizacaoId: user.organizacaoId!,
           formandoId: id,
           formadorId: user.id!,
-          data: parseDataLocal(data),
+          data: quando,
           nota: nota?.trim() || null,
           solicitadoPeloFormando: !!atendeSolicitacao,
         },
@@ -110,7 +117,43 @@ export async function POST(request: Request, { params }: Params) {
           data: { status: "agendada" },
         });
       }
+      // Espelha o encontro na AGENDA do formador que marcou (evento 1:1 privado,
+      // visível só ao criador e ao alvo — mesmo tipo do Acompanhamento Comunitário).
+      // A nota do formador é privada: NÃO vai para o evento nem para a notificação.
+      await tx.agendamento.create({
+        data: {
+          organizacaoId: user.organizacaoId!,
+          tipoEvento: "acompanhamento_comunitario",
+          formacaoId: null,
+          formacaoTema: `Acompanhamento • ${formando.nome}`,
+          nivelFormativo: formando.nivelFormativo,
+          tipoFormacao: "comunitaria",
+          formadorId: user.id!,
+          formadorNome: criador?.nome ?? "",
+          grupoFormacaoId: null,
+          acompanhadoFormandoId: id,
+          dataInicio: quando,
+          dataFim: quando,
+          status: "agendada",
+        },
+      });
       return criado;
+    });
+
+    // Notifica o formando pelo fluxo já implementado (web push + histórico in-app
+    // durável). Corpo neutro — não vaza a nota privada do encontro. Fire-and-forget.
+    const corpoAcomp = `Seu formador agendou um acompanhamento com você — ${formatDataBr(quando)}`;
+    sendPushToFormando(user.organizacaoId, id, {
+      titulo: "Novo acompanhamento agendado",
+      corpo: corpoAcomp,
+      url: "/portal",
+    }).catch(() => {});
+    void criarNotificacaoFormando({
+      organizacaoId: user.organizacaoId,
+      formandoId: id,
+      tipo: "encontro_agendado",
+      titulo: "Novo acompanhamento agendado",
+      corpo: corpoAcomp,
     });
 
     logAction("acompanhamento_formando_registrado", user.id, getClientIp(request), { formandoId: id, acompanhamentoId: acompanhamento.id }, user.organizacaoId);
