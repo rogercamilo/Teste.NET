@@ -21,10 +21,11 @@ import { Progress } from "@/components/ui/progress";
 import { buttonVariants } from "@/components/ui/button";
 import dynamic from "next/dynamic";
 import {
-  AlertTriangle, BookOpen, Calendar, CheckCircle2, Clock,
+  AlertTriangle, BookOpen, Calendar, CalendarClock, CheckCircle2, Clock,
   FileText, GitBranch, Home, Plus, TrendingUp,
   User, Users, XCircle, type LucideIcon,
 } from "lucide-react";
+import { cadenciaLabel } from "@/lib/acompanhamento-cadencia";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
@@ -651,6 +652,45 @@ export function DashboardClient({ stats: rawStats, perfil, grupoFormacaoId, grup
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground tabular-nums shrink-0">{m.pct}%</span>
+              </Link>
+            ))}
+          </JornadaListaCard>
+        )}
+
+        {/* Acompanhamento 1:1 pendente — dever comunitário na cadência do tenant */}
+        {stats.acompanhamentoCadencia && stats.acompanhamentoCadencia.pendentes > 0 && (
+          <JornadaListaCard
+            titulo={`Acompanhamento pendente · ${cadenciaLabel(stats.acompanhamentoCadencia.cadenciaMeses).toLowerCase()}`}
+            icon={CalendarClock}
+            tone="amber"
+            count={stats.acompanhamentoCadencia.pendentes}
+          >
+            {stats.acompanhamentoCadencia.formandos.map((m) => (
+              <Link
+                key={m.id}
+                href={`/formandos/${m.id}?tab=acompanhamento`}
+                className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors"
+              >
+                <span className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 bg-muted text-muted-foreground">
+                  {iniciais(m.nome)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{m.nome}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {m.status === "nunca"
+                      ? "Nunca acompanhado"
+                      : `Atrasado há ${m.diasAtraso} ${m.diasAtraso === 1 ? "dia" : "dias"}`}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full border shrink-0",
+                    "bg-red-50 text-red-700 border-red-200",
+                  )}
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  {m.status === "nunca" ? "Sem registro" : "Atrasado"}
+                </span>
               </Link>
             ))}
           </JornadaListaCard>

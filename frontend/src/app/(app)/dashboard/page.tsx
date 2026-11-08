@@ -10,6 +10,7 @@ import { getUserName } from "@/lib/current-user";
 import { aniversariantesNaJanela } from "@/lib/dashboard-semana";
 import { totalRequerido, REQUISITOS_ETAPAS } from "@/types";
 import { progressoNaEtapa, avaliarRiscoFormando } from "@/lib/jornada-progresso";
+import { avaliarCadenciaAcompanhamento, normalizarCadencia } from "@/lib/acompanhamento-cadencia";
 import { construirSankeyJornada } from "@/lib/jornada-sankey";
 import type { DashboardStats, NivelFormativo, NotaAdesao, PerfilUsuario, ProgressoEtapa } from "@/types";
 
@@ -141,7 +142,7 @@ async function getDashboardData(
   // ── FC: presença e acompanhamento ─────────────────────────────────────────
   if (perfil === PERFIL_FC && grupoFormacaoId) {
     const threeMonthsAgo = subMonths(now, 3);
-    const [formandosDaMorada, presencas90d, avaliacoesPerspectiva] = await Promise.all([
+    const [formandosDaMorada, presencas90d, avaliacoesPerspectiva, orgCadencia, ultimoAcompPorFormando] = await Promise.all([
       prisma.formando.findMany({
         where: { organizacaoId, grupoFormacaoId, ativo: true },
         select: {
@@ -172,6 +173,14 @@ async function getDashboardData(
         },
         select: { formandoId: true, perspectiva: true, notaAdesao: true, criadoEm: true },
         orderBy: { criadoEm: "desc" },
+      }),
+      // Cadência do dever de acompanhamento (tenant) + último acompanhamento 1:1 por
+      // formando da morada — base do sinal "em dia / atrasado" no painel do FC.
+      prisma.organizacao.findUnique({ where: { id: organizacaoId }, select: { cadenciaAcompanhamentoMeses: true } }),
+      prisma.acompanhamentoFormando.groupBy({
+        by: ["formandoId"],
+        where: { organizacaoId, formando: { grupoFormacaoId } },
+        _max: { data: true },
       }),
     ]);
 
@@ -267,6 +276,21 @@ async function getDashboardData(
       ? Math.round(somaPct / formandosDaMorada.length)
       : 0;
 
+    // ── Dever de acompanhamento 1:1 na cadência do tenant ──────────────────────
+    const cadenciaMeses = normalizarCadencia(orgCadencia?.cadenciaAcompanhamentoMeses);
+    const ultimoAcompMap = new Map(
+      ultimoAcompPorFormando.map((r) => [r.formandoId, r._max.data ?? null]),
+    );
+    const SEVERIDADE: Record<string, number> = { nunca: 0, atrasado: 1 };
+    const acompPendentes = formandosDaMorada
+      .map((f) => {
+        const cad = avaliarCadenciaAcompanhamento(cadenciaMeses, ultimoAcompMap.get(f.id) ?? null, now);
+        return { id: f.id, nome: f.nome, status: cad.status, diasAtraso: cad.diasAtraso, precisaAcao: cad.precisaAcao };
+      })
+      .filter((x) => x.precisaAcao)
+      .sort((a, b) => (SEVERIDADE[a.status] ?? 9) - (SEVERIDADE[b.status] ?? 9) || b.diasAtraso - a.diasAtraso)
+      .map(({ id, nome, status, diasAtraso }) => ({ id, nome, status, diasAtraso }));
+
     return {
       ...baseStats,
       taxaPresencaGrupoFormacao: totalS > 0 ? Math.round((totalP / totalS) * 100) : null,
@@ -274,6 +298,12 @@ async function getDashboardData(
       progressoMedioEtapa,
       formandosAtencao,
       formandosProntos,
+      acompanhamentoCadencia: {
+        cadenciaMeses,
+        total: formandosDaMorada.length,
+        pendentes: acompPendentes.length,
+        formandos: acompPendentes,
+      },
     };
   }
 

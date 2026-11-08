@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarClock, Plus, Bell, UserRound } from "lucide-react";
+import { CalendarClock, Plus, Bell, UserRound, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { useComunidade } from "@/lib/data-store";
+import { avaliarCadenciaAcompanhamento, cadenciaLabel, type StatusCadencia } from "@/lib/acompanhamento-cadencia";
 
 export interface AcompanhamentoFormandoItem {
   id: string;
@@ -50,6 +53,7 @@ export function AcompanhamentoSection({
   podeGerir: boolean;
 }) {
   const router = useRouter();
+  const [comunidade] = useComunidade();
   const [formOpen, setFormOpen] = useState(false);
   const [data, setData] = useState("");
   const [nota, setNota] = useState("");
@@ -86,6 +90,28 @@ export function AcompanhamentoSection({
     }
   }
 
+  // Dever comunitário: acompanhar este formando na cadência do tenant. O "último"
+  // é o acompanhamento mais recente registrado (data máxima), independente da ordem.
+  const cadenciaMeses = comunidade.cadenciaAcompanhamentoMeses ?? 1;
+  const ultimoMs = acompanhamentos.reduce((max, a) => Math.max(max, new Date(a.data).getTime()), 0);
+  const cadencia = avaliarCadenciaAcompanhamento(cadenciaMeses, ultimoMs > 0 ? new Date(ultimoMs) : null);
+  const ESTILO_CADENCIA: Record<StatusCadencia, { cls: string; Icon: typeof CheckCircle2 }> = {
+    em_dia: { cls: "border-emerald-200 bg-emerald-50 text-emerald-800", Icon: CheckCircle2 },
+    vence_em_breve: { cls: "border-amber-200 bg-amber-50 text-amber-800", Icon: Clock },
+    atrasado: { cls: "border-red-200 bg-red-50 text-red-800", Icon: AlertTriangle },
+    nunca: { cls: "border-red-200 bg-red-50 text-red-800", Icon: AlertTriangle },
+  };
+  const estiloCad = ESTILO_CADENCIA[cadencia.status];
+  const IconeCad = estiloCad.Icon;
+  const detalheCad =
+    cadencia.status === "em_dia"
+      ? "em dia"
+      : cadencia.status === "vence_em_breve" && cadencia.proximoEsperado
+      ? `vence até ${formatar(cadencia.proximoEsperado.toISOString())}`
+      : cadencia.status === "atrasado"
+      ? `atrasado há ${cadencia.diasAtraso} ${cadencia.diasAtraso === 1 ? "dia" : "dias"}`
+      : "ainda sem acompanhamento registrado";
+
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">
@@ -96,6 +122,16 @@ export function AcompanhamentoSection({
             <Plus className="h-4 w-4" /> Marcar acompanhamento
           </Button>
         )}
+      </div>
+
+      {/* Dever comunitário de acompanhar na cadência do tenant — cor + ícone + palavra. */}
+      <div className={cn("flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm", estiloCad.cls)}>
+        <IconeCad className="h-4 w-4 shrink-0" />
+        <span className="font-medium">
+          Dever comunitário: acompanhar {cadenciaLabel(cadenciaMeses).toLowerCase()}
+        </span>
+        <span aria-hidden className="opacity-60">·</span>
+        <span>{detalheCad}</span>
       </div>
 
       {/* Pedidos do formando (via portal) ainda não atendidos. */}

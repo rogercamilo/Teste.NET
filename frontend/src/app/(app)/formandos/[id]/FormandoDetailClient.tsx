@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   NIVEL_FORMATIVO_LABELS,
   NIVEL_CORES,
@@ -201,6 +201,12 @@ export default function FormandoDetailClient({
   solicitacoesAcompanhamento,
 }: Props) {
   const router = useRouter();
+  // Aba inicial por deep-link (?tab=…) — usado por atalhos como o card de
+  // acompanhamento pendente no painel do formador.
+  const searchParams = useSearchParams();
+  const ABAS_FICHA = ["visao-geral", "jornada", "perspectivas", "historico", "acompanhamento", "comentarios", "documentos", "dados", "registros"];
+  const tabParam = searchParams.get("tab");
+  const tabInicial = tabParam && ABAS_FICHA.includes(tabParam) ? tabParam : "visao-geral";
   const [, startTransition] = useTransition();
 
   const [registroOpen, setRegistroOpen] = useState(false);
@@ -1106,7 +1112,7 @@ export default function FormandoDetailClient({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="visao-geral">
+      <Tabs defaultValue={tabInicial}>
         <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/*
           Ordem das abas por narrativa progressiva de uso, do mais consultado ao

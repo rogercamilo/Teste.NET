@@ -514,6 +514,18 @@ export interface DashboardStats {
     };
   }[];
 
+  // FC — dever de acompanhamento 1:1 na cadência do tenant
+  acompanhamentoCadencia?: {
+    cadenciaMeses: number;
+    total: number;      // formandos ativos da morada
+    pendentes: number;  // precisam de ação (nunca acompanhados + atrasados)
+    formandos: {
+      id: string; nome: string;
+      status: "nunca" | "atrasado" | "vence_em_breve" | "em_dia";
+      diasAtraso: number;
+    }[]; // só os que precisam de ação, mais severos primeiro
+  };
+
   // FG/Admin — visão estratégica
   totalGruposFormacao?: number;
   totalPlanosAtivos?: number;
