@@ -33,6 +33,9 @@ export function cadenciaLabel(meses: number | null | undefined): string {
 
 export type StatusCadencia = "nunca" | "atrasado" | "vence_em_breve" | "em_dia";
 
+/** Mapa formandoId → status de acompanhamento, computado no servidor e passado às listas. */
+export type CadenciaStatusMap = Record<string, { status: StatusCadencia; diasAtraso: number }>;
+
 export const CADENCIA_STATUS_LABELS: Record<StatusCadencia, string> = {
   nunca: "Sem acompanhamento",
   atrasado: "Acompanhamento atrasado",

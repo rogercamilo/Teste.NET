@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { toFormando, toGrupoFormacao, toGrade } from "@/lib/converters";
+import { avaliarCadenciaAcompanhamento, normalizarCadencia } from "@/lib/acompanhamento-cadencia";
+import type { CadenciaStatusMap } from "@/lib/acompanhamento-cadencia";
 import FormandosClient from "./FormandosClient";
 
 const PAGE_SIZE = 12;
@@ -55,7 +57,7 @@ export default async function FormandosPage({
       : {}),
   };
 
-  const [formandosRaw, total, ativosCount, gruposFormacaoRaw, gradesRaw] = await Promise.all([
+  const [formandosRaw, total, ativosCount, gruposFormacaoRaw, gradesRaw, orgCadencia] = await Promise.all([
     prisma.formando.findMany({
       where,
       include: { progressoEtapas: true },
@@ -79,11 +81,34 @@ export default async function FormandosPage({
       include: { eixos: { include: { etapas: true } } },
       orderBy: { nome: "asc" },
     }),
+    prisma.organizacao.findUnique({
+      where: { id: user.organizacaoId },
+      select: { cadenciaAcompanhamentoMeses: true },
+    }),
   ]);
+
+  // Sinal "em dia / atrasado" do acompanhamento 1:1 para os formandos desta página
+  // (motor único). Só busca o último acompanhamento dos ids visíveis.
+  const cadenciaMeses = normalizarCadencia(orgCadencia?.cadenciaAcompanhamentoMeses);
+  const idsPagina = formandosRaw.map((f) => f.id);
+  const ultimosAcomp = idsPagina.length
+    ? await prisma.acompanhamentoFormando.groupBy({
+        by: ["formandoId"],
+        where: { organizacaoId: user.organizacaoId, formandoId: { in: idsPagina } },
+        _max: { data: true },
+      })
+    : [];
+  const ultimoMap = new Map(ultimosAcomp.map((r) => [r.formandoId, r._max.data ?? null]));
+  const cadenciaStatus: CadenciaStatusMap = {};
+  for (const id of idsPagina) {
+    const cad = avaliarCadenciaAcompanhamento(cadenciaMeses, ultimoMap.get(id) ?? null);
+    cadenciaStatus[id] = { status: cad.status, diasAtraso: cad.diasAtraso };
+  }
 
   return (
     <FormandosClient
       initialFormandos={formandosRaw.map(toFormando)}
+      cadenciaStatus={cadenciaStatus}
       initialGruposFormacao={gruposFormacaoRaw.map(toGrupoFormacao)}
       initialGrades={gradesRaw.map(toGrade)}
       role={user.role ?? "formador_comunitario"}

@@ -13,6 +13,8 @@ import {
 } from "@/lib/converters";
 import GrupoFormacaoDetail from "./GrupoFormacaoDetail";
 import { capituloCampos } from "@/lib/leituras-store";
+import { avaliarCadenciaAcompanhamento, normalizarCadencia } from "@/lib/acompanhamento-cadencia";
+import type { CadenciaStatusMap } from "@/lib/acompanhamento-cadencia";
 import type { PerfilUsuario, Usuario } from "@/types";
 
 export default async function GrupoFormacaoDetailPage({
@@ -122,7 +124,7 @@ export default async function GrupoFormacaoDetailPage({
   const formandoIds = formandos.map((f) => f.id);
   const agendamentoIds = agendamentos.map((a) => a.id);
 
-  const [presencas, comentarios] = await Promise.all([
+  const [presencas, comentarios, orgCadencia, ultimosAcomp] = await Promise.all([
     agendamentoIds.length > 0
       ? prisma.presencaFormacao.findMany({
           where: { agendamentoId: { in: agendamentoIds }, organizacaoId: orgId },
@@ -134,7 +136,24 @@ export default async function GrupoFormacaoDetailPage({
           orderBy: { criadoEm: "desc" },
         })
       : Promise.resolve([]),
+    prisma.organizacao.findUnique({ where: { id: orgId }, select: { cadenciaAcompanhamentoMeses: true } }),
+    formandoIds.length > 0
+      ? prisma.acompanhamentoFormando.groupBy({
+          by: ["formandoId"],
+          where: { formandoId: { in: formandoIds }, organizacaoId: orgId },
+          _max: { data: true },
+        })
+      : Promise.resolve([] as { formandoId: string; _max: { data: Date | null } }[]),
   ]);
+
+  // Sinal "em dia / atrasado" do dever de acompanhamento 1:1 (motor único).
+  const cadenciaMeses = normalizarCadencia(orgCadencia?.cadenciaAcompanhamentoMeses);
+  const ultimoAcompMap = new Map(ultimosAcomp.map((r) => [r.formandoId, r._max.data ?? null]));
+  const cadenciaStatus: CadenciaStatusMap = {};
+  for (const fid of formandoIds) {
+    const cad = avaliarCadenciaAcompanhamento(cadenciaMeses, ultimoAcompMap.get(fid) ?? null);
+    cadenciaStatus[fid] = { status: cad.status, diasAtraso: cad.diasAtraso };
+  }
 
   const initialUsuarios: Usuario[] = usuarios.map((u) => ({
     id: u.id,
@@ -154,6 +173,7 @@ export default async function GrupoFormacaoDetailPage({
       userId={user.id ?? ""}
       initialGrupoFormacao={toGrupoFormacao(grupo)}
       initialFormandos={formandos.map(toFormando)}
+      cadenciaStatus={cadenciaStatus}
       initialAgendamentos={agendamentos.map(toAgendamento)}
       initialPresencas={presencas.map(toPresenca)}
       initialComentarios={comentarios.map(toComentario)}

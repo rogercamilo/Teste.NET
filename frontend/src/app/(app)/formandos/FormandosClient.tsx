@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { CadenciaAcompanhamentoChip } from "@/components/acompanhamento/CadenciaAcompanhamentoChip";
+import type { CadenciaStatusMap } from "@/lib/acompanhamento-cadencia";
 import {
   useEtapaLabels,
   useTermos,
@@ -177,6 +179,8 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 
 interface FormandosClientProps {
   initialFormandos: Formando[];
+  /** Status do dever de acompanhamento 1:1 por formando (motor único, no servidor). */
+  cadenciaStatus?: CadenciaStatusMap;
   initialGruposFormacao: GrupoFormacao[];
   initialGrades: GradeFormativa[];
   role: string;
@@ -198,6 +202,7 @@ interface FormandosClientProps {
 
 export default function FormandosClient({
   initialFormandos,
+  cadenciaStatus,
   initialGruposFormacao,
   initialGrades,
   role,
@@ -570,6 +575,7 @@ export default function FormandosClient({
                 key={formando.id}
                 formando={formando}
                 semGrade={semGrade}
+                cadencia={cadenciaStatus?.[formando.id]}
                 onEdit={openEdit}
                 onDelete={openDelete}
                 onReenviarAcesso={reenviarAcesso}
@@ -635,6 +641,14 @@ export default function FormandosClient({
                             <p className="mt-0.5 text-[11px] text-muted-foreground/80">
                               Último acesso {ultimoAcessoRelativo(formando.ultimoAcessoEm)}
                             </p>
+                          )}
+                          {formando.ativo && cadenciaStatus?.[formando.id] && cadenciaStatus[formando.id].status !== "em_dia" && (
+                            <div className="mt-1">
+                              <CadenciaAcompanhamentoChip
+                                status={cadenciaStatus[formando.id].status}
+                                diasAtraso={cadenciaStatus[formando.id].diasAtraso}
+                              />
+                            </div>
                           )}
                         </div>
                       </Link>
@@ -935,6 +949,7 @@ export default function FormandosClient({
 function FormandoCard({
   formando,
   semGrade,
+  cadencia,
   onEdit,
   onDelete,
   onReenviarAcesso,
@@ -942,6 +957,7 @@ function FormandoCard({
 }: {
   formando: Formando;
   semGrade: boolean;
+  cadencia?: { status: import("@/lib/acompanhamento-cadencia").StatusCadencia; diasAtraso: number };
   onEdit: (f: Formando, e: React.MouseEvent) => void;
   onDelete: (f: Formando, e: React.MouseEvent) => void;
   onReenviarAcesso: (f: Formando, e: React.MouseEvent) => void;
@@ -1047,6 +1063,9 @@ function FormandoCard({
             ) : (
               perfilIncompleto(formando) && <CadastroPendenteBadge />
             ))}
+          {formando.ativo && cadencia && cadencia.status !== "em_dia" && (
+            <CadenciaAcompanhamentoChip status={cadencia.status} diasAtraso={cadencia.diasAtraso} />
+          )}
         </div>
 
         <div className="space-y-1.5">

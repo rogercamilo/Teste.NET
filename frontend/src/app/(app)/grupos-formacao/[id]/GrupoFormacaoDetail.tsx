@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
+import { CadenciaAcompanhamentoChip } from "@/components/acompanhamento/CadenciaAcompanhamentoChip";
+import type { CadenciaStatusMap } from "@/lib/acompanhamento-cadencia";
 import { useComunidade, useEtapaLabels } from "@/lib/data-store";
 import {
   NIVEL_CORES,
@@ -126,6 +128,7 @@ interface GrupoFormacaoDetailProps {
   userId: string;
   initialGrupoFormacao: GrupoFormacao;
   initialFormandos: Formando[];
+  cadenciaStatus?: CadenciaStatusMap;
   initialAgendamentos: Agendamento[];
   initialPresencas: PresencaFormacao[];
   initialComentarios: ComentarioFormando[];
@@ -207,6 +210,7 @@ export default function GrupoFormacaoDetail({
   userId,
   initialGrupoFormacao,
   initialFormandos,
+  cadenciaStatus,
   initialAgendamentos,
   initialPresencas,
   initialComentarios,
@@ -1446,9 +1450,17 @@ export default function GrupoFormacaoDetail({
                           </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className={`text-xs mb-3 ${NIVEL_CORES[formando.nivelFormativo]}`}>
-                        {etapaLabels[formando.nivelFormativo]}
-                      </Badge>
+                      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                        <Badge variant="outline" className={`text-xs ${NIVEL_CORES[formando.nivelFormativo]}`}>
+                          {etapaLabels[formando.nivelFormativo]}
+                        </Badge>
+                        {formando.ativo && cadenciaStatus?.[formando.id] && cadenciaStatus[formando.id].status !== "em_dia" && (
+                          <CadenciaAcompanhamentoChip
+                            status={cadenciaStatus[formando.id].status}
+                            diasAtraso={cadenciaStatus[formando.id].diasAtraso}
+                          />
+                        )}
+                      </div>
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">Progresso</span>
@@ -1497,6 +1509,14 @@ export default function GrupoFormacaoDetail({
                           {" · Desde "}
                           {format(parseISO(formando.dataIngresso), "MMM yyyy", { locale: ptBR })}
                         </p>
+                        {formando.ativo && cadenciaStatus?.[formando.id] && cadenciaStatus[formando.id].status !== "em_dia" && (
+                          <div className="mt-1">
+                            <CadenciaAcompanhamentoChip
+                              status={cadenciaStatus[formando.id].status}
+                              diasAtraso={cadenciaStatus[formando.id].diasAtraso}
+                            />
+                          </div>
+                        )}
                       </div>
                       <Badge variant="outline" className={`hidden sm:inline-flex text-xs shrink-0 ${NIVEL_CORES[formando.nivelFormativo]}`}>
                         {etapaLabels[formando.nivelFormativo]}
