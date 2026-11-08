@@ -72,6 +72,7 @@ import {
   Info,
   KeyRound,
   Mail,
+  CalendarClock,
   MoreHorizontal,
   Palette,
   Pencil,
@@ -2297,6 +2298,42 @@ function ComunidadeTab() {
               </span>
             </span>
           </label>
+        </CardContent>
+      </Card>
+
+      {/* Acompanhamento — cadência do dever comunitário */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            Cadência de acompanhamento
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Com que frequência cada formando deve receber um acompanhamento individual do formador
+            comunitário. Define o sinal de “em dia / atrasado” na ficha, na lista de formandos e no painel do
+            formador. É a regra desta comunidade.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-6">
+          <div className="grid gap-1.5 sm:max-w-xs">
+            <Label className="text-sm">Acompanhar cada formando</Label>
+            <Select
+              value={String(form.cadenciaAcompanhamentoMeses ?? 1)}
+              onValueChange={(v) => {
+                setForm((prev) => ({ ...prev, cadenciaAcompanhamentoMeses: Number(v) }));
+                setDirty(true);
+              }}
+            >
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Mensalmente</SelectItem>
+                <SelectItem value="2">A cada 2 meses (bimestral)</SelectItem>
+                <SelectItem value="3">A cada 3 meses (trimestral)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 

@@ -1310,6 +1310,8 @@ export interface ComunidadeConfig {
   vocacionalDuracaoPadraoMeses?: number;
   /** Opt-out do FG: envia e-mails de agenda (criação + lembretes) aos formandos. Push/bell não afetados. */
   emailAgendamentoAtivo?: boolean;
+  /** Cadência do dever de acompanhar cada formando (1:1), em meses: 1/2/3 = Mensal/Bimestral/Trimestral. */
+  cadenciaAcompanhamentoMeses?: number;
   /** @ do Instagram da comunidade (sem "@") — usado na evangelização da Travessia. */
   instagramHandle?: string;
   /** URL do canal/perfil no YouTube da comunidade. */
