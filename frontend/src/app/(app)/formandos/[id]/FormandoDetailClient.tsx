@@ -507,23 +507,30 @@ export default function FormandoDetailClient({
   const avaliacoesRealizadas = formandoEventos.filter((e) => e.tipo === "avaliacao-adesao");
   const ultimaAvaliacao = avaliacoesRealizadas[0];
 
-  // Parecer consolidado do quadro geral: racional da média das perspectivas.
-  // Em vez da última avaliação solta, pega a nota mais recente de cada perspectiva
-  // (humana/espiritual/comunitária) e consolida numa banda pela média ponderada da
-  // escala ordinal. Reflete o conjunto da caminhada, não só o último registro.
+  // Parecer consolidado do quadro geral: racional da média GERAL das perspectivas.
+  // Dois níveis de média (não pondera perspectiva mais avaliada): (1) média de
+  // TODAS as notas lançadas em cada perspectiva (humana/espiritual/comunitária);
+  // (2) média dessas médias por perspectiva → banda da escala ordinal. Reflete o
+  // conjunto da caminhada, não só o último registro de cada perspectiva.
   const NOTA_PESO: Record<NotaAdesao, number> = { insuficiente: 1, regular: 2, boa: 3, otima: 4 };
-  const ultimasPorPerspectiva = PERSPECTIVAS.map((persp) =>
-    formandoEventos.find((e) => e.tipo === "avaliacao-adesao" && e.perspectiva === persp && e.notaAdesao)
-  ).filter((e): e is NonNullable<typeof e> & { notaAdesao: NotaAdesao } => !!e?.notaAdesao);
+  const mediasPorPerspectiva = PERSPECTIVAS.map((persp) => {
+    const notas = formandoEventos
+      .filter((e) => e.tipo === "avaliacao-adesao" && e.perspectiva === persp && e.notaAdesao)
+      .map((e) => NOTA_PESO[e.notaAdesao!]);
+    return notas.length > 0 ? notas.reduce((s, n) => s + n, 0) / notas.length : null;
+  }).filter((m): m is number => m !== null);
   const parecerConsolidado =
-    ultimasPorPerspectiva.length > 0
+    mediasPorPerspectiva.length > 0
       ? (() => {
-          const media =
-            ultimasPorPerspectiva.reduce((s, e) => s + NOTA_PESO[e.notaAdesao], 0) / ultimasPorPerspectiva.length;
+          const media = mediasPorPerspectiva.reduce((s, m) => s + m, 0) / mediasPorPerspectiva.length;
           const nota: NotaAdesao =
             media >= 3.5 ? "otima" : media >= 2.5 ? "boa" : media >= 1.5 ? "regular" : "insuficiente";
-          const data = ultimasPorPerspectiva.map((e) => e.criadoEm).sort().at(-1)!;
-          return { nota, data, avaliadas: ultimasPorPerspectiva.length };
+          const data = formandoEventos
+            .filter((e) => e.tipo === "avaliacao-adesao" && e.perspectiva && e.notaAdesao)
+            .map((e) => e.criadoEm)
+            .sort()
+            .at(-1)!;
+          return { nota, data, avaliadas: mediasPorPerspectiva.length };
         })()
       : null;
 
@@ -974,26 +981,9 @@ export default function FormandoDetailClient({
           </div>
 
           {/* Métricas principais */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-foreground">{presencaAtual.presentes}</p>
-              <p className="text-sm text-muted-foreground mt-0.5">de {presencaAtual.total} encontros</p>
-            </div>
-            <div className="text-center">
-              <p
-                className={cn(
-                  "text-2xl font-bold",
-                  progressoPct >= 100
-                    ? "text-emerald-600"
-                    : progressoPct >= 60
-                    ? "text-primary"
-                    : "text-amber-600"
-                )}
-              >
-                {progressoPct}%
-              </p>
-              <p className="text-sm text-muted-foreground mt-0.5">progresso</p>
-            </div>
+          <div className="grid grid-cols-3 gap-3">
+            {/* Presença unificada: frequência (%) como sinal de saúde + os encontros
+                em números absolutos numa só leitura — visão útil a qualquer perfil. */}
             <div className="text-center">
               {taxaPresencaAtual !== null ? (
                 <>
@@ -1009,14 +999,31 @@ export default function FormandoDetailClient({
                   >
                     {taxaPresencaAtual}%
                   </p>
-                  <p className="text-sm text-muted-foreground mt-0.5">frequência</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    presença · {presencaAtual.presentes} de {presencaAtual.total} encontros
+                  </p>
                 </>
               ) : (
                 <>
                   <p className="text-2xl font-bold text-muted-foreground/40">—</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">frequência</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">sem presença registrada</p>
                 </>
               )}
+            </div>
+            <div className="text-center">
+              <p
+                className={cn(
+                  "text-2xl font-bold",
+                  progressoPct >= 100
+                    ? "text-emerald-600"
+                    : progressoPct >= 60
+                    ? "text-primary"
+                    : "text-amber-600"
+                )}
+              >
+                {progressoPct}%
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">progresso</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-foreground">{avaliacoesRealizadas.length}</p>
