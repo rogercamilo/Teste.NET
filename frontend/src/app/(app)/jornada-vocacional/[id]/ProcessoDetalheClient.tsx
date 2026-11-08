@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useComunidade } from "@/lib/data-store";
 import {
   Dialog,
   DialogContent,
@@ -625,6 +626,8 @@ interface FormularioProps {
 function FormularioAdmissao({ dados, formando, onChange, disabled, tipo }: FormularioProps) {
   const isAdmissao = tipo === "inicio_vocacional" || tipo === "admissao_etapa";
   const isRenovacao = tipo === "renovacao_promessas";
+  const [comunidade] = useComunidade();
+  const ministerios = comunidade.ministerios ?? [];
 
   function val(key: string, fallback = ""): string {
     const v = dados[key];
@@ -725,6 +728,178 @@ function FormularioAdmissao({ dados, formando, onChange, disabled, tipo }: Formu
               className="resize-none text-sm"
             />
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Nota de rodapé comum: o que entra no termo imutável vs. no histórico do processo.
+  const notaTermo = (
+    <p className="col-span-full text-xs text-muted-foreground">
+      A data e os dados principais entram no termo do Livro de Registro na conclusão. As
+      observações ficam no histórico do processo (não no corpo imutável do termo).
+    </p>
+  );
+
+  if (tipo === "ministerio") {
+    const temCatalogo = ministerios.length > 0;
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base">Ingresso / Mudança de Ministério</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Data de ingresso no ministério" type="date" value={val("data_evento")} onChange={(v) => onChange("data_evento", v)} disabled={disabled} />
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Ministério (serviço de destino)</Label>
+            {temCatalogo ? (
+              <Select value={val("ministerio") || undefined} onValueChange={(v) => onChange("ministerio", v)} disabled={disabled}>
+                <SelectTrigger className="text-sm"><SelectValue placeholder="Selecione o ministério" /></SelectTrigger>
+                <SelectContent>
+                  {ministerios.map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input value={val("ministerio")} onChange={(e) => onChange("ministerio", e.target.value)} disabled={disabled} className="text-sm" placeholder="Digite o ministério" />
+            )}
+          </div>
+          <div className="col-span-full">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">
+              Ministério de origem — preencha só numa MUDANÇA (de onde o membro saiu); gera o registro “de A → para B”
+            </Label>
+            {temCatalogo ? (
+              <Select
+                value={val("ministerio_origem") || "__nenhum__"}
+                onValueChange={(v) => onChange("ministerio_origem", v === "__nenhum__" ? "" : v)}
+                disabled={disabled}
+              >
+                <SelectTrigger className="text-sm sm:max-w-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__nenhum__">— Nenhum (ingresso / primeiro ministério) —</SelectItem>
+                  {ministerios.map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input value={val("ministerio_origem")} onChange={(e) => onChange("ministerio_origem", e.target.value)} disabled={disabled} className="text-sm" placeholder="Deixe vazio para ingresso / primeiro ministério" />
+            )}
+          </div>
+          {!temCatalogo && (
+            <p className="col-span-full text-xs text-amber-700">
+              Nenhum ministério cadastrado ainda. Peça ao Formador Geral para cadastrar a lista em
+              Configurações → “Ministérios da comunidade”.
+            </p>
+          )}
+          <Field label="Responsável pelo discernimento" value={val("responsavel_discernimento")} onChange={(v) => onChange("responsavel_discernimento", v)} disabled={disabled} />
+          <div className="col-span-full">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Observações sobre o discernimento</Label>
+            <Textarea rows={3} value={val("observacoes_discernimento")} onChange={(e) => onChange("observacoes_discernimento", e.target.value)} disabled={disabled} className="resize-none text-sm" />
+          </div>
+          {notaTermo}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (tipo === "missao") {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base">Envio em Missão</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Data do envio" type="date" value={val("data_evento")} onChange={(v) => onChange("data_evento", v)} disabled={disabled} />
+          <Field label="Destino da missão" value={val("destino")} onChange={(v) => onChange("destino", v)} disabled={disabled} />
+          <Field label="Prazo previsto (meses)" type="number" value={val("prazoMeses")} onChange={(v) => onChange("prazoMeses", v === "" ? undefined : Number(v))} disabled={disabled} />
+          <div className="col-span-full">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
+            <Textarea rows={3} value={val("observacoes")} onChange={(e) => onChange("observacoes", e.target.value)} disabled={disabled} className="resize-none text-sm" />
+          </div>
+          {notaTermo}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (tipo === "transferencia") {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base">Transferência de Núcleo</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Data da transferência" type="date" value={val("data_evento")} onChange={(v) => onChange("data_evento", v)} disabled={disabled} />
+          <Field label="Núcleo / comunidade de destino" value={val("destino")} onChange={(v) => onChange("destino", v)} disabled={disabled} />
+          <div className="col-span-full">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
+            <Textarea rows={3} value={val("observacoes")} onChange={(e) => onChange("observacoes", e.target.value)} disabled={disabled} className="resize-none text-sm" />
+          </div>
+          {notaTermo}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (tipo === "licenca") {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base">Licença da Vida Comunitária</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Data de início da licença" type="date" value={val("data_evento")} onChange={(v) => onChange("data_evento", v)} disabled={disabled} />
+          <Field label="Prazo (meses)" type="number" value={val("prazoMeses")} onChange={(v) => onChange("prazoMeses", v === "" ? undefined : Number(v))} disabled={disabled} />
+          <div className="col-span-full">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Motivo</Label>
+            <Textarea rows={2} value={val("motivo")} onChange={(e) => onChange("motivo", e.target.value)} disabled={disabled} className="resize-none text-sm" />
+          </div>
+          <div className="col-span-full">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
+            <Textarea rows={3} value={val("observacoes")} onChange={(e) => onChange("observacoes", e.target.value)} disabled={disabled} className="resize-none text-sm" />
+          </div>
+          {notaTermo}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (tipo === "desligamento") {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base">Desligamento</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Data do desligamento" type="date" value={val("data_evento")} onChange={(v) => onChange("data_evento", v)} disabled={disabled} />
+          <div className="col-span-full">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Motivo</Label>
+            <Textarea rows={2} value={val("motivo")} onChange={(e) => onChange("motivo", e.target.value)} disabled={disabled} className="resize-none text-sm" />
+          </div>
+          <div className="col-span-full">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
+            <Textarea rows={3} value={val("observacoes")} onChange={(e) => onChange("observacoes", e.target.value)} disabled={disabled} className="resize-none text-sm" />
+          </div>
+          {notaTermo}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (tipo === "falecimento") {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base">Falecimento</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Data do falecimento" type="date" value={val("data_evento")} onChange={(v) => onChange("data_evento", v)} disabled={disabled} />
+          <Field label="Local do falecimento" value={val("local_falecimento")} onChange={(v) => onChange("local_falecimento", v)} disabled={disabled} />
+          <div className="col-span-full">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
+            <Textarea rows={3} value={val("observacoes")} onChange={(e) => onChange("observacoes", e.target.value)} disabled={disabled} className="resize-none text-sm" />
+          </div>
+          {notaTermo}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (tipo === "promessas_iniciais" || tipo === "promessas_definitivas") {
+    return (
+      <Card>
+        <CardContent className="py-10 flex flex-col items-center gap-2 text-center text-muted-foreground">
+          <FileText className="h-8 w-8 opacity-30" />
+          <p className="text-sm max-w-md">
+            Os dados da celebração (celebrante, local, fórmula e vigência) são preenchidos na etapa de{" "}
+            <strong>Conclusão</strong> do processo, quando o assento é lavrado no Livro de Promessas.
+          </p>
         </CardContent>
       </Card>
     );

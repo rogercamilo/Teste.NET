@@ -214,7 +214,14 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       const ehDevolucao = transicaoValida.para === "em_andamento" && processo.status === "em_revisao";
 
       // Trava: só envia para revisão com todos os documentos canônicos gerados.
-      if (transicaoValida.exigeDocumentosGerados && !documentosProntosParaRevisao(processo.documentos)) {
+      // Tipos que NÃO geram documentos (ex.: Ministério) têm 0 documentos criados
+      // ao iniciar — nesses casos não há nada a gerar, então a trava não se aplica
+      // (do contrário o processo ficaria preso em "Em andamento" para sempre).
+      if (
+        transicaoValida.exigeDocumentosGerados &&
+        processo.documentos.length > 0 &&
+        !documentosProntosParaRevisao(processo.documentos)
+      ) {
         return NextResponse.json(
           { error: "Gere todos os documentos do processo antes de enviar para revisão." },
           { status: 422 }
@@ -305,6 +312,9 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
         const dados = (processo.dadosFormulario as Record<string, unknown>) ?? {};
         const str = (k: string) => (typeof dados[k] === "string" ? (dados[k] as string) : undefined);
         const num = (k: string) => (typeof dados[k] === "number" ? (dados[k] as number) : undefined);
+        // Data do evento canônico: usa a data informada no formulário (ex.: data de
+        // ingresso no ministério) quando houver; senão, a data de conclusão.
+        const dataEventoTermo = str("data_evento") ? parseDataLocal(str("data_evento")!) : new Date();
 
         // Processos de promessa lavram, na mesma conclusão, o assento no Livro de
         // Promessas (rito separado). O termo do Livro Geral apenas o referencia.
@@ -386,14 +396,14 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
                 organizacaoId,
                 tipo: mapeamento.tipoTermo,
                 formandoId: processo.formandoId,
-                dataEvento: new Date(),
+                dataEvento: dataEventoTermo,
                 condicaoResultante: mapeamento.condicaoResultante,
                 processoId: processo.id,
                 registroPromessaId,
                 criadoPorId: user.id,
                 contexto: {
                   formandoNome: processo.formando.nome,
-                  dataEvento: new Date(),
+                  dataEvento: dataEventoTermo,
                   etapaNome,
                   processoCodigo: processo.id.slice(-6).toUpperCase(),
                   promessaRef,
@@ -401,9 +411,11 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
                   vigenciaFim: dadosPromessa?.dataVigenciaFim
                     ?? (str("dataFimVigencia") ? parseDataLocal(str("dataFimVigencia")!) : undefined),
                   ministerioNome: str("ministerio") ?? str("cargoFuncao"),
+                  ministerioOrigem: str("ministerio_origem"),
                   destino: str("destino") ?? str("nucleoDestino"),
                   motivo: str("motivo"),
                   prazoMeses: num("prazoMeses"),
+                  localFalecimento: str("local_falecimento"),
                 },
               });
             }

@@ -186,6 +186,8 @@ export interface ContextoFormula {
   numeroRenovacao?: number;
   vigenciaFim?: Date | null;
   ministerioNome?: string;
+  /** Ministério de origem numa MUDANÇA (DE→PARA). Ausente = ingresso/primeiro ministério. */
+  ministerioOrigem?: string;
   destino?: string;
   motivo?: string;
   prazoMeses?: number;
@@ -230,7 +232,9 @@ export function montarCorpoTermo(tipo: TipoTermoRegistro, ctx: ContextoFormula):
       return `${data}, emitiu ${nome} suas Promessas Definitivas, de caráter perpétuo (sem termo de vigência).${promessa}${fraseCondicao(ctx.condicaoResultante)}`;
 
     case "ministerio":
-      return `${data}, recebeu ${nome} o ministério de ${ctx.ministerioNome ?? "—"}, conforme carta de designação do governo da comunidade.`;
+      return ctx.ministerioOrigem
+        ? `${data}, passou ${nome} do ministério de ${ctx.ministerioOrigem} ao ministério de ${ctx.ministerioNome ?? "—"}, conforme carta de designação do governo da comunidade.`
+        : `${data}, recebeu ${nome} o ministério de ${ctx.ministerioNome ?? "—"}, conforme carta de designação do governo da comunidade.`;
 
     case "missao":
       return `${data}, foi ${nome} enviado(a) em missão${ctx.destino ? ` a ${ctx.destino}` : ""}, conforme Carta de Missão expedida pelo Moderador Geral${ctx.prazoMeses ? `, com prazo previsto de ${ctx.prazoMeses} meses` : ""}.`;
