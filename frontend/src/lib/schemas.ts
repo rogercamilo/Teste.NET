@@ -371,6 +371,7 @@ export const UpdateOrganizacaoSchema = z.object({
   vocacionalDuracaoPadraoMeses: z.number().int().min(1).max(24).optional(),
   emailAgendamentoAtivo: z.boolean().optional(),
   cadenciaAcompanhamentoMeses: z.number().int().min(1).max(3).optional(),
+  ministerios: z.array(z.string().trim().min(1).max(60)).max(50).optional(),
   // Redes sociais da comunidade (evangelização da Travessia). O handle chega com
   // ou sem "@"; a rota normaliza tirando o "@" e espaços. YouTube deve ser URL.
   instagramHandle: z

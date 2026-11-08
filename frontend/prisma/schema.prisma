@@ -235,6 +235,10 @@ model Organizacao {
   // 1=Mensal, 2=Bimestral, 3=Trimestral. Regra própria de cada tenant, definida
   // pelo Formador Geral; alimenta o sinal "em dia / atrasado" por formando.
   cadenciaAcompanhamentoMeses   Int               @default(1)
+  // Catálogo de ministérios/serviços comunitários do tenant (NÃO canônicos — ex.:
+  // Música, Intercessão, Pastoreio, Formação, Aconselhamento). Definido pelo FG/Admin;
+  // alimenta os selects do processo de Ministério (ingresso/mudança de serviço).
+  ministerios                   String[]          @default([])
   planoAssinatura               PlanoAssinatura   @default(GRATUITO)
   status                        StatusOrganizacao @default(TRIAL)
   stripeCustomerId              String?

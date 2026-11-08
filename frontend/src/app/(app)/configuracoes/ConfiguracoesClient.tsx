@@ -73,6 +73,7 @@ import {
   KeyRound,
   Mail,
   CalendarClock,
+  HeartHandshake,
   MoreHorizontal,
   Palette,
   Pencil,
@@ -1804,6 +1805,25 @@ function ComunidadeTab() {
   const [logo, setLogo] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [themeKey, setThemeKey] = useState<string>("azul");
+  const [novoMinisterio, setNovoMinisterio] = useState("");
+
+  function addMinisterio() {
+    const nome = novoMinisterio.trim();
+    if (!nome) return;
+    const atuais = form.ministerios ?? [];
+    if (atuais.some((m) => m.toLowerCase() === nome.toLowerCase())) {
+      setNovoMinisterio("");
+      return;
+    }
+    setForm((prev) => ({ ...prev, ministerios: [...(prev.ministerios ?? []), nome] }));
+    setNovoMinisterio("");
+    setDirty(true);
+  }
+
+  function removeMinisterio(nome: string) {
+    setForm((prev) => ({ ...prev, ministerios: (prev.ministerios ?? []).filter((m) => m !== nome) }));
+    setDirty(true);
+  }
 
   // Sync logo and theme from DB once the API responds
   useEffect(() => {
@@ -2334,6 +2354,63 @@ function ComunidadeTab() {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Ministérios / serviços comunitários (catálogo do tenant) */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <HeartHandshake className="h-4 w-4 text-muted-foreground" />
+            Ministérios da comunidade
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Serviços comunitários da sua comunidade (ex.: Música, Intercessão, Pastoreio, Formação,
+            Aconselhamento). Alimentam o processo de Ministério — quando um membro ingressa ou muda de
+            serviço, você escolhe da lista. Não são ministérios canônicos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-6 space-y-3">
+          <div className="flex gap-2 sm:max-w-md">
+            <Input
+              value={novoMinisterio}
+              onChange={(e) => setNovoMinisterio(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addMinisterio();
+                }
+              }}
+              placeholder="Nome do ministério (ex.: Intercessão)"
+              className="h-9 text-sm"
+              maxLength={60}
+            />
+            <Button type="button" size="sm" variant="outline" onClick={addMinisterio} disabled={!novoMinisterio.trim()}>
+              Adicionar
+            </Button>
+          </div>
+          {(form.ministerios ?? []).length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhum ministério cadastrado ainda.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {(form.ministerios ?? []).map((m) => (
+                <span
+                  key={m}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs"
+                >
+                  {m}
+                  <button
+                    type="button"
+                    onClick={() => removeMinisterio(m)}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    aria-label={`Remover ${m}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

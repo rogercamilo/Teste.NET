@@ -1324,6 +1324,8 @@ export interface ComunidadeConfig {
   emailAgendamentoAtivo?: boolean;
   /** Cadência do dever de acompanhar cada formando (1:1), em meses: 1/2/3 = Mensal/Bimestral/Trimestral. */
   cadenciaAcompanhamentoMeses?: number;
+  /** Catálogo de ministérios/serviços comunitários do tenant (não canônicos). */
+  ministerios?: string[];
   /** @ do Instagram da comunidade (sem "@") — usado na evangelização da Travessia. */
   instagramHandle?: string;
   /** URL do canal/perfil no YouTube da comunidade. */
