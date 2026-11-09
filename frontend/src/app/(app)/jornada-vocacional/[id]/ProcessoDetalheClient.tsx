@@ -47,6 +47,7 @@ import {
 import {
   getTransicoesDisponiveis,
   podeEditarFormulario,
+  getDocumentosTipos,
   TIPO_DOCUMENTO_LABELS,
   getTipoLabel,
   responsavelDaVez,
@@ -142,6 +143,12 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   const transicoes = getTransicoesDisponiveis(processo.status, userRole);
   const StatusIcon = STATUS_ICONS[processo.status] ?? AlertCircle;
 
+  // Alguns tipos de processo (ex.: Ministério, Falecimento) não geram documentos
+  // canônicos — a etapa de preparação é só o formulário. Sem tratar isto, a lista
+  // vazia prende o processo em "Em andamento": o botão de revisão fica travado e o
+  // "Criar lista de documentos" não cria nada. Espelha a regra do servidor.
+  const tipoSemDocumentos = getDocumentosTipos(processo.tipo).length === 0;
+
   // Trava de documentos e estado da revisão.
   const docsPendentes = documentosPendentesDeGeracao(processo.documentos);
   const docsProntos = documentosProntosParaRevisao(processo.documentos);
@@ -149,6 +156,11 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   const acoesForward = transicoes.filter((t) => t.para !== "cancelado");
   // "É a sua vez": posso preencher (fase de preparação) ou tenho uma ação de avanço.
   const minhaVez = canEdit || acoesForward.length > 0;
+  // Ação exibida no painel: para tipos sem documentos, não peça "gerar documentos".
+  const responsavelAcao =
+    processo.status === "em_andamento" && tipoSemDocumentos
+      ? "preencher o formulário e enviar para revisão"
+      : resp?.acao ?? null;
 
   // Aba inicial: na revisão/aprovação o foco é conferir os documentos.
   const [tab, setTab] = useState<string>(
@@ -158,7 +170,7 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   // Recuperação: processo em andamento sem lista de documentos (ex.: dado de
   // importação/seed que nasceu fora do fluxo "iniciar"). Quem prepara materializa.
   const podeCriarDocumentos =
-    canEdit && processo.status === "em_andamento" && processo.documentos.length === 0;
+    canEdit && processo.status === "em_andamento" && processo.documentos.length === 0 && !tipoSemDocumentos;
 
   async function handleCriarDocumentos() {
     setCriandoDocs(true);
@@ -316,7 +328,8 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
           <div className="flex gap-2 shrink-0">
             {transicoes.map((t) => {
               // Trava: enviar para revisão só com todos os documentos gerados.
-              const travadoPorDocs = !!t.exigeDocumentosGerados && !docsProntos;
+              // Tipos sem documentos (ex.: Ministério) não têm o que gerar — passam.
+              const travadoPorDocs = !!t.exigeDocumentosGerados && !tipoSemDocumentos && !docsProntos;
               return (
                 <Button
                   key={t.para + t.label}
@@ -348,7 +361,8 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
         nome={f.nome}
         minhaVez={minhaVez}
         responsavelLabel={resp?.papelLabel ?? null}
-        responsavelAcao={resp?.acao ?? null}
+        responsavelAcao={responsavelAcao}
+        tipoSemDocumentos={tipoSemDocumentos}
         docsPendentes={docsPendentes.map((d) => TIPO_DOCUMENTO_LABELS[d.tipo])}
         totalDocs={processo.documentos.length}
         motivoDevolucao={processo.motivoDevolucao ?? null}
@@ -420,6 +434,11 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
                   <p className="text-sm max-w-sm">
                     A lista de documentos é criada automaticamente quando você
                     inicia o processo. Use <strong>&ldquo;Iniciar processo&rdquo;</strong> no topo desta tela.
+                  </p>
+                ) : tipoSemDocumentos ? (
+                  <p className="text-sm max-w-sm">
+                    Este tipo de processo não gera documentos. Basta preencher o formulário e
+                    usar <strong>&ldquo;Enviar para revisão&rdquo;</strong> no topo.
                   </p>
                 ) : podeCriarDocumentos ? (
                   <>
@@ -1016,12 +1035,18 @@ const FLUXO_ETAPAS: { status: StatusProcessoEclesiastico; titulo: string }[] = [
   { status: "concluido",    titulo: "Concluído" },
 ];
 
-function proximoPassoTexto(status: StatusProcessoEclesiastico, termoFormando: string): string {
+function proximoPassoTexto(
+  status: StatusProcessoEclesiastico,
+  termoFormando: string,
+  tipoSemDocumentos: boolean
+): string {
   switch (status) {
     case "rascunho":
       return "Use “Iniciar processo” no topo para criar automaticamente a lista de documentos canônicos desta etapa e começar o preenchimento.";
     case "em_andamento":
-      return "Preencha o formulário e gere todos os documentos na aba Documentos. Só então o botão “Enviar para revisão” é liberado — passando a responsabilidade ao Formador Geral.";
+      return tipoSemDocumentos
+        ? "Preencha o formulário e use “Enviar para revisão” no topo — passando a responsabilidade ao Formador Geral. Este tipo de processo não gera documentos."
+        : "Preencha o formulário e gere todos os documentos na aba Documentos. Só então o botão “Enviar para revisão” é liberado — passando a responsabilidade ao Formador Geral.";
     case "em_revisao":
       return "A responsabilidade agora é do Formador Geral: ele confere os documentos e valida — aprova, ou devolve para ajustes com um motivo. O formulário fica travado durante a revisão.";
     case "aprovado":
@@ -1063,7 +1088,7 @@ function mensagemTransicao(
 
 function ProcessoGuia({
   status, tipoLabel, termoFormando, nome,
-  minhaVez, responsavelLabel, responsavelAcao,
+  minhaVez, responsavelLabel, responsavelAcao, tipoSemDocumentos,
   docsPendentes, totalDocs, motivoDevolucao,
   podeCriarDocumentos, criandoDocumentos, onCriarDocumentos,
 }: {
@@ -1074,6 +1099,7 @@ function ProcessoGuia({
   minhaVez: boolean;
   responsavelLabel: string | null;
   responsavelAcao: string | null;
+  tipoSemDocumentos: boolean;
   docsPendentes: string[];
   totalDocs: number;
   motivoDevolucao: string | null;
@@ -1091,9 +1117,16 @@ function ProcessoGuia({
           <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
           <p className="text-sm text-muted-foreground leading-relaxed">
             Este é o rito canônico de <span className="font-medium text-foreground">{tipoLabel}</span> de{" "}
-            <span className="font-medium text-foreground">{nome}</span>. O objetivo é <span className="font-medium text-foreground">produzir e validar os documentos oficiais</span> da etapa:
-            a preparação reúne os dados (aba <span className="font-medium text-foreground">Formulário</span>) e gera os documentos (aba{" "}
-            <span className="font-medium text-foreground">Documentos</span>); o <span className="font-medium text-foreground">Formador Geral</span> revisa e valida;
+            <span className="font-medium text-foreground">{nome}</span>. O objetivo é{" "}
+            <span className="font-medium text-foreground">
+              {tipoSemDocumentos ? "registrar e oficializar a etapa" : "produzir e validar os documentos oficiais"}
+            </span> da etapa:{" "}
+            {tipoSemDocumentos ? (
+              <>a preparação reúne os dados (aba <span className="font-medium text-foreground">Formulário</span>)</>
+            ) : (
+              <>a preparação reúne os dados (aba <span className="font-medium text-foreground">Formulário</span>) e gera os documentos (aba{" "}
+              <span className="font-medium text-foreground">Documentos</span>)</>
+            )}; o <span className="font-medium text-foreground">Formador Geral</span> revisa e valida;
             a conclusão oficializa e registra no Livro.
           </p>
         </div>
@@ -1128,8 +1161,9 @@ function ProcessoGuia({
           </div>
         )}
 
-        {/* Pendência de documentos para liberar o envio à revisão */}
-        {status === "em_andamento" && (
+        {/* Pendência de documentos para liberar o envio à revisão.
+            Tipos sem documentos não têm esta etapa — não mostre a lista vazia. */}
+        {status === "em_andamento" && !tipoSemDocumentos && (
           totalDocs === 0 ? (
             <div className="flex flex-col gap-2.5 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span className="flex items-start gap-2">
@@ -1195,7 +1229,7 @@ function ProcessoGuia({
           <span className="text-[11px] font-semibold uppercase tracking-wide text-primary shrink-0 mt-0.5">
             Próximo passo
           </span>
-          <p className="text-sm text-foreground/90 leading-relaxed">{proximoPassoTexto(status, termoFormando)}</p>
+          <p className="text-sm text-foreground/90 leading-relaxed">{proximoPassoTexto(status, termoFormando, tipoSemDocumentos)}</p>
         </div>
       </CardContent>
     </Card>

@@ -214,12 +214,14 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
       const ehDevolucao = transicaoValida.para === "em_andamento" && processo.status === "em_revisao";
 
       // Trava: só envia para revisão com todos os documentos canônicos gerados.
-      // Tipos que NÃO geram documentos (ex.: Ministério) têm 0 documentos criados
-      // ao iniciar — nesses casos não há nada a gerar, então a trava não se aplica
-      // (do contrário o processo ficaria preso em "Em andamento" para sempre).
+      // Tipos que NÃO geram documentos (ex.: Ministério, Falecimento) têm lista
+      // vazia por natureza — a trava não se aplica (do contrário o processo ficaria
+      // preso em "Em andamento" para sempre). Já tipos COM documentos ficam travados
+      // mesmo que a lista ainda não tenha sido materializada (0 docs ⇒ não prontos).
+      const tipoGeraDocumentos = getDocumentosTipos(processo.tipo).length > 0;
       if (
         transicaoValida.exigeDocumentosGerados &&
-        processo.documentos.length > 0 &&
+        tipoGeraDocumentos &&
         !documentosProntosParaRevisao(processo.documentos)
       ) {
         return NextResponse.json(
