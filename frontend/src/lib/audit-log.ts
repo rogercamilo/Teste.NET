@@ -182,7 +182,8 @@ export type AuditAction =
   | "acesso_antecipado_exportados"
   | "depoimento_criado"
   | "depoimento_atualizado"
-  | "depoimento_excluido";
+  | "depoimento_excluido"
+  | "solicitacao_licenca_encaminhada";
 
 export interface AuditEntry {
   timestamp: string;

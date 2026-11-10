@@ -61,6 +61,10 @@ import {
   type SolicitacaoAcompanhamentoItem,
 } from "./AcompanhamentoSection";
 import {
+  SolicitacoesLicencaSection,
+  type SolicitacaoLicencaItem,
+} from "./SolicitacoesLicencaSection";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -167,6 +171,7 @@ interface Props {
   cartasEtapa: CartaEtapa[];
   acompanhamentos: AcompanhamentoFormandoItem[];
   solicitacoesAcompanhamento: SolicitacaoAcompanhamentoItem[];
+  solicitacoesLicenca: SolicitacaoLicencaItem[];
 }
 
 export interface CartaEtapa {
@@ -199,6 +204,7 @@ export default function FormandoDetailClient({
   cartasEtapa,
   acompanhamentos,
   solicitacoesAcompanhamento,
+  solicitacoesLicenca,
 }: Props) {
   const router = useRouter();
   // Aba inicial por deep-link (?tab=…) — usado por atalhos como o card de
@@ -2351,6 +2357,13 @@ export default function FormandoDetailClient({
               </p>
             </div>
           </div>
+          <SolicitacoesLicencaSection
+            formandoId={id}
+            nivelFormativo={formando.nivelFormativo}
+            termoFormando={termoFormando}
+            solicitacoes={solicitacoesLicenca}
+            podeIniciarProcesso={mostraDocumentos}
+          />
           <AcompanhamentoSection
             formandoId={id}
             termoFormando={termoFormando}

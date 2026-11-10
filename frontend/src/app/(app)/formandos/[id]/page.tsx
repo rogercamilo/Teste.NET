@@ -52,6 +52,7 @@ export default async function FormandoDetailPage({
     cartasRows,
     acompanhamentosRows,
     solicitacoesAcompRows,
+    solicitacoesLicencaRows,
   ] = await Promise.all([
     hasCanonicalAccess(org?.tipoOrganizacao)
       ? prisma.processoEclesiastico.findMany({
@@ -101,6 +102,10 @@ export default async function FormandoDetailPage({
       include: { formador: { select: { nome: true } } },
     }),
     prisma.solicitacaoAcompanhamentoFormando.findMany({
+      where: { formandoId: id, organizacaoId: user.organizacaoId, status: "pendente" },
+      orderBy: { solicitadoEm: "desc" },
+    }),
+    prisma.solicitacaoLicencaFormando.findMany({
       where: { formandoId: id, organizacaoId: user.organizacaoId, status: "pendente" },
       orderBy: { solicitadoEm: "desc" },
     }),
@@ -175,6 +180,11 @@ export default async function FormandoDetailPage({
         id: s.id,
         solicitadoEm: s.solicitadoEm.toISOString(),
         mensagem: s.mensagem,
+      }))}
+      solicitacoesLicenca={solicitacoesLicencaRows.map((s) => ({
+        id: s.id,
+        solicitadoEm: s.solicitadoEm.toISOString(),
+        motivo: s.motivo,
       }))}
       processosEclesiasticos={processosEclesiasticosRows.map((p) => ({
         id: p.id,

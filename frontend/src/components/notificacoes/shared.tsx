@@ -26,6 +26,7 @@ import {
   CalendarClock,
   Clock,
   Megaphone,
+  PlaneTakeoff,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -51,7 +52,8 @@ export type TipoNotificacao =
   | "aviso_comunidade"
   | "encontro_agendado"
   | "encontro_atualizado"
-  | "encontro_lembrete";
+  | "encontro_lembrete"
+  | "licenca_solicitada";
 
 export interface Notificacao {
   id: string;
@@ -91,6 +93,7 @@ const TIPO_CONFIG: Record<TipoNotificacao, TipoConfig> = {
   encontro_agendado:        { Icon: CalendarPlus,  label: "Novo encontro",       className: "bg-violet-100 text-violet-700"   },
   encontro_atualizado:      { Icon: CalendarClock, label: "Encontro atualizado", className: "bg-amber-100 text-amber-700"      },
   encontro_lembrete:        { Icon: Clock,         label: "Lembrete de encontro",className: "bg-blue-100 text-blue-700"        },
+  licenca_solicitada:       { Icon: PlaneTakeoff,  label: "Pedido de licença",   className: "bg-amber-100 text-amber-700"      },
 };
 
 const FALLBACK_CONFIG: TipoConfig = { Icon: Bell, label: "Aviso", className: "bg-muted text-muted-foreground" };

@@ -170,6 +170,16 @@ enum StatusSolicitacaoAcompanhamento {
   recusada
 }
 
+// Pedido de LICENÇA (afastamento temporário) feito pelo formando no portal. É só
+// a MANIFESTAÇÃO DE VONTADE (requerimento) — o ato formal e o registro cabem à
+// autoridade (cân. 308; licença de associação regida pelos estatutos). Daí os
+// estados: pendente → atendida (autoridade abriu o processo) | recusada.
+enum StatusSolicitacaoLicenca {
+  pendente
+  atendida
+  recusada
+}
+
 enum TipoNotificacao {
   nova_formacao
   novo_formando
@@ -191,6 +201,8 @@ enum TipoNotificacao {
   encontro_agendado
   encontro_atualizado
   encontro_lembrete
+  // Pedido do formando pelo portal que exige ação da autoridade:
+  licenca_solicitada
 }
 
 // ==========================================================
@@ -284,6 +296,7 @@ model Organizacao {
   acoesLeitura              AcaoLeitura[]
   acompanhamentosFormando   AcompanhamentoFormando[]
   solicitacoesAcompanhamentoFormando SolicitacaoAcompanhamentoFormando[]
+  solicitacoesLicencaFormando SolicitacaoLicencaFormando[]
   retiroMateriaisLiberacoes RetiroMaterialLiberacao[]
   integracaoFidellis        IntegracaoFidellis?
 
@@ -502,6 +515,7 @@ model Formando {
   acompanhamentos         AcompanhamentoFormando[]
   acompanhamentosComoAlvo Agendamento[]              @relation("AgendamentoAcompanhadoFormando")
   solicitacoesAcompanhamento SolicitacaoAcompanhamentoFormando[]
+  solicitacoesLicenca     SolicitacaoLicencaFormando[]
   notificacoes            Notificacao[]
   consentimentoDizimo     ConsentimentoDizimo?
 
@@ -1569,6 +1583,27 @@ model SolicitacaoAcompanhamentoFormando {
   solicitadoEm  DateTime                        @default(now())
   mensagem      String?
   status        StatusSolicitacaoAcompanhamento @default(pendente)
+
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
+  formando    Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)
+
+  @@index([organizacaoId])
+  @@index([formandoId])
+  @@index([status])
+}
+
+// Pedido de LICENÇA (afastamento temporário da vida comunitária) feito pelo
+// formando no Portal. PONTE canônica: é o requerimento (manifestação de vontade),
+// nunca o ato. Quem decide e lavra o termo no Livro é a autoridade — aqui só
+// registramos o pedido e notificamos o responsável, que então abre o
+// ProcessoEclesiastico (tipo=licenca) na aplicação. Ver cân. 308 + estatutos.
+model SolicitacaoLicencaFormando {
+  id            String                   @id @default(cuid())
+  organizacaoId String
+  formandoId    String
+  solicitadoEm  DateTime                 @default(now())
+  motivo        String?
+  status        StatusSolicitacaoLicenca @default(pendente)
 
   organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)
   formando    Formando    @relation(fields: [formandoId], references: [id], onDelete: Cascade)

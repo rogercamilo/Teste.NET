@@ -29,6 +29,7 @@ import {
   FileText,
   Sparkles,
   HandCoins,
+  ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -261,6 +262,13 @@ export default function DashboardClient({
                 <span className="hidden sm:inline">Contribuir</span>
               </Link>
             )}
+            <Link
+              href="/portal/solicitacoes"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">Solicitações</span>
+            </Link>
             <Link
               href="/portal/perfil"
               className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
