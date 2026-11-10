@@ -1139,7 +1139,7 @@ function ProcessoGuia({
             Este é o rito canônico de <span className="font-medium text-foreground">{tipoLabel}</span> de{" "}
             <span className="font-medium text-foreground">{nome}</span>. O objetivo é{" "}
             <span className="font-medium text-foreground">
-              {tipoSemDocumentos ? "registrar e oficializar a etapa" : "produzir e validar os documentos oficiais"}
+              {tipoSemDocumentos ? "registrar e oficializar o ato" : "produzir e validar os documentos oficiais"}
             </span> da etapa:{" "}
             {tipoSemDocumentos ? (
               <>a preparação reúne os dados (aba <span className="font-medium text-foreground">Formulário</span>)</>
