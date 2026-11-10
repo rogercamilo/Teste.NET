@@ -17,7 +17,7 @@ export default async function ProcessoDetalhePage({
 
   if (!user?.organizacaoId) redirect("/login");
 
-  const [processo, org] = await Promise.all([
+  const [processo, org, tomoAberto] = await Promise.all([
     prisma.processoEclesiastico.findFirst({
       where: { id, organizacaoId: user.organizacaoId },
       include: {
@@ -55,6 +55,12 @@ export default async function ProcessoDetalhePage({
         termoFormacaoPermanente: true,
         termoPromessa: true,
       },
+    }),
+    // A conclusão lavra um termo no Livro de Registro, que exige um Tomo aberto.
+    // Carregamos o estado aqui para avisar o usuário ANTES da conclusão.
+    prisma.livroRegistroTomo.findFirst({
+      where: { organizacaoId: user.organizacaoId, status: "aberto" },
+      select: { id: true },
     }),
   ]);
 
@@ -145,6 +151,7 @@ export default async function ProcessoDetalhePage({
       }}
       promessaTipo={tipoPromessa}
       promessaFormulaDefault={promessaFormulaDefault}
+      livroTemTomoAberto={!!tomoAberto}
       userRole={user.role ?? "formador_comunitario"}
       termos={{
         etapa1: org?.termoPreDiscipulado ?? "Pré-Discipulado",

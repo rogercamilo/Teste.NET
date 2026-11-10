@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2, Download, Eye, Info, Undo2, UserCheck, Hourglass } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, XCircle, AlertCircle, Clock, Loader2, Download, Eye, Info, Undo2, UserCheck, Hourglass, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,7 @@ import {
   documentosProntosParaRevisao,
   type TermosProcesso,
 } from "@/lib/jornada-vocacional";
+import { mapProcessoParaTermo } from "@/lib/livro-registro";
 import { DocumentoViewer } from "@/components/documentos/DocumentoViewer";
 import { useTermos } from "@/lib/data-store";
 
@@ -91,6 +92,8 @@ interface Props {
   promessaTipo?: TipoRegistroPromessa | null;
   /** Fórmula de consagração default (pré-preenche o textarea da lavratura). */
   promessaFormulaDefault?: string | null;
+  /** Há um Tomo aberto no Livro de Registro? A conclusão lavra um termo e exige um. */
+  livroTemTomoAberto: boolean;
 }
 
 const STATUS_DOC_COLORS: Record<StatusDocumentoEclesiastico, string> = {
@@ -119,7 +122,7 @@ const STATUS_ICONS: Partial<Record<StatusProcessoEclesiastico, React.ElementType
   cancelado:   XCircle,
 };
 
-export default function ProcessoDetalheClient({ processo: initial, userRole, termos, promessaTipo, promessaFormulaDefault }: Props) {
+export default function ProcessoDetalheClient({ processo: initial, userRole, termos, promessaTipo, promessaFormulaDefault, livroTemTomoAberto }: Props) {
   const router = useRouter();
   const { formando: termoFormando } = useTermos();
   const [processo, setProcesso] = useState<ProcessoCompleto>(initial);
@@ -148,6 +151,13 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
   // vazia prende o processo em "Em andamento": o botão de revisão fica travado e o
   // "Criar lista de documentos" não cria nada. Espelha a regra do servidor.
   const tipoSemDocumentos = getDocumentosTipos(processo.tipo).length === 0;
+
+  // Pré-requisito do Livro: a conclusão lavra um termo no Livro de Registro, que
+  // exige um Tomo aberto. Abrir um Tomo é um ato cartorial reservado ao Administrador.
+  // Avisamos ANTES da conclusão (em vez de falhar no último clique).
+  const exigeLivroAberto = mapProcessoParaTermo(processo.tipo, processo.nivelFormativo) !== null;
+  const podeAbrirTomo = userRole === "administrador";
+  const bloqueioLivro = exigeLivroAberto && !livroTemTomoAberto;
 
   // Trava de documentos e estado da revisão.
   const docsPendentes = documentosPendentesDeGeracao(processo.documentos);
@@ -330,16 +340,21 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
               // Trava: enviar para revisão só com todos os documentos gerados.
               // Tipos sem documentos (ex.: Ministério) não têm o que gerar — passam.
               const travadoPorDocs = !!t.exigeDocumentosGerados && !tipoSemDocumentos && !docsProntos;
+              // Trava: concluir só com um Tomo aberto no Livro (a conclusão lavra o termo).
+              const travadoPorLivro = t.para === "concluido" && bloqueioLivro;
+              const travado = travadoPorDocs || travadoPorLivro;
               return (
                 <Button
                   key={t.para + t.label}
                   size="sm"
                   variant={t.variante === "destrutiva" ? "destructive" : "default"}
-                  disabled={isPending || isSaving || travadoPorDocs}
+                  disabled={isPending || isSaving || travado}
                   title={
                     travadoPorDocs
                       ? "Gere todos os documentos do processo antes de enviar para revisão."
-                      : undefined
+                      : travadoPorLivro
+                        ? "Abra um Tomo no Livro de Registro antes de concluir."
+                        : undefined
                   }
                   onClick={() => onTransicaoClick(t)}
                 >
@@ -363,6 +378,8 @@ export default function ProcessoDetalheClient({ processo: initial, userRole, ter
         responsavelLabel={resp?.papelLabel ?? null}
         responsavelAcao={responsavelAcao}
         tipoSemDocumentos={tipoSemDocumentos}
+        avisoLivroSemTomo={bloqueioLivro && (processo.status === "aprovado" || processo.status === "em_revisao")}
+        podeAbrirTomo={podeAbrirTomo}
         docsPendentes={docsPendentes.map((d) => TIPO_DOCUMENTO_LABELS[d.tipo])}
         totalDocs={processo.documentos.length}
         motivoDevolucao={processo.motivoDevolucao ?? null}
@@ -1089,6 +1106,7 @@ function mensagemTransicao(
 function ProcessoGuia({
   status, tipoLabel, termoFormando, nome,
   minhaVez, responsavelLabel, responsavelAcao, tipoSemDocumentos,
+  avisoLivroSemTomo, podeAbrirTomo,
   docsPendentes, totalDocs, motivoDevolucao,
   podeCriarDocumentos, criandoDocumentos, onCriarDocumentos,
 }: {
@@ -1100,6 +1118,8 @@ function ProcessoGuia({
   responsavelLabel: string | null;
   responsavelAcao: string | null;
   tipoSemDocumentos: boolean;
+  avisoLivroSemTomo: boolean;
+  podeAbrirTomo: boolean;
   docsPendentes: string[];
   totalDocs: number;
   motivoDevolucao: string | null;
@@ -1149,6 +1169,32 @@ function ProcessoGuia({
               </p>
             </div>
           )
+        )}
+
+        {/* Pré-requisito do Livro: sem Tomo aberto não dá para concluir (lavrar o termo).
+            Avisado aqui, com ação clara, em vez de falhar no último clique. */}
+        {avisoLivroSemTomo && (
+          <div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-start gap-2 text-sm text-amber-900 dark:text-amber-200">
+              <BookOpen className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                <span className="font-semibold">O Livro de Registro não tem um Tomo aberto.</span>{" "}
+                A conclusão lavra o termo oficial no Livro, e isso exige um Tomo aberto.
+                {podeAbrirTomo
+                  ? " Abra o Tomo I para poder concluir."
+                  : " Peça ao Administrador para abrir o Tomo I no Livro de Registro."}
+              </span>
+            </span>
+            {podeAbrirTomo && (
+              <Link
+                href="/livro-registro"
+                className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors sm:self-auto"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Abrir o Livro de Registro
+              </Link>
+            )}
+          </div>
         )}
 
         {/* Devolução para ajustes: motivo retornado ao preparador */}
