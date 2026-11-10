@@ -121,7 +121,7 @@ export default function DashboardClient({
   contribuirHabilitado?: boolean;
 }) {
   const router = useRouter();
-  const { formando, presenca, proximosEncontros, progresso, vocacional, acompanhamentoFormativo, retirosMateriais } = data;
+  const { formando, presenca, proximosEncontros, progresso, vocacional, retirosMateriais } = data;
   const [loggingOut, setLoggingOut] = useState(false);
   // Nudge de completude do cadastro (Fase 3): some sozinho quando a pessoa
   // preenche os dados; dispensável por sessão para não incomodar quem já sabe.
@@ -130,12 +130,6 @@ export default function DashboardClient({
   const [solicitando, setSolicitando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [solicitado, setSolicitado] = useState(vocacional?.solicitacaoPendente ?? false);
-  // Acompanhamento formativo (Portal do Formando): estado do pedido do formando.
-  const [solicitandoFormativo, setSolicitandoFormativo] = useState(false);
-  const [cancelandoFormativo, setCancelandoFormativo] = useState(false);
-  const [solicitadoFormativo, setSolicitadoFormativo] = useState(
-    acompanhamentoFormativo?.solicitacaoPendente ?? false
-  );
 
   // Opt-in do Mural: estado ELEVADO aqui porque o controle vive junto da Missão
   // (na Travessia, embaixo) e o display vive no Mural (topo) — os dois reagem
@@ -184,32 +178,6 @@ export default function DashboardClient({
       // silencioso — o pedido continua exibido como enviado
     } finally {
       setCancelando(false);
-    }
-  }
-
-  async function solicitarAcompanhamentoFormativo() {
-    setSolicitandoFormativo(true);
-    try {
-      const res = await fetch("/api/portal/acompanhamento/solicitar", { method: "POST" });
-      if (!res.ok) throw new Error();
-      setSolicitadoFormativo(true);
-    } catch {
-      // silencioso — botão volta a ficar disponível
-    } finally {
-      setSolicitandoFormativo(false);
-    }
-  }
-
-  async function cancelarAcompanhamentoFormativo() {
-    setCancelandoFormativo(true);
-    try {
-      const res = await fetch("/api/portal/acompanhamento/solicitar", { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      setSolicitadoFormativo(false);
-    } catch {
-      // silencioso — o pedido continua exibido como enviado
-    } finally {
-      setCancelandoFormativo(false);
     }
   }
 
@@ -445,51 +413,8 @@ export default function DashboardClient({
             </Card>
           )}
 
-          {/* Minha jornada formativa — EXCLUSIVO do Portal do Formando (mesma
-              posição do card vocacional; some para vocacionados). Acompanhamento
-              marcado pelo formador + pedido do próprio formando. */}
-          {acompanhamentoFormativo && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" />
-                  Formação Comunitária
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-3">
-                <p className="text-sm text-muted-foreground">
-                  Você está em formação. Agende de forma fácil seu momento de formação comunitária.
-                </p>
-                {acompanhamentoFormativo.proximaData && (
-                  <p className="inline-flex items-center gap-1.5 text-sm text-foreground">
-                    <CalendarDays className="h-4 w-4 text-primary" />
-                    Acompanhamento marcado para {fmtData.format(new Date(acompanhamentoFormativo.proximaData))}
-                  </p>
-                )}
-                <div className="mt-auto">
-                  {solicitadoFormativo ? (
-                    <div className="space-y-1.5">
-                      <p className="inline-flex items-center gap-1.5 text-sm text-primary">
-                        <CheckCircle2 className="h-4 w-4" /> Solicitação de acompanhamento enviada.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={cancelarAcompanhamentoFormativo}
-                        disabled={cancelandoFormativo}
-                        className="text-xs text-muted-foreground hover:text-foreground hover:underline disabled:opacity-60"
-                      >
-                        {cancelandoFormativo ? "Desmarcando…" : "Desmarcar solicitação"}
-                      </button>
-                    </div>
-                  ) : (
-                    <Button size="sm" variant="outline" className="w-full" onClick={solicitarAcompanhamentoFormativo} disabled={solicitandoFormativo}>
-                      {solicitandoFormativo ? "Enviando…" : "Solicitar acompanhamento"}
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* O pedido de acompanhamento comunitário foi movido para a aba
+              "Solicitações" (header → Solicitações), junto do pedido de licença. */}
 
           {/* A etapa do formando virou herói de largura total abaixo (EtapaCard),
               espelhando a Travessia do vocacionado — fora da faixa compacta. */}

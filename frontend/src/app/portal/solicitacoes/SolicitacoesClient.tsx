@@ -196,9 +196,9 @@ export default function SolicitacoesClient({
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Licença é um <span className="font-medium text-foreground">afastamento temporário</span>{" "}
-              da vida comunitária por um período. Conte o motivo; o responsável conversará com você e,
-              havendo discernimento, abrirá o processo de licença.
+              A licença é um <span className="font-medium text-foreground">afastamento temporário</span>{" "}
+              da vida comunitária. Descreva abaixo o motivo do seu pedido: o responsável conversará com
+              você e, após o devido discernimento, poderá abrir o processo de licença.
             </p>
 
             {licencaPendente ? (

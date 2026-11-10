@@ -1118,6 +1118,16 @@ export default function FormandoDetailClient({
         </CardContent>
       </Card>
 
+      {/* Pedidos de licença pendentes — prioridade: sempre visíveis no topo da
+          ficha (fora das abas), para o responsável não precisar caçar na aba. */}
+      <SolicitacoesLicencaSection
+        formandoId={id}
+        nivelFormativo={formando.nivelFormativo}
+        termoFormando={termoFormando}
+        solicitacoes={solicitacoesLicenca}
+        podeIniciarProcesso={mostraDocumentos}
+      />
+
       <Tabs defaultValue={tabInicial}>
         <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/*
@@ -2357,13 +2367,6 @@ export default function FormandoDetailClient({
               </p>
             </div>
           </div>
-          <SolicitacoesLicencaSection
-            formandoId={id}
-            nivelFormativo={formando.nivelFormativo}
-            termoFormando={termoFormando}
-            solicitacoes={solicitacoesLicenca}
-            podeIniciarProcesso={mostraDocumentos}
-          />
           <AcompanhamentoSection
             formandoId={id}
             termoFormando={termoFormando}
