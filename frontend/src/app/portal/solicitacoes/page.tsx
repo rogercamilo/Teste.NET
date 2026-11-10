@@ -25,7 +25,7 @@ export default async function PortalSolicitacoesPage() {
     }),
     prisma.solicitacaoLicencaFormando.findFirst({
       where: { formandoId: session.formandoId, organizacaoId: session.organizacaoId, status: "pendente" },
-      select: { id: true, motivo: true, solicitadoEm: true },
+      select: { id: true, motivo: true, solicitadoEm: true, arquivoId: true },
     }),
   ]);
 
@@ -39,7 +39,7 @@ export default async function PortalSolicitacoesPage() {
       acompanhamentoPendente={!!acompanhamento}
       licenca={
         licenca
-          ? { motivo: licenca.motivo, solicitadoEm: licenca.solicitadoEm.toISOString() }
+          ? { motivo: licenca.motivo, solicitadoEm: licenca.solicitadoEm.toISOString(), temArquivo: !!licenca.arquivoId }
           : null
       }
     />

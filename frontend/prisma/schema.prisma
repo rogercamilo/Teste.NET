@@ -1603,6 +1603,9 @@ model SolicitacaoLicencaFormando {
   formandoId    String
   solicitadoEm  DateTime                 @default(now())
   motivo        String?
+  // Documento (opcional) que formaliza o pedido — referência fraca a Arquivo
+  // (PDF/imagem no R2). O formando anexa no portal; o responsável baixa na ficha.
+  arquivoId     String?
   status        StatusSolicitacaoLicenca @default(pendente)
 
   organizacao Organizacao @relation(fields: [organizacaoId], references: [id], onDelete: Cascade)

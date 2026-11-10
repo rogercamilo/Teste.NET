@@ -345,8 +345,10 @@ export default function DashboardClient({
           </div>
         )}
 
-        {/* Faixa de status (cards compactos lado a lado, mesma altura no desktop) */}
-        <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Faixa de status (cards compactos lado a lado, mesma altura no desktop).
+            Formando: 2 cards (presença + notificações) dividem a tela em 50/50;
+            vocacionado ganha um 3º card (jornada vocacional) → 3 colunas no desktop. */}
+        <div className={`grid items-stretch gap-4 sm:grid-cols-2${vocacional ? " lg:grid-cols-3" : ""}`}>
           {/* Presença */}
           <Card>
             <CardHeader>

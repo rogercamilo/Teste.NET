@@ -1,8 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { limiters } from "@/lib/rate-limit";
-import { logError } from "@/lib/audit-log";
+import { logError, logAction, getClientIp } from "@/lib/audit-log";
 import { criarNotificacao, formadorDoGrupo, revisoresDaOrg } from "@/lib/notificacoes";
+import { uploadFile } from "@/lib/storage";
+import { scanUpload } from "@/lib/av-scan";
+import { assinaturaConfere } from "@/lib/file-signature";
+import { canUpload } from "@/lib/plan-limits";
+
+const MAX_BYTES = 15 * 1024 * 1024; // 15 MB (espelha o fluxo das cartas)
+const EXT_BY_MIME: Record<string, string> = {
+  "application/pdf": ".pdf",
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/heic": ".heic",
+};
 
 /**
  * Pedido de LICENÇA (afastamento temporário) pelo FORMANDO no Portal.
@@ -31,8 +44,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json().catch(() => ({}))) as { motivo?: unknown };
-    const motivo = typeof body.motivo === "string" ? body.motivo.slice(0, 2000).trim() : "";
+    const form = await request.formData();
+    const motivoRaw = form.get("motivo");
+    const motivo = typeof motivoRaw === "string" ? motivoRaw.slice(0, 2000).trim() : "";
     if (motivo.length < 10) {
       return NextResponse.json(
         { error: "Descreva brevemente o motivo do pedido de licença (ao menos 10 caracteres)." },
@@ -53,8 +67,48 @@ export async function POST(request: Request) {
     });
     if (pendente) return NextResponse.json({ ok: true, jaPendente: true });
 
+    // Documento opcional que formaliza o pedido (PDF/imagem). Mesmo pipeline das
+    // cartas: valida extensão/tamanho + assinatura real + varredura de malware
+    // antes de persistir no R2 e criar o Arquivo (uploader = o próprio formando).
+    let arquivoId: string | null = null;
+    const anexo = form.get("arquivo");
+    if (anexo instanceof File && anexo.size > 0) {
+      const ext = EXT_BY_MIME[anexo.type];
+      if (!ext) return NextResponse.json({ error: "Formato não suportado (use PDF ou imagem)." }, { status: 400 });
+      if (anexo.size > MAX_BYTES) return NextResponse.json({ error: "Arquivo muito grande (máx. 15 MB)." }, { status: 400 });
+
+      const uploadCheck = await canUpload(organizacaoId, anexo.size);
+      if (!uploadCheck.allowed) return NextResponse.json({ error: uploadCheck.reason }, { status: 403 });
+
+      const buffer = Buffer.from(await anexo.arrayBuffer());
+      if (!assinaturaConfere(buffer, anexo.type)) {
+        return NextResponse.json({ error: "Conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 400 });
+      }
+      const scan = await scanUpload(buffer, anexo.type);
+      if (!scan.clean) {
+        logAction("upload_rejected_malware", formandoId, getClientIp(request), { formandoId, motivo: scan.reason }, organizacaoId);
+        return NextResponse.json({ error: "Arquivo rejeitado por suspeita de conteúdo malicioso." }, { status: 400 });
+      }
+      const storageKey = await uploadFile(organizacaoId, "licenca-solicitacoes", buffer, ext, anexo.type);
+      const arq = await prisma.arquivo.create({
+        data: {
+          organizacaoId,
+          nome: `Pedido de licença — ${formando.nome}${ext}`,
+          tamanho: buffer.length,
+          tipo: anexo.type,
+          extensao: ext,
+          storageKey,
+          uploadedByNome: formando.nome,
+          formandoId: formando.id,
+          formandoNome: formando.nome,
+          tipoEvento: "licenca_solicitacao",
+        },
+      });
+      arquivoId = arq.id;
+    }
+
     await prisma.solicitacaoLicencaFormando.create({
-      data: { formandoId, organizacaoId, motivo, status: "pendente" },
+      data: { formandoId, organizacaoId, motivo, arquivoId, status: "pendente" },
     });
 
     // Ponte: o requerimento chega à autoridade. Notifica o formador da morada e os

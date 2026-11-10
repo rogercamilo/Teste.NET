@@ -122,6 +122,18 @@ export default async function FormandoDetailPage({
     gradeTotal = grade?.totalFormacoes ?? null;
   }
 
+  // Documentos anexados aos pedidos de licença (referência fraca por arquivoId).
+  const licencaArquivoIds = solicitacoesLicencaRows
+    .map((s) => s.arquivoId)
+    .filter((x): x is string => !!x);
+  const licencaArquivos = licencaArquivoIds.length
+    ? await prisma.arquivo.findMany({
+        where: { id: { in: licencaArquivoIds }, organizacaoId: user.organizacaoId },
+        select: { id: true, nome: true },
+      })
+    : [];
+  const licencaArquivoMap = new Map(licencaArquivos.map((a) => [a.id, a]));
+
   const parseNivelCarta = (t: string | null): NivelFormativo =>
     t?.startsWith("carta_etapa:") ? (t.slice("carta_etapa:".length) as NivelFormativo) : "vocacional";
 
@@ -185,6 +197,7 @@ export default async function FormandoDetailPage({
         id: s.id,
         solicitadoEm: s.solicitadoEm.toISOString(),
         motivo: s.motivo,
+        arquivo: s.arquivoId ? licencaArquivoMap.get(s.arquivoId) ?? null : null,
       }))}
       processosEclesiasticos={processosEclesiasticosRows.map((p) => ({
         id: p.id,

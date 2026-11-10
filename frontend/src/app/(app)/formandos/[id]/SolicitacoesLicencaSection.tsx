@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { PlaneTakeoff, FileText, X } from "lucide-react";
+import { PlaneTakeoff, FileText, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { NivelFormativo } from "@/types";
@@ -12,6 +12,7 @@ export interface SolicitacaoLicencaItem {
   id: string;
   solicitadoEm: string; // ISO
   motivo: string | null;
+  arquivo: { id: string; nome: string } | null;
 }
 
 const fmtData = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
@@ -114,6 +115,16 @@ export function SolicitacoesLicencaSection({
               <p className="whitespace-pre-wrap rounded-md bg-background/60 px-3 py-2 text-sm text-foreground">
                 “{s.motivo}”
               </p>
+            )}
+            {s.arquivo && (
+              <a
+                href={`/api/arquivos/${s.arquivo.id}?download=1`}
+                download={s.arquivo.nome}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/60 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-background"
+              >
+                <Download className="h-4 w-4 text-primary" />
+                Baixar documento do pedido
+              </a>
             )}
             <p className="text-xs text-muted-foreground">
               O pedido é só a manifestação de vontade. Converse com a pessoa; havendo discernimento

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, HeartHandshake, PlaneTakeoff, Info, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, HeartHandshake, PlaneTakeoff, Info, Loader2, Paperclip, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +22,7 @@ export default function SolicitacoesClient({
   branding: PublicBranding;
   audiencia: PortalAudiencia;
   acompanhamentoPendente: boolean;
-  licenca: { motivo: string | null; solicitadoEm: string } | null;
+  licenca: { motivo: string | null; solicitadoEm: string; temArquivo: boolean } | null;
 }) {
   const router = useRouter();
   const communityName = branding.nomePlataforma ?? branding.nome;
@@ -59,10 +59,30 @@ export default function SolicitacoesClient({
   }
 
   // ── Licença ─────────────────────────────────────────────────────────────────
-  const [licencaPendente, setLicencaPendente] = useState<{ motivo: string | null; solicitadoEm: string } | null>(licenca);
+  const [licencaPendente, setLicencaPendente] = useState<{ motivo: string | null; solicitadoEm: string; temArquivo: boolean } | null>(licenca);
   const [motivo, setMotivo] = useState("");
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [licencaBusy, setLicencaBusy] = useState(false);
   const [licencaErro, setLicencaErro] = useState<string | null>(null);
+
+  const MAX_BYTES = 15 * 1024 * 1024;
+
+  function onPickArquivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    if (f && f.size > MAX_BYTES) {
+      setLicencaErro("Arquivo muito grande (máx. 15 MB).");
+      e.target.value = "";
+      return;
+    }
+    setLicencaErro(null);
+    setArquivo(f);
+  }
+
+  function removerArquivo() {
+    setArquivo(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
   async function solicitarLicenca() {
     const m = motivo.trim();
@@ -73,18 +93,18 @@ export default function SolicitacoesClient({
     setLicencaBusy(true);
     setLicencaErro(null);
     try {
-      const res = await fetch("/api/portal/licenca/solicitar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ motivo: m }),
-      });
+      const fd = new FormData();
+      fd.append("motivo", m);
+      if (arquivo) fd.append("arquivo", arquivo);
+      const res = await fetch("/api/portal/licenca/solicitar", { method: "POST", body: fd });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setLicencaErro(data?.error ?? "Não foi possível enviar. Tente novamente.");
         return;
       }
-      setLicencaPendente({ motivo: m, solicitadoEm: new Date().toISOString() });
+      setLicencaPendente({ motivo: m, solicitadoEm: new Date().toISOString(), temArquivo: !!arquivo });
       setMotivo("");
+      removerArquivo();
     } catch {
       setLicencaErro("Falha de conexão. Tente novamente.");
     } finally {
@@ -109,7 +129,7 @@ export default function SolicitacoesClient({
     <div className="min-h-screen bg-muted/30">
       {/* Header — mesmo padrão do dashboard/perfil */}
       <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {branding.logoUrl ? (
               <img src={branding.logoUrl} alt={communityName} className="h-7 max-w-[120px] object-contain" />
@@ -131,7 +151,7 @@ export default function SolicitacoesClient({
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-4 px-4 py-6">
+      <main className="mx-auto max-w-6xl space-y-4 px-4 py-6">
         <div>
           <h1 className="text-xl font-bold text-foreground">Solicitações</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -150,6 +170,7 @@ export default function SolicitacoesClient({
           </p>
         </div>
 
+        <div className="grid items-start gap-4 lg:grid-cols-2">
         {/* ── Acompanhamento comunitário ── */}
         <Card>
           <CardHeader>
@@ -210,6 +231,11 @@ export default function SolicitacoesClient({
                   Enviado em {fmtData.format(new Date(licencaPendente.solicitadoEm))}
                   {licencaPendente.motivo ? ` · “${licencaPendente.motivo}”` : ""}
                 </p>
+                {licencaPendente.temArquivo && (
+                  <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Paperclip className="h-3.5 w-3.5" /> Documento anexado.
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={cancelarLicenca}
@@ -235,6 +261,49 @@ export default function SolicitacoesClient({
                   rows={4}
                   disabled={licencaBusy}
                 />
+
+                {/* Documento opcional que formaliza o pedido (ex.: carta assinada). */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Documento do pedido <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
+                    onChange={onPickArquivo}
+                    disabled={licencaBusy}
+                    className="hidden"
+                    id="arquivo-licenca"
+                  />
+                  {arquivo ? (
+                    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+                      <Paperclip className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="min-w-0 flex-1 truncate">{arquivo.name}</span>
+                      <button
+                        type="button"
+                        onClick={removerArquivo}
+                        disabled={licencaBusy}
+                        aria-label="Remover arquivo"
+                        className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={licencaBusy}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      Anexar documento
+                    </Button>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">PDF ou imagem, até 15 MB.</p>
+                </div>
+
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] text-muted-foreground">{motivo.length}/2000</span>
                   <Button onClick={solicitarLicenca} disabled={licencaBusy} className="gap-1.5">
@@ -247,6 +316,7 @@ export default function SolicitacoesClient({
             )}
           </CardContent>
         </Card>
+        </div>
 
         <p className="pt-2 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} {communityName}
