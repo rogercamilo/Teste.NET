@@ -237,7 +237,19 @@ jobs:
         run: npx prisma migrate deploy
 
       - name: Install Playwright browser (chromium)
-        run: npx playwright install --with-deps chromium
+        # `--with-deps` roda apt-get para as libs do sistema; o mirror do Ubuntu
+        # (azure.archive.ubuntu.com) falha de forma intermitente nos runners e
+        # derrubava o E2E inteiro — e, por tabela, o deploy (gate = ci + e2e).
+        # Retentamos algumas vezes e, se o apt seguir indisponível, caímos para a
+        # instalação só do browser (as libs do Chromium já existem no ubuntu-latest).
+        run: |
+          for i in 1 2 3; do
+            npx playwright install --with-deps chromium && exit 0
+            echo "Tentativa $i do install com --with-deps falhou (provável flake de rede do apt). Retentando em 20s..."
+            sleep 20
+          done
+          echo "apt indisponível após as tentativas; fallback para o browser sem --with-deps."
+          npx playwright install chromium
 
       - name: Run E2E tests
         run: npm run test:e2e
