@@ -238,7 +238,9 @@ export function RelatorioDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      {/* Sobrepõe o `sm:max-w-sm` padrão do DialogContent (que prendia o modal em
+          384px e espremia as duas colunas); amplo no desktop p/ dossiê + parecer. */}
+      <DialogContent className="max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-w-2xl lg:max-w-5xl">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
