@@ -40,6 +40,7 @@ import {
 } from "@/types";
 import { NivelFormativoIcon } from "@/components/nivel-formativo-icon";
 import { RelatorioDialog } from "./RelatorioDialog";
+import { IdentificacaoFormandoCard } from "@/components/relatorios/IdentificacaoFormandoCard";
 import { LeiturasManager, type Leitura } from "@/components/leituras/LeiturasManager";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -98,6 +99,7 @@ import {
   Flag,
   GitBranch,
   Home,
+  IdCard,
   Info,
   LayoutGrid,
   List,
@@ -294,6 +296,7 @@ export default function GrupoFormacaoDetail({
   const [relatorioFormando, setRelatorioFormando] = useState<Formando | null>(null);
   const [relatorioSelecionado, setRelatorioSelecionado] = useState<RelatorioEtapa | null>(null);
   const [expandedRelatorioId, setExpandedRelatorioId] = useState<string | null>(null);
+  const [identFormando, setIdentFormando] = useState<Formando | null>(null);
 
   function abrirRelatorio(formando: Formando) {
     const rel = relatorios.find(
@@ -2162,6 +2165,21 @@ export default function GrupoFormacaoDetail({
                               </>
                             ) : rel ? "Editar" : "Iniciar"}
                           </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setIdentFormando(formando)}>
+                                <IdCard className="h-4 w-4 mr-2" /> Identificação visual
+                              </DropdownMenuItem>
+                              {rel?.status === "finalizado" && (
+                                <DropdownMenuItem onClick={() => window.open(`/api/relatorios/${rel.id}/pdf`, "_blank")}>
+                                  <FileText className="h-4 w-4 mr-2" /> Baixar dossiê (PDF)
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
 
@@ -2645,6 +2663,34 @@ export default function GrupoFormacaoDetail({
           onSaved={onRelatorioSaved}
         />
       )}
+
+      {/* Identificação visual */}
+      <Dialog open={!!identFormando} onOpenChange={(v) => { if (!v) setIdentFormando(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Identificação visual</DialogTitle>
+          </DialogHeader>
+          {identFormando && (
+            <>
+              <IdentificacaoFormandoCard
+                formando={identFormando}
+                etapaLabel={etapaLabels[identFormando.nivelFormativo]}
+                grupoNome={grupoFormacao.nome}
+              />
+              <DialogFooter>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => window.open(`/api/relatorios/identificacao/${identFormando.id}/pdf`, "_blank")}
+                >
+                  <Download className="h-3.5 w-3.5" /> Baixar PDF
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

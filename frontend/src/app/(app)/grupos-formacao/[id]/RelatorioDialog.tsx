@@ -62,6 +62,13 @@ function buildForm(r: RelatorioEtapa | null): FormState {
 const NOTAS: NotaAdesao[] = ["otima", "boa", "regular", "insuficiente"];
 const RECOMENDACOES: RecomendacaoEtapa[] = ["avanca", "repete", "licenca", "desligamento"];
 
+/** Formata YYYY-MM-DD (ou ISO) como DD/MM/YYYY sem Date (evita deslocar o dia em fuso negativo). */
+function fmtDataBr(iso?: string | null): string {
+  if (!iso) return "?";
+  const p = iso.slice(0, 10).split("-");
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso;
+}
+
 export function RelatorioDialog({
   open, onClose, formando, nivelFormativo, relatorio, onSaved,
 }: RelatorioDialogProps) {
@@ -342,9 +349,9 @@ export function RelatorioDialog({
                     </p>
                     {dossie.licencas.map((l, i) => (
                       <div key={i} className="text-muted-foreground">
-                        {l.inicio ? new Date(l.inicio).toLocaleDateString("pt-BR") : "?"}
+                        {fmtDataBr(l.inicio)}
                         {" — "}
-                        {l.fim ? new Date(l.fim).toLocaleDateString("pt-BR") : "em aberto"}
+                        {l.fim ? fmtDataBr(l.fim) : "em aberto"}
                         {l.dias != null ? ` · ${l.dias} dia${l.dias === 1 ? "" : "s"}` : ""}
                       </div>
                     ))}
