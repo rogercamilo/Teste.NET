@@ -407,6 +407,8 @@ export interface RelatorioEtapa {
   id: string;
   formandoId: string;
   formadorId: string;
+  /** Nome do formador autor — para transparência de autoria no parecer. */
+  formadorNome?: string;
   nivelFormativo: NivelFormativo;
   avaliacaoHumana?: NotaAdesao;
   avaliacaoEspiritual?: NotaAdesao;

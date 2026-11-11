@@ -353,11 +353,13 @@ export type PrismaRelatorio = {
   avaliacaoComunitaria: string | null; textoNarrativo: string | null;
   pontosForteza: string | null; desafios: string | null; recomendacao: string | null;
   textoRecomendacao: string | null; status: string; criadoEm: Date; atualizadoEm: Date;
+  formador?: { nome: string } | null;
 };
 
 export function toRelatorio(r: PrismaRelatorio): RelatorioEtapa {
   return {
     id: r.id, formandoId: r.formandoId, formadorId: r.formadorId,
+    formadorNome: r.formador?.nome ?? undefined,
     nivelFormativo: r.nivelFormativo as NivelFormativo,
     avaliacaoHumana: r.avaliacaoHumana as NotaAdesao | undefined ?? undefined,
     avaliacaoEspiritual: r.avaliacaoEspiritual as NotaAdesao | undefined ?? undefined,

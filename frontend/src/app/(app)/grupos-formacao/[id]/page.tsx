@@ -109,6 +109,7 @@ export default async function GrupoFormacaoDetailPage({
       }),
       prisma.relatorioEtapa.findMany({
         where: { organizacaoId: orgId, formando: { grupoFormacaoId: id } },
+        include: { formador: { select: { nome: true } } },
       }),
       prisma.leituraVocacional.findMany({
         where: { turmaId: id, organizacaoId: orgId },

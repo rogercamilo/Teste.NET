@@ -2231,6 +2231,15 @@ export default function GrupoFormacaoDetail({
                               </div>
                             </div>
                           )}
+
+                          {/* Autoria + data de finalização (transparência) */}
+                          <div className="flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-3 text-xs text-muted-foreground">
+                            <Lock className="h-3 w-3" />
+                            Parecer finalizado
+                            {rel.formadorNome ? <> por <span className="font-medium text-foreground">{rel.formadorNome}</span></> : null}
+                            {" · "}
+                            {format(parseISO(rel.atualizadoEm), "d 'de' MMM 'de' yyyy", { locale: ptBR })}
+                          </div>
                         </div>
                       )}
                     </CardContent>

@@ -1,7 +1,8 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTermos } from "@/lib/data-store";
+import type { DossieFormando } from "@/lib/relatorios/dossie-formando";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -69,9 +70,43 @@ export function RelatorioDialog({
   const [saving, setSaving] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
   const [confirmFinalizar, setConfirmFinalizar] = useState(false);
+  const [dossie, setDossie] = useState<DossieFormando | null>(null);
+  const [dossieLoading, setDossieLoading] = useState(false);
+  const [notasSugeridas, setNotasSugeridas] = useState(false);
 
   const isFinalizado = relatorio?.status === "finalizado";
   const readonly = isFinalizado;
+
+  // Carrega o dossiê consolidado da etapa (presença, requisitos, 1:1, licenças) e,
+  // num relatório novo, pré-preenche as 3 notas a partir das perspectivas da ficha.
+  useEffect(() => {
+    if (!open) return;
+    let cancelado = false;
+    setDossieLoading(true);
+    fetch(`/api/relatorios/dossie/${formando.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: DossieFormando | null) => {
+        if (cancelado || !d) return;
+        setDossie(d);
+        if (!relatorio) {
+          const sug = d.perspectivasSugeridas ?? {};
+          setForm((prev) => {
+            const next = { ...prev };
+            let mudou = false;
+            if (!prev.avaliacaoHumana && sug.humana) { next.avaliacaoHumana = sug.humana; mudou = true; }
+            if (!prev.avaliacaoEspiritual && sug.espiritual) { next.avaliacaoEspiritual = sug.espiritual; mudou = true; }
+            if (!prev.avaliacaoComunitaria && sug.comunitaria) { next.avaliacaoComunitaria = sug.comunitaria; mudou = true; }
+            if (mudou) setNotasSugeridas(true);
+            return mudou ? next : prev;
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelado) setDossieLoading(false); });
+    return () => { cancelado = true; };
+  }, [open, formando.id, relatorio]);
+
+  const avancoBloqueado = form.recomendacao === "avanca" && dossie != null && !dossie.prontoParaAvancar;
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -208,6 +243,14 @@ export function RelatorioDialog({
               <p className="text-xs text-muted-foreground">
                 {NIVEL_FORMATIVO_LABELS[nivelFormativo]} — Relatório de Etapa
               </p>
+              {dossie && (dossie.identificacao.idade != null || dossie.identificacao.estadoCivilLabel) && (
+                <p className="text-xs text-muted-foreground">
+                  {[
+                    dossie.identificacao.idade != null ? `${dossie.identificacao.idade} anos` : null,
+                    dossie.identificacao.estadoCivilLabel,
+                  ].filter(Boolean).join(" · ")}
+                </p>
+              )}
             </div>
             {relatorio && (
               <Badge
@@ -222,11 +265,105 @@ export function RelatorioDialog({
         </DialogHeader>
 
         <div className="space-y-5 py-1">
+          {/* Dossiê consolidado da etapa (read-only) — lastro factual do discernimento */}
+          {dossieLoading && !dossie && (
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+              Carregando dados consolidados da etapa…
+            </div>
+          )}
+          {dossie && (
+            <section className="space-y-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Situação na etapa
+              </h3>
+
+              {/* Presença total + por categoria */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-foreground">Presença total</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {dossie.presencaTotal.pct != null ? `${dossie.presencaTotal.pct}%` : "—"}
+                    {" · "}{dossie.presencaTotal.presentes}/{dossie.presencaTotal.total}
+                  </span>
+                </div>
+                {dossie.presencaPorCategoria.map((c) => (
+                  <div key={c.chave} className="flex items-center justify-between text-xs pl-2">
+                    <span className="text-muted-foreground">{c.label}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {c.contagemSimples
+                        ? `${c.presentes}/${c.total}`
+                        : `${c.pct != null ? `${c.pct}%` : "—"} · ${c.presentes}/${c.total}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Requisitos da etapa */}
+              <div className="space-y-1 border-t border-border/50 pt-2">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Requisitos da etapa</p>
+                {([
+                  ["Formações comunitárias", dossie.requisitos.formacoesComunitarias],
+                  ["Retiros comunitários", dossie.requisitos.retirosComunitarios],
+                  ["Retiros pessoais", dossie.requisitos.retirosPessoais],
+                ] as const).map(([label, r]) => (
+                  <div key={label} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className={cn("tabular-nums", r.done >= r.req ? "text-emerald-700 font-medium" : "text-muted-foreground")}>
+                      {r.done}/{r.req}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Prontidão + acompanhamento 1:1 */}
+              <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-2 text-xs">
+                {dossie.prontoParaAvancar ? (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700 border border-emerald-200">
+                    <CheckCircle2 className="h-3 w-3" /> Requisitos cumpridos
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 font-medium text-muted-foreground border border-border">
+                    <AlertCircle className="h-3 w-3" /> Requisitos incompletos
+                  </span>
+                )}
+                <span className="text-muted-foreground">
+                  Acompanhamento 1:1: <span className="font-medium text-foreground">{dossie.acompanhamento1a1.realizados}</span> realizado{dossie.acompanhamento1a1.realizados === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              {/* Licenças no período */}
+              <div className="border-t border-border/50 pt-2 text-xs">
+                {dossie.totalLicencas === 0 ? (
+                  <span className="text-muted-foreground">Sem licenças de afastamento registradas.</span>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      Licenças de afastamento ({dossie.totalLicencas})
+                    </p>
+                    {dossie.licencas.map((l, i) => (
+                      <div key={i} className="text-muted-foreground">
+                        {l.inicio ? new Date(l.inicio).toLocaleDateString("pt-BR") : "?"}
+                        {" — "}
+                        {l.fim ? new Date(l.fim).toLocaleDateString("pt-BR") : "em aberto"}
+                        {l.dias != null ? ` · ${l.dias} dia${l.dias === 1 ? "" : "s"}` : ""}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Avaliação por perspectiva */}
           <section className="space-y-3">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Avaliação por Perspectiva
             </h3>
+            {notasSugeridas && !readonly && (
+              <p className="text-[11px] text-muted-foreground -mt-1">
+                Notas pré-preenchidas a partir das perspectivas da ficha. Confirme ou ajuste.
+              </p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {(["humana", "espiritual", "comunitaria"] as const).map((p) => {
                 const field = `avaliacao${p.charAt(0).toUpperCase()}${p.slice(1)}` as keyof FormState;
@@ -354,6 +491,16 @@ export function RelatorioDialog({
                 </Select>
               )}
             </div>
+            {!readonly && avancoBloqueado && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-800">
+                  A recomendação é <span className="font-medium">avançar de etapa</span>, mas os requisitos
+                  objetivos da etapa ainda estão <span className="font-medium">incompletos</span>. Revise a
+                  situação acima ou justifique nas observações antes de finalizar.
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label className="text-xs">Observações sobre a recomendação</Label>
               {readonly ? (

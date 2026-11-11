@@ -50,6 +50,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatPhone, applyPhoneMask, stripPhone, resolveImageSrc, idadeEmAnos } from "@/lib/utils";
+import { consolidarPerspectivas } from "@/lib/parecer-consolidado";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -519,32 +520,10 @@ export default function FormandoDetailClient({
   const avaliacoesRealizadas = formandoEventos.filter((e) => e.tipo === "avaliacao-adesao");
   const ultimaAvaliacao = avaliacoesRealizadas[0];
 
-  // Parecer consolidado do quadro geral: racional da média GERAL das perspectivas.
-  // Dois níveis de média (não pondera perspectiva mais avaliada): (1) média de
-  // TODAS as notas lançadas em cada perspectiva (humana/espiritual/comunitária);
-  // (2) média dessas médias por perspectiva → banda da escala ordinal. Reflete o
-  // conjunto da caminhada, não só o último registro de cada perspectiva.
-  const NOTA_PESO: Record<NotaAdesao, number> = { insuficiente: 1, regular: 2, boa: 3, otima: 4 };
-  const mediasPorPerspectiva = PERSPECTIVAS.map((persp) => {
-    const notas = formandoEventos
-      .filter((e) => e.tipo === "avaliacao-adesao" && e.perspectiva === persp && e.notaAdesao)
-      .map((e) => NOTA_PESO[e.notaAdesao!]);
-    return notas.length > 0 ? notas.reduce((s, n) => s + n, 0) / notas.length : null;
-  }).filter((m): m is number => m !== null);
-  const parecerConsolidado =
-    mediasPorPerspectiva.length > 0
-      ? (() => {
-          const media = mediasPorPerspectiva.reduce((s, m) => s + m, 0) / mediasPorPerspectiva.length;
-          const nota: NotaAdesao =
-            media >= 3.5 ? "otima" : media >= 2.5 ? "boa" : media >= 1.5 ? "regular" : "insuficiente";
-          const data = formandoEventos
-            .filter((e) => e.tipo === "avaliacao-adesao" && e.perspectiva && e.notaAdesao)
-            .map((e) => e.criadoEm)
-            .sort()
-            .at(-1)!;
-          return { nota, data, avaliadas: mediasPorPerspectiva.length };
-        })()
-      : null;
+  // Parecer consolidado do quadro geral: média GERAL das perspectivas. Régua única
+  // em `lib/parecer-consolidado` — a MESMA que o dossiê do Relatório de Etapa usa,
+  // para ficha e relatório nunca divergirem.
+  const parecerConsolidado = consolidarPerspectivas(formandoEventos);
 
   const presencaPorEtapa = (nivel: string) => {
     const regs = presencas.filter((h) => h.nivelFormativo === nivel);
