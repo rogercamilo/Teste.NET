@@ -5,6 +5,7 @@
   Building2,
   Calendar,
   DollarSign,
+  FileBarChart,
   FolderOpen,
   Gift,
   Home,
@@ -57,6 +58,7 @@ export const navGroupsGestao: NavGroup[] = [
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { title: "Agenda", href: "/agenda", icon: Calendar },
+      { title: "Relatórios", href: "/relatorios", icon: FileBarChart },
     ],
   },
   {
@@ -270,6 +272,7 @@ export const navGroupsFormador: NavGroup[] = [
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { title: "Agenda", href: "/agenda", icon: Calendar },
+      { title: "Relatórios", href: "/relatorios", icon: FileBarChart },
     ],
   },
   {

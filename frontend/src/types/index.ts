@@ -735,6 +735,7 @@ export function podeElaborarConteudo(role: string | undefined): boolean {
 export const FORMADOR_PEDAGOGICO_ROTAS_BLOQUEADAS: string[] = [
   "/grupos-formacao",
   "/formandos",
+  "/relatorios",
   "/documentos",
   "/jornada-vocacional",
   "/vocacional",
