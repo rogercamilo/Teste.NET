@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle2, FileText, Lock } from "lucide-react";
+import { AlertCircle, CheckCircle2, ClipboardCheck, FileText, Lock } from "lucide-react";
 import { cn, resolveImageSrc } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -238,7 +238,7 @@ export function RelatorioDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
@@ -271,16 +271,18 @@ export function RelatorioDialog({
           </div>
         </DialogHeader>
 
-        <div className="space-y-5 py-1">
-          {/* Dossiê consolidado da etapa (read-only) — lastro factual do discernimento */}
+        <div className="grid gap-6 py-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+          {/* Coluna esquerda — dossiê consolidado (contexto factual do discernimento) */}
+          <aside className="min-w-0 space-y-4 lg:border-r lg:border-border/60 lg:pr-6">
           {dossieLoading && !dossie && (
-            <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
               Carregando dados consolidados da etapa…
             </div>
           )}
           {dossie && (
-            <section className="space-y-3 rounded-lg border border-border/60 bg-muted/30 p-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <section className="space-y-3 rounded-xl border border-border/60 bg-muted/30 p-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
                 Situação na etapa
               </h3>
 
@@ -360,7 +362,10 @@ export function RelatorioDialog({
               </div>
             </section>
           )}
+          </aside>
 
+          {/* Coluna direita — parecer do formador */}
+          <div className="min-w-0 space-y-5">
           {/* Avaliação por perspectiva */}
           <section className="space-y-3">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -555,6 +560,7 @@ export function RelatorioDialog({
               </div>
             </div>
           )}
+          </div>
         </div>
 
         <DialogFooter className="gap-2">
