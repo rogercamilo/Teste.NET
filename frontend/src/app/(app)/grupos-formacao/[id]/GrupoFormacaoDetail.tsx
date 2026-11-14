@@ -41,6 +41,7 @@ import {
 import { NivelFormativoIcon } from "@/components/nivel-formativo-icon";
 import { RelatorioDialog } from "./RelatorioDialog";
 import { IdentificacaoFormandoCard } from "@/components/relatorios/IdentificacaoFormandoCard";
+import { CarometroGrupoGrid } from "@/components/relatorios/CarometroGrupoGrid";
 import { LeiturasManager, type Leitura } from "@/components/leituras/LeiturasManager";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -66,6 +67,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -297,6 +299,7 @@ export default function GrupoFormacaoDetail({
   const [relatorioSelecionado, setRelatorioSelecionado] = useState<RelatorioEtapa | null>(null);
   const [expandedRelatorioId, setExpandedRelatorioId] = useState<string | null>(null);
   const [identFormando, setIdentFormando] = useState<Formando | null>(null);
+  const [carometroOpen, setCarometroOpen] = useState(false);
 
   function abrirRelatorio(formando: Formando) {
     const rel = relatorios.find(
@@ -2107,6 +2110,23 @@ export default function GrupoFormacaoDetail({
             </div>
           </div>
 
+          {formandosDaMorada.some((f) => f.ativo) && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-card p-3">
+              <div className="flex items-center gap-2">
+                <IdCard className="h-4 w-4 shrink-0 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Reconhecimento visual da turma</p>
+                  <p className="text-xs text-muted-foreground">
+                    Carômetro com a foto de todos os {termoFormando.toLowerCase()}s ativos, num só lugar.
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" className="gap-1.5" onClick={() => setCarometroOpen(true)}>
+                <IdCard className="h-3.5 w-3.5" /> Carômetro do grupo
+              </Button>
+            </div>
+          )}
+
           {formandosDaMorada.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -2689,6 +2709,32 @@ export default function GrupoFormacaoDetail({
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Carômetro consolidado do grupo */}
+      <Dialog open={carometroOpen} onOpenChange={setCarometroOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Carômetro — {grupoFormacao.nome}</DialogTitle>
+            <DialogDescription>
+              Reconhecimento visual de todos os {termoFormando.toLowerCase()}s ativos desta {termoGrupoFormacao.toLowerCase()}.
+            </DialogDescription>
+          </DialogHeader>
+          <CarometroGrupoGrid
+            formandos={formandosDaMorada.filter((f) => f.ativo)}
+            etapaLabels={etapaLabels}
+          />
+          <DialogFooter>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => window.open(`/api/grupos-formacao/${grupoFormacao.id}/carometro/pdf`, "_blank")}
+            >
+              <Download className="h-3.5 w-3.5" /> Baixar PDF
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

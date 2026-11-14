@@ -46,6 +46,7 @@ export type AuditAction =
   | "relatorio_grupo_exportado"
   | "relatorio_etapa_pdf_exportado"
   | "identificacao_visual_pdf_exportado"
+  | "carometro_grupo_pdf_exportado"
   | "relatorio_exportado"
   | "progresso_etapa_updated"
   | "formando_created"
