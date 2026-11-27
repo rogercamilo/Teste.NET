@@ -9,6 +9,7 @@ import { SessionUser as SU } from "@/lib/auth-helpers";
 
 import { toPresenca } from "@/lib/converters";
 import { CreatePresencaSchema, parseJson } from "@/lib/schemas";
+import { recomputeProgressoPresenca } from "@/lib/progresso-presenca.server";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -98,6 +99,14 @@ export async function POST(request: Request) {
       },
     });
     logAction("presenca_registrada", user.id, getClientIp(request), { agendamentoId: body.agendamentoId, formandoId: body.formandoId }, user.organizacaoId);
+
+    // Presença alimenta o progresso da etapa; recalcula após gravar sem derrubar o POST.
+    try {
+      await recomputeProgressoPresenca(user.organizacaoId, [body.formandoId]);
+    } catch (e) {
+      logError("presencas recomputeProgresso", e);
+    }
+
     return NextResponse.json(toPresenca(row), { status: 201 });
   } catch (err) {
     logError("presencas", err);

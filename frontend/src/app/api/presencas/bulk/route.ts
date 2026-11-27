@@ -6,6 +6,7 @@ import { limiters } from "@/lib/rate-limit";
 import { SessionUser as SU } from "@/lib/auth-helpers";
 import { toPresenca } from "@/lib/converters";
 import { BulkPresencaSchema, parseJson } from "@/lib/schemas";
+import { recomputeProgressoPresenca } from "@/lib/progresso-presenca.server";
 
 // Chamada em lote de uma sessão: recebe várias marcações e as grava numa
 // transação única (evita N requests do cliente, que estouram o rate-limit).
@@ -66,6 +67,15 @@ export async function POST(request: Request) {
 
     const rows = await prisma.$transaction(ops);
     logAction("presenca_lote_registrada", user.id, getClientIp(request), { agendamentoId, total: rows.length }, user.organizacaoId);
+
+    // Presença alimenta o progresso da etapa (formações/retiros comunitários).
+    // Recalcula após gravar; falha aqui não invalida a chamada já salva.
+    try {
+      await recomputeProgressoPresenca(user.organizacaoId, validas.map((m) => m.formandoId));
+    } catch (e) {
+      logError("presencas/bulk recomputeProgresso", e);
+    }
+
     return NextResponse.json(rows.map(toPresenca), { status: 200 });
   } catch (err) {
     logError("presencas/bulk", err);

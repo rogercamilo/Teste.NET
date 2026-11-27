@@ -53,6 +53,7 @@ import {
   estaAtrasadoNoRitmo,
   duracaoAnosEtapa,
 } from "@/lib/jornada-progresso";
+import { classificarEventoProgresso, presencaCumprida } from "@/lib/progresso-presenca";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -287,6 +288,8 @@ export default function GrupoFormacaoDetail({
 
   const [agendamentoId, setAgendamentoId] = useState<string>("");
   const [presencaView, setPresencaView] = useState<"chamada" | "grade">("chamada");
+  // Filtro da Grade: "todos" = visão geral (todos os encontros); id = um encontro.
+  const [gradeFiltroId, setGradeFiltroId] = useState<string>("todos");
   const [savingChamada, setSavingChamada] = useState(false);
   const [comentarioOpen, setComentarioOpen] = useState(false);
   const [novoFormandoId, setNovoFormandoId] = useState("");
@@ -368,10 +371,21 @@ export default function GrupoFormacaoDetail({
       a.nivelFormativo === grupoFormacao.nivelFormativo
     );
   });
-  // Concluídas — para a taxa de presença e o card "Realizadas" (eventos que já ocorreram).
+  // Realizadas — eventos que já ocorreram (para o diário/grade e a taxa de
+  // presença). "Ocorreu" = não cancelado E (marcado como realizada/confirmada OU
+  // com data já no passado). Assim um encontro cuja chamada foi feita, mas que
+  // segue "agendada", ainda aparece no diário de presença (item do relato).
+  const inicioDeHoje = new Date();
+  inicioDeHoje.setHours(0, 0, 0, 0);
   const realizadas = agendamentosDaMorada.filter(
-    (a) => a.status === "realizada" || a.status === "confirmada"
+    (a) =>
+      a.status !== "cancelada" &&
+      (a.status === "realizada" ||
+        a.status === "confirmada" ||
+        parseISO(a.dataInicio).getTime() <= inicioDeHoje.getTime() + 86_400_000 - 1)
   );
+  // Mapa id → agendamento (nível/tipo do evento) p/ casar presença ao requisito.
+  const agendamentoById = new Map(agendamentosDaMorada.map((a) => [a.id, a]));
   // Disponíveis para marcar/confirmar presença: tudo que não foi cancelado,
   // incluindo as ainda "agendada" — o FC indica presença e o formando confirma
   // pelo portal / web push antes do encontro.
@@ -387,9 +401,39 @@ export default function GrupoFormacaoDetail({
   // ── Painel "Jornada" (item 3.1): funil, progresso e "quem parou" ──
   // Sem useMemo manual: o React Compiler memoiza automaticamente.
   const jornadaAtivos = formandosDaMorada.filter((f) => f.ativo);
+  // Progresso da etapa ao vivo: a presença marcada (incl. a confirmada pelo portal
+  // e aplicada pelo formador) alimenta formações/retiros comunitários realizados.
+  // Recalcula a partir do estado local `presencas` para refletir na hora, antes do
+  // servidor persistir o contador (recomputeProgressoPresenca). Casa cada presença
+  // ao nível do próprio evento, para não contar etapa anterior após promoção.
+  function progressoEtapasAoVivo(f: Formando): typeof f.progressoEtapas {
+    let formacoes = 0;
+    let retiros = 0;
+    for (const p of presencas) {
+      if (p.formandoId !== f.id || !presencaCumprida(p)) continue;
+      const ag = agendamentoById.get(p.agendamentoId);
+      if (!ag || ag.nivelFormativo !== f.nivelFormativo) continue;
+      const classe = classificarEventoProgresso(ag.tipoEvento);
+      if (classe === "formacao") formacoes++;
+      else if (classe === "retiro") retiros++;
+    }
+    const base = f.progressoEtapas ?? [];
+    const atual = base.find((p) => p.nivel === f.nivelFormativo);
+    const ajustado = {
+      nivel: f.nivelFormativo,
+      formacoesComunitariasRealizadas: formacoes,
+      retirosComunitariosRealizados: retiros,
+      retirosPessoaisRealizados: atual?.retirosPessoaisRealizados ?? 0,
+      iniciouEm: atual?.iniciouEm,
+      concluiuEm: atual?.concluiuEm,
+      dataMissaCompromisso: atual?.dataMissaCompromisso,
+    };
+    return atual ? base.map((p) => (p.nivel === f.nivelFormativo ? ajustado : p)) : [...base, ajustado];
+  }
   const jornadaMembros = jornadaAtivos.map((f) => {
-    const { done, total, pct } = progressoNaEtapa(f.nivelFormativo, f.progressoEtapas);
-    const podeAvancar = podeAvancarEtapa(f);
+    const progressoEtapas = progressoEtapasAoVivo(f);
+    const { done, total, pct } = progressoNaEtapa(f.nivelFormativo, progressoEtapas);
+    const podeAvancar = podeAvancarEtapa({ ...f, progressoEtapas });
     // Motivos de atenção (ritmo atrasado e/ou presença baixa)
     const prog = (f.progressoEtapas ?? []).find((p) => p.nivel === f.nivelFormativo);
     const meses = mesesEntre(prog?.iniciouEm);
@@ -1781,19 +1825,49 @@ export default function GrupoFormacaoDetail({
                 </Card>
               ) : (
                 (() => {
-                  const sessoes = [...realizadas].sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
+                  // Grade: por padrão a visão GERAL (todos os encontros realizados,
+                  // em ordem cronológica). O seletor permite estreitar para um único
+                  // encontro — aí a grade mostra só a coluna daquele dia.
+                  const cronologicas = [...realizadas].sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
+                  const filtroValido = gradeFiltroId !== "todos" && cronologicas.some((a) => a.id === gradeFiltroId);
+                  const sessoes = filtroValido ? cronologicas.filter((a) => a.id === gradeFiltroId) : cronologicas;
+                  // Seletor em ordem do mais recente para o mais antigo.
+                  const recentes = [...cronologicas].reverse();
                   const statusDe = (fid: string, aid: string): StatusPresenca | undefined =>
                     presencas.find((p) => p.agendamentoId === aid && p.formandoId === fid)?.statusFormador;
+                  const gradeItems: Record<string, string> = {
+                    todos: "Todos os encontros",
+                    ...Object.fromEntries(
+                      recentes.map((a) => [a.id, `${a.formacaoTema} — ${format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}`])
+                    ),
+                  };
                   return (
                     <Card className="border-0 shadow-sm">
                       <CardHeader className="pb-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <CardTitle className="text-sm font-semibold">Diário de presença</CardTitle>
-                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />Presente</span>
-                            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-red-500" />Ausente</span>
-                            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-amber-400" />Justificado</span>
-                            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-muted border border-border" />—</span>
+                        <div className="flex flex-col gap-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <CardTitle className="text-sm font-semibold">Diário de presença</CardTitle>
+                            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />Presente</span>
+                              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-red-500" />Ausente</span>
+                              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-amber-400" />Justificado</span>
+                              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-muted border border-border" />—</span>
+                            </div>
+                          </div>
+                          <div className="w-full sm:w-96">
+                            <Select value={filtroValido ? gradeFiltroId : "todos"} onValueChange={(v) => v && setGradeFiltroId(v)} items={gradeItems}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Todos os encontros" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="todos">Todos os encontros</SelectItem>
+                                {recentes.map((a) => (
+                                  <SelectItem key={a.id} value={a.id}>
+                                    {a.formacaoTema} — {format(parseISO(a.dataInicio), "dd/MM/yyyy", { locale: ptBR })}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </CardHeader>
@@ -1812,8 +1886,10 @@ export default function GrupoFormacaoDetail({
                           </thead>
                           <tbody>
                             {formandosDaMorada.map((f) => {
-                              const { pct, total } = calcPresencaFormando(f.id);
+                              // % sobre os encontros visíveis (geral = todos; filtrado = o encontro).
                               const seq = sessoes.map((s) => statusDe(f.id, s.id)).filter((st) => st === "presente" || st === "ausente");
+                              const total = seq.length;
+                              const pct = total > 0 ? Math.round((seq.filter((st) => st === "presente").length / total) * 100) : 0;
                               let consec = 0;
                               for (let i = seq.length - 1; i >= 0; i--) { if (seq[i] === "ausente") consec++; else break; }
                               const alerta = consec >= 2;
